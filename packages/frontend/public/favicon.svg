@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4A9FD4"/>
+      <stop offset="100%" style="stop-color:#1E5A8C"/>
+    </linearGradient>
+  </defs>
+  <circle cx="50" cy="50" r="48" fill="url(#bgGrad)"/>
+  <!-- Documento/caixa estilizada -->
+  <g fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Base da caixa -->
+    <path d="M25 65 L50 78 L75 65 L75 40 L50 27 L25 40 Z"/>
+    <!-- Linhas horizontais (documentos) -->
+    <path d="M30 52 L50 62 L70 52"/>
+    <path d="M30 44 L50 54 L70 44"/>
+    <path d="M30 36 L50 46 L70 36"/>
+  </g>
+</svg>

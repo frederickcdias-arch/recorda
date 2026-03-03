@@ -1,0 +1,1 @@
+{"root":["./src/index.ts","./src/api/auth.ts","./src/api/pagination.ts","./src/api/responses.ts","./src/constants/index.ts","./src/entities/colaborador.ts","./src/entities/etapa.ts","./src/entities/operacional.ts","./src/entities/processo.ts","./src/entities/producao.ts","./src/entities/usuario.ts"],"version":"5.9.3"}

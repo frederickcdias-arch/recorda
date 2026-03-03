@@ -1,0 +1,855 @@
+import PDFDocument from 'pdfkit';
+import { promises as fs } from 'fs';
+import path from 'path';
+
+export interface EmpresaConfig {
+  nome?: string;
+  logoUrl?: string;
+  exibirLogoRelatorio?: boolean;
+}
+
+interface EntregaLote {
+  codigo: string;
+  status: string;
+  auditor_nome?: string | null;
+  data_criacao?: string | null;
+  data_fechamento?: string | null;
+}
+
+interface EntregaItem {
+  ordem: number;
+  id_repositorio_ged: string;
+  orgao: string;
+  projeto: string;
+  resultado: string;
+  motivo_codigo?: string | null;
+}
+
+interface EntregaPayload {
+  lote: EntregaLote;
+  itens: EntregaItem[];
+  totais: {
+    total: number;
+    aprovados: number;
+    reprovados: number;
+  };
+  geradoEm: string;
+}
+
+interface RecebimentoPayload {
+  projeto: string;
+  responsavel: string;
+  dataConclusao?: string | null;
+  processos: Array<{
+    repositorio: string;
+    orgao: string;
+    protocolo: string;
+    interessado: string;
+    setor: string;
+    classificacao: string;
+    volume: string;
+    numeroCaixas: number;
+    caixaNova: boolean;
+    isApenso?: boolean;
+    obs: string;
+  }>;
+  geradoEm: string;
+}
+
+interface ProducaoPayload {
+  repositorio: {
+    id_repositorio_recorda: string;
+    id_repositorio_ged: string;
+    orgao: string;
+    projeto: string;
+    status_atual: string;
+    etapa_atual: string;
+    armario_codigo?: string | null;
+  };
+  registros: Array<{
+    etapa: string;
+    usuario_nome?: string | null;
+    quantidade: number;
+    marcadores?: Record<string, unknown>;
+    data_producao?: string | null;
+    checklist_id: string;
+  }>;
+  totais: {
+    totalRegistros: number;
+    totalQuantidade: number;
+  };
+  geradoEm: string;
+}
+
+interface CorrecaoPayload {
+  repositorio: {
+    id_repositorio_ged: string;
+    orgao: string;
+    projeto: string;
+  };
+  documentos: Array<{
+    protocolo: string;
+    interessado: string;
+    volume: string;
+    observacao: string | null;
+    avaliador_nome: string | null;
+  }>;
+  geradoEm: string;
+}
+
+interface DevolucaoPayload {
+  projeto: string;
+  responsavel: string;
+  processos: Array<{
+    repositorio: string;
+    orgao: string;
+    protocolo: string;
+    interessado: string;
+    setor: string;
+    classificacao: string;
+    volume: string;
+    numeroCaixas: number;
+    caixaNova: boolean;
+    isApenso?: boolean;
+    obs: string;
+  }>;
+  geradoEm: string;
+}
+
+export class OperacionalPDFService {
+  async gerarRelatorioEntrega(payload: EntregaPayload): Promise<Buffer> {
+    return new Promise((resolve, reject) => {
+      try {
+        const doc = new PDFDocument({ margin: 50, size: 'A4' });
+        const chunks: Buffer[] = [];
+
+        doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+        doc.on('end', () => resolve(Buffer.concat(chunks)));
+        doc.on('error', reject);
+
+        const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+        const marginLeft = doc.page.margins.left;
+
+        // Linha decorativa superior
+        doc.save();
+        doc.rect(marginLeft, doc.y, pageWidth, 3).fill('#1e3a5f');
+        doc.restore();
+        doc.moveDown(0.6);
+
+        // Título
+        doc.font('Helvetica-Bold').fontSize(15).fillColor('#1e3a5f')
+          .text('TERMO DE ENTREGA', { align: 'center' });
+        doc.font('Helvetica').fontSize(9).fillColor('#6b7280')
+          .text('Controle de Qualidade', { align: 'center' });
+        doc.moveDown(0.4);
+
+        // Linha fina separadora
+        doc.save();
+        doc.moveTo(marginLeft, doc.y).lineTo(marginLeft + pageWidth, doc.y)
+          .strokeColor('#d1d5db').lineWidth(0.5).stroke();
+        doc.restore();
+        doc.moveDown(0.6);
+
+        // Bloco de referência
+        const refBoxY = doc.y;
+        doc.save();
+        doc.roundedRect(marginLeft, refBoxY, pageWidth, 52, 4).fill('#f8fafc');
+        doc.restore();
+
+        doc.font('Helvetica-Bold').fontSize(8.5).fillColor('#6b7280');
+        doc.text('LOTE', marginLeft + 12, refBoxY + 8);
+        doc.text('STATUS', marginLeft + 160, refBoxY + 8);
+        doc.text('AUDITOR', marginLeft + 300, refBoxY + 8);
+
+        doc.font('Helvetica').fontSize(9.5).fillColor('#111827');
+        doc.text(payload.lote.codigo, marginLeft + 12, refBoxY + 20);
+        doc.text(payload.lote.status, marginLeft + 160, refBoxY + 20);
+        doc.text(payload.lote.auditor_nome ?? '-', marginLeft + 300, refBoxY + 20);
+
+        doc.font('Helvetica-Bold').fontSize(8.5).fillColor('#6b7280');
+        doc.text('DATA CRIAÇÃO', marginLeft + 12, refBoxY + 34);
+        doc.text('DATA FECHAMENTO', marginLeft + 160, refBoxY + 34);
+
+        doc.font('Helvetica').fontSize(9).fillColor('#374151');
+        doc.text(this.formatDateTime(payload.lote.data_criacao), marginLeft + 12, refBoxY + 44);
+        doc.text(this.formatDateTime(payload.lote.data_fechamento), marginLeft + 160, refBoxY + 44);
+
+        doc.y = refBoxY + 60;
+        doc.moveDown(0.5);
+
+        // Texto formal
+        const auditor = payload.lote.auditor_nome || 'o auditor responsável';
+        doc.font('Helvetica').fontSize(10).fillColor('#111827');
+        doc.text(
+          `Pelo presente termo, declaramos que ${auditor} realizou a auditoria de controle de qualidade do lote ${payload.lote.codigo}, conforme itens discriminados na tabela abaixo:`,
+          marginLeft, doc.y, { width: pageWidth, align: 'justify', lineGap: 3 }
+        );
+        doc.moveDown(0.6);
+
+        // Resumo (box)
+        const boxY = doc.y;
+        doc.save();
+        doc.roundedRect(marginLeft, boxY, pageWidth, 32, 4).fill('#eef2ff');
+        doc.restore();
+        doc.font('Helvetica-Bold').fontSize(9).fillColor('#1e3a5f');
+        doc.text(`Total: ${payload.totais.total}`, marginLeft + 12, boxY + 10);
+        doc.text(`Aprovados: ${payload.totais.aprovados}`, marginLeft + 140, boxY + 10);
+        doc.text(`Reprovados: ${payload.totais.reprovados}`, marginLeft + 300, boxY + 10);
+        doc.y = boxY + 40;
+
+        // Tabela
+        this.renderGenericTable(
+          doc,
+          ['#', 'ID GED', 'ÓRGÃO', 'PROJETO', 'RESULTADO', 'MOTIVO'],
+          [32, 110, 120, 120, 68, 60],
+          payload.itens.map((item) => [
+            String(item.ordem),
+            item.id_repositorio_ged,
+            item.orgao,
+            item.projeto,
+            item.resultado,
+            item.motivo_codigo ?? '-',
+          ])
+        );
+
+        // Data e assinaturas
+        this.renderDataAssinaturas(doc, payload.geradoEm, 'Auditor / Controle de Qualidade', 'Responsável pela Entrega');
+
+        this.renderRodape(doc);
+        doc.end();
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+  async gerarRelatorioRecebimento(payload: RecebimentoPayload, empresa?: EmpresaConfig | null): Promise<Buffer> {
+    const logoBuffer = await this.loadLogoBuffer(empresa);
+
+    return new Promise((resolve, reject) => {
+      try {
+        const doc = new PDFDocument({ margin: 50, size: 'A4' });
+        const chunks: Buffer[] = [];
+
+        doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+        doc.on('end', () => resolve(Buffer.concat(chunks)));
+        doc.on('error', reject);
+
+        const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+        const marginLeft = doc.page.margins.left;
+        const processos = payload.processos ?? [];
+
+        // Logo da empresa (mesmo padrão do relatório gerencial)
+        if (logoBuffer) {
+          const imageWidth = 120;
+          const imageX = marginLeft + (pageWidth - imageWidth) / 2;
+          const imageY = doc.y;
+          let imgHeight = 60;
+          try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const img = (doc as any).openImage(logoBuffer);
+            if (img && img.width && img.height) {
+              imgHeight = (imageWidth / img.width) * img.height;
+            }
+          } catch { /* fallback */ }
+          doc.image(logoBuffer, imageX, imageY, { width: imageWidth });
+          doc.y = imageY + imgHeight + 8;
+        }
+
+        if (empresa?.nome) {
+          doc.font('Helvetica-Bold').fontSize(11).fillColor('#4B5563')
+            .text(empresa.nome, marginLeft, doc.y, { width: pageWidth, align: 'center' });
+          doc.moveDown(0.15);
+        }
+
+        // Linha decorativa superior
+        doc.save();
+        doc.rect(marginLeft, doc.y, pageWidth, 3).fill('#1e3a5f');
+        doc.restore();
+        doc.moveDown(0.6);
+
+        // Título
+        doc.font('Helvetica-Bold').fontSize(15).fillColor('#1e3a5f')
+          .text('TERMO DE RECEBIMENTO DE DOCUMENTOS', { align: 'center' });
+        doc.font('Helvetica').fontSize(9).fillColor('#6b7280')
+          .text('Controle Operacional', { align: 'center' });
+        doc.moveDown(0.4);
+
+        // Linha fina separadora
+        doc.save();
+        doc.moveTo(marginLeft, doc.y).lineTo(marginLeft + pageWidth, doc.y)
+          .strokeColor('#d1d5db').lineWidth(0.5).stroke();
+        doc.restore();
+        doc.moveDown(0.6);
+
+        // Bloco de referência
+        const setores = [...new Set(processos.map((p) => p.setor).filter(Boolean))];
+        const setorTexto = setores.length > 0 ? setores.join(', ') : '-';
+
+        const refBoxY = doc.y;
+        doc.save();
+        doc.roundedRect(marginLeft, refBoxY, pageWidth, 38, 4).fill('#f8fafc');
+        doc.restore();
+
+        doc.font('Helvetica-Bold').fontSize(8.5).fillColor('#6b7280');
+        doc.text('SETOR REMETENTE', marginLeft + 12, refBoxY + 8);
+        doc.text('PROJETO', marginLeft + 240, refBoxY + 8);
+        doc.text('RESPONSÁVEL', marginLeft + 380, refBoxY + 8);
+
+        doc.font('Helvetica').fontSize(9.5).fillColor('#111827');
+        doc.text(setorTexto, marginLeft + 12, refBoxY + 20, { width: 220, ellipsis: true });
+        doc.text(payload.projeto, marginLeft + 240, refBoxY + 20, { width: 130, ellipsis: true });
+        doc.text(payload.responsavel, marginLeft + 380, refBoxY + 20, { width: 120, ellipsis: true });
+
+        doc.y = refBoxY + 46;
+        doc.moveDown(0.3);
+
+        // Texto formal
+        const setorFormal = setores.length > 0 ? setores.join(', ') : 'setor de origem';
+        doc.font('Helvetica').fontSize(10).fillColor('#111827');
+        doc.text(
+          `Pelo presente termo, declaramos que recebemos do(a) ${setorFormal} os processos e documentos abaixo discriminados, para fins de tratamento documental conforme procedimentos operacionais vigentes.`,
+          marginLeft, doc.y, { width: pageWidth, align: 'justify', lineGap: 3 }
+        );
+        doc.moveDown(0.6);
+
+        // Resumo (box)
+        const repos = [...new Set(processos.map((p) => p.repositorio).filter(Boolean))];
+        const mainProcessos = processos.filter((p) => !p.isApenso);
+        const totalApensos = processos.filter((p) => p.isApenso).length;
+        const boxY = doc.y;
+        doc.save();
+        doc.roundedRect(marginLeft, boxY, pageWidth, 32, 4).fill('#eef2ff');
+        doc.restore();
+        doc.font('Helvetica-Bold').fontSize(9).fillColor('#1e3a5f');
+        doc.text(`Documentos: ${processos.length}`, marginLeft + 12, boxY + 10);
+        doc.text(totalApensos > 0 ? `(${mainProcessos.length} processos + ${totalApensos} apensos)` : `Repositórios: ${repos.length}`, marginLeft + 120, boxY + 10);
+        const totalCaixas = mainProcessos.reduce((sum, p) => sum + p.numeroCaixas, 0);
+        doc.text(`Caixas: ${totalCaixas}`, marginLeft + 380, boxY + 10);
+        doc.y = boxY + 40;
+
+        // Tabela de processos (com apensos intercalados)
+        if (processos.length > 0) {
+          const tableRows = processos.map((item, idx) => [
+            String(idx + 1),
+            item.repositorio,
+            item.orgao,
+            item.protocolo,
+            item.interessado,
+            item.classificacao || '-',
+            item.volume,
+            item.obs || '',
+          ]);
+
+          this.renderRecebimentoTable(
+            doc,
+            ['#', 'REPOSITÓRIO', 'ÓRGÃO', 'PROTOCOLO', 'INTERESSADO', 'CLASSIF.', 'VOL.', 'OBS'],
+            [22, 62, 56, 72, 90, 72, 30, 102],
+            tableRows,
+            processos.map((p) => !!p.isApenso),
+          );
+        } else {
+          doc.font('Helvetica-Oblique').fontSize(10).fillColor('#6b7280');
+          doc.text('Nenhum processo registrado para este recebimento.', { align: 'center' });
+          doc.moveDown(1);
+        }
+
+        // Data e assinaturas
+        this.renderDataAssinaturas(doc, payload.geradoEm, 'Equipe de Recebimento', 'Setor Remetente');
+
+        this.renderRodape(doc);
+        doc.end();
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+  async gerarTermoCorrecao(payload: CorrecaoPayload): Promise<Buffer> {
+    return new Promise((resolve, reject) => {
+      try {
+        const doc = new PDFDocument({ margin: 50, size: 'A4' });
+        const chunks: Buffer[] = [];
+
+        doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+        doc.on('end', () => resolve(Buffer.concat(chunks)));
+        doc.on('error', reject);
+
+        const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+        const marginLeft = doc.page.margins.left;
+
+        // Decorative bar
+        doc.save();
+        doc.rect(marginLeft, doc.y, pageWidth, 3).fill('#b91c1c');
+        doc.restore();
+        doc.moveDown(0.6);
+
+        // Title
+        doc.font('Helvetica-Bold').fontSize(15).fillColor('#b91c1c')
+          .text('TERMO DE CORREÇÃO', { align: 'center' });
+        doc.font('Helvetica').fontSize(9).fillColor('#6b7280')
+          .text('Controle de Qualidade', { align: 'center' });
+        doc.moveDown(0.4);
+
+        // Separator
+        doc.save();
+        doc.moveTo(marginLeft, doc.y).lineTo(marginLeft + pageWidth, doc.y)
+          .strokeColor('#d1d5db').lineWidth(0.5).stroke();
+        doc.restore();
+        doc.moveDown(0.6);
+
+        // Reference box
+        const refBoxY = doc.y;
+        doc.save();
+        doc.roundedRect(marginLeft, refBoxY, pageWidth, 38, 4).fill('#fef2f2');
+        doc.restore();
+
+        doc.font('Helvetica-Bold').fontSize(8.5).fillColor('#6b7280');
+        doc.text('REPOSITÓRIO', marginLeft + 12, refBoxY + 8);
+        doc.text('ÓRGÃO', marginLeft + 200, refBoxY + 8);
+        doc.text('PROJETO', marginLeft + 360, refBoxY + 8);
+
+        doc.font('Helvetica').fontSize(9.5).fillColor('#111827');
+        doc.text(payload.repositorio.id_repositorio_ged, marginLeft + 12, refBoxY + 20, { width: 180, ellipsis: true });
+        doc.text(payload.repositorio.orgao, marginLeft + 200, refBoxY + 20, { width: 150, ellipsis: true });
+        doc.text(payload.repositorio.projeto, marginLeft + 360, refBoxY + 20, { width: 130, ellipsis: true });
+
+        doc.y = refBoxY + 46;
+        doc.moveDown(0.3);
+
+        // Formal text
+        doc.font('Helvetica').fontSize(10).fillColor('#111827');
+        doc.text(
+          `Pelo presente termo, informamos que os documentos abaixo listados do repositório ${payload.repositorio.id_repositorio_ged} foram reprovados na auditoria de controle de qualidade e necessitam de correção conforme observações indicadas.`,
+          marginLeft, doc.y, { width: pageWidth, align: 'justify', lineGap: 3 }
+        );
+        doc.moveDown(0.6);
+
+        // Summary box
+        const boxY = doc.y;
+        doc.save();
+        doc.roundedRect(marginLeft, boxY, pageWidth, 32, 4).fill('#fef2f2');
+        doc.restore();
+        doc.font('Helvetica-Bold').fontSize(9).fillColor('#b91c1c');
+        doc.text(`Documentos reprovados: ${payload.documentos.length}`, marginLeft + 12, boxY + 10);
+        doc.y = boxY + 40;
+
+        // Table
+        this.renderGenericTable(
+          doc,
+          ['#', 'PROTOCOLO', 'INTERESSADO', 'VOL.', 'OBSERVAÇÃO'],
+          [28, 100, 130, 36, 210],
+          payload.documentos.map((item, idx) => [
+            String(idx + 1),
+            item.protocolo,
+            item.interessado,
+            item.volume ?? '1',
+            item.observacao ?? '-',
+          ])
+        );
+
+        // Date and signatures
+        this.renderDataAssinaturas(doc, payload.geradoEm, 'Controle de Qualidade', 'Conferente Responsável');
+
+        this.renderRodape(doc);
+        doc.end();
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+  async gerarTermoDevolucao(payload: DevolucaoPayload, empresa?: EmpresaConfig | null): Promise<Buffer> {
+    const logoBuffer = await this.loadLogoBuffer(empresa);
+
+    return new Promise((resolve, reject) => {
+      try {
+        const doc = new PDFDocument({ margin: 50, size: 'A4' });
+        const chunks: Buffer[] = [];
+
+        doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+        doc.on('end', () => resolve(Buffer.concat(chunks)));
+        doc.on('error', reject);
+
+        const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+        const marginLeft = doc.page.margins.left;
+        const processos = payload.processos ?? [];
+
+        // Logo
+        if (logoBuffer) {
+          const imageWidth = 120;
+          const imageX = marginLeft + (pageWidth - imageWidth) / 2;
+          const imageY = doc.y;
+          let imgHeight = 60;
+          try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const img = (doc as any).openImage(logoBuffer);
+            if (img && img.width && img.height) {
+              imgHeight = (imageWidth / img.width) * img.height;
+            }
+          } catch { /* fallback */ }
+          doc.image(logoBuffer, imageX, imageY, { width: imageWidth });
+          doc.y = imageY + imgHeight + 8;
+        }
+
+        if (empresa?.nome) {
+          doc.font('Helvetica-Bold').fontSize(11).fillColor('#4B5563')
+            .text(empresa.nome, marginLeft, doc.y, { width: pageWidth, align: 'center' });
+          doc.moveDown(0.15);
+        }
+
+        // Decorative bar
+        doc.save();
+        doc.rect(marginLeft, doc.y, pageWidth, 3).fill('#1e3a5f');
+        doc.restore();
+        doc.moveDown(0.6);
+
+        // Title
+        doc.font('Helvetica-Bold').fontSize(15).fillColor('#1e3a5f')
+          .text('TERMO DE DEVOLUÇÃO DE DOCUMENTOS', { align: 'center' });
+        doc.font('Helvetica').fontSize(9).fillColor('#6b7280')
+          .text('Controle de Qualidade', { align: 'center' });
+        doc.moveDown(0.4);
+
+        // Separator
+        doc.save();
+        doc.moveTo(marginLeft, doc.y).lineTo(marginLeft + pageWidth, doc.y)
+          .strokeColor('#d1d5db').lineWidth(0.5).stroke();
+        doc.restore();
+        doc.moveDown(0.6);
+
+        // Reference box
+        const setores = [...new Set(processos.map((p) => p.setor).filter(Boolean))];
+        const setorTexto = setores.length > 0 ? setores.join(', ') : '-';
+
+        const refBoxY = doc.y;
+        doc.save();
+        doc.roundedRect(marginLeft, refBoxY, pageWidth, 38, 4).fill('#f8fafc');
+        doc.restore();
+
+        doc.font('Helvetica-Bold').fontSize(8.5).fillColor('#6b7280');
+        doc.text('SETOR DESTINATÁRIO', marginLeft + 12, refBoxY + 8);
+        doc.text('PROJETO', marginLeft + 240, refBoxY + 8);
+
+        doc.font('Helvetica').fontSize(9.5).fillColor('#111827');
+        doc.text(setorTexto, marginLeft + 12, refBoxY + 20, { width: 220, ellipsis: true });
+        doc.text(payload.projeto, marginLeft + 240, refBoxY + 20, { width: 250, ellipsis: true });
+
+        doc.y = refBoxY + 46;
+        doc.moveDown(0.3);
+
+        // Formal text
+        const setorFormal = setores.length > 0 ? setores.join(', ') : 'setor de destino';
+        doc.font('Helvetica').fontSize(10).fillColor('#111827');
+        doc.text(
+          `Pelo presente termo, declaramos que devolvemos ao(à) ${setorFormal} os processos e documentos abaixo discriminados, após conclusão do tratamento documental e aprovação no controle de qualidade.`,
+          marginLeft, doc.y, { width: pageWidth, align: 'justify', lineGap: 3 }
+        );
+        doc.moveDown(0.6);
+
+        // Summary box
+        const repos = [...new Set(processos.map((p) => p.repositorio).filter(Boolean))];
+        const boxY = doc.y;
+        doc.save();
+        doc.roundedRect(marginLeft, boxY, pageWidth, 32, 4).fill('#eef2ff');
+        doc.restore();
+        doc.font('Helvetica-Bold').fontSize(9).fillColor('#1e3a5f');
+        doc.text(`Documentos: ${processos.length}`, marginLeft + 12, boxY + 10);
+        doc.text(`Repositórios: ${repos.length}`, marginLeft + 140, boxY + 10);
+        doc.y = boxY + 40;
+
+        // Table (same format as recebimento)
+        if (processos.length > 0) {
+          const tableRows = processos.map((item, idx) => [
+            String(idx + 1),
+            item.repositorio,
+            item.orgao,
+            item.protocolo,
+            item.interessado,
+            item.classificacao || '-',
+            item.volume,
+            item.obs || '',
+          ]);
+
+          this.renderRecebimentoTable(
+            doc,
+            ['#', 'REPOSITÓRIO', 'ÓRGÃO', 'PROTOCOLO', 'INTERESSADO', 'CLASSIF.', 'VOL.', 'OBS'],
+            [22, 62, 56, 72, 90, 72, 30, 102],
+            tableRows,
+            processos.map((p) => !!p.isApenso),
+          );
+        }
+
+        // Date and signatures
+        this.renderDataAssinaturas(doc, payload.geradoEm, 'Equipe de Controle de Qualidade', 'Setor Destinatário');
+
+        this.renderRodape(doc);
+        doc.end();
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+  async gerarRelatorioProducao(payload: ProducaoPayload): Promise<Buffer> {
+    return new Promise((resolve, reject) => {
+      try {
+        const doc = new PDFDocument({ margin: 42, size: 'A4' });
+        const chunks: Buffer[] = [];
+
+        doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+        doc.on('end', () => resolve(Buffer.concat(chunks)));
+        doc.on('error', reject);
+
+        doc.font('Helvetica-Bold').fontSize(16).fillColor('#1f2937').text('RELATORIO DE PRODUCAO', { align: 'center' });
+        doc.moveDown(0.8);
+
+        doc.font('Helvetica').fontSize(10).fillColor('#374151');
+        doc.text(`ID GED: ${payload.repositorio.id_repositorio_ged}`);
+        doc.text(`Orgao: ${payload.repositorio.orgao}`);
+        doc.text(`Projeto: ${payload.repositorio.projeto}`);
+        doc.text(`Status/Etapa: ${payload.repositorio.status_atual} / ${payload.repositorio.etapa_atual}`);
+        doc.text(`Registros: ${payload.totais.totalRegistros}`);
+        doc.text(`Quantidade total: ${payload.totais.totalQuantidade}`);
+        doc.text(`Gerado em: ${this.formatDateTime(payload.geradoEm)}`);
+        doc.moveDown(0.8);
+
+        this.renderGenericTable(
+          doc,
+          ['#', 'ETAPA', 'OPERADOR', 'QTD', 'CHECKLIST', 'DATA/HORA'],
+          [32, 90, 150, 48, 120, 86],
+          payload.registros.map((item, index) => [
+            String(index + 1),
+            item.etapa,
+            item.usuario_nome ?? '-',
+            String(item.quantidade),
+            item.checklist_id,
+            this.formatDateTime(item.data_producao),
+          ])
+        );
+
+        this.renderRodape(doc);
+        doc.end();
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+  private renderRecebimentoTable(
+    doc: PDFKit.PDFDocument,
+    headers: string[],
+    widths: number[],
+    rows: string[][],
+    isApensoFlags: boolean[],
+  ): void {
+    const startX = doc.page.margins.left;
+    const tableWidth = widths.reduce((a, b) => a + b, 0);
+    let y = doc.y;
+    const cellPadX = 3;
+    const cellPadY = 4;
+    const minRowH = 16;
+
+    // Header row
+    doc.save();
+    doc.rect(startX, y, tableWidth, 20).fill('#dbeafe');
+    doc.restore();
+    doc.font('Helvetica-Bold').fontSize(8).fillColor('#1f2937');
+    let hx = startX;
+    for (let i = 0; i < headers.length; i++) {
+      const width = widths[i] ?? 60;
+      doc.text(headers[i] ?? '', hx + cellPadX, y + 6, { width: width - cellPadX * 2 });
+      hx += width;
+    }
+    y += 20;
+
+    // Data rows with dynamic height
+    rows.forEach((row, index) => {
+      const isApenso = isApensoFlags[index] ?? false;
+      const fontSize = isApenso ? 7.5 : 8;
+      const font = isApenso ? 'Helvetica-Oblique' : 'Helvetica';
+
+      // Measure max cell height for this row
+      doc.font(font).fontSize(fontSize);
+      let maxCellH = 0;
+      for (let i = 0; i < widths.length; i++) {
+        const width = widths[i] ?? 60;
+        const cellW = width - cellPadX * 2;
+        const text = row[i] ?? '';
+        if (text) {
+          const h = doc.heightOfString(text, { width: cellW });
+          if (h > maxCellH) maxCellH = h;
+        }
+      }
+      const rowH = Math.max(minRowH, maxCellH + cellPadY * 2);
+
+      // Page break check
+      if (y + rowH > doc.page.height - 70) {
+        doc.addPage();
+        y = doc.page.margins.top;
+      }
+
+      // Background
+      doc.save();
+      if (isApenso) {
+        doc.rect(startX, y, tableWidth, rowH).fill('#f0f4f8');
+      } else if (index % 2 === 0) {
+        doc.rect(startX, y, tableWidth, rowH).fill('#f9fafb');
+      }
+      doc.restore();
+
+      // Text
+      doc.font(font).fontSize(fontSize).fillColor(isApenso ? '#4b5563' : '#111827');
+      let x = startX;
+      for (let i = 0; i < widths.length; i++) {
+        const width = widths[i] ?? 60;
+        doc.text(row[i] ?? '', x + cellPadX, y + cellPadY, { width: width - cellPadX * 2 });
+        x += width;
+      }
+      y += rowH;
+    });
+
+    doc.y = y;
+  }
+
+  private renderGenericTable(
+    doc: PDFKit.PDFDocument,
+    headers: string[],
+    widths: number[],
+    rows: string[][]
+  ): void {
+    const startX = doc.page.margins.left;
+    const tableWidth = widths.reduce((a, b) => a + b, 0);
+    let y = doc.y;
+
+    doc.save();
+    doc.rect(startX, y, tableWidth, 22).fill('#dbeafe');
+    doc.restore();
+    doc.font('Helvetica-Bold').fontSize(9).fillColor('#1f2937');
+    let hx = startX;
+    for (let i = 0; i < headers.length; i++) {
+      const width = widths[i] ?? 60;
+      doc.text(headers[i] ?? '', hx + 4, y + 7, { width: width - 8 });
+      hx += width;
+    }
+    y += 22;
+
+    doc.font('Helvetica').fontSize(8.8).fillColor('#111827');
+    rows.forEach((row, index) => {
+      if (y > doc.page.height - 70) {
+        doc.addPage();
+        y = doc.page.margins.top;
+      }
+
+      if (index % 2 === 0) {
+        doc.save();
+        doc.rect(startX, y, tableWidth, 20).fill('#f9fafb');
+        doc.restore();
+      }
+
+      let x = startX;
+      for (let i = 0; i < widths.length; i++) {
+        const width = widths[i] ?? 60;
+        doc.text(row[i] ?? '', x + 4, y + 6, { width: width - 8, ellipsis: true });
+        x += width;
+      }
+      y += 20;
+    });
+  }
+
+  private renderDataAssinaturas(
+    doc: PDFKit.PDFDocument,
+    dataRef: string,
+    labelEsquerda: string,
+    labelDireita: string
+  ): void {
+    const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+    const marginLeft = doc.page.margins.left;
+
+    // Garantir espaço mínimo para data + assinaturas (~140px)
+    if (doc.y > doc.page.height - 180) {
+      doc.addPage();
+    }
+
+    doc.moveDown(1.5);
+
+    // Data por extenso
+    const meses = [
+      'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
+      'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro',
+    ];
+    const data = new Date(dataRef);
+    const dataFormatada = !Number.isNaN(data.getTime())
+      ? `${data.getDate()} de ${meses[data.getMonth()]} de ${data.getFullYear()}`
+      : new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' });
+
+    doc.font('Helvetica').fontSize(10).fillColor('#111827');
+    doc.text(dataFormatada, marginLeft, doc.y, { width: pageWidth, align: 'left' });
+    doc.moveDown(2.5);
+
+    // Duas colunas de assinatura lado a lado
+    const colWidth = (pageWidth - 40) / 2;
+    const lineWidth = colWidth - 20;
+    const leftX = marginLeft + 10;
+    const rightX = marginLeft + colWidth + 30;
+    const lineY = doc.y;
+
+    // Linha esquerda
+    doc.save();
+    doc.moveTo(leftX, lineY).lineTo(leftX + lineWidth, lineY)
+      .strokeColor('#374151').lineWidth(0.8).stroke();
+    doc.restore();
+
+    // Linha direita
+    doc.save();
+    doc.moveTo(rightX, lineY).lineTo(rightX + lineWidth, lineY)
+      .strokeColor('#374151').lineWidth(0.8).stroke();
+    doc.restore();
+
+    // Labels
+    doc.font('Helvetica-Bold').fontSize(9).fillColor('#111827');
+    doc.text(labelEsquerda, leftX, lineY + 6, { width: lineWidth, align: 'center' });
+    doc.text(labelDireita, rightX, lineY + 6, { width: lineWidth, align: 'center' });
+  }
+
+  private renderRodape(doc: PDFKit.PDFDocument): void {
+    doc.fontSize(8).fillColor('#6b7280');
+    doc.text('Recorda - Relatorio operacional gerado automaticamente', 42, doc.page.height - 38, {
+      align: 'center',
+      width: doc.page.width - 84,
+    });
+  }
+
+  private async loadLogoBuffer(empresa?: EmpresaConfig | null): Promise<Buffer | null> {
+    if (!empresa?.logoUrl || empresa.exibirLogoRelatorio === false) {
+      return null;
+    }
+
+    try {
+      const uploadsDir = path.resolve('uploads', 'logos');
+      const files = await fs.readdir(uploadsDir);
+      const logoFile = files.find(f => f.startsWith('logo_empresa'));
+      if (logoFile) {
+        return await fs.readFile(path.join(uploadsDir, logoFile));
+      }
+
+      if (empresa.logoUrl.startsWith('http')) {
+        const response = await fetch(empresa.logoUrl);
+        if (!response.ok) return null;
+        const arrayBuffer = await response.arrayBuffer();
+        return Buffer.from(arrayBuffer);
+      }
+
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
+  private formatDateTime(value?: string | null): string {
+    if (!value) return '-';
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return '-';
+    return parsed.toLocaleString('pt-BR');
+  }
+}

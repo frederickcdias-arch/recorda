@@ -1,0 +1,14 @@
+{
+  "name": "@recorda/shared",
+  "version": "1.0.0",
+  "description": "Tipos compartilhados entre frontend e backend do Recorda",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+}
