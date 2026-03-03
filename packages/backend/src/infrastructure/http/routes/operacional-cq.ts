@@ -15,6 +15,8 @@ import {
 export function createOperacionalCQRoutes(): FastifyPluginAsync {
   return async (server: FastifyInstance): Promise<void> => {
     const pdfService = createPDFService();
+    const schemaDesatualizadoMsg =
+      'Schema de CQ desatualizado no banco. Rode as migrations pendentes e faça novo deploy.';
 
     // POST /operacional/lotes-cq - Criar lote de controle de qualidade (apenas administrador)
     server.post('/operacional/lotes-cq', {
@@ -477,6 +479,29 @@ export function createOperacionalCQRoutes(): FastifyPluginAsync {
         const { id } = request.params as { id: string };
         const user = getCurrentUser(request);
 
+        const repoCheck = await server.database.query<{ total: string }>(
+          `SELECT COUNT(*)::text AS total FROM repositorios WHERE id_repositorio_recorda = $1`,
+          [id]
+        );
+        if (parseInt(repoCheck.rows[0]?.total ?? '0', 10) === 0) {
+          return reply.status(404).send({ error: 'Repositório não encontrado.' });
+        }
+
+        const docsCheck = await server.database.query<{ total: string }>(
+          `SELECT (
+             (SELECT COUNT(*) FROM recebimento_processos WHERE repositorio_id = $1)
+             +
+             (SELECT COUNT(*)
+                FROM recebimento_apensos ap
+                JOIN recebimento_processos pp ON pp.id = ap.processo_principal_id
+               WHERE pp.repositorio_id = $1)
+           )::text AS total`,
+          [id]
+        );
+        if (parseInt(docsCheck.rows[0]?.total ?? '0', 10) === 0) {
+          return reply.status(400).send({ error: 'Repositório não possui processos/apensos para aprovação.' });
+        }
+
         const result = await server.database.query(
           `INSERT INTO cq_avaliacoes (repositorio_id, processo_id, is_apenso, resultado, avaliador_id, data_avaliacao)
            SELECT $1, p.id, FALSE, 'APROVADO', $2, CURRENT_TIMESTAMP
@@ -497,7 +522,17 @@ export function createOperacionalCQRoutes(): FastifyPluginAsync {
         return reply.send({ total: result.rows.length });
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Erro ao aprovar todos';
-        return reply.status(400).send({ error: message });
+        server.log.error(error, 'cq-aprovar-todos failed');
+
+        if (
+          message.includes('relation "cq_avaliacoes" does not exist') ||
+          message.includes('column "is_apenso"') ||
+          message.includes('cq_avaliacoes_processo_id_fkey')
+        ) {
+          return reply.status(500).send({ error: `${schemaDesatualizadoMsg} Detalhe: ${message}` });
+        }
+
+        return sendDatabaseError(reply, error, message);
       }
     });
 
@@ -568,7 +603,14 @@ export function createOperacionalCQRoutes(): FastifyPluginAsync {
       } catch (error) {
         server.log.error(error, 'cq-concluir failed');
         const message = error instanceof Error ? error.message : 'Erro ao concluir CQ';
-        return reply.status(400).send({ error: message });
+        if (
+          message.includes('relation "cq_avaliacoes" does not exist') ||
+          message.includes('column "is_apenso"') ||
+          message.includes('cq_avaliacoes_processo_id_fkey')
+        ) {
+          return reply.status(500).send({ error: `${schemaDesatualizadoMsg} Detalhe: ${message}` });
+        }
+        return sendDatabaseError(reply, error, message);
       }
     });
 
