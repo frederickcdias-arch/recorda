@@ -155,7 +155,7 @@ export function createOperacionalChecklistsRoutes(): FastifyPluginAsync {
             orgao: repo?.orgao ?? '-',
             protocolo: ap.protocolo,
             interessado: ap.interessado ?? '',
-            setor: '',
+            setor: row.setor_nome ?? '',
             classificacao: '',
             volume: ap.volume_total > 0 ? `${ap.volume_atual} de ${ap.volume_total}` : String(ap.volume_atual),
             numeroCaixas: 0,

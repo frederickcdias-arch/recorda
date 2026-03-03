@@ -607,7 +607,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                       onChange={(e) => setNovoRepositorio((p) => ({ ...p, idRepositorioGed: e.target.value }))}
                     />
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Órgão</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Unidade</label>
                       <select
                         className="w-full h-9 px-3 border rounded-lg text-sm"
                         value={novoRepositorio.orgao}
@@ -670,7 +670,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                         label="Buscar"
                         value={filtroBusca}
                         onChange={(e) => { setFiltroBusca(e.target.value); setPagina(1); }}
-                        placeholder="ID GED, órgão ou projeto"
+                        placeholder="ID GED, unidade ou projeto"
                       />
                     </div>
                     <Button variant="secondary" onClick={() => invalidateRepos()} loading={processando}>Atualizar</Button>
@@ -707,7 +707,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                             />
                           </th>
                           <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">ID GED</th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Órgão</th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Unidade</th>
                           <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Projeto</th>
                           <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Status</th>
                           <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase">Proc.</th>
@@ -799,7 +799,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                   label="Buscar"
                   value={filtroBusca}
                   onChange={(e) => { setFiltroBusca(e.target.value); setPagina(1); }}
-                  placeholder="ID GED, órgão ou projeto"
+                  placeholder="ID GED, unidade ou projeto"
                 />
               </div>
               <Button variant="secondary" onClick={() => invalidateRepos()} loading={processando}>Atualizar</Button>
@@ -810,7 +810,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">ID GED</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Órgão</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Unidade</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Projeto</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Status</th>
                     <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase">Proc.</th>
