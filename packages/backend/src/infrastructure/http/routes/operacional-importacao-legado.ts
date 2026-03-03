@@ -10,6 +10,36 @@ import {
   getBrazilDateString,
 } from './operacional-helpers.js';
 import { normalizeIdRepositorioGed } from './operacional-repositorios.js';
+function parseQuantidadePlanilha(input: unknown): number {
+  const raw = String(input ?? '').trim();
+  if (!raw) return 1;
+
+  const compact = raw.replace(/\s/g, '');
+  const hasDot = compact.includes('.');
+  const hasComma = compact.includes(',');
+
+  let normalized = compact;
+
+  if (hasDot && hasComma) {
+    if (compact.lastIndexOf(',') > compact.lastIndexOf('.')) {
+      normalized = compact.replace(/\./g, '').replace(',', '.');
+    } else {
+      normalized = compact.replace(/,/g, '');
+    }
+  } else if (hasComma) {
+    normalized = /^\d{1,3}(,\d{3})+$/.test(compact)
+      ? compact.replace(/,/g, '')
+      : compact.replace(',', '.');
+  } else if (hasDot) {
+    normalized = /^\d{1,3}(\.\d{3})+$/.test(compact)
+      ? compact.replace(/\./g, '')
+      : compact;
+  }
+
+  const parsed = Number(normalized);
+  if (!Number.isFinite(parsed)) return 1;
+  return Math.max(Math.round(parsed), 1);
+}
 
 /**
  * Importação legado routes: validar, importar recebimento, importar produção, listar, limpar.
@@ -137,7 +167,7 @@ async function importarProducaoLegado(server: FastifyInstance, user: any, url: s
 
       for (let idx = 0; idx < registros.length; idx++) {
         const row = registros[idx]!;
-        const quantidade = Math.max(Math.round(Number(row.quantidade.replace(/\./g, '').replace(',', '.') || '1')), 1);
+        const quantidade = parseQuantidadePlanilha(row.quantidade);
         const colaboradorNome = row.colaborador;
         const dataStr = row.data;
         const etapaImport = funcaoToEtapa(row.funcao);
@@ -386,8 +416,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
               const row = registros[i] as Record<string, string | undefined>;
               const repo = normalizeIdRepositorioGed((row.repositorio ?? '').trim());
               const colaborador = (row.colaborador ?? '').trim().toLowerCase();
-              const quantidadeRaw = String(row.quantidade ?? '1').trim().replace(/\./g, '').replace(',', '.');
-              const quantidade = Math.max(Math.round(Number(quantidadeRaw) || 1), 1);
+              const quantidade = parseQuantidadePlanilha(row.quantidade);
               const tipoVal = (row.tipo ?? '').trim().toLowerCase();
               const etapaVal = funcaoToEtapaVal((row.funcao ?? '').trim());
 
@@ -646,8 +675,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
             }
 
             const repoIdentificadorRaw = (row.repositorio ?? '').trim();
-            const quantidadeRaw = String(row.quantidade ?? '1').trim().replace(/\./g, '').replace(',', '.');
-            const quantidade = Math.max(Math.round(Number(quantidadeRaw) || 1), 1);
+            const quantidade = parseQuantidadePlanilha(row.quantidade);
             const colaboradorNome = (row.colaborador ?? '').trim();
             const dataStr = (row.data ?? '').trim();
             const etapaImport = funcaoToEtapa((row.funcao ?? '').trim());
@@ -1261,7 +1289,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
           }
 
           const etapaImport = funcaoToEtapa(row.funcao);
-          const quantidade = Math.max(Math.round(Number(row.quantidade.replace(/\./g, '').replace(',', '.') || '1')), 1);
+          const quantidade = parseQuantidadePlanilha(row.quantidade);
 
           const existente = await server.database.query<{ id: string }>(
             `SELECT id FROM producao_repositorio
@@ -1453,8 +1481,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
           const row = registros[idx]!;
           const linha = idx + 1;
           const repoIdentificadorRaw = row.repositorio;
-          const quantidadeRaw = row.quantidade.replace(/\./g, '').replace(',', '.');
-          const quantidade = Math.max(Math.round(Number(quantidadeRaw) || 1), 1);
+          const quantidade = parseQuantidadePlanilha(row.quantidade);
           const colaboradorNome = row.colaborador;
           const dataStr = row.data;
           const etapaImport = funcaoToEtapa(row.funcao);
