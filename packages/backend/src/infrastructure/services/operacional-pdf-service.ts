@@ -120,7 +120,7 @@ export class OperacionalPDFService {
   async gerarRelatorioEntrega(payload: EntregaPayload): Promise<Buffer> {
     return new Promise((resolve, reject) => {
       try {
-        const doc = new PDFDocument({ margin: 50, size: 'A4' });
+        const doc = new PDFDocument({ margin: 34, size: 'A4' });
         const chunks: Buffer[] = [];
 
         doc.on('data', (chunk: Buffer) => chunks.push(chunk));
@@ -200,7 +200,7 @@ export class OperacionalPDFService {
         // Tabela
         this.renderGenericTable(
           doc,
-          ['#', 'ID GED', 'ÓRGÃO', 'PROJETO', 'RESULTADO', 'MOTIVO'],
+          ['#', 'ID GED', 'UNIDADE', 'PROJETO', 'RESULTADO', 'MOTIVO'],
           [32, 110, 120, 120, 68, 60],
           payload.itens.map((item) => [
             String(item.ordem),
@@ -228,7 +228,7 @@ export class OperacionalPDFService {
 
     return new Promise((resolve, reject) => {
       try {
-        const doc = new PDFDocument({ margin: 50, size: 'A4' });
+        const doc = new PDFDocument({ margin: 34, size: 'A4' });
         const chunks: Buffer[] = [];
 
         doc.on('data', (chunk: Buffer) => chunks.push(chunk));
@@ -283,8 +283,8 @@ export class OperacionalPDFService {
         doc.moveDown(0.6);
 
         // Bloco de referência
-        const setores = [...new Set(processos.map((p) => p.setor).filter(Boolean))];
-        const setorTexto = setores.length > 0 ? setores.join(', ') : '-';
+        const setores = [...new Set(processos.map((p) => (p.setor ?? '').trim()).filter(Boolean))];
+        const setorTexto = setores.length > 0 ? setores.join(', ') : 'NAO INFORMADO';
 
         const refBoxY = doc.y;
         doc.save();
@@ -292,12 +292,12 @@ export class OperacionalPDFService {
         doc.restore();
 
         doc.font('Helvetica-Bold').fontSize(8.5).fillColor('#6b7280');
-        doc.text('SETOR REMETENTE', marginLeft + 12, refBoxY + 8);
+        doc.text('SETOR', marginLeft + 12, refBoxY + 8);
         doc.text('PROJETO', marginLeft + 240, refBoxY + 8);
         doc.text('RESPONSÁVEL', marginLeft + 380, refBoxY + 8);
 
         doc.font('Helvetica').fontSize(9.5).fillColor('#111827');
-        doc.text(setorTexto, marginLeft + 12, refBoxY + 20, { width: 220, ellipsis: true });
+        doc.text(setorTexto, marginLeft + 12, refBoxY + 20, { width: 220, lineBreak: true });
         doc.text(payload.projeto, marginLeft + 240, refBoxY + 20, { width: 130, ellipsis: true });
         doc.text(payload.responsavel, marginLeft + 380, refBoxY + 20, { width: 120, ellipsis: true });
 
@@ -308,7 +308,7 @@ export class OperacionalPDFService {
         const setorFormal = setores.length > 0 ? setores.join(', ') : 'setor de origem';
         doc.font('Helvetica').fontSize(10).fillColor('#111827');
         doc.text(
-          `Pelo presente termo, declaramos que recebemos do(a) ${setorFormal} os processos e documentos abaixo discriminados, para fins de tratamento documental conforme procedimentos operacionais vigentes.`,
+          `Pelo presente termo, declaramos que recebemos do(a) ${setorFormal} os processos e documentos abaixo discriminados, para fins de tratamento documental.`,
           marginLeft, doc.y, { width: pageWidth, align: 'justify', lineGap: 3 }
         );
         doc.moveDown(0.6);
@@ -325,7 +325,7 @@ export class OperacionalPDFService {
         doc.text(`Documentos: ${processos.length}`, marginLeft + 12, boxY + 10);
         doc.text(totalApensos > 0 ? `(${mainProcessos.length} processos + ${totalApensos} apensos)` : `Repositórios: ${repos.length}`, marginLeft + 120, boxY + 10);
         const totalCaixas = mainProcessos.reduce((sum, p) => sum + p.numeroCaixas, 0);
-        doc.text(`Caixas: ${totalCaixas}`, marginLeft + 380, boxY + 10);
+        if (totalCaixas > 0) doc.text(`Caixas: ${totalCaixas}`, marginLeft + 380, boxY + 10);
         doc.y = boxY + 40;
 
         // Tabela de processos (com apensos intercalados)
@@ -334,6 +334,7 @@ export class OperacionalPDFService {
             String(idx + 1),
             item.repositorio,
             item.orgao,
+            item.setor || '-',
             item.protocolo,
             item.interessado,
             item.classificacao || '-',
@@ -343,8 +344,8 @@ export class OperacionalPDFService {
 
           this.renderRecebimentoTable(
             doc,
-            ['#', 'REPOSITÓRIO', 'ÓRGÃO', 'PROTOCOLO', 'INTERESSADO', 'CLASSIF.', 'VOL.', 'OBS'],
-            [22, 62, 56, 72, 90, 72, 30, 102],
+            ['#', 'REPOSITORIO', 'UNIDADE', 'SETOR', 'PROTOCOLO', 'INTERESSADO', 'CLASSIF.', 'VOL.', 'OBS'],
+            [16, 46, 44, 58, 58, 72, 44, 22, 120],
             tableRows,
             processos.map((p) => !!p.isApenso),
           );
@@ -368,7 +369,7 @@ export class OperacionalPDFService {
   async gerarTermoCorrecao(payload: CorrecaoPayload): Promise<Buffer> {
     return new Promise((resolve, reject) => {
       try {
-        const doc = new PDFDocument({ margin: 50, size: 'A4' });
+        const doc = new PDFDocument({ margin: 34, size: 'A4' });
         const chunks: Buffer[] = [];
 
         doc.on('data', (chunk: Buffer) => chunks.push(chunk));
@@ -406,7 +407,7 @@ export class OperacionalPDFService {
 
         doc.font('Helvetica-Bold').fontSize(8.5).fillColor('#6b7280');
         doc.text('REPOSITÓRIO', marginLeft + 12, refBoxY + 8);
-        doc.text('ÓRGÃO', marginLeft + 200, refBoxY + 8);
+        doc.text('UNIDADE', marginLeft + 200, refBoxY + 8);
         doc.text('PROJETO', marginLeft + 360, refBoxY + 8);
 
         doc.font('Helvetica').fontSize(9.5).fillColor('#111827');
@@ -464,7 +465,7 @@ export class OperacionalPDFService {
 
     return new Promise((resolve, reject) => {
       try {
-        const doc = new PDFDocument({ margin: 50, size: 'A4' });
+        const doc = new PDFDocument({ margin: 34, size: 'A4' });
         const chunks: Buffer[] = [];
 
         doc.on('data', (chunk: Buffer) => chunks.push(chunk));
@@ -519,8 +520,8 @@ export class OperacionalPDFService {
         doc.moveDown(0.6);
 
         // Reference box
-        const setores = [...new Set(processos.map((p) => p.setor).filter(Boolean))];
-        const setorTexto = setores.length > 0 ? setores.join(', ') : '-';
+        const setores = [...new Set(processos.map((p) => (p.setor ?? '').trim()).filter(Boolean))];
+        const setorTexto = setores.length > 0 ? setores.join(', ') : 'NAO INFORMADO';
 
         const refBoxY = doc.y;
         doc.save();
@@ -532,7 +533,7 @@ export class OperacionalPDFService {
         doc.text('PROJETO', marginLeft + 240, refBoxY + 8);
 
         doc.font('Helvetica').fontSize(9.5).fillColor('#111827');
-        doc.text(setorTexto, marginLeft + 12, refBoxY + 20, { width: 220, ellipsis: true });
+        doc.text(setorTexto, marginLeft + 12, refBoxY + 20, { width: 220, lineBreak: true });
         doc.text(payload.projeto, marginLeft + 240, refBoxY + 20, { width: 250, ellipsis: true });
 
         doc.y = refBoxY + 46;
@@ -564,6 +565,7 @@ export class OperacionalPDFService {
             String(idx + 1),
             item.repositorio,
             item.orgao,
+            item.setor || '-',
             item.protocolo,
             item.interessado,
             item.classificacao || '-',
@@ -573,8 +575,8 @@ export class OperacionalPDFService {
 
           this.renderRecebimentoTable(
             doc,
-            ['#', 'REPOSITÓRIO', 'ÓRGÃO', 'PROTOCOLO', 'INTERESSADO', 'CLASSIF.', 'VOL.', 'OBS'],
-            [22, 62, 56, 72, 90, 72, 30, 102],
+            ['#', 'REPOSITORIO', 'UNIDADE', 'SETOR', 'PROTOCOLO', 'INTERESSADO', 'CLASSIF.', 'VOL.', 'OBS'],
+            [16, 46, 44, 58, 58, 72, 44, 22, 120],
             tableRows,
             processos.map((p) => !!p.isApenso),
           );
@@ -606,7 +608,7 @@ export class OperacionalPDFService {
 
         doc.font('Helvetica').fontSize(10).fillColor('#374151');
         doc.text(`ID GED: ${payload.repositorio.id_repositorio_ged}`);
-        doc.text(`Orgao: ${payload.repositorio.orgao}`);
+        doc.text(`Unidade: ${payload.repositorio.orgao}`);
         doc.text(`Projeto: ${payload.repositorio.projeto}`);
         doc.text(`Status/Etapa: ${payload.repositorio.status_atual} / ${payload.repositorio.etapa_atual}`);
         doc.text(`Registros: ${payload.totais.totalRegistros}`);
@@ -646,27 +648,27 @@ export class OperacionalPDFService {
     const startX = doc.page.margins.left;
     const tableWidth = widths.reduce((a, b) => a + b, 0);
     let y = doc.y;
-    const cellPadX = 3;
-    const cellPadY = 4;
-    const minRowH = 16;
+    const cellPadX = 2;
+    const cellPadY = 2.5;
+    const minRowH = 13;
 
     // Header row
     doc.save();
-    doc.rect(startX, y, tableWidth, 20).fill('#dbeafe');
+    doc.rect(startX, y, tableWidth, 18).fill('#dbeafe');
     doc.restore();
     doc.font('Helvetica-Bold').fontSize(8).fillColor('#1f2937');
     let hx = startX;
     for (let i = 0; i < headers.length; i++) {
       const width = widths[i] ?? 60;
-      doc.text(headers[i] ?? '', hx + cellPadX, y + 6, { width: width - cellPadX * 2 });
+      doc.text(headers[i] ?? '', hx + cellPadX, y + 5, { width: width - cellPadX * 2 });
       hx += width;
     }
-    y += 20;
+    y += 18;
 
     // Data rows with dynamic height
     rows.forEach((row, index) => {
       const isApenso = isApensoFlags[index] ?? false;
-      const fontSize = isApenso ? 7.5 : 8;
+      const fontSize = isApenso ? 7 : 7.6;
       const font = isApenso ? 'Helvetica-Oblique' : 'Helvetica';
 
       // Measure max cell height for this row
