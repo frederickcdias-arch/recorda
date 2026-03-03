@@ -45,7 +45,11 @@ function parseQuantidadePlanilha(input: unknown): number {
  * Importação legado routes: validar, importar recebimento, importar produção, listar, limpar.
  */
 // Helper function to import production from URL
-async function importarProducaoLegado(server: FastifyInstance, user: any, url: string): Promise<{ importados: number; duplicados: number; erros: number }> {
+async function importarProducaoLegado(
+  server: FastifyInstance,
+  user: any,
+  url: string
+): Promise<{ importados: number; duplicados: number; erros: number; errosAmostra: Array<{ linha: number; erro: string }> }> {
   try {
     // Handle Google Sheets redirect
     let csvData: string = '';
@@ -262,7 +266,7 @@ async function importarProducaoLegado(server: FastifyInstance, user: any, url: s
       throw error;
     }
 
-    return { importados: sucesso, duplicados, erros: erros.length };
+    return { importados: sucesso, duplicados, erros: erros.length, errosAmostra: erros.slice(0, 50) };
   } catch (error) {
     throw new Error(`Erro ao importar de ${url}: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
   }
@@ -1714,7 +1718,15 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
       }
 
       const fontes = fontesResult.rows;
-      const resultados: Array<{ fonte: string; importados: number; duplicados: number; erros: number; sucesso: boolean; erro?: string }> = [];
+      const resultados: Array<{
+        fonte: string;
+        importados: number;
+        duplicados: number;
+        erros: number;
+        sucesso: boolean;
+        erro?: string;
+        erros_amostra?: Array<{ linha: number; erro: string }>;
+      }> = [];
       let totalImportados = 0;
       let totalDuplicados = 0;
       let totalErros = 0;
@@ -1731,6 +1743,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
             duplicados: importResult.duplicados,
             erros: importResult.erros,
             sucesso: importResult.erros === 0,
+            erros_amostra: importResult.errosAmostra,
           });
           
           totalImportados += importResult.importados;
