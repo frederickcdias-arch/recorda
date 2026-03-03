@@ -28,7 +28,7 @@ git push
 1. Criar projeto Railway e conectar ao repositório.
 2. Service root: repositório raiz (`recorda`).
 3. Railway usa [railway.json](../railway.json):
-   - build: `npm ci && npm run build --workspace=@recorda/shared && npm run build --workspace=@recorda/backend`
+   - build: `npm run build --workspace=@recorda/shared && npm run build --workspace=@recorda/backend`
    - start: `npm run start --workspace=@recorda/backend`
    - healthcheck: `/health`
 
@@ -41,6 +41,7 @@ git push
 - `CORS_ORIGIN=https://<seu-front>.vercel.app`
 - `APP_URL=https://<seu-front>.vercel.app`
 - `DATABASE_URL` (preferencial, se usar plugin Postgres Railway)
+- `DB_SSL_REJECT_UNAUTHORIZED=false` (recomendado no Postgres Railway para evitar falha de SSL no healthcheck)
 
 Observação:
 - O backend já suporta `DATABASE_URL` automaticamente.
