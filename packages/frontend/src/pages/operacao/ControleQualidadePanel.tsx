@@ -152,8 +152,8 @@ export function ControleQualidadePanel({
       const result = await concluirMut.mutateAsync(repoSelecionadoId);
       await queryClient.invalidateQueries({ queryKey: queryKeys.repositoriosAll });
       onSuccess(result.reprovados > 0
-        ? `CQ concluído com ${result.reprovados} reprovação(ões). Gere o Termo de Correção.`
-        : 'CQ concluído — todos aprovados! Gere o Termo de Devolução.');
+        ? `CQ concluÃ­do com ${result.reprovados} reprovaÃ§Ã£o(Ãµes). Gere o Termo de CorreÃ§Ã£o.`
+        : 'CQ concluÃ­do â€” todos aprovados! Gere o Termo de DevoluÃ§Ã£o.');
     } catch (error) {
       onError(error instanceof Error ? error.message : 'Erro ao Concluir CQ.');
     } finally {
@@ -168,7 +168,7 @@ export function ControleQualidadePanel({
       await devolverMut.mutateAsync(repoSelecionadoId);
       await carregarAvaliacoes(repoSelecionadoId);
       await queryClient.invalidateQueries({ queryKey: queryKeys.repositoriosAll });
-      onSuccess('Reposit�rio retornado para Recebimento.');
+      onSuccess('Repositório retornado para Recebimento.');
     } catch (error) {
       onError(error instanceof Error ? error.message : 'Erro ao Devolver.');
     } finally {
@@ -182,9 +182,9 @@ export function ControleQualidadePanel({
       setBusy(true);
       const rel = await termoCorrecaoMut.mutateAsync(repoSelecionadoId);
       setUltimoRelatorioId(rel.id);
-      onSuccess('Termo de Correção gerado.');
+      onSuccess('Termo de CorreÃ§Ã£o gerado.');
     } catch (error) {
-      onError(error instanceof Error ? error.message : 'Erro ao gerar Termo de Correção.');
+      onError(error instanceof Error ? error.message : 'Erro ao gerar Termo de CorreÃ§Ã£o.');
     } finally {
       setBusy(false);
     }
@@ -196,9 +196,9 @@ export function ControleQualidadePanel({
       setBusy(true);
       const rel = await termoDevolucaoMut.mutateAsync(repoSelecionadoId);
       setUltimoRelatorioId(rel.id);
-      onSuccess('Termo de Devolução gerado.');
+      onSuccess('Termo de DevoluÃ§Ã£o gerado.');
     } catch (error) {
-      onError(error instanceof Error ? error.message : 'Erro ao gerar Termo de Devolução.');
+      onError(error instanceof Error ? error.message : 'Erro ao gerar Termo de DevoluÃ§Ã£o.');
     } finally {
       setBusy(false);
     }
@@ -213,7 +213,7 @@ export function ControleQualidadePanel({
       const token = localStorage.getItem('recorda_access_token') ?? sessionStorage.getItem('recorda_access_token') ?? '';
       setPreviewDevolucaoUrl(`/api/operacional/relatorios/${rel.id}/download?token=${encodeURIComponent(token)}`);
     } catch (error) {
-      onError(error instanceof Error ? error.message : 'Erro ao gerar Termo de Devolução.');
+      onError(error instanceof Error ? error.message : 'Erro ao gerar Termo de DevoluÃ§Ã£o.');
     } finally {
       setBusy(false);
     }
@@ -244,8 +244,8 @@ export function ControleQualidadePanel({
   };
 
   const resultadoBadge = (resultado: string): JSX.Element => {
-    if (resultado === 'APROVADO') return <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800">✓ Aprovado</span>;
-    if (resultado === 'REPROVADO') return <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">✗ Reprovado</span>;
+    if (resultado === 'APROVADO') return <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800">âœ“ Aprovado</span>;
+    if (resultado === 'REPROVADO') return <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">âœ— Reprovado</span>;
     return <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-50 text-yellow-700 border border-yellow-200">Pendente</span>;
   };
 
@@ -284,10 +284,10 @@ export function ControleQualidadePanel({
             <h3 className="text-base font-semibold text-gray-900 mb-2">Concluir Controle de Qualidade?</h3>
             <p className="text-sm text-gray-600 mb-1">
               {resumo.reprovados > 0
-                ? `${resumo.reprovados} documento(s) reprovado(s). O repositório será marcado como CQ_REPROVADO.`
-                : 'Todos os documentos foram aprovados. O repositório será marcado como CQ_APROVADO.'}
+                ? `${resumo.reprovados} documento(s) reprovado(s). O repositÃ³rio serÃ¡ marcado como CQ_REPROVADO.`
+                : 'Todos os documentos foram aprovados. O repositÃ³rio serÃ¡ marcado como CQ_APROVADO.'}
             </p>
-            <p className="text-xs text-gray-400 mb-5">Esta ação não pode ser desfeita sem devolução para reavaliação.</p>
+            <p className="text-xs text-gray-400 mb-5">Esta aÃ§Ã£o nÃ£o pode ser desfeita sem devoluÃ§Ã£o para reavaliaÃ§Ã£o.</p>
             <div className="flex gap-2 justify-end">
               <Button size="sm" variant="secondary" onClick={() => setConfirmConcluir(false)}>Cancelar</Button>
               <Button size="sm" variant={resumo.reprovados > 0 ? 'danger' : 'primary'} onClick={() => void handleConcluir()}>Confirmar</Button>
@@ -305,7 +305,7 @@ export function ControleQualidadePanel({
               {docs.find((d) => d.processo_id === reprovandoId)?.protocolo}
             </p>
             <label className="block text-xs font-medium text-gray-700 mb-1">
-              Motivo da reprovação <span className="text-red-500">*</span>
+              Motivo da reprovaÃ§Ã£o <span className="text-red-500">*</span>
             </label>
             <input
               ref={obsInputRef}
@@ -337,7 +337,7 @@ export function ControleQualidadePanel({
       {/* Repo selector */}
       <Card>
         <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-          <h2 className="text-lg font-semibold text-gray-900">Repositórios</h2>
+          <h2 className="text-lg font-semibold text-gray-900">RepositÃ³rios</h2>
           <span className="text-xs text-gray-400">{repositoriosDisponiveis.length} total</span>
         </div>
 
@@ -346,7 +346,7 @@ export function ControleQualidadePanel({
           <input
             type="text"
             className="h-8 px-3 border rounded-lg text-sm w-44 focus:outline-none focus:ring-2 focus:ring-blue-200"
-            placeholder="Buscar repositório..."
+            placeholder="Buscar repositÃ³rio..."
             value={buscaRepo}
             onChange={(e) => setBuscaRepo(e.target.value)}
           />
@@ -375,7 +375,7 @@ export function ControleQualidadePanel({
 
         {/* Repo list */}
         {reposFiltrados.length === 0 ? (
-          <p className="text-sm text-gray-400 py-2">Nenhum repositório corresponde ao filtro.</p>
+          <p className="text-sm text-gray-400 py-2">Nenhum repositÃ³rio corresponde ao filtro.</p>
         ) : (
           <div className="space-y-1 max-h-56 overflow-y-auto pr-1">
             {reposFiltrados.map((repo) => {
@@ -385,9 +385,9 @@ export function ControleQualidadePanel({
                 : repo.status_atual === 'CQ_REPROVADO' ? 'text-red-700 bg-red-50 border-red-200'
                 : 'text-yellow-700 bg-yellow-50 border-yellow-200';
               const statusLabel =
-                repo.status_atual === 'CQ_APROVADO' ? '✓ Aprovado'
-                : repo.status_atual === 'CQ_REPROVADO' ? '✗ Reprovado'
-                : '⏳ Pendente';
+                repo.status_atual === 'CQ_APROVADO' ? 'âœ“ Aprovado'
+                : repo.status_atual === 'CQ_REPROVADO' ? 'âœ— Reprovado'
+                : 'â³ Pendente';
               return (
                 <button
                   key={repo.id_repositorio_recorda}
@@ -419,7 +419,7 @@ export function ControleQualidadePanel({
           <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
             <div className="flex-1 min-w-0">
               <h3 className="text-base font-semibold text-gray-900">
-                {repoSelecionado?.id_repositorio_ged} — {repoSelecionado?.orgao}
+                {repoSelecionado?.id_repositorio_ged} â€” {repoSelecionado?.orgao}
               </h3>
               {resumo.total > 0 && (
                 <div className="mt-2">
@@ -434,10 +434,10 @@ export function ControleQualidadePanel({
                   </div>
                   <div className="flex gap-3 text-xs">
                     <span className="text-gray-500">Total: <strong>{resumo.total}</strong></span>
-                    <span className="text-green-700">✓ <strong>{resumo.aprovados}</strong></span>
-                    <span className="text-red-600">✗ <strong>{resumo.reprovados}</strong></span>
+                    <span className="text-green-700">âœ“ <strong>{resumo.aprovados}</strong></span>
+                    <span className="text-red-600">âœ— <strong>{resumo.reprovados}</strong></span>
                     {resumo.pendentes > 0 && (
-                      <span className="text-yellow-700 font-semibold">⏳ {resumo.pendentes} pendente(s)</span>
+                      <span className="text-yellow-700 font-semibold">â³ {resumo.pendentes} pendente(s)</span>
                     )}
                   </div>
                 </div>
@@ -461,7 +461,7 @@ export function ControleQualidadePanel({
               {repoSelecionado?.status_atual === 'CQ_REPROVADO' ? (
                 <>
                   <Button size="sm" variant="danger" onClick={() => void handleTermoCorrecao()} disabled={busy}>
-                    Gerar Termo de Correção
+                    Gerar Termo de CorreÃ§Ã£o
                   </Button>
                   <Button size="sm" variant="secondary" onClick={() => void handleDevolver()} disabled={busy}>
                     Retornar para Recebimento
@@ -470,7 +470,7 @@ export function ControleQualidadePanel({
               ) : null}
               {repoSelecionado?.status_atual === 'CQ_APROVADO' ? (
                 <Button size="sm" onClick={() => void handleTermoDevolucao()} disabled={busy}>
-                  Gerar Termo de Devolução
+                  Gerar Termo de DevoluÃ§Ã£o
                 </Button>
               ) : null}
               {ultimoRelatorioId ? (
@@ -514,7 +514,7 @@ export function ControleQualidadePanel({
           )}
 
           {docs.length === 0 ? (
-            <p className="text-sm text-gray-500 py-4">Nenhum Processo cadastrado neste Repositório.</p>
+            <p className="text-sm text-gray-500 py-4">Nenhum Processo cadastrado neste RepositÃ³rio.</p>
           ) : docsFiltrados.length === 0 ? (
             <p className="text-sm text-gray-400 py-4 text-center">Nenhum documento corresponde ao filtro.</p>
           ) : (
@@ -527,8 +527,8 @@ export function ControleQualidadePanel({
                     <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Interessado</th>
                     <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Vol.</th>
                     <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Status</th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Observação / Avaliador</th>
-                    <th className="px-3 py-2 text-right text-xs font-semibold text-gray-500 uppercase">Ações</th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase">ObservaÃ§Ã£o / Avaliador</th>
+                    <th className="px-3 py-2 text-right text-xs font-semibold text-gray-500 uppercase">AÃ§Ãµes</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-100">
@@ -546,7 +546,7 @@ export function ControleQualidadePanel({
                       <td className="px-3 py-2 text-sm font-medium">
                         {doc.is_apenso ? (
                           <span className="flex items-center gap-1">
-                            <span className="text-gray-400 text-xs ml-2">↳</span>
+                            <span className="text-gray-400 text-xs ml-2">â†³</span>
                             <span className="text-gray-700">{doc.protocolo}</span>
                             <span className="text-xs bg-gray-100 text-gray-500 px-1 rounded">apenso</span>
                           </span>
@@ -582,7 +582,7 @@ export function ControleQualidadePanel({
                                   : 'bg-green-50 text-green-700 hover:bg-green-100 border border-green-200'
                               } disabled:opacity-40`}
                             >
-                              ✓
+                              âœ“
                             </button>
                             <button
                               onClick={() => void handleAvaliar(doc.processo_id, 'REPROVADO')}
@@ -594,7 +594,7 @@ export function ControleQualidadePanel({
                                   : 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200'
                               } disabled:opacity-40`}
                             >
-                              ✗
+                              âœ—
                             </button>
                           </div>
                         ) : (
@@ -610,11 +610,11 @@ export function ControleQualidadePanel({
         </Card>
       ) : null}
 
-      {/* Multi-repo devolução */}
+      {/* Multi-repo devoluÃ§Ã£o */}
       {reposAprovados.length > 0 && (
         <Card>
-          <h2 className="text-lg font-semibold text-gray-900 mb-3">Termo de Devolução Combinado</h2>
-          <p className="text-sm text-gray-500 mb-3">Selecione repositórios aprovados para gerar um único Termo de Devolução.</p>
+          <h2 className="text-lg font-semibold text-gray-900 mb-3">Termo de DevoluÃ§Ã£o Combinado</h2>
+          <p className="text-sm text-gray-500 mb-3">Selecione repositÃ³rios aprovados para gerar um Ãºnico Termo de DevoluÃ§Ã£o.</p>
           <div className="space-y-2 max-h-48 overflow-auto">
             {reposAprovados.map((repo) => (
               <label key={repo.id_repositorio_recorda} className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer ${reposSelecionadosDev.has(repo.id_repositorio_recorda) ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
@@ -631,7 +631,7 @@ export function ControleQualidadePanel({
                   }}
                   className="rounded"
                 />
-                <span className="text-sm text-gray-900">{repo.id_repositorio_ged} — {repo.orgao}</span>
+                <span className="text-sm text-gray-900">{repo.id_repositorio_ged} â€” {repo.orgao}</span>
               </label>
             ))}
           </div>
@@ -645,18 +645,18 @@ export function ControleQualidadePanel({
               Gerar Termo ({reposSelecionadosDev.size})
             </Button>
             {reposSelecionadosDev.size > 0 && (
-              <span className="text-xs text-gray-500">{reposSelecionadosDev.size} repositório(s) selecionado(s)</span>
+              <span className="text-xs text-gray-500">{reposSelecionadosDev.size} repositÃ³rio(s) selecionado(s)</span>
             )}
           </div>
         </Card>
       )}
 
-      {/* Preview Termo de Devolução */}
+      {/* Preview Termo de DevoluÃ§Ã£o */}
       {previewDevolucaoUrl ? (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl h-[85vh] flex flex-col overflow-hidden animate-scale-in">
             <div className="px-6 py-4 border-b flex items-center justify-between shrink-0">
-              <h3 className="text-lg font-semibold text-gray-900">Termo de Devolução</h3>
+              <h3 className="text-lg font-semibold text-gray-900">Termo de DevoluÃ§Ã£o</h3>
               <div className="flex gap-2">
                 <Button
                   size="sm"
@@ -681,7 +681,7 @@ export function ControleQualidadePanel({
                 id="devolucao-preview-iframe"
                 src={previewDevolucaoUrl}
                 className="w-full h-full border-0"
-                title="Preview do Termo de Devolução"
+                title="Preview do Termo de DevoluÃ§Ã£o"
               />
             </div>
           </div>
