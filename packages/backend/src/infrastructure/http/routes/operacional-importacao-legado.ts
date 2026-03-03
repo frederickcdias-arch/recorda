@@ -810,8 +810,8 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
               const coordenadoriaMarcador = (row.coordenadoria ?? '').trim();
               const colaboradorNomeMarcador = (colaboradorNome ?? '').trim();
               
-              const existente = await server.database.query<{ id: string }>(
-                `SELECT id FROM producao_repositorio
+              const existente = await server.database.query<{ id: string; quantidade: number }>(
+                `SELECT id, quantidade FROM producao_repositorio
                  WHERE usuario_id = $1
                    AND repositorio_id = $2
                    AND (data_producao AT TIME ZONE 'America/Sao_Paulo')::date = $3::date
@@ -827,6 +827,9 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
               );
 
               if (existente.rows.length > 0) {
+                if (Number(existente.rows[0]!.quantidade) === quantidade) {
+                  continue;
+                }
                 // Atualizar registro existente (substituir), incluindo etapa
                 await server.database.query(
                   `UPDATE producao_repositorio
@@ -1580,8 +1583,8 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
               colaborador_nome: colaboradorNome,
             });
             
-            const existente = await server.database.query<{ id: string }>(
-              `SELECT id FROM producao_repositorio
+            const existente = await server.database.query<{ id: string; quantidade: number }>(
+              `SELECT id, quantidade FROM producao_repositorio
                WHERE usuario_id = $1 AND repositorio_id = $2 AND (data_producao AT TIME ZONE 'America/Sao_Paulo')::date = $3::date
                  AND etapa = $4
                  AND COALESCE(marcadores->>'origem', '') = 'LEGADO'
@@ -1595,6 +1598,10 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
             );
 
             if (existente.rows.length > 0) {
+              if (Number(existente.rows[0]!.quantidade) === quantidade) {
+                duplicados++;
+                continue;
+              }
               await server.database.query(
                 `UPDATE producao_repositorio
                  SET quantidade = $1, marcadores = $2::jsonb, etapa = $4
