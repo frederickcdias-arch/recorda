@@ -212,10 +212,13 @@ async function importarProducaoLegado(
           }
 
           // Parse repository ID
-          let repoId = row.repositorio.replace(/\s/g, '').trim();
-          if (!repoId.includes('/')) {
-            const anoRef = new Date().getFullYear();
-            repoId = `${repoId.padStart(6, '0')}/${anoRef}`;
+          const repoId = normalizeIdRepositorioGed(row.repositorio ?? '', new Date().getFullYear());
+          if (!repoId) {
+            erros.push({
+              linha: idx + 1,
+              erro: 'Repositório inválido'
+            });
+            continue;
           }
 
           // Find repository
@@ -300,7 +303,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
           const vistos = new Map<string, number>();
           for (let i = 0; i < registros.length; i++) {
             const row = registros[i] as Record<string, string | undefined>;
-            const repo = (row.idRepositorioGed ?? '').trim().toLowerCase();
+            const repo = normalizeIdRepositorioGed((row.idRepositorioGed ?? '').trim()).toLowerCase();
             const processo = (row.processo ?? '').trim().toLowerCase();
             const interessado = (row.interessado ?? '').trim().toLowerCase();
             const chave = `${repo}|${processo}|${interessado}`;
@@ -350,7 +353,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
             const row = registros[i] as Record<string, string | undefined>;
             const data = (row.data ?? '').trim().toLowerCase();
             const colaborador = (row.colaborador ?? '').trim().toLowerCase();
-            const repo = (row.repositorio ?? '').trim().toLowerCase();
+            const repo = normalizeIdRepositorioGed((row.repositorio ?? '').trim()).toLowerCase();
             const quantidade = (row.quantidade ?? '').toString().trim();
             const tipoVal = (row.tipo ?? '').trim().toLowerCase();
             const funcaoVal = (row.funcao ?? '').trim().toLowerCase();
@@ -1251,10 +1254,11 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
             const parsed = parseInt(parts[2] ?? '', 10);
             if (!isNaN(parsed)) anoRef = parsed < 100 ? 2000 + parsed : parsed;
           }
-          const repoIdentificador = row.repositorio.replace(/\s/g, '').trim();
-          const repoId = repoIdentificador.includes('/')
-            ? `${repoIdentificador.split('/')[0]!.padStart(6, '0')}/${repoIdentificador.split('/')[1]}`
-            : `${repoIdentificador.padStart(6, '0')}/${anoRef}`;
+          const repoId = normalizeIdRepositorioGed(row.repositorio ?? '', anoRef);
+          if (!repoId) {
+            novos.push({ linha, dados: row, motivo: 'Repositório inválido' });
+            continue;
+          }
 
           const repoResult = await server.database.query<{ id_repositorio_recorda: string }>(
             `SELECT id_repositorio_recorda FROM repositorios WHERE id_repositorio_ged = $1`, [repoId]
