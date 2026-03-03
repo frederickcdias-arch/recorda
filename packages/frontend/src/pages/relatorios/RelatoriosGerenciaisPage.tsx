@@ -211,6 +211,11 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
 
   return (
     <div className="space-y-6">
+      <header>
+        <h1 className="text-2xl font-bold text-gray-900">Relatórios Gerenciais</h1>
+        <p className="mt-1 text-gray-500">Resumo consolidado da produção por período, coordenadoria e colaborador.</p>
+      </header>
+
       {/* Filtros */}
       <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Resumo Gerencial de Produção</h2>
