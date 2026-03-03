@@ -1058,180 +1058,245 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
       await server.database.query('DELETE FROM fontes_importacao WHERE id = $1', [id]);
       return reply.send({ ok: true });
     });
-
     // POST /operacional/fontes-importacao/:id/validar-duplicatas - Validate duplicates before importing
     server.post<{ Params: { id: string } }>('/operacional/fontes-importacao/:id/validar-duplicatas', {
       schema: { tags: ['operacional'], summary: 'Validar duplicatas antes de importar', security: [{ bearerAuth: [] }] },
       preHandler: [server.authenticate, authorize('operador', 'administrador')],
     }, async (request, reply) => {
-      const { id } = request.params;
+      try {
+        const { id } = request.params;
 
-      // 1. Fetch the saved source
-      const fonteResult = await server.database.query<{ id: string; nome: string; url: string }>(
-        `SELECT id, nome, url FROM fontes_importacao WHERE id = $1`, [id]
-      );
-      if (fonteResult.rows.length === 0) {
-        return reply.status(404).send({ error: 'Fonte de importação não encontrada' });
-      }
-      const fonte = fonteResult.rows[0]!;
-
-      // 2. Fetch CSV data
-      const csvData = await fetch(fonte.url).then(r => r.text());
-      const lines = csvData.split('\n').map(l => l.trim()).filter(l => l);
-
-      // 3. Parse CSV (same logic as import)
-      const normalizeH = (v: string) => v.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
-      const headersRaw = lines[0]!.split(',').map(h => h.trim().replace(/^"|"$/g, ''));
-      const headers = headersRaw.map(normalizeH);
-      const indexOf = (aliases: string[]) => headers.findIndex(h => aliases.includes(h));
-
-      const idxData = indexOf(['data', 'date']);
-      const idxColaborador = indexOf(['colaborador', 'nome', 'funcionario']);
-      const idxFuncao = indexOf(['funcao', 'função', 'cargo']);
-      const idxRepositorio = indexOf(['repositorio', 'repositório', 'repo', 'protocolo', 'numero', 'número', 'id', 'identificacao']);
-      const idxCoordenadoria = indexOf(['coordenadoria', 'coord', 'unidade']);
-      const idxQuantidade = indexOf(['quantidade', 'qtd', 'qtde']);
-      const idxTipo = indexOf(['tipo']);
-
-      if (idxRepositorio < 0 || idxColaborador < 0) {
-        return reply.status(400).send({ error: 'Planilha inválida: colunas obrigatórias Colaborador e Repositório não encontradas.' });
-      }
-
-      interface ParsedRow {
-        data: string; colaborador: string; funcao: string; repositorio: string;
-        coordenadoria: string; quantidade: string; tipo: string;
-      }
-      const registros: ParsedRow[] = [];
-      for (let i = 1; i < lines.length; i++) {
-        const cols = lines[i]!.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
-        const colaborador = (cols[idxColaborador] ?? '').trim();
-        const repositorio = (cols[idxRepositorio] ?? '').trim();
-        if (!colaborador || !repositorio) continue;
-        registros.push({
-          data: idxData >= 0 ? (cols[idxData] ?? '').trim() : '',
-          colaborador,
-          funcao: idxFuncao >= 0 ? (cols[idxFuncao] ?? '').trim() : '',
-          repositorio,
-          coordenadoria: idxCoordenadoria >= 0 ? (cols[idxCoordenadoria] ?? '').trim() : '',
-          quantidade: idxQuantidade >= 0 ? (cols[idxQuantidade] ?? '1').trim() || '1' : '1',
-          tipo: idxTipo >= 0 ? (cols[idxTipo] ?? '').trim() : '',
-        });
-      }
-
-      // 4. Check for duplicates
-      const usuariosResult = await server.database.query<{ id: string; nome: string }>(
-        `SELECT id, nome FROM usuarios WHERE ativo = TRUE`
-      );
-      const usuariosPorNome = new Map<string, string>();
-      for (const u of usuariosResult.rows) {
-        usuariosPorNome.set(u.nome.toLowerCase().trim(), u.id);
-      }
-
-      const funcaoToEtapa = (funcao: string): string => {
-        const f = funcao.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
-        if (f.includes('receb')) return 'RECEBIMENTO';
-        if (f.includes('prepar')) return 'PREPARACAO';
-        if (f.includes('digital')) return 'DIGITALIZACAO';
-        if (f.includes('confer')) return 'CONFERENCIA';
-        if (f.includes('montag')) return 'MONTAGEM';
-        if (f.includes('qualidade') || f.includes('cq')) return 'CONTROLE_QUALIDADE';
-        if (f.includes('entreg')) return 'ENTREGA';
-        return 'RECEBIMENTO';
-      };
-
-      const novos: Array<{ linha: number; dados: ParsedRow; motivo: string }> = [];
-      const duplicados: Array<{ linha: number; dados: ParsedRow; motivo: string }> = [];
-
-      for (let idx = 0; idx < registros.length; idx++) {
-        const row = registros[idx]!;
-        const linha = idx + 1;
-        
-        // Parse repo
-        let anoRef = new Date().getFullYear();
-        if (row.data.includes('/')) {
-          const parts = row.data.split('/');
-          const parsed = parseInt(parts[2] ?? '', 10);
-          if (!isNaN(parsed)) anoRef = parsed < 100 ? 2000 + parsed : parsed;
-        }
-        const repoIdentificador = row.repositorio.replace(/\s/g, '').trim();
-        const repoId = repoIdentificador.includes('/') 
-          ? `${repoIdentificador.split('/')[0]!.padStart(6, '0')}/${repoIdentificador.split('/')[1]}`
-          : `${repoIdentificador.padStart(6, '0')}/${anoRef}`;
-
-        // Find repo
-        const repoResult = await server.database.query<{ id_repositorio_recorda: string }>(
-          `SELECT id_repositorio_recorda FROM repositorios WHERE id_repositorio_ged = $1`, [repoId]
+        const fonteResult = await server.database.query<{ id: string; nome: string; url: string }>(
+          `SELECT id, nome, url FROM fontes_importacao WHERE id = $1`, [id]
         );
-        if (repoResult.rows.length === 0) {
-          novos.push({ linha, dados: row, motivo: 'Repositório não encontrado' });
-          continue;
+        if (fonteResult.rows.length === 0) {
+          return reply.status(404).send({ error: 'Fonte de importação não encontrada' });
         }
-        const repositorioId = repoResult.rows[0]!.id_repositorio_recorda;
+        const fonte = fonteResult.rows[0]!;
 
-        // Resolve collaborator
-        let colaboradorId = usuariosPorNome.get(row.colaborador.toLowerCase());
-        if (!colaboradorId) {
-          for (const [nome, uid] of usuariosPorNome.entries()) {
-            if (nome.includes(row.colaborador.toLowerCase()) || row.colaborador.toLowerCase().includes(nome)) {
-              colaboradorId = uid;
-              break;
-            }
+        const trimmed = fonte.url.trim();
+        let csvUrl = trimmed;
+        const spreadsheetIdMatch = trimmed.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+        if (spreadsheetIdMatch) {
+          const spreadsheetId = spreadsheetIdMatch[1];
+          const gidMatch = trimmed.match(/[?&#]gid=(\d+)/);
+          const gid = gidMatch?.[1] ?? '0';
+          csvUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=${gid}`;
+        }
+
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 15_000);
+        let csvResponse: Response;
+        try {
+          csvResponse = await fetch(csvUrl, { signal: controller.signal, headers: { 'Accept': 'text/csv, text/plain, */*' }, redirect: 'follow' });
+        } catch (fetchErr) {
+          clearTimeout(timeout);
+          if (fetchErr instanceof Error && fetchErr.name === 'AbortError') {
+            return reply.status(408).send({ error: 'Timeout ao acessar a planilha.' });
           }
+          throw fetchErr;
+        } finally {
+          clearTimeout(timeout);
         }
-        if (!colaboradorId) colaboradorId = usuariosPorNome.values().next().value;
 
-        // Parse date
-        let dataProducaoStr: string;
-        if (row.data) {
+        if (!csvResponse.ok) {
+          return reply.status(400).send({ error: `Erro ao acessar planilha (HTTP ${csvResponse.status})` });
+        }
+        const csvContent = await csvResponse.text();
+        if (!csvContent.trim()) {
+          return reply.status(400).send({ error: 'A planilha retornou conteúdo vazio.' });
+        }
+
+        const lines = csvContent.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+        if (lines.length < 2) {
+          return reply.status(400).send({ error: 'Planilha sem dados (apenas cabeçalho ou vazia).' });
+        }
+
+        const isTab = lines[0]!.includes('\t');
+        const separator = lines[0]!.includes(';') ? ';' : ',';
+        const splitLine = (line: string): string[] => {
+          if (isTab) return line.split('\t').map(c => c.trim());
+          const out: string[] = [];
+          let current = '';
+          let quoted = false;
+          for (let i = 0; i < line.length; i++) {
+            const ch = line[i]!;
+            if (ch === '"') {
+              if (quoted && line[i + 1] === '"') {
+                current += '"';
+                i++;
+              } else {
+                quoted = !quoted;
+              }
+              continue;
+            }
+            if (ch === separator && !quoted) {
+              out.push(current);
+              current = '';
+              continue;
+            }
+            current += ch;
+          }
+          out.push(current);
+          return out.map(s => s.trim());
+        };
+
+        const normalizeH = (v: string) => v.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+        const headersRaw = splitLine(lines[0]!);
+        const headers = headersRaw.map(normalizeH);
+        const indexOf = (aliases: string[]) => headers.findIndex(h => aliases.includes(h));
+
+        const idxData = indexOf(['data', 'date']);
+        const idxColaborador = indexOf(['colaborador', 'nome', 'funcionario']);
+        const idxFuncao = indexOf(['funcao', 'função', 'cargo']);
+        const idxRepositorio = indexOf(['repositorio', 'repositório', 'repo', 'protocolo', 'numero', 'número', 'id', 'identificacao']);
+        const idxCoordenadoria = indexOf(['coordenadoria', 'coord', 'unidade']);
+        const idxQuantidade = indexOf(['quantidade', 'qtd', 'qtde']);
+        const idxTipo = indexOf(['tipo']);
+
+        if (idxRepositorio < 0 || idxColaborador < 0) {
+          return reply.status(400).send({ error: 'Planilha inválida: colunas obrigatórias Colaborador e Repositório não encontradas.' });
+        }
+
+        interface ParsedRow {
+          data: string; colaborador: string; funcao: string; repositorio: string;
+          coordenadoria: string; quantidade: string; tipo: string;
+        }
+        const registros: ParsedRow[] = [];
+        for (let i = 1; i < lines.length; i++) {
+          const cols = splitLine(lines[i]!);
+          const colaborador = (cols[idxColaborador] ?? '').trim();
+          const repositorio = (cols[idxRepositorio] ?? '').trim();
+          if (!colaborador || !repositorio) continue;
+          registros.push({
+            data: idxData >= 0 ? (cols[idxData] ?? '').trim() : '',
+            colaborador,
+            funcao: idxFuncao >= 0 ? (cols[idxFuncao] ?? '').trim() : '',
+            repositorio,
+            coordenadoria: idxCoordenadoria >= 0 ? (cols[idxCoordenadoria] ?? '').trim() : '',
+            quantidade: idxQuantidade >= 0 ? (cols[idxQuantidade] ?? '1').trim() || '1' : '1',
+            tipo: idxTipo >= 0 ? (cols[idxTipo] ?? '').trim() : '',
+          });
+        }
+
+        if (registros.length === 0) {
+          return reply.status(400).send({ error: 'Nenhum registro válido encontrado na planilha.' });
+        }
+
+        const usuariosResult = await server.database.query<{ id: string; nome: string }>(
+          `SELECT id, nome FROM usuarios WHERE ativo = TRUE`
+        );
+        const usuariosPorNome = new Map<string, string>();
+        for (const u of usuariosResult.rows) {
+          usuariosPorNome.set(u.nome.toLowerCase().trim(), u.id);
+        }
+
+        const funcaoToEtapa = (funcao: string): string => {
+          const f = funcao.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+          if (f.includes('receb')) return 'RECEBIMENTO';
+          if (f.includes('prepar')) return 'PREPARACAO';
+          if (f.includes('digital')) return 'DIGITALIZACAO';
+          if (f.includes('confer')) return 'CONFERENCIA';
+          if (f.includes('montag')) return 'MONTAGEM';
+          if (f.includes('qualidade') || f.includes('cq')) return 'CONTROLE_QUALIDADE';
+          if (f.includes('entreg')) return 'ENTREGA';
+          return 'RECEBIMENTO';
+        };
+
+        const novos: Array<{ linha: number; dados: ParsedRow; motivo: string }> = [];
+        const duplicados: Array<{ linha: number; dados: ParsedRow; motivo: string }> = [];
+
+        for (let idx = 0; idx < registros.length; idx++) {
+          const row = registros[idx]!;
+          const linha = idx + 1;
+
+          let anoRef = new Date().getFullYear();
           if (row.data.includes('/')) {
             const parts = row.data.split('/');
-            const dd = (parts[0] ?? '').padStart(2, '0');
-            const mm = (parts[1] ?? '').padStart(2, '0');
-            let yyyy = parts[2] ?? '';
-            if (yyyy.length === 2) {
-              yyyy = (parseInt(yyyy, 10) > 50 ? '19' : '20') + yyyy;
-            }
-            if (!yyyy) yyyy = String(new Date().getFullYear());
-            dataProducaoStr = `${yyyy}-${mm}-${dd}`;
-          } else {
-            dataProducaoStr = row.data;
+            const parsed = parseInt(parts[2] ?? '', 10);
+            if (!isNaN(parsed)) anoRef = parsed < 100 ? 2000 + parsed : parsed;
           }
-        } else {
-          dataProducaoStr = new Date().toISOString().split('T')[0]!;
+          const repoIdentificador = row.repositorio.replace(/\s/g, '').trim();
+          const repoId = repoIdentificador.includes('/')
+            ? `${repoIdentificador.split('/')[0]!.padStart(6, '0')}/${repoIdentificador.split('/')[1]}`
+            : `${repoIdentificador.padStart(6, '0')}/${anoRef}`;
+
+          const repoResult = await server.database.query<{ id_repositorio_recorda: string }>(
+            `SELECT id_repositorio_recorda FROM repositorios WHERE id_repositorio_ged = $1`, [repoId]
+          );
+          if (repoResult.rows.length === 0) {
+            novos.push({ linha, dados: row, motivo: 'Repositório não encontrado' });
+            continue;
+          }
+          const repositorioId = repoResult.rows[0]!.id_repositorio_recorda;
+
+          let colaboradorId = usuariosPorNome.get(row.colaborador.toLowerCase());
+          if (!colaboradorId) {
+            for (const [nome, uid] of usuariosPorNome.entries()) {
+              if (nome.includes(row.colaborador.toLowerCase()) || row.colaborador.toLowerCase().includes(nome)) {
+                colaboradorId = uid;
+                break;
+              }
+            }
+          }
+          if (!colaboradorId) colaboradorId = usuariosPorNome.values().next().value;
+
+          let dataProducaoStr: string;
+          if (row.data) {
+            if (row.data.includes('/')) {
+              const parts = row.data.split('/');
+              const dd = (parts[0] ?? '').padStart(2, '0');
+              const mm = (parts[1] ?? '').padStart(2, '0');
+              let yyyy = parts[2] ?? '';
+              if (yyyy.length === 2) {
+                yyyy = (parseInt(yyyy, 10) > 50 ? '19' : '20') + yyyy;
+              }
+              if (!yyyy) yyyy = String(new Date().getFullYear());
+              dataProducaoStr = `${yyyy}-${mm}-${dd}`;
+            } else {
+              dataProducaoStr = row.data;
+            }
+          } else {
+            dataProducaoStr = new Date().toISOString().split('T')[0]!;
+          }
+
+          const etapaImport = funcaoToEtapa(row.funcao);
+          const quantidade = Math.max(Math.round(Number(row.quantidade.replace(/\./g, '').replace(',', '.') || '1')), 1);
+
+          const existente = await server.database.query<{ id: string }>(
+            `SELECT id FROM producao_repositorio
+             WHERE usuario_id = $1 AND repositorio_id = $2 AND (data_producao AT TIME ZONE 'America/Sao_Paulo')::date = $3::date
+               AND etapa = $4 AND quantidade = $5
+               AND COALESCE(marcadores->>'tipo', '') = $6
+               AND COALESCE(marcadores->>'funcao', '') = $7
+               AND COALESCE(marcadores->>'coordenadoria', '') = $8
+               AND COALESCE(marcadores->>'colaborador_nome', '') = $9
+             LIMIT 1`,
+            [colaboradorId, repositorioId, dataProducaoStr, etapaImport, quantidade,
+             (row.tipo || '').trim(), (row.funcao || '').trim(), (row.coordenadoria || '').trim(), row.colaborador.trim()]
+          );
+
+          if (existente.rows.length > 0) {
+            duplicados.push({ linha, dados: row, motivo: 'Registro já existe no sistema' });
+          } else {
+            novos.push({ linha, dados: row, motivo: 'Novo registro' });
+          }
         }
 
-        // Check duplicate
-        const etapaImport = funcaoToEtapa(row.funcao);
-        const quantidade = Math.max(Math.round(Number(row.quantidade.replace(/\./g, '').replace(',', '.') || '1')), 1);
-        
-        const existente = await server.database.query<{ id: string }>(
-          `SELECT id FROM producao_repositorio
-           WHERE usuario_id = $1 AND repositorio_id = $2 AND (data_producao AT TIME ZONE 'America/Sao_Paulo')::date = $3::date
-             AND etapa = $4 AND quantidade = $5
-             AND COALESCE(marcadores->>'tipo', '') = $6
-             AND COALESCE(marcadores->>'funcao', '') = $7
-             AND COALESCE(marcadores->>'coordenadoria', '') = $8
-             AND COALESCE(marcadores->>'colaborador_nome', '') = $9
-           LIMIT 1`,
-          [colaboradorId, repositorioId, dataProducaoStr, etapaImport, quantidade, 
-           (row.tipo || '').trim(), (row.funcao || '').trim(), (row.coordenadoria || '').trim(), row.colaborador.trim()]
-        );
-
-        if (existente.rows.length > 0) {
-          duplicados.push({ linha, dados: row, motivo: 'Registro já existe no sistema' });
-        } else {
-          novos.push({ linha, dados: row, motivo: 'Novo registro' });
+        return reply.send({
+          fonte: { id: fonte.id, nome: fonte.nome },
+          total: registros.length,
+          novos: { quantidade: novos.length, itens: novos.slice(0, 10) },
+          duplicados: { quantidade: duplicados.length, itens: duplicados.slice(0, 10) },
+        });
+      } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') {
+          return reply.status(408).send({ error: 'Timeout ao acessar a planilha. Tente novamente.' });
         }
+        const message = error instanceof Error ? error.message : 'Erro ao validar duplicatas da fonte';
+        return sendDatabaseError(reply, error, message);
       }
-
-      return reply.send({
-        fonte: { id: fonte.id, nome: fonte.nome },
-        total: registros.length,
-        novos: { quantidade: novos.length, itens: novos.slice(0, 10) }, // Limit preview to 10
-        duplicados: { quantidade: duplicados.length, itens: duplicados.slice(0, 10) }, // Limit preview to 10
-      });
     });
-
     // POST /operacional/fontes-importacao/:id/importar - Fetch & import from a saved source (auto-skip duplicates)
     server.post<{ Params: { id: string } }>('/operacional/fontes-importacao/:id/importar', {
       schema: { tags: ['operacional'], summary: 'Importar dados de uma fonte salva (auto-skip duplicatas)', security: [{ bearerAuth: [] }] },
