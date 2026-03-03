@@ -5,7 +5,7 @@
     "buildCommand": "npm run build --workspace=@recorda/shared && npm run build --workspace=@recorda/backend"
   },
   "deploy": {
-    "startCommand": "npm run start --workspace=@recorda/backend",
+    "startCommand": "npm run migrate --workspace=@recorda/backend && npm run start --workspace=@recorda/backend",
     "healthcheckPath": "/health",
     "healthcheckTimeout": 120
   }

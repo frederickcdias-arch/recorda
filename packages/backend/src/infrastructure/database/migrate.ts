@@ -11,6 +11,7 @@ const __dirname = path.dirname(__filename);
 dotenv.config();
 
 const {
+  DATABASE_URL,
   DB_HOST = 'localhost',
   DB_PORT = '5433',
   DB_USER = 'recorda',
@@ -35,13 +36,15 @@ function extractVersion(filename: string): string {
 }
 
 async function runMigrations() {
-  const client = new pg.Client({
-    host: DB_HOST,
-    port: Number(DB_PORT),
-    user: DB_USER,
-    password: DB_PASSWORD,
-    database: DB_NAME,
-  });
+  const client = DATABASE_URL?.trim()
+    ? new pg.Client({ connectionString: DATABASE_URL.trim() })
+    : new pg.Client({
+        host: DB_HOST,
+        port: Number(DB_PORT),
+        user: DB_USER,
+        password: DB_PASSWORD,
+        database: DB_NAME,
+      });
 
   try {
     await client.connect();
