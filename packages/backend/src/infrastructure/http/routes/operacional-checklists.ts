@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { authorize } from '../middleware/auth.js';
+import { sendDatabaseError } from '../middleware/error-handler.js';
 import { validateBody } from '../middleware/validate.js';
 import {
   criarModeloChecklistSchema,
@@ -293,7 +294,7 @@ export function createOperacionalChecklistsRoutes(): FastifyPluginAsync {
         return reply.send({ itens: result.rows });
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Erro ao listar modelos de checklist';
-        return reply.status(500).send({ error: message });
+        return sendDatabaseError(reply, error, message);
       }
     });
 
@@ -426,7 +427,7 @@ export function createOperacionalChecklistsRoutes(): FastifyPluginAsync {
         if (message.includes('uk_checklists_ativos_por_etapa')) {
           return reply.status(409).send({ error: 'Já existe checklist ativo para esta etapa e repositório' });
         }
-        return reply.status(500).send({ error: message });
+        return sendDatabaseError(reply, error, message);
       }
     });
 
@@ -465,7 +466,7 @@ export function createOperacionalChecklistsRoutes(): FastifyPluginAsync {
         return reply.send({ itens: result.rows });
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Erro ao listar checklists';
-        return reply.status(500).send({ error: message });
+        return sendDatabaseError(reply, error, message);
       }
     });
 
@@ -504,7 +505,7 @@ export function createOperacionalChecklistsRoutes(): FastifyPluginAsync {
         return reply.send({ checklist, itens: modelosResult.rows });
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Erro ao buscar checklist';
-        return reply.status(500).send({ error: message });
+        return sendDatabaseError(reply, error, message);
       }
     });
 
@@ -542,7 +543,7 @@ export function createOperacionalChecklistsRoutes(): FastifyPluginAsync {
         return reply.status(201).send(result.rows[0]);
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Erro ao registrar item do checklist';
-        return reply.status(500).send({ error: message });
+        return sendDatabaseError(reply, error, message);
       }
     });
 
@@ -713,7 +714,7 @@ export function createOperacionalChecklistsRoutes(): FastifyPluginAsync {
         return reply.send({ itens: result.rows });
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Erro ao listar relatorios';
-        return reply.status(500).send({ error: message });
+        return sendDatabaseError(reply, error, message);
       }
     });
 
@@ -943,3 +944,4 @@ export function createOperacionalChecklistsRoutes(): FastifyPluginAsync {
     });
   };
 }
+

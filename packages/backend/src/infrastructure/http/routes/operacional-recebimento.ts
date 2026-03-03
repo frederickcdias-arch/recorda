@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { authorize } from '../middleware/auth.js';
+import { sendDatabaseError } from '../middleware/error-handler.js';
 import { validateBody } from '../middleware/validate.js';
 import {
   nomeObrigatorioSchema,
@@ -36,7 +37,7 @@ export function createOperacionalRecebimentoRoutes(): FastifyPluginAsync {
         return reply.send({ itens: result.rows });
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Erro ao listar setores';
-        return reply.status(500).send({ error: message });
+        return sendDatabaseError(reply, error, message);
       }
     });
 
@@ -75,7 +76,7 @@ export function createOperacionalRecebimentoRoutes(): FastifyPluginAsync {
         return reply.send({ itens: result.rows });
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Erro ao listar classificações';
-        return reply.status(500).send({ error: message });
+        return sendDatabaseError(reply, error, message);
       }
     });
 
@@ -152,7 +153,7 @@ export function createOperacionalRecebimentoRoutes(): FastifyPluginAsync {
         return reply.send({ processos });
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Erro ao listar processos do recebimento';
-        return reply.status(500).send({ error: message });
+        return sendDatabaseError(reply, error, message);
       }
     });
 
@@ -381,9 +382,10 @@ export function createOperacionalRecebimentoRoutes(): FastifyPluginAsync {
         return reply.send({ itens: result.rows });
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Erro ao listar documentos de recebimento';
-        return reply.status(500).send({ error: message });
+        return sendDatabaseError(reply, error, message);
       }
     });
 
   };
 }
+

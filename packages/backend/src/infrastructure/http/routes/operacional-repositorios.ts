@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { authorize } from '../middleware/auth.js';
+import { sendDatabaseError } from '../middleware/error-handler.js';
 import { validateBody } from '../middleware/validate.js';
 import {
   criarRepositorioSchema,
@@ -270,7 +271,7 @@ export function createOperacionalRepositoriosRoutes(): FastifyPluginAsync {
         });
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Erro ao listar repositórios';
-        return reply.status(500).send({ error: message });
+        return sendDatabaseError(reply, error, message);
       }
     });
 
@@ -322,7 +323,7 @@ export function createOperacionalRepositoriosRoutes(): FastifyPluginAsync {
             error: 'Repositório possui dependências que impedem a exclusão. Verifique se está em um lote de CQ.',
           });
         }
-        return reply.status(500).send({ error: message });
+        return sendDatabaseError(reply, error, message);
       }
     });
 
@@ -399,4 +400,5 @@ export function createOperacionalRepositoriosRoutes(): FastifyPluginAsync {
 
   };
 }
+
 

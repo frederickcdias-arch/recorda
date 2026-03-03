@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { authorize } from '../middleware/auth.js';
+import { sendDatabaseError } from '../middleware/error-handler.js';
 import { validateBody } from '../middleware/validate.js';
 import { importacaoLegadoSchema, importacaoLegadoRecebimentoSchema, importacaoLegadoProducaoSchema } from '../schemas/operacional.js';
 import {
@@ -418,7 +419,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
         });
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Erro ao validar duplicidades';
-        return reply.status(500).send({ error: message });
+        return sendDatabaseError(reply, error, message);
       }
     });
 
@@ -922,7 +923,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
         });
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Erro ao listar importacoes legadas';
-        return reply.status(500).send({ error: message });
+        return sendDatabaseError(reply, error, message);
       }
     });
 
@@ -954,7 +955,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
       } catch (error) {
         await server.database.query('ROLLBACK');
         const message = error instanceof Error ? error.message : 'Erro ao limpar dados legados';
-        return reply.status(500).send({ error: message });
+        return sendDatabaseError(reply, error, message);
       }
     });
 
@@ -1010,7 +1011,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
       } catch (error) {
         if (error instanceof Error && error.name === 'AbortError') return reply.status(408).send({ error: 'Timeout ao acessar a planilha. Tente novamente.' });
         const message = error instanceof Error ? error.message : 'Erro ao buscar dados da planilha';
-        return reply.status(500).send({ error: message });
+        return sendDatabaseError(reply, error, message);
       }
     });
 
@@ -1637,3 +1638,4 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
 
   };
 }
+

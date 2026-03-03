@@ -1,7 +1,8 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
+import { authorize } from '../middleware/auth.js';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { authorize } from '../middleware/auth.js';
+import { sendDatabaseError } from '../middleware/error-handler.js';
 import { validateBody } from '../middleware/validate.js';
 import { criarLoteCQSchema, auditarItemCQSchema } from '../schemas/operacional.js';
 import {
@@ -127,7 +128,7 @@ export function createOperacionalCQRoutes(): FastifyPluginAsync {
         return reply.send({ itens: result.rows, total, pagina, totalPaginas: Math.ceil(total / limite) });
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Erro ao listar lotes de CQ';
-        return reply.status(500).send({ error: message });
+        return sendDatabaseError(reply, error, message);
       }
     });
 
@@ -164,7 +165,7 @@ export function createOperacionalCQRoutes(): FastifyPluginAsync {
         return reply.send({ lote, itens: itensResult.rows });
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Erro ao detalhar lote de CQ';
-        return reply.status(500).send({ error: message });
+        return sendDatabaseError(reply, error, message);
       }
     });
 
@@ -407,7 +408,7 @@ export function createOperacionalCQRoutes(): FastifyPluginAsync {
         });
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Erro ao listar avaliações CQ';
-        return reply.status(500).send({ error: message });
+        return sendDatabaseError(reply, error, message);
       }
     });
 
@@ -924,3 +925,4 @@ export function createOperacionalCQRoutes(): FastifyPluginAsync {
     });
   };
 }
+

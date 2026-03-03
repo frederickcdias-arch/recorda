@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { authorize } from '../middleware/auth.js';
+import { sendDatabaseError } from '../middleware/error-handler.js';
 import { validateBody } from '../middleware/validate.js';
 import {
   ocrPreviewSchema,
@@ -111,7 +112,7 @@ export function createOperacionalAvulsosRoutes(): FastifyPluginAsync {
         });
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Erro ao listar processos avulsos';
-        return reply.status(500).send({ error: message });
+        return sendDatabaseError(reply, error, message);
       }
     });
 
@@ -316,3 +317,4 @@ export function createOperacionalAvulsosRoutes(): FastifyPluginAsync {
 
   };
 }
+

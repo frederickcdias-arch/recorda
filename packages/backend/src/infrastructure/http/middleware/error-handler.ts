@@ -34,6 +34,12 @@ export interface ErrorResponse {
   details?: unknown;
 }
 
+interface PgErrorLike {
+  code?: string;
+  message?: string;
+  detail?: string;
+}
+
 /**
  * Classe de erro da aplicação
  */
@@ -103,6 +109,50 @@ export function sendError(
   }
 
   const message = getErrorMessage(error, fallbackMessage);
+  return reply.status(500).send({
+    error: message,
+    code: ErrorCodes.INTERNAL_ERROR,
+  } as ErrorResponse);
+}
+
+/**
+ * Mapeia erros comuns do PostgreSQL para respostas HTTP apropriadas.
+ */
+export function sendDatabaseError(
+  reply: FastifyReply,
+  error: unknown,
+  fallbackMessage: string = 'Erro ao processar operacao no banco'
+): FastifyReply {
+  const pgError = error as PgErrorLike;
+  const message = getErrorMessage(error, fallbackMessage);
+
+  if (pgError.code === '23505') {
+    return reply.status(409).send({
+      error: message,
+      code: ErrorCodes.CONFLICT,
+    } as ErrorResponse);
+  }
+
+  if (pgError.code === '23503') {
+    return reply.status(409).send({
+      error: pgError.detail ?? message,
+      code: ErrorCodes.CONFLICT,
+    } as ErrorResponse);
+  }
+
+  if (
+    pgError.code === '23502' ||
+    pgError.code === '23514' ||
+    pgError.code === '22P02' ||
+    pgError.code === '22001' ||
+    pgError.code === '22007'
+  ) {
+    return reply.status(400).send({
+      error: message,
+      code: ErrorCodes.BAD_REQUEST,
+    } as ErrorResponse);
+  }
+
   return reply.status(500).send({
     error: message,
     code: ErrorCodes.INTERNAL_ERROR,
