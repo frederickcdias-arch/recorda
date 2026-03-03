@@ -90,11 +90,38 @@ export function createOperacionalRepositoriosRoutes(): FastifyPluginAsync {
 
         return reply.status(201).send(result.rows[0]);
       } catch (error) {
-        const message = error instanceof Error ? error.message : 'Erro ao criar repositório';
-        if (message.includes('repositorios_id_repositorio_ged_key')) {
-          return reply.status(409).send({ error: 'id_repositorio_ged já cadastrado' });
+        server.log.error({ error }, 'Erro ao criar repositorio operacional');
+
+        const pgError = error as {
+          code?: string;
+          constraint?: string;
+          column?: string;
+          message?: string;
+        };
+
+        if (
+          pgError.code === '23505' ||
+          pgError.constraint === 'repositorios_id_repositorio_ged_key'
+        ) {
+          return reply.status(409).send({ error: 'id_repositorio_ged ja cadastrado' });
         }
-        return reply.status(500).send({ error: message });
+
+        if (
+          pgError.code === '23502' &&
+          (pgError.column === 'localizacao_fisica_armario_id' ||
+            (pgError.message ?? '').includes('localizacao_fisica_armario_id'))
+        ) {
+          return reply.status(500).send({
+            error:
+              'Schema do banco desatualizado (localizacao_fisica_armario_id NOT NULL). Rode as migrations pendentes.',
+          });
+        }
+
+        if (pgError.code === '23514' || pgError.code === '22P02' || pgError.code === '23502') {
+          return reply.status(400).send({ error: pgError.message ?? 'Dados invalidos para criar repositorio' });
+        }
+
+        return reply.status(500).send({ error: pgError.message ?? 'Erro ao criar repositorio' });
       }
     });
 
@@ -372,3 +399,4 @@ export function createOperacionalRepositoriosRoutes(): FastifyPluginAsync {
 
   };
 }
+
