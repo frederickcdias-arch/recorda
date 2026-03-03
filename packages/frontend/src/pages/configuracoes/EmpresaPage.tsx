@@ -7,6 +7,7 @@ import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { Icon } from '../../components/ui/Icon';
 import { useConfirmDialog } from '../../hooks/useConfirmDialog';
 import { useEmpresa, useSaveEmpresa, useUploadLogo, useRemoveLogo, useQueryClient, queryKeys } from '../../hooks/useQueries';
+import { buildApiUrl } from '../../services/api';
 
 interface EmpresaConfig {
   nome: string;
@@ -35,6 +36,7 @@ export function EmpresaPage(): JSX.Element {
   const [salvando, setSalvando] = useState(false);
   const confirmDialog = useConfirmDialog();
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [logoLoadError, setLogoLoadError] = useState(false);
   const [mensagem, setMensagem] = useState<{ tipo: 'success' | 'error'; texto: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
@@ -64,6 +66,10 @@ export function EmpresaPage(): JSX.Element {
       });
     }
   }, [empresaQuery.data]);
+
+  useEffect(() => {
+    setLogoLoadError(false);
+  }, [config.logoUrl]);
 
   const handleChange = (field: keyof EmpresaConfig, value: string | boolean): void => {
     setConfig((prev) => ({ ...prev, [field]: value }));
@@ -126,7 +132,7 @@ export function EmpresaPage(): JSX.Element {
   const logoSrc = config.logoUrl
     ? config.logoUrl.startsWith('http')
       ? config.logoUrl
-      : `/api${config.logoUrl}?t=${Date.now()}`
+      : buildApiUrl(config.logoUrl)
     : '';
 
   const erroComAcao = erro ? { ...erro, action: { label: 'Tentar novamente', onClick: () => void queryClient.invalidateQueries({ queryKey: queryKeys.empresa }) } } : null;
@@ -198,14 +204,21 @@ export function EmpresaPage(): JSX.Element {
         />
 
         <div className="space-y-4">
-          <div className="flex items-start gap-6">
+          <div className="flex flex-col sm:flex-row items-start gap-6">
             <div className="w-32 h-32 bg-gray-50 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300 overflow-hidden flex-shrink-0">
-              {logoSrc ? (
-                <img src={logoSrc} alt="Logo" className="max-w-full max-h-full object-contain p-2" />
+              {logoSrc && !logoLoadError ? (
+                <img
+                  src={logoSrc}
+                  alt="Logo"
+                  className="max-w-full max-h-full object-contain p-2"
+                  onError={() => setLogoLoadError(true)}
+                />
               ) : (
                 <div className="text-center p-3">
                   <Icon name="image" className="w-8 h-8 text-gray-300 mx-auto mb-1" />
-                  <span className="text-gray-400 text-xs">Sem logo</span>
+                  <span className="text-gray-400 text-xs">
+                    {config.logoUrl ? 'Erro ao carregar logo' : 'Sem logo'}
+                  </span>
                 </div>
               )}
             </div>
