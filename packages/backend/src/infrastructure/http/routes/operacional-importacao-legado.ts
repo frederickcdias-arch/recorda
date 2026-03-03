@@ -1333,6 +1333,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
       schema: { tags: ['operacional'], summary: 'Importar dados de uma fonte salva (auto-skip duplicatas)', security: [{ bearerAuth: [] }] },
       preHandler: [server.authenticate, authorize('operador', 'administrador')],
     }, async (request, reply) => {
+      const startedAt = new Date();
       const { id } = request.params;
 
       // 1. Fetch the saved source
@@ -1472,6 +1473,9 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
       }
 
       let sucesso = 0;
+      let inseridos = 0;
+      let atualizados = 0;
+      let ignorados = 0;
       let duplicados = 0;
       const erros: Array<{ linha: number; erro: string }> = [];
 
@@ -1600,6 +1604,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
             if (existente.rows.length > 0) {
               if (Number(existente.rows[0]!.quantidade) === quantidade) {
                 duplicados++;
+                ignorados++;
                 continue;
               }
               await server.database.query(
@@ -1608,6 +1613,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
                  WHERE id = $3`,
                 [quantidade, marcadores, existente.rows[0]!.id, etapaImport]
               );
+              atualizados++;
               sucesso++;
               continue;
             }
@@ -1633,6 +1639,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
                ) VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7)`,
               [repositorioId, etapaImport, checklistId, colaboradorId, quantidade, marcadores, dataProducaoStr]
             );
+            inseridos++;
             sucesso++;
           } catch (error) {
             erros.push({ linha, erro: error instanceof Error ? error.message : 'Erro desconhecido' });
@@ -1651,17 +1658,39 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
       );
 
       // Log the import
+      const finishedAt = new Date();
+      const detalhesImportacao = {
+        fonte: { id: fonte.id, nome: fonte.nome, url: fonte.url },
+        periodo_execucao: {
+          iniciado_em: startedAt.toISOString(),
+          finalizado_em: finishedAt.toISOString(),
+          duracao_ms: finishedAt.getTime() - startedAt.getTime(),
+        },
+        contadores: {
+          total_planilha: registros.length,
+          sucesso,
+          inseridos,
+          atualizados,
+          ignorados,
+          duplicados,
+          erros: erros.length,
+        },
+        erros_amostra: erros.slice(0, 50),
+      };
       await server.database.query(
         `INSERT INTO importacoes_legado_operacional (
            tipo, total_registros, registros_sucesso, registros_erro, detalhes_erros, usuario_destino_id, executado_por
          ) VALUES ('PRODUCAO', $1, $2, $3, $4::jsonb, $5, $6)`,
-        [registros.length, sucesso, erros.length, JSON.stringify(erros), user.id, user.id]
+        [registros.length, sucesso, erros.length, JSON.stringify(detalhesImportacao), user.id, user.id]
       );
 
       return reply.send({
         fonte: fonte.nome,
         totalPlanilha: registros.length,
         importados: sucesso,
+        inseridos,
+        atualizados,
+        ignorados,
         duplicados,
         erros: erros.length,
         detalhesErros: erros.slice(0, 10),
@@ -1674,6 +1703,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
       preHandler: [server.authenticate, authorize('operador', 'administrador')],
     }, async (request, reply) => {
       const user = getCurrentUser(request);
+      const startedAt = new Date();
 
       // 1. Get all saved sources
       const fontesResult = await server.database.query<{ id: string; nome: string; url: string }>(
@@ -1724,22 +1754,20 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
       }
 
       // 3. Log the bulk import
+      const finishedAt = new Date();
       const detalhesBulk = {
+        periodo_execucao: {
+          iniciado_em: startedAt.toISOString(),
+          finalizado_em: finishedAt.toISOString(),
+          duracao_ms: finishedAt.getTime() - startedAt.getTime(),
+        },
         resumo: {
           fontes: fontes.length,
           importados: totalImportados,
           duplicados: totalDuplicados,
           erros: totalErros,
         },
-        resultados: resultados
-          .filter((r) => !r.sucesso || r.erros > 0 || r.duplicados > 0)
-          .map((r) => ({
-            fonte: r.fonte,
-            importados: r.importados,
-            duplicados: r.duplicados,
-            erros: r.erros,
-            erro: r.erro,
-          })),
+        resultados,
       };
 
       const totalRegistrosLog = totalImportados + totalErros;
