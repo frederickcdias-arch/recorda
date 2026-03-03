@@ -193,6 +193,8 @@ export function createConfiguracaoRoutes(): FastifyPluginAsync {
         return reply
           .header('Content-Type', mimeTypes[ext] ?? 'image/png')
           .header('Cache-Control', 'public, max-age=3600')
+          // Permite exibir a logo em frontend hospedado em outro domÃ­nio (ex.: Vercel).
+          .header('Cross-Origin-Resource-Policy', 'cross-origin')
           .send(buffer);
       } catch {
         return reply.status(404).send({ error: 'Logo não encontrada' });
@@ -365,4 +367,3 @@ export function createConfiguracaoRoutes(): FastifyPluginAsync {
     });
   };
 }
-
