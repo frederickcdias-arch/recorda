@@ -59,6 +59,8 @@ export async function createServer(dependencies: ServerDependencies): Promise<Fa
   await server.register(cors, {
     origin: corsOrigin,
     credentials: true,
+    methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Authorization', 'Content-Type', 'X-Requested-With'],
   });
 
   // Multipart (upload de arquivos)
