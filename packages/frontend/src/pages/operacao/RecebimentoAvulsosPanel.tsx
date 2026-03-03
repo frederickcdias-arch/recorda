@@ -438,7 +438,7 @@ export function RecebimentoAvulsosPanel({ onSuccess, onError }: RecebimentoAvuls
                 label="Buscar repositório"
                 value={repoBusca}
                 onChange={(e) => setRepoBusca(e.target.value)}
-                placeholder="ID GED, órgão ou projeto"
+                placeholder="ID GED, unidade ou projeto"
               />
             </div>
 
