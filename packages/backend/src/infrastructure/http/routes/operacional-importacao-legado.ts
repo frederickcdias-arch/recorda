@@ -1724,10 +1724,31 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
       }
 
       // 3. Log the bulk import
+      const detalhesBulk = {
+        resumo: {
+          fontes: fontes.length,
+          importados: totalImportados,
+          duplicados: totalDuplicados,
+          erros: totalErros,
+        },
+        resultados: resultados
+          .filter((r) => !r.sucesso || r.erros > 0 || r.duplicados > 0)
+          .map((r) => ({
+            fonte: r.fonte,
+            importados: r.importados,
+            duplicados: r.duplicados,
+            erros: r.erros,
+            erro: r.erro,
+          })),
+      };
+
+      const totalRegistrosLog = totalImportados + totalErros;
       await server.database.query(
-        `INSERT INTO importacoes_legado_operacional (tipo, total_registros, registros_sucesso, registros_erro, usuario_destino_id, executado_por)
-         VALUES ('PRODUCAO_BULK', $1, $2, $3, $4, $5)`,
-        [totalImportados + totalDuplicados + totalErros, totalImportados, totalErros, user.id, user.id]
+        `INSERT INTO importacoes_legado_operacional (
+           tipo, total_registros, registros_sucesso, registros_erro, detalhes_erros, usuario_destino_id, executado_por
+         )
+         VALUES ('PRODUCAO_BULK', $1, $2, $3, $4::jsonb, $5, $6)`,
+        [totalRegistrosLog, totalImportados, totalErros, JSON.stringify(detalhesBulk), user.id, user.id]
       );
 
       return reply.send({
