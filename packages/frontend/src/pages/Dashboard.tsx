@@ -39,6 +39,9 @@ function DashboardContent({ data }: { data: DashboardData }): JSX.Element {
 
   return (
     <div className="space-y-6">
+      <header>
+        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+      </header>
       <section>
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Visão Geral</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -157,6 +160,9 @@ export function DashboardPage(): JSX.Element {
   if (isLoading) {
     return (
       <div className="space-y-6">
+        <header>
+          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+        </header>
         <div>
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Visão Geral</h2>
           <SkeletonCards count={4} />
