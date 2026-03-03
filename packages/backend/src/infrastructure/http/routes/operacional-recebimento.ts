@@ -169,11 +169,8 @@ export function createOperacionalRecebimentoRoutes(): FastifyPluginAsync {
           protocolo?: string;
           interessado?: string;
           setorId?: string;
-          classificacaoId?: string;
           volumeAtual?: number;
           volumeTotal?: number;
-          numeroCaixas?: number;
-          caixaNova?: boolean;
           origem?: OrigemDocumentoRecebimento;
           ocrConfianca?: number;
           textoExtraido?: string;
@@ -184,6 +181,11 @@ export function createOperacionalRecebimentoRoutes(): FastifyPluginAsync {
         if (!repositorio) {
           return reply.status(404).send({ error: 'Repositorio nao encontrado' });
         }
+        const repoMeta = await server.database.query<{ classificacao_padrao_id: string | null }>(
+          `SELECT classificacao_padrao_id FROM repositorios WHERE id_repositorio_recorda = $1`,
+          [id]
+        );
+        const classificacaoPadraoId = repoMeta.rows[0]?.classificacao_padrao_id ?? null;
 
         const protocolo = body.protocolo?.trim() ?? '';
         const interessado = body.interessado?.trim() ?? '';
@@ -209,11 +211,11 @@ export function createOperacionalRecebimentoRoutes(): FastifyPluginAsync {
             protocolo,
             interessado,
             body.setorId ?? null,
-            body.classificacaoId ?? null,
+            classificacaoPadraoId,
             Math.max(Number(body.volumeAtual ?? 1), 1),
             Math.max(Number(body.volumeTotal ?? 0), 0),
-            Math.max(Number(body.numeroCaixas ?? 1), 1),
-            Boolean(body.caixaNova),
+            1,
+            false,
             body.origem ?? 'MANUAL',
             body.ocrConfianca ?? null,
             body.textoExtraido ?? '',

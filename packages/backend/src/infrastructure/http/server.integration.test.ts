@@ -1951,7 +1951,7 @@ describe('HTTP server integration', () => {
         idRepositorioGed: 'GED-NEW',
         orgao: 'Orgao X',
         projeto: 'Projeto Y',
-        armarioId: 'arm-1',
+        classificacaoId: '550e8400-e29b-41d4-a716-446655440000',
       },
     });
     expect(response.statusCode).toBe(201);

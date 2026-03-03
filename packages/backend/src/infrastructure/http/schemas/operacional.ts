@@ -19,6 +19,7 @@ export const criarRepositorioSchema = z.object({
   idRepositorioGed: z.string().min(1, 'ID GED é obrigatório'),
   orgao: z.string().min(1, 'Órgão é obrigatório'),
   projeto: z.string().min(1, 'Projeto é obrigatório'),
+  classificacaoId: z.string().uuid('Classificação inválida'),
   armarioCodigo: z.string().optional(),
 });
 
@@ -36,11 +37,8 @@ export const criarProcessoRecebimentoSchema = z.object({
   protocolo: z.string().min(1, 'Protocolo é obrigatório'),
   interessado: z.string().default(''),
   setorId: z.string().uuid().optional().nullable(),
-  classificacaoId: z.string().uuid().optional().nullable(),
   volumeAtual: z.number().int().min(1).default(1),
   volumeTotal: z.number().int().min(0).default(0),
-  numeroCaixas: z.number().int().min(1).default(1),
-  caixaNova: z.boolean().default(false),
   origem: z.enum(['MANUAL', 'OCR', 'LEGADO']).default('MANUAL'),
   ocrConfianca: z.number().min(0).max(100).optional().nullable(),
   ocrImagemPath: z.string().optional().nullable(),
@@ -198,11 +196,8 @@ export const criarProcessoAvulsoSchema = z.object({
   protocolo: z.string().min(1, 'Protocolo é obrigatório'),
   interessado: z.string().min(1, 'Interessado é obrigatório'),
   setorId: z.string().uuid().optional().nullable(),
-  classificacaoId: z.string().uuid().optional().nullable(),
   volumeAtual: z.number().int().min(1).default(1),
   volumeTotal: z.number().int().min(0).default(0),
-  numeroCaixas: z.number().int().min(1).default(1),
-  caixaNova: z.boolean().default(false),
   observacao: z.string().optional().default(''),
   origem: z.enum(['MANUAL', 'OCR', 'LEGADO']).default('MANUAL'),
   ocrConfianca: z.number().min(0).max(100).optional().nullable(),
@@ -262,3 +257,5 @@ export const importacaoLegadoProducaoSchema = z.object({
     tipo: z.string().optional(),
   })).min(1, 'Pelo menos um registro é obrigatório'),
 });
+
+

@@ -54,6 +54,8 @@ export const queryKeys = {
     ['repositorios', params] as const,
   repositoriosAll: ['repositorios'] as const,
   setoresRecebimento: ['setores-recebimento'] as const,
+  orgaosRecebimento: ['orgaos-recebimento'] as const,
+  projetosConfiguracao: ['configuracao-projetos'] as const,
   classificacoesRecebimento: ['classificacoes-recebimento'] as const,
   avulsos: (params: Record<string, string | number>) =>
     ['avulsos', params] as const,
@@ -160,12 +162,32 @@ export function useClassificacoesRecebimento() {
   });
 }
 
+export function useOrgaosRecebimento() {
+  return useQuery({
+    queryKey: queryKeys.orgaosRecebimento,
+    queryFn: () =>
+      api.get<{ itens: SelectOption[] }>('/operacional/orgaos-recebimento'),
+    staleTime: 5 * 60_000,
+    select: (data) => data.itens ?? [],
+  });
+}
+
+export function useProjetosConfiguracao() {
+  return useQuery({
+    queryKey: queryKeys.projetosConfiguracao,
+    queryFn: () =>
+      api.get<{ projetos: Array<{ id: string; nome: string; ativo: boolean }> }>('/configuracao/projetos'),
+    staleTime: 5 * 60_000,
+    select: (data) => (data.projetos ?? []).filter((p) => p.ativo).map((p) => ({ id: p.id, nome: p.nome })),
+  });
+}
+
 // ─── Mutation Hooks ─────────────────────────────────────────
 
 export function useCreateRepositorio() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (body: { idRepositorioGed: string; orgao: string; projeto: string }) =>
+    mutationFn: (body: { idRepositorioGed: string; orgao: string; projeto: string; classificacaoId: string }) =>
       api.post('/operacional/repositorios', body),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: queryKeys.repositoriosAll });
@@ -368,7 +390,7 @@ export function useConcluirCQ() {
 export function useDevolverCQ() {
   return useMutation({
     mutationFn: (repoId: string) =>
-      api.post(`/operacional/repositorios/${repoId}/cq-devolver`),
+      api.post(`/operacional/repositorios/${repoId}/cq-retornar-recebimento`),
   });
 }
 
@@ -570,7 +592,7 @@ export function useCriarProcessoAvulso() {
 export function useCriarProcessoRecebimento() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ repoId, ...body }: { repoId: string; protocolo: string; interessado: string; setorId?: string; classificacaoId?: string; volumeAtual: number; volumeTotal: number; numeroCaixas: number; caixaNova: boolean; origem: string; ocrConfianca?: number | null; textoExtraido?: string; imagemBase64?: string }) =>
+    mutationFn: ({ repoId, ...body }: { repoId: string; protocolo: string; interessado: string; setorId?: string; volumeAtual: number; volumeTotal: number; origem: string; ocrConfianca?: number | null; textoExtraido?: string; imagemBase64?: string }) =>
       api.post(`/operacional/repositorios/${repoId}/recebimento-processos`, body),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: queryKeys.repositoriosAll });

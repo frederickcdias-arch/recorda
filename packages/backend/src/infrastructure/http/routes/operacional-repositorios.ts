@@ -59,11 +59,12 @@ export function createOperacionalRepositoriosRoutes(): FastifyPluginAsync {
         security: [{ bearerAuth: [] }],
         body: {
           type: 'object',
-          required: ['idRepositorioGed', 'orgao', 'projeto'],
+          required: ['idRepositorioGed', 'orgao', 'projeto', 'classificacaoId'],
           properties: {
             idRepositorioGed: { type: 'string', description: 'ID do repositório no GED (ex: 000016/2025)' },
             orgao: { type: 'string' },
             projeto: { type: 'string' },
+            classificacaoId: { type: 'string', format: 'uuid' },
           },
         },
       },
@@ -74,6 +75,7 @@ export function createOperacionalRepositoriosRoutes(): FastifyPluginAsync {
           idRepositorioGed: string;
           orgao: string;
           projeto: string;
+          classificacaoId: string;
         };
 
         const result = await server.database.query(
@@ -81,12 +83,18 @@ export function createOperacionalRepositoriosRoutes(): FastifyPluginAsync {
              id_repositorio_ged,
              orgao,
              projeto,
+             classificacao_padrao_id,
              status_atual,
              etapa_atual
            )
-           VALUES ($1, $2, $3, 'RECEBIDO', 'RECEBIMENTO')
+           VALUES ($1, $2, $3, $4, 'RECEBIDO', 'RECEBIMENTO')
            RETURNING *`,
-          [normalizeIdRepositorioGed(body.idRepositorioGed.trim()), body.orgao.trim(), body.projeto.trim()]
+          [
+            normalizeIdRepositorioGed(body.idRepositorioGed.trim()),
+            body.orgao.trim(),
+            body.projeto.trim(),
+            body.classificacaoId,
+          ]
         );
 
         return reply.status(201).send(result.rows[0]);
@@ -123,6 +131,28 @@ export function createOperacionalRepositoriosRoutes(): FastifyPluginAsync {
         }
 
         return reply.status(500).send({ error: pgError.message ?? 'Erro ao criar repositorio' });
+      }
+    });
+
+    server.get('/operacional/orgaos-recebimento', {
+      schema: {
+        tags: ['operacional'],
+        summary: 'Listar órgãos para criação de repositório',
+        security: [{ bearerAuth: [] }],
+      },
+      preHandler: [server.authenticate, authorize('operador', 'administrador')],
+    }, async (_request, reply) => {
+      try {
+        const result = await server.database.query(
+          `SELECT DISTINCT TRIM(orgao) AS nome
+           FROM repositorios
+           WHERE orgao IS NOT NULL AND TRIM(orgao) <> '' AND projeto <> 'LEGADO'
+           ORDER BY nome ASC`
+        );
+        return reply.send({ itens: result.rows });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Erro ao listar órgãos';
+        return sendDatabaseError(reply, error, message);
       }
     });
 

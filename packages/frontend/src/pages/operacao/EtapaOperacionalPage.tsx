@@ -24,6 +24,7 @@ import {
   useRepositorios, useCreateRepositorio, useDeleteRepositorio, useAvancarEtapa,
   useBatchProcessos, useRegistrarProducao, useGerarRelatorioRecebimento, useGerarRelatorioProducao,
   useCriarChecklist, useConcluirChecklist,
+  useOrgaosRecebimento, useProjetosConfiguracao,
   useQueryClient, queryKeys,
 } from '../../hooks/useQueries';
 
@@ -127,6 +128,7 @@ export function EtapaOperacionalPage(): JSX.Element {
     idRepositorioGed: '',
     orgao: '',
     projeto: '',
+    classificacaoId: '',
   });
 
   const [checklistModalOpen, setChecklistModalOpen] = useState(false);
@@ -149,14 +151,14 @@ export function EtapaOperacionalPage(): JSX.Element {
   const {
     ocrModalOpen, setOcrModalOpen, ocrRepo, setOcrImagemBase64,
     ocrPreview, setOcrPreview, ocrProcessando, recebProcessos, recebTab, setRecebTab,
-    apensoModalOpen, setApensoModalOpen, setApensoProcessoId,
+    apensoModalOpen, setApensoModalOpen, apensoProcessoId, setApensoProcessoId,
     setoresOptions, classificacoesOptions,
-    novoSetorInput, setNovoSetorInput, novaClassifInput, setNovaClassifInput,
+    novoSetorInput, setNovoSetorInput,
     docForm, setDocForm, EMPTY_DOC_FORM,
     handleOpenOCRModal, handleUploadImagemOCR, handleProcessarOCR,
     handleSalvarProcessoRecebimento, handleExcluirProcessoRecebimento,
     handleAdicionarApenso, handleExcluirApenso,
-    handleCriarSetor, handleCriarClassificacao,
+    handleCriarSetor,
     confirmDialog: recebimentoConfirmDialog,
   } = useRecebimento();
 
@@ -207,6 +209,10 @@ export function EtapaOperacionalPage(): JSX.Element {
   const gerarRelProducao = useGerarRelatorioProducao();
   const criarChecklist = useCriarChecklist();
   const concluirChecklist = useConcluirChecklist();
+  const orgaosQuery = useOrgaosRecebimento();
+  const projetosQuery = useProjetosConfiguracao();
+  const orgaosOptions = orgaosQuery.data ?? [];
+  const projetosOptions = projetosQuery.data ?? [];
 
   if (!etapaConfig) {
     return <div className="text-center text-gray-600 py-12">Etapa Operacional inválida.</div>;
@@ -221,7 +227,7 @@ export function EtapaOperacionalPage(): JSX.Element {
   const showError = (texto: string): void => toast.error(texto);
 
   const handleCriarRepositorio = async (): Promise<void> => {
-    if (!novoRepositorio.idRepositorioGed || !novoRepositorio.orgao || !novoRepositorio.projeto) {
+    if (!novoRepositorio.idRepositorioGed || !novoRepositorio.orgao || !novoRepositorio.projeto || !novoRepositorio.classificacaoId) {
       showError('Preencha todos os campos obrigatórios para criar o repositório.');
       return;
     }
@@ -232,9 +238,10 @@ export function EtapaOperacionalPage(): JSX.Element {
         idRepositorioGed: novoRepositorio.idRepositorioGed,
         orgao: novoRepositorio.orgao,
         projeto: novoRepositorio.projeto,
+        classificacaoId: novoRepositorio.classificacaoId,
       });
       showSuccess('Repositório criado com sucesso.');
-      setNovoRepositorio((prev) => ({ ...prev, idRepositorioGed: '', orgao: '', projeto: '' }));
+      setNovoRepositorio((prev) => ({ ...prev, idRepositorioGed: '', orgao: '', projeto: '', classificacaoId: '' }));
     } catch (error) {
       showError(extractErrorMessage(error, 'Erro ao Criar Repositório'));
     } finally {
@@ -323,11 +330,8 @@ export function EtapaOperacionalPage(): JSX.Element {
           protocolo: parts[0] || '',
           interessado: parts[1] || '',
           setorId: null,
-          classificacaoId: null,
           volumeAtual: 1,
           volumeTotal: 0,
-          numeroCaixas: 1,
-          caixaNova: false,
           origem: 'MANUAL' as const,
           ocrConfianca: null,
         };
@@ -596,22 +600,63 @@ export function EtapaOperacionalPage(): JSX.Element {
               <>
                 <Card>
                   <h2 className="text-lg font-semibold text-gray-900 mb-4">Criar repositório</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                     <Input
                       label="ID GED"
                       value={novoRepositorio.idRepositorioGed}
                       onChange={(e) => setNovoRepositorio((p) => ({ ...p, idRepositorioGed: e.target.value }))}
                     />
-                    <Input
-                      label="Órgão"
-                      value={novoRepositorio.orgao}
-                      onChange={(e) => setNovoRepositorio((p) => ({ ...p, orgao: e.target.value }))}
-                    />
-                    <Input
-                      label="Projeto"
-                      value={novoRepositorio.projeto}
-                      onChange={(e) => setNovoRepositorio((p) => ({ ...p, projeto: e.target.value }))}
-                    />
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Órgão</label>
+                      <select
+                        className="w-full h-9 px-3 border rounded-lg text-sm"
+                        value={novoRepositorio.orgao}
+                        onChange={(e) => setNovoRepositorio((p) => ({ ...p, orgao: e.target.value }))}
+                      >
+                        <option value="">— Selecione —</option>
+                        {orgaosOptions.map((o) => (
+                          <option key={o.id} value={o.nome}>{o.nome}</option>
+                        ))}
+                      </select>
+                      <input
+                        className="w-full mt-1 h-8 px-2 border rounded text-xs"
+                        placeholder="Ou digite manualmente..."
+                        value={novoRepositorio.orgao}
+                        onChange={(e) => setNovoRepositorio((p) => ({ ...p, orgao: e.target.value }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Projeto</label>
+                      <select
+                        className="w-full h-9 px-3 border rounded-lg text-sm"
+                        value={novoRepositorio.projeto}
+                        onChange={(e) => setNovoRepositorio((p) => ({ ...p, projeto: e.target.value }))}
+                      >
+                        <option value="">— Selecione —</option>
+                        {projetosOptions.map((o) => (
+                          <option key={o.id} value={o.nome}>{o.nome}</option>
+                        ))}
+                      </select>
+                      <input
+                        className="w-full mt-1 h-8 px-2 border rounded text-xs"
+                        placeholder="Ou digite manualmente..."
+                        value={novoRepositorio.projeto}
+                        onChange={(e) => setNovoRepositorio((p) => ({ ...p, projeto: e.target.value }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Classificação</label>
+                      <select
+                        className="w-full h-9 px-3 border rounded-lg text-sm"
+                        value={novoRepositorio.classificacaoId}
+                        onChange={(e) => setNovoRepositorio((p) => ({ ...p, classificacaoId: e.target.value }))}
+                      >
+                        <option value="">— Selecione —</option>
+                        {classificacoesOptions.map((c) => (
+                          <option key={c.id} value={c.id}>{c.nome}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                   <div className="mt-4">
                     <Button onClick={() => void handleCriarRepositorio()} loading={processando}>Criar repositorio</Button>
@@ -1091,10 +1136,40 @@ export function EtapaOperacionalPage(): JSX.Element {
 
                     {/* Formulário simplificado */}
                     <Card>
-                      <h4 className="text-sm font-semibold text-gray-900 mb-3">
-                        {apensoModalOpen ? 'Apenso' : 'Processo'}
-                      </h4>
+                      <h4 className="text-sm font-semibold text-gray-900 mb-3">Cadastro de Documento</h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de cadastro</label>
+                          <select
+                            className="w-full h-9 px-3 border rounded-lg text-sm"
+                            value={apensoModalOpen ? 'APENSO' : 'PROCESSO'}
+                            onChange={(e) => {
+                              const apenso = e.target.value === 'APENSO';
+                              setApensoModalOpen(apenso);
+                              if (!apenso) setApensoProcessoId('');
+                            }}
+                          >
+                            <option value="PROCESSO">Edital/Processo</option>
+                            <option value="APENSO">Apenso Cadastrado</option>
+                          </select>
+                        </div>
+                        {apensoModalOpen ? (
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Processo Principal</label>
+                            <select
+                              className="w-full h-9 px-3 border rounded-lg text-sm"
+                              value={apensoProcessoId}
+                              onChange={(e) => setApensoProcessoId(e.target.value)}
+                            >
+                              <option value="">— Selecione —</option>
+                              {recebProcessos.map((proc) => (
+                                <option key={proc.id} value={proc.id}>
+                                  {proc.protocolo} - {proc.interessado}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        ) : null}
                         <Input
                           label="Protocolo *"
                           value={docForm.protocolo}
@@ -1145,43 +1220,6 @@ export function EtapaOperacionalPage(): JSX.Element {
                           </div>
                         ) : null}
 
-                        {/* Classificação - creatable selector */}
-                        {!apensoModalOpen ? (
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Classificação</label>
-                            <div className="flex gap-1">
-                              <select
-                                className="flex-1 h-9 px-3 border rounded-lg text-sm"
-                                value={docForm.classificacaoId}
-                                onChange={(e) => setDocForm((p) => ({ ...p, classificacaoId: e.target.value }))}
-                              >
-                                <option value="">— Selecione —</option>
-                                {classificacoesOptions.map((c) => (
-                                  <option key={c.id} value={c.id}>{c.nome}</option>
-                                ))}
-                              </select>
-                            </div>
-                            <div className="flex gap-1 mt-1">
-                              <input
-                                type="text"
-                                className="flex-1 h-8 px-2 border rounded text-xs"
-                                placeholder="Nova classificação..."
-                                value={novaClassifInput}
-                                onChange={(e) => setNovaClassifInput(e.target.value)}
-                                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void handleCriarClassificacao(); } }}
-                              />
-                              <button
-                                type="button"
-                                className="h-8 px-2 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-                                onClick={() => void handleCriarClassificacao()}
-                                disabled={!novaClassifInput.trim()}
-                              >
-                                +
-                              </button>
-                            </div>
-                          </div>
-                        ) : null}
-
                         <div className="flex gap-3">
                           <div className="flex-1">
                             <Input
@@ -1203,26 +1241,6 @@ export function EtapaOperacionalPage(): JSX.Element {
                             />
                           </div>
                         </div>
-                        {!apensoModalOpen ? (
-                          <>
-                            <Input
-                              label="Nº Caixas"
-                              type="number"
-                              min={1}
-                              value={String(docForm.numeroCaixas)}
-                              onChange={(e) => setDocForm((p) => ({ ...p, numeroCaixas: Math.max(Number(e.target.value || 1), 1) }))}
-                            />
-                            <div className="flex items-center gap-2 pt-6">
-                              <input
-                                id="caixa-nova"
-                                type="checkbox"
-                                checked={docForm.caixaNova}
-                                onChange={(e) => setDocForm((p) => ({ ...p, caixaNova: e.target.checked }))}
-                              />
-                              <label htmlFor="caixa-nova" className="text-sm text-gray-700">Caixa nova</label>
-                            </div>
-                          </>
-                        ) : null}
                       </div>
                       <div className="mt-4 flex gap-2">
                         {apensoModalOpen ? (

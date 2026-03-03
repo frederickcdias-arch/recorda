@@ -172,12 +172,18 @@ describe('useCreateRepositorio', () => {
     mockPost.mockResolvedValueOnce({ id: 'new-repo' });
 
     const { result } = renderHook(() => useCreateRepositorio(), { wrapper });
-    await result.current.mutateAsync({ idRepositorioGed: 'GED-1', orgao: 'Org', projeto: 'Proj' });
+    await result.current.mutateAsync({
+      idRepositorioGed: 'GED-1',
+      orgao: 'Org',
+      projeto: 'Proj',
+      classificacaoId: '550e8400-e29b-41d4-a716-446655440000',
+    });
 
     expect(mockPost).toHaveBeenCalledWith('/operacional/repositorios', {
       idRepositorioGed: 'GED-1',
       orgao: 'Org',
       projeto: 'Proj',
+      classificacaoId: '550e8400-e29b-41d4-a716-446655440000',
     });
   });
 });
@@ -278,8 +284,6 @@ describe('useCriarProcessoRecebimento', () => {
       interessado: 'Maria',
       volumeAtual: 1,
       volumeTotal: 2,
-      numeroCaixas: 1,
-      caixaNova: false,
       origem: 'MANUAL',
     });
 

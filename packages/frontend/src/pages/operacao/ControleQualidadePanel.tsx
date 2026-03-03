@@ -168,7 +168,7 @@ export function ControleQualidadePanel({
       await devolverMut.mutateAsync(repoSelecionadoId);
       await carregarAvaliacoes(repoSelecionadoId);
       await queryClient.invalidateQueries({ queryKey: queryKeys.repositoriosAll });
-      onSuccess('Repositório devolvido para Reavaliação.');
+      onSuccess('Reposit�rio retornado para Recebimento.');
     } catch (error) {
       onError(error instanceof Error ? error.message : 'Erro ao Devolver.');
     } finally {
@@ -464,7 +464,7 @@ export function ControleQualidadePanel({
                     Gerar Termo de Correção
                   </Button>
                   <Button size="sm" variant="secondary" onClick={() => void handleDevolver()} disabled={busy}>
-                    Devolver p/ Reavaliação
+                    Retornar para Recebimento
                   </Button>
                 </>
               ) : null}

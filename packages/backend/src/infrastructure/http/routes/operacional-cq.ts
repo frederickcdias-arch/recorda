@@ -655,6 +655,48 @@ export function createOperacionalCQRoutes(): FastifyPluginAsync {
       }
     });
 
+    // POST /operacional/repositorios/:id/cq-retornar-recebimento
+    server.post('/operacional/repositorios/:id/cq-retornar-recebimento', {
+      schema: {
+        tags: ['operacional-cq'],
+        summary: 'Retornar repositório para recebimento',
+        security: [{ bearerAuth: [] }],
+        params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+      },
+      preHandler: [server.authenticate, authorize('operador', 'administrador')],
+    }, async (request, reply) => {
+      try {
+        const { id } = request.params as { id: string };
+        const user = getCurrentUser(request);
+
+        await server.database.query(
+          `UPDATE cq_avaliacoes
+           SET resultado = 'PENDENTE', observacao = NULL, data_avaliacao = NULL, atualizado_em = CURRENT_TIMESTAMP
+           WHERE repositorio_id = $1`,
+          [id]
+        );
+
+        await server.database.query(
+          `UPDATE repositorios
+           SET etapa_atual = 'RECEBIMENTO', status_atual = 'RECEBIDO'
+           WHERE id_repositorio_recorda = $1`,
+          [id]
+        );
+
+        await server.database.query(
+          `INSERT INTO historico_etapas (repositorio_id, etapa_origem, etapa_destino, status_origem, status_destino, usuario_id, detalhes)
+           VALUES ($1, 'CONTROLE_QUALIDADE', 'RECEBIMENTO', 'CQ_REPROVADO', 'RECEBIDO', $2,
+                   jsonb_build_object('origem', 'cq_retornar_recebimento'))`,
+          [id, user.id]
+        );
+
+        return reply.send({ ok: true });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Erro ao retornar repositório para recebimento';
+        return reply.status(400).send({ error: message });
+      }
+    });
+
     // POST /operacional/repositorios/:id/termo-correcao - Generate correction term PDF
     server.post('/operacional/repositorios/:id/termo-correcao', {
       schema: {

@@ -14,7 +14,8 @@ describe('criarRepositorioSchema', () => {
     const result = criarRepositorioSchema.safeParse({
       idRepositorioGed: '000016/2025',
       orgao: 'SEFAZ',
-      projeto: 'DIGITALIZA√á√ÉO',
+      projeto: 'DIGITALIZA«√O',
+      classificacaoId: '550e8400-e29b-41d4-a716-446655440000',
     });
     expect(result.success).toBe(true);
   });
@@ -23,7 +24,8 @@ describe('criarRepositorioSchema', () => {
     const result = criarRepositorioSchema.safeParse({
       idRepositorioGed: '',
       orgao: 'SEFAZ',
-      projeto: 'DIGITALIZA√á√ÉO',
+      projeto: 'DIGITALIZA«√O',
+      classificacaoId: '550e8400-e29b-41d4-a716-446655440000',
     });
     expect(result.success).toBe(false);
   });

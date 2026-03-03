@@ -60,11 +60,8 @@ export interface DocForm {
   protocolo: string;
   interessado: string;
   setorId: string;
-  classificacaoId: string;
   volumeAtual: number;
   volumeTotal: number;
-  numeroCaixas: number;
-  caixaNova: boolean;
   origem: OrigemDocumentoRecebimento;
 }
 
@@ -79,11 +76,8 @@ const EMPTY_DOC_FORM: DocForm = {
   protocolo: '',
   interessado: '',
   setorId: '',
-  classificacaoId: '',
   volumeAtual: 1,
   volumeTotal: 0,
-  numeroCaixas: 1,
-  caixaNova: false,
   origem: 'MANUAL',
 };
 
@@ -151,8 +145,7 @@ export function useRecebimento() {
     const nome = novaClassifInput.trim();
     if (!nome) return;
     try {
-      const created = await criarClassifMut.mutateAsync(nome);
-      setDocForm((p) => ({ ...p, classificacaoId: created.id }));
+      await criarClassifMut.mutateAsync(nome);
       setNovaClassifInput('');
     } catch (error) {
       toast.error(extractErrorMessage(error, 'Erro ao Criar Classificação'));
@@ -222,11 +215,8 @@ export function useRecebimento() {
         protocolo: docForm.protocolo.trim(),
         interessado: docForm.interessado.trim(),
         setorId: docForm.setorId || undefined,
-        classificacaoId: docForm.classificacaoId || undefined,
         volumeAtual: docForm.volumeAtual,
         volumeTotal: docForm.volumeTotal,
-        numeroCaixas: docForm.numeroCaixas,
-        caixaNova: docForm.caixaNova,
         origem: docForm.origem,
         ocrConfianca: ocrPreview?.confianca ?? null,
         textoExtraido: ocrPreview?.textoExtraido ?? '',
@@ -266,7 +256,11 @@ export function useRecebimento() {
   };
 
   const handleAdicionarApenso = async (): Promise<void> => {
-    if (!apensoProcessoId || !ocrRepo?.id_repositorio_recorda) return;
+    if (!apensoProcessoId) {
+      toast.error('Selecione o processo principal para cadastrar o apenso.');
+      return;
+    }
+    if (!ocrRepo?.id_repositorio_recorda) return;
     if (!docForm.protocolo.trim()) {
       toast.error('Protocolo do apenso é obrigatório.');
       return;
