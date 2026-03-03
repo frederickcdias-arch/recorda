@@ -478,6 +478,16 @@ export function createOperacionalCQRoutes(): FastifyPluginAsync {
       try {
         const { id } = request.params as { id: string };
         const user = getCurrentUser(request);
+        const repoResult = await server.database.query<{ etapa_atual: string; status_atual: string }>(
+          `SELECT etapa_atual::text, status_atual::text
+           FROM repositorios
+           WHERE id_repositorio_recorda = $1`,
+          [id]
+        );
+        const repo = repoResult.rows[0];
+        if (!repo) {
+          return reply.status(404).send({ error: 'Repositorio nao encontrado' });
+        }
 
         const repoCheck = await server.database.query<{ total: string }>(
           `SELECT COUNT(*)::text AS total FROM repositorios WHERE id_repositorio_recorda = $1`,
@@ -668,6 +678,16 @@ export function createOperacionalCQRoutes(): FastifyPluginAsync {
       try {
         const { id } = request.params as { id: string };
         const user = getCurrentUser(request);
+        const repoResult = await server.database.query<{ etapa_atual: string; status_atual: string }>(
+          `SELECT etapa_atual::text, status_atual::text
+           FROM repositorios
+           WHERE id_repositorio_recorda = $1`,
+          [id]
+        );
+        const repo = repoResult.rows[0];
+        if (!repo) {
+          return reply.status(404).send({ error: 'Repositorio nao encontrado' });
+        }
 
         await server.database.query(
           `UPDATE cq_avaliacoes
@@ -685,9 +705,9 @@ export function createOperacionalCQRoutes(): FastifyPluginAsync {
 
         await server.database.query(
           `INSERT INTO historico_etapas (repositorio_id, etapa_origem, etapa_destino, status_origem, status_destino, usuario_id, detalhes)
-           VALUES ($1, 'CONTROLE_QUALIDADE', 'RECEBIMENTO', 'CQ_REPROVADO', 'RECEBIDO', $2,
+           VALUES ($1, 'CONTROLE_QUALIDADE', 'RECEBIMENTO', $3, 'RECEBIDO', $2,
                    jsonb_build_object('origem', 'cq_retornar_recebimento'))`,
-          [id, user.id]
+          [id, user.id, repo.status_atual]
         );
 
         return reply.send({ ok: true });
