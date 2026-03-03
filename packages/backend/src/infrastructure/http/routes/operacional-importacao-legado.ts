@@ -816,13 +816,13 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
                    AND repositorio_id = $2
                    AND (data_producao AT TIME ZONE 'America/Sao_Paulo')::date = $3::date
                    AND etapa = $4
-                   AND quantidade = $5
-                   AND COALESCE(marcadores->>'tipo', '') = $6
-                   AND COALESCE(marcadores->>'funcao', '') = $7
-                   AND COALESCE(marcadores->>'coordenadoria', '') = $8
-                   AND COALESCE(marcadores->>'colaborador_nome', '') = $9
+                   AND COALESCE(marcadores->>'origem', '') = 'LEGADO'
+                   AND COALESCE(marcadores->>'tipo', '') = $5
+                   AND COALESCE(marcadores->>'funcao', '') = $6
+                   AND COALESCE(marcadores->>'coordenadoria', '') = $7
+                   AND COALESCE(marcadores->>'colaborador_nome', '') = $8
                  LIMIT 1`,
-                [colaboradorId, repositorioId, dataProducaoStr, etapaImport, quantidade, 
+                [colaboradorId, repositorioId, dataProducaoStr, etapaImport,
                  tipoMarcador, funcaoMarcador, coordenadoriaMarcador, colaboradorNomeMarcador]
               );
 
@@ -1572,23 +1572,37 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
             const funcaoMarcador = (row.funcao || '').trim();
             const coordenadoriaMarcador = (row.coordenadoria || '').trim();
             const colaboradorNomeMarcador = (colaboradorNome || '').trim();
+            const marcadores = JSON.stringify({
+              origem: 'LEGADO',
+              funcao: row.funcao,
+              tipo: row.tipo,
+              coordenadoria: row.coordenadoria,
+              colaborador_nome: colaboradorNome,
+            });
             
             const existente = await server.database.query<{ id: string }>(
               `SELECT id FROM producao_repositorio
                WHERE usuario_id = $1 AND repositorio_id = $2 AND (data_producao AT TIME ZONE 'America/Sao_Paulo')::date = $3::date
-                 AND etapa = $4 AND quantidade = $5
-                 AND COALESCE(marcadores->>'tipo', '') = $6
-                 AND COALESCE(marcadores->>'funcao', '') = $7
-                 AND COALESCE(marcadores->>'coordenadoria', '') = $8
-                 AND COALESCE(marcadores->>'colaborador_nome', '') = $9
+                 AND etapa = $4
+                 AND COALESCE(marcadores->>'origem', '') = 'LEGADO'
+                 AND COALESCE(marcadores->>'tipo', '') = $5
+                 AND COALESCE(marcadores->>'funcao', '') = $6
+                 AND COALESCE(marcadores->>'coordenadoria', '') = $7
+                 AND COALESCE(marcadores->>'colaborador_nome', '') = $8
                LIMIT 1`,
-              [colaboradorId, repositorioId, dataProducaoStr, etapaImport, quantidade, 
+              [colaboradorId, repositorioId, dataProducaoStr, etapaImport,
                tipoMarcador, funcaoMarcador, coordenadoriaMarcador, colaboradorNomeMarcador]
             );
 
             if (existente.rows.length > 0) {
-              duplicados++;
-              continue; // auto-skip duplicate
+              await server.database.query(
+                `UPDATE producao_repositorio
+                 SET quantidade = $1, marcadores = $2::jsonb, etapa = $4
+                 WHERE id = $3`,
+                [quantidade, marcadores, existente.rows[0]!.id, etapaImport]
+              );
+              sucesso++;
+              continue;
             }
 
             // Find or create checklist (must be CONCLUIDO to satisfy production trigger)
@@ -1605,14 +1619,6 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
               );
               checklistId = checklistResult.rows[0]?.id ?? '';
             }
-
-            const marcadores = JSON.stringify({
-              origem: 'LEGADO',
-              funcao: row.funcao,
-              tipo: row.tipo,
-              coordenadoria: row.coordenadoria,
-              colaborador_nome: colaboradorNome,
-            });
 
             await server.database.query(
               `INSERT INTO producao_repositorio (
