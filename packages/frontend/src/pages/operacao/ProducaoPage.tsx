@@ -116,14 +116,14 @@ export function ProducaoPage(): JSX.Element {
   return (
     <PageState loading={carregando && !dados} loadingMessage="Carregando Produção..." error={erroComAcao}>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Produção</h1>
             <p className="text-gray-500 mt-1">
               {totalFormatado} Registros de Produção
             </p>
           </div>
-          <Button variant="secondary" icon="download" onClick={() => void handleExportarExcel()} loading={exportando} disabled={exportando || !dataInicio || !dataFim}>
+          <Button className="w-full sm:w-auto" variant="secondary" icon="download" onClick={() => void handleExportarExcel()} loading={exportando} disabled={exportando || !dataInicio || !dataFim}>
             Exportar Excel
           </Button>
         </div>
@@ -137,7 +137,7 @@ export function ProducaoPage(): JSX.Element {
 
         {/* Filtros */}
         <Card>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Busca</label>
               <input
@@ -224,7 +224,52 @@ export function ProducaoPage(): JSX.Element {
 
         {/* Tabela */}
         <Card>
-          <div className="overflow-x-auto">
+          <div className="space-y-3 md:hidden">
+            {(!dados || dados.registros.length === 0) ? (
+              <div className="rounded-lg border border-dashed border-gray-200 px-4 py-8 text-center text-sm text-gray-500">
+                {carregando ? 'Carregando...' : 'Nenhum registro encontrado.'}
+              </div>
+            ) : (
+              dados.registros.map((reg) => (
+                <div key={reg.id} className="rounded-lg border border-gray-200 p-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900">{reg.colaborador_nome}</p>
+                      <p className="text-xs text-gray-500">{new Date(reg.data_producao).toLocaleDateString('pt-BR')}</p>
+                    </div>
+                    <span className="text-sm font-semibold text-gray-900 tabular-nums">{reg.quantidade.toLocaleString('pt-BR')}</span>
+                  </div>
+                  <p className="mt-2 font-mono text-xs text-gray-700 break-all">{reg.repositorio_ged}</p>
+                  <div className="mt-2 flex items-center justify-between gap-2 text-xs">
+                    <span className="text-gray-600">{reg.funcao || ETAPA_LABELS[reg.etapa] || reg.etapa}</span>
+                    <span className="text-gray-500">{reg.coordenadoria_sigla || '-'}</span>
+                  </div>
+                  <div className="mt-3 flex items-center justify-between">
+                    {reg.origem === 'LEGADO' ? (
+                      <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
+                        Legado
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800">
+                        Fluxo
+                      </span>
+                    )}
+                    {isAdmin && (
+                      <button
+                        onClick={() => void handleExcluir(reg.id)}
+                        className="rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                        title="Excluir Registro"
+                      >
+                        <Icon name="trash" className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          <div className="hidden overflow-x-auto md:block">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>

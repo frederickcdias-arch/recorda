@@ -259,7 +259,7 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
               ))}
             </select>
           </div>
-          <div className="sm:col-span-3 flex items-end gap-3">
+          <div className="sm:col-span-2 lg:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-2 items-end">
             <Button
               variant="primary"
               icon="search"
@@ -311,7 +311,22 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
               <Icon name="bar-chart" className="w-4 h-4" />
               <h3 className="font-semibold text-sm">RESUMO GERAL POR ETAPA</h3>
             </div>
-            <div className="overflow-x-auto">
+            <div className="space-y-2 p-3 md:hidden">
+              {relatorio.resumoPorEtapa.map((etapa) => (
+                <div key={etapa.etapaId} className="rounded-lg border border-gray-200 p-3">
+                  <p className="text-sm font-medium text-gray-900">{etapa.etapaNome}</p>
+                  <div className="mt-1 flex items-center justify-between text-xs">
+                    <span className="text-gray-500">{etapa.unidade}</span>
+                    <span className="font-semibold text-gray-900 tabular-nums">{formatNum(etapa.totalQuantidade)}</span>
+                  </div>
+                </div>
+              ))}
+              <div className="rounded-lg bg-gray-50 p-3">
+                <p className="text-xs font-semibold text-gray-600">TOTAL GERAL</p>
+                <p className="mt-1 text-sm font-bold text-gray-900 tabular-nums">{formatNum(relatorio.totais.totalGeral)}</p>
+              </div>
+            </div>
+            <div className="hidden overflow-x-auto md:block">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-blue-50">
                   <tr>
@@ -344,7 +359,22 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
               <Icon name="building" className="w-4 h-4" />
               <h3 className="font-semibold text-sm">POR COORDENADORIA E ETAPA</h3>
             </div>
-            <div className="overflow-x-auto">
+            <div className="space-y-2 p-3 md:hidden">
+              {coordEtapaRows.length === 0 ? (
+                <div className="rounded-lg border border-dashed border-gray-200 p-4 text-center text-sm text-gray-400">Sem dados</div>
+              ) : (
+                coordEtapaRows.map((row, i) => (
+                  <div key={`${row.coordenadoria}-${row.etapa}-${i}`} className="rounded-lg border border-gray-200 p-3">
+                    <p className="text-sm font-medium text-gray-900">{row.coordenadoria}</p>
+                    <div className="mt-1 flex items-center justify-between text-xs">
+                      <span className="text-gray-600">{row.etapa}</span>
+                      <span className="font-semibold text-gray-900 tabular-nums">{formatNum(row.total)}</span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+            <div className="hidden overflow-x-auto md:block">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-blue-50">
                   <tr>
@@ -375,7 +405,22 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
               <Icon name="users" className="w-4 h-4" />
               <h3 className="font-semibold text-sm">PRODUÇÃO POR COLABORADOR</h3>
             </div>
-            <div className="overflow-x-auto">
+            <div className="space-y-2 p-3 md:hidden">
+              {colabRows.length === 0 ? (
+                <div className="rounded-lg border border-dashed border-gray-200 p-4 text-center text-sm text-gray-400">Sem dados</div>
+              ) : (
+                colabRows.map((row, i) => (
+                  <div key={`${row.colaborador}-${row.etapa}-${i}`} className="rounded-lg border border-gray-200 p-3">
+                    <p className="text-sm font-medium text-gray-900">{row.colaborador}</p>
+                    <div className="mt-1 flex items-center justify-between text-xs">
+                      <span className="text-gray-600">{row.etapa}</span>
+                      <span className="font-semibold text-gray-900 tabular-nums">{formatNum(row.producao)} {row.unidade}</span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+            <div className="hidden overflow-x-auto md:block">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-blue-50">
                   <tr>

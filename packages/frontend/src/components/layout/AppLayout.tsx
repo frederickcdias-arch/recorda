@@ -2,6 +2,7 @@
 import { Outlet, useLocation } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
+import { MobileBottomNav } from './MobileBottomNav';
 
 const routeTitles: Record<string, string> = {
   '/dashboard': 'Dashboard',
@@ -69,13 +70,13 @@ export function AppLayout(): JSX.Element {
           onMenuToggle={() => setMobileMenuOpen(true)}
           title={pageTitle}
         />
-        <main className="flex-1 overflow-auto p-4 md:p-6">
+        <main className="flex-1 overflow-auto p-4 pb-24 md:p-6 md:pb-6">
           <div key={location.pathname} className="animate-fade-in-up">
             <Outlet />
           </div>
         </main>
       </div>
+      <MobileBottomNav />
     </div>
   );
 }
-

@@ -159,7 +159,7 @@ export function ExportacoesPage(): JSX.Element {
       <Card>
         <div className="p-4">
           <h2 className="text-sm font-semibold text-gray-700 mb-3">Período da Exportação</h2>
-          <div className="flex gap-4 items-end">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Data Início</label>
               <input
@@ -207,7 +207,7 @@ export function ExportacoesPage(): JSX.Element {
                   </div>
                 </div>
               </div>
-              <div className="px-5 py-3 bg-gray-50 border-t flex items-center gap-2">
+              <div className="px-5 py-3 bg-gray-50 border-t flex flex-wrap items-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
