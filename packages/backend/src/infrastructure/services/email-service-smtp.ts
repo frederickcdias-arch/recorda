@@ -52,6 +52,23 @@ export class ConsoleEmailService implements EmailService {
   }
 }
 
+function resolveDefaultFromAddress(): string {
+  const configured = process.env.SMTP_FROM?.trim();
+  if (configured) return configured;
+
+  const appUrl = process.env.APP_URL?.trim();
+  if (appUrl) {
+    try {
+      const host = new URL(appUrl).hostname.replace(/^www\./, '');
+      if (host) return `noreply@${host}`;
+    } catch {
+      // fall through to localhost fallback
+    }
+  }
+
+  return 'noreply@localhost';
+}
+
 export function createEmailService(): EmailService {
   const host = process.env.SMTP_HOST;
   if (!host) {
@@ -66,6 +83,6 @@ export function createEmailService(): EmailService {
     auth: process.env.SMTP_USER
       ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS ?? '' }
       : undefined,
-    from: process.env.SMTP_FROM ?? 'noreply@recorda.local',
+    from: resolveDefaultFromAddress(),
   });
 }
