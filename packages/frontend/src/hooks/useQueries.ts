@@ -471,8 +471,35 @@ export function useImportarProducaoLegado() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (payload: { usuarioId?: string; etapa?: string; registros: object[] }) =>
-      api.post<{ importacaoId: string; totalRegistros: number; registrosSucesso: number; registrosErro: number; erros: { linha: number; idRepositorioGed: string; erro: string }[] }>(
+      api.post<{ importacaoId: string; totalRegistros: number; registrosSucesso: number; registrosErro: number; inseridos?: number; atualizados?: number; ignorados?: number; duplicados?: number; erros: { linha: number; idRepositorioGed: string; erro: string }[] }>(
         '/operacional/importacoes-legado/producao', payload),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: queryKeys.importacoesHistorico });
+      void qc.invalidateQueries({ queryKey: queryKeys.producaoAll });
+      void qc.invalidateQueries({ queryKey: queryKeys.dashboard });
+    },
+  });
+}
+
+export function usePreviewImportacaoProducaoLegado() {
+  return useMutation({
+    mutationFn: (payload: { usuarioId?: string; etapa?: string; registros: object[] }) =>
+      api.post<{
+        totalRegistros: number;
+        registrosValidos: number;
+        duplicadasPlanilha: number[];
+        duplicadasBanco: number[];
+        linhasInvalidas: { linha: number; erro: string }[];
+        impacto: { inseridosPrevistos: number; atualizadosPrevistos: number; ignoradosPrevistos: number; invalidos: number };
+      }>('/operacional/importacoes-legado/producao/preview', payload),
+  });
+}
+
+export function useRollbackImportacaoLegado() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      api.post<{ message: string; removidos: number; restaurados: number; hashesRemovidos: number }>(`/operacional/importacoes-legado/${id}/rollback`),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: queryKeys.importacoesHistorico });
       void qc.invalidateQueries({ queryKey: queryKeys.producaoAll });
@@ -962,7 +989,7 @@ export function useImportacoesHistorico() {
   return useQuery({
     queryKey: queryKeys.importacoesHistorico,
     queryFn: () => api.get<{
-      itens: { id: string; tipo: string; total_registros: number; registros_sucesso: number; registros_erro: number; detalhes_erros: { linha: number; erro: string; idRepositorioGed?: string }[]; criado_em: string; usuario_destino_id: string; usuario_destino_nome: string; executado_por: string; executado_por_nome: string }[];
+      itens: { id: string; tipo: string; total_registros: number; registros_sucesso: number; registros_erro: number; detalhes_erros: unknown; criado_em: string; usuario_destino_id: string; usuario_destino_nome: string; executado_por: string; executado_por_nome: string }[];
     }>('/operacional/importacoes-legado?pagina=1&limite=20'),
   });
 }
