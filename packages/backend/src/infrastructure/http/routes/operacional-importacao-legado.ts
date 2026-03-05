@@ -191,155 +191,6 @@ function parseImportRowsFromCsv(csvContent: string): ParsedImportRow[] {
 /**
  * Importacao legado routes: validar, importar recebimento, importar producao, listar, limpar.
  */
-// Helper function to import production from URL
-async function importarProducaoLegado(
-  server: FastifyInstance,
-  user: any,
-  url: string
-): Promise<{ importados: number; duplicados: number; erros: number; errosAmostra: Array<{ linha: number; erro: string }> }> {
-  try {
-    const fetched = await fetchCsvFromSourceUrl(url);
-    const registros = parseImportRowsFromCsv(fetched.csvContent);
-    if (registros.length === 0) {
-      throw new Error('Planilha invalida');
-    }
-
-    // Use the same import logic as the main import function
-    const funcaoToEtapa = (funcao: string): string => {
-      const f = funcao.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
-      if (f.includes('receb')) return 'RECEBIMENTO';
-      if (f.includes('prepar')) return 'PREPARACAO';
-      if (f.includes('digital')) return 'DIGITALIZACAO';
-      if (f.includes('confer')) return 'CONFERENCIA';
-      if (f.includes('montag')) return 'MONTAGEM';
-      if (f.includes('qualidade') || f.includes('cq')) return 'CONTROLE_QUALIDADE';
-      if (f.includes('entreg')) return 'ENTREGA';
-      return 'RECEBIMENTO';
-    };
-
-    // Get users
-    const usuariosResult = await server.database.query<{ id: string; nome: string }>(
-      `SELECT id, nome FROM usuarios WHERE ativo = TRUE`
-    );
-    const usuariosPorNome = new Map<string, string>();
-    for (const u of usuariosResult.rows) {
-      usuariosPorNome.set(u.nome.toLowerCase().trim(), u.id);
-    }
-
-    let sucesso = 0;
-    let duplicados = 0;
-    const erros: Array<{ linha: number; erro: string }> = [];
-
-    await server.database.query('BEGIN');
-    try {
-      await server.database.query(`SET LOCAL session_replication_role = 'replica'`);
-
-      for (let idx = 0; idx < registros.length; idx++) {
-        const row = registros[idx]!;
-        const quantidade = parseQuantidadePlanilha(row.quantidade);
-        const colaboradorNome = row.colaborador;
-        const dataStr = row.data;
-        const etapaImport = funcaoToEtapa(row.funcao);
-
-        try {
-          // Resolve collaborator
-          let colaboradorId = usuariosPorNome.get(colaboradorNome.toLowerCase());
-          if (!colaboradorId) {
-            for (const [nome, uid] of usuariosPorNome.entries()) {
-              if (nome.includes(colaboradorNome.toLowerCase()) || colaboradorNome.toLowerCase().includes(nome)) {
-                colaboradorId = uid;
-                break;
-              }
-            }
-          }
-          if (!colaboradorId) colaboradorId = user.id;
-
-          // Parse date
-          let dataProducaoStr: string;
-          if (dataStr) {
-            if (dataStr.includes('/')) {
-              const parts = dataStr.split('/');
-              const dd = (parts[0] ?? '').padStart(2, '0');
-              const mm = (parts[1] ?? '').padStart(2, '0');
-              let yyyy = parts[2] ?? '';
-              if (yyyy.length === 2) {
-                yyyy = (parseInt(yyyy, 10) > 50 ? '19' : '20') + yyyy;
-              }
-              if (!yyyy || yyyy.length < 4) {
-                yyyy = String(new Date().getFullYear());
-              }
-              dataProducaoStr = `${yyyy}-${mm}-${dd}`;
-            } else {
-              dataProducaoStr = dataStr;
-            }
-          } else {
-            dataProducaoStr = new Date().toISOString().split('T')[0]!;
-          }
-
-          // Parse repository ID
-          const repoId = normalizeIdRepositorioGed(row.repositorio ?? '', new Date().getFullYear());
-          if (!repoId) {
-            erros.push({
-              linha: idx + 1,
-              erro: 'Repositorio invalido'
-            });
-            continue;
-          }
-
-          // Find repository
-          const repoResult = await server.database.query<{ id_repositorio_recorda: string }>(
-            `SELECT id_repositorio_recorda FROM repositorios WHERE id_repositorio_ged = $1`,
-            [repoId]
-          );
-          if (repoResult.rows.length === 0) {
-            erros.push({
-              linha: idx + 1,
-              erro: `Repositorio nao encontrado: ${repoId}`
-            });
-            continue;
-          }
-          const repositorioId = repoResult.rows[0]!.id_repositorio_recorda;
-
-          // Check for duplicate
-          const existente = await server.database.query<{ id: string }>(
-            `SELECT id FROM producao_repositorio
-             WHERE usuario_id = $1 AND repositorio_id = $2 AND (data_producao AT TIME ZONE 'America/Sao_Paulo')::date = $3::date
-               AND etapa = $4 AND quantidade = $5
-               AND COALESCE(marcadores->>'tipo', '') = $6
-               AND COALESCE(marcadores->>'funcao', '') = $7
-               AND COALESCE(marcadores->>'coordenadoria', '') = $8
-               AND COALESCE(marcadores->>'colaborador_nome', '') = $9
-             LIMIT 1`,
-            [colaboradorId, repositorioId, dataProducaoStr, etapaImport, quantidade, 
-             (row.tipo || '').trim(), (row.funcao || '').trim(), (row.coordenadoria || '').trim(), colaboradorNome.trim()]
-          );
-
-          if (existente.rows.length > 0) {
-            duplicados++;
-            continue;
-          }
-
-          sucesso++;
-        } catch (error) {
-          erros.push({
-            linha: idx + 1,
-            erro: error instanceof Error ? error.message : 'Erro desconhecido'
-          });
-        }
-      }
-
-      await server.database.query('COMMIT');
-    } catch (error) {
-      await server.database.query('ROLLBACK');
-      throw error;
-    }
-
-    return { importados: sucesso, duplicados, erros: erros.length, errosAmostra: erros.slice(0, 50) };
-  } catch (error) {
-    throw new Error(`Erro ao importar de ${url}: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
-  }
-}
-
 export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
   return async (server: FastifyInstance): Promise<void> => {
     const validEtapas: EtapaFluxo[] = ['RECEBIMENTO', 'PREPARACAO', 'DIGITALIZACAO', 'CONFERENCIA', 'MONTAGEM', 'CONTROLE_QUALIDADE', 'ENTREGA'];
@@ -2137,24 +1988,47 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
       let totalDuplicados = 0;
       let totalErros = 0;
 
-      // 2. Import each source
+      // 2. Import each source usando o mesmo fluxo da rota individual /:id/importar
       for (const fonte of fontes) {
         try {
-          // Import using existing logic (reuse the importarFonte logic)
-          const importResult = await importarProducaoLegado(server, user, fonte.url);
-          
+          const injected = await server.inject({
+            method: 'POST',
+            url: `/operacional/fontes-importacao/${fonte.id}/importar`,
+            headers: {
+              authorization: request.headers.authorization ?? '',
+            },
+          });
+
+          if (injected.statusCode >= 400) {
+            let message = `Falha ao importar fonte (HTTP ${injected.statusCode})`;
+            try {
+              const parsed = injected.json() as { error?: string };
+              if (parsed?.error) message = parsed.error;
+            } catch {
+              // ignore parsing error
+            }
+            throw new Error(message);
+          }
+
+          const importResult = injected.json() as {
+            importados: number;
+            duplicados: number;
+            erros: number;
+            detalhesErros?: Array<{ linha: number; erro: string }>;
+          };
+
           resultados.push({
             fonte: fonte.nome,
-            importados: importResult.importados,
-            duplicados: importResult.duplicados,
-            erros: importResult.erros,
+            importados: Number(importResult.importados ?? 0),
+            duplicados: Number(importResult.duplicados ?? 0),
+            erros: Number(importResult.erros ?? 0),
             sucesso: importResult.erros === 0,
-            erros_amostra: importResult.errosAmostra,
+            erros_amostra: importResult.detalhesErros ?? [],
           });
-          
-          totalImportados += importResult.importados;
-          totalDuplicados += importResult.duplicados;
-          totalErros += importResult.erros;
+
+          totalImportados += Number(importResult.importados ?? 0);
+          totalDuplicados += Number(importResult.duplicados ?? 0);
+          totalErros += Number(importResult.erros ?? 0);
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
           resultados.push({
