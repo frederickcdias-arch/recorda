@@ -37,7 +37,6 @@ export function createDashboardRoutes(): FastifyPluginAsync {
                   producaoTrend: { type: 'string' },
                   processosAtivos: { type: 'number' },
                   processosNovosHoje: { type: 'number' },
-                  recebimentosPendentes: { type: 'number' },
                   colaboradoresAtivos: { type: 'number' },
                 },
               },
@@ -65,12 +64,8 @@ export function createDashboardRoutes(): FastifyPluginAsync {
           producaoMesAnteriorResult,
           processosAtivosResult,
           processosHojeResult,
-          recebimentosPendentesResult,
           colaboradoresAtivosResult,
           producaoPorEtapaResult,
-          emFluxoResult,
-          cqReprovadoResult,
-          entreguesMesResult,
           paradosResult,
           divergenciasResult,
           checklistPendenteResult,
@@ -97,21 +92,18 @@ export function createDashboardRoutes(): FastifyPluginAsync {
             [inicioMesAnterior.toISOString(), inicioMes.toISOString()]
           ),
           server.database.query<{ total: string }>(
-            `SELECT COUNT(*)::text AS total
-             FROM repositorios
-             WHERE status_atual <> 'ENTREGUE'`
+            `SELECT COUNT(DISTINCT p.repositorio_id)::text AS total
+             FROM producao_repositorio p
+             WHERE COALESCE(p.marcadores->>'origem', '') = 'LEGADO'
+               AND p.etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')`
           ),
           server.database.query<{ total: string }>(
-            `SELECT COUNT(*)::text AS total
-             FROM repositorios
-             WHERE data_criacao >= $1`,
+            `SELECT COUNT(DISTINCT p.repositorio_id)::text AS total
+             FROM producao_repositorio p
+             WHERE p.data_producao >= $1
+               AND COALESCE(p.marcadores->>'origem', '') = 'LEGADO'
+               AND p.etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')`,
             [inicioHoje.toISOString()]
-          ),
-          server.database.query<{ total: string }>(
-            `SELECT COUNT(*)::text AS total
-             FROM repositorios
-             WHERE etapa_atual = 'RECEBIMENTO'
-               AND status_atual = 'RECEBIDO'`
           ),
           server.database.query<{ total: string }>(
             `SELECT COUNT(*)::text AS total
@@ -165,23 +157,6 @@ export function createDashboardRoutes(): FastifyPluginAsync {
                  WHEN 'ENTREGA' THEN 8
                  ELSE 99
                END`,
-            [inicioMes.toISOString()]
-          ),
-          server.database.query<{ total: string }>(
-            `SELECT COUNT(*)::text AS total
-             FROM repositorios
-             WHERE status_atual NOT IN ('ENTREGUE', 'CQ_REPROVADO')`
-          ),
-          server.database.query<{ total: string }>(
-            `SELECT COUNT(*)::text AS total
-             FROM repositorios
-             WHERE status_atual = 'CQ_REPROVADO'`
-          ),
-          server.database.query<{ total: string }>(
-            `SELECT COUNT(*)::text AS total
-             FROM repositorios
-             WHERE status_atual = 'ENTREGUE'
-               AND atualizado_em >= $1`,
             [inicioMes.toISOString()]
           ),
           server.database.query<{ total: string }>(
@@ -255,7 +230,6 @@ export function createDashboardRoutes(): FastifyPluginAsync {
         const producaoMesAnterior = parseInt(producaoMesAnteriorResult.rows[0]?.total ?? '0', 10);
         const processosAtivos = parseInt(processosAtivosResult.rows[0]?.total ?? '0', 10);
         const processosNovosHoje = parseInt(processosHojeResult.rows[0]?.total ?? '0', 10);
-        const recebimentosPendentes = parseInt(recebimentosPendentesResult.rows[0]?.total ?? '0', 10);
         const colaboradoresAtivos = parseInt(colaboradoresAtivosResult.rows[0]?.total ?? '0', 10);
 
         let producaoTrend = '0%';
@@ -269,16 +243,13 @@ export function createDashboardRoutes(): FastifyPluginAsync {
           valor: parseInt(row.valor ?? '0', 10),
         }));
 
-        const emFluxo = parseInt(emFluxoResult.rows[0]?.total ?? '0', 10);
-        const cqReprovado = parseInt(cqReprovadoResult.rows[0]?.total ?? '0', 10);
-        const entreguesMes = parseInt(entreguesMesResult.rows[0]?.total ?? '0', 10);
         const recebidosHoje = processosNovosHoje;
+        const importacoesComErro = parseInt(importacoesLegadoComErroResult.rows[0]?.total ?? '0', 10);
 
         const statusRecebimento: StatusRecebimento[] = [
-          { status: 'Recebidos hoje', valor: recebidosHoje, icon: 'inbox' },
-          { status: 'Em fluxo', valor: emFluxo, icon: 'layers' },
-          { status: 'CQ reprovado', valor: cqReprovado, icon: 'x' },
-          { status: 'Entregues no mes', valor: entreguesMes, icon: 'check-square' },
+          { status: 'Importados hoje', valor: recebidosHoje, icon: 'inbox' },
+          { status: 'Registros no mes', valor: producaoMesAtual, icon: 'bar-chart' },
+          { status: 'Importacoes com erro (24h)', valor: importacoesComErro, icon: 'alert-triangle' },
         ];
 
         const alertas: Alerta[] = [];
@@ -310,7 +281,6 @@ export function createDashboardRoutes(): FastifyPluginAsync {
           });
         }
 
-        const importacoesComErro = parseInt(importacoesLegadoComErroResult.rows[0]?.total ?? '0', 10);
         if (importacoesComErro > 0) {
           alertas.push({
             tipo: 'warning',
@@ -343,7 +313,6 @@ export function createDashboardRoutes(): FastifyPluginAsync {
             producaoTrend,
             processosAtivos,
             processosNovosHoje,
-            recebimentosPendentes,
             colaboradoresAtivos,
           },
           producaoPorEtapa,
