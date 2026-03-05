@@ -22,6 +22,11 @@ const ETAPA_LABELS: Record<string, string> = {
   ENTREGA: 'Entrega',
 };
 
+const toSafeNumber = (value: unknown): number => {
+  const parsed = Number(value ?? 0);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
 export function ProducaoPage(): JSX.Element {
   const { usuario } = useAuth();
   const queryClient = useQueryClient();
@@ -123,7 +128,7 @@ export function ProducaoPage(): JSX.Element {
 
   const totalFormatado = useMemo(() => {
     if (!dados) return '0';
-    return dados.total.toLocaleString('pt-BR');
+    return toSafeNumber(dados.total).toLocaleString('pt-BR');
   }, [dados]);
 
   const erroComAcao = erro
@@ -255,7 +260,7 @@ export function ProducaoPage(): JSX.Element {
                       <p className="text-sm font-semibold text-gray-900">{reg.colaborador_nome}</p>
                       <p className="text-xs text-gray-500">{new Date(reg.data_producao).toLocaleDateString('pt-BR')}</p>
                     </div>
-                    <span className="text-sm font-semibold text-gray-900 tabular-nums">{reg.quantidade.toLocaleString('pt-BR')}</span>
+                    <span className="text-sm font-semibold text-gray-900 tabular-nums">{toSafeNumber(reg.quantidade).toLocaleString('pt-BR')}</span>
                   </div>
                   <p className="mt-2 font-mono text-xs text-gray-700 break-all">{reg.repositorio_ged}</p>
                   <div className="mt-2 flex items-center justify-between gap-2 text-xs">
@@ -330,7 +335,7 @@ export function ProducaoPage(): JSX.Element {
                         {reg.tipo || '-'}
                       </td>
                       <td className="px-3 py-2 text-sm text-gray-800 text-right font-medium tabular-nums">
-                        {reg.quantidade.toLocaleString('pt-BR')}
+                        {toSafeNumber(reg.quantidade).toLocaleString('pt-BR')}
                       </td>
                       <td className="px-3 py-2 text-sm text-gray-600">
                         {reg.coordenadoria_sigla || '-'}
