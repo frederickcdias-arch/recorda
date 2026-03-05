@@ -19,6 +19,9 @@ interface EmpresaConfig {
   exibirLogoRelatorio: boolean;
   exibirEnderecoRelatorio: boolean;
   exibirContatoRelatorio: boolean;
+  logoLarguraRelatorio: number;
+  logoAlinhamentoRelatorio: 'ESQUERDA' | 'CENTRO' | 'DIREITA';
+  logoDeslocamentoYRelatorio: number;
 }
 
 export function EmpresaPage(): JSX.Element {
@@ -32,6 +35,9 @@ export function EmpresaPage(): JSX.Element {
     exibirLogoRelatorio: true,
     exibirEnderecoRelatorio: true,
     exibirContatoRelatorio: false,
+    logoLarguraRelatorio: 120,
+    logoAlinhamentoRelatorio: 'CENTRO',
+    logoDeslocamentoYRelatorio: 0,
   });
   const [salvando, setSalvando] = useState(false);
   const confirmDialog = useConfirmDialog();
@@ -63,6 +69,9 @@ export function EmpresaPage(): JSX.Element {
         exibirLogoRelatorio: data.exibirLogoRelatorio ?? true,
         exibirEnderecoRelatorio: data.exibirEnderecoRelatorio ?? true,
         exibirContatoRelatorio: data.exibirContatoRelatorio ?? false,
+        logoLarguraRelatorio: Math.min(Math.max(Number(data.logoLarguraRelatorio ?? 120), 60), 260),
+        logoAlinhamentoRelatorio: (data.logoAlinhamentoRelatorio as 'ESQUERDA' | 'CENTRO' | 'DIREITA') ?? 'CENTRO',
+        logoDeslocamentoYRelatorio: Math.min(Math.max(Number(data.logoDeslocamentoYRelatorio ?? 0), -20), 40),
       });
     }
   }, [empresaQuery.data]);
@@ -71,7 +80,7 @@ export function EmpresaPage(): JSX.Element {
     setLogoLoadError(false);
   }, [config.logoUrl]);
 
-  const handleChange = (field: keyof EmpresaConfig, value: string | boolean): void => {
+  const handleChange = (field: keyof EmpresaConfig, value: string | boolean | number): void => {
     setConfig((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -253,6 +262,90 @@ export function EmpresaPage(): JSX.Element {
                   </Button>
                 )}
               </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label htmlFor="logo-largura" className="block text-sm font-medium text-gray-700 mb-1">
+                Largura da logo (px)
+              </label>
+              <input
+                id="logo-largura"
+                type="range"
+                min={60}
+                max={260}
+                step={5}
+                value={config.logoLarguraRelatorio}
+                onChange={(e) => handleChange('logoLarguraRelatorio', Number(e.target.value))}
+                className="w-full"
+              />
+              <p className="text-xs text-gray-500 mt-1">{config.logoLarguraRelatorio}px</p>
+            </div>
+
+            <div>
+              <label htmlFor="logo-alinhamento" className="block text-sm font-medium text-gray-700 mb-1">
+                Alinhamento da logo
+              </label>
+              <select
+                id="logo-alinhamento"
+                value={config.logoAlinhamentoRelatorio}
+                onChange={(e) => handleChange('logoAlinhamentoRelatorio', e.target.value as 'ESQUERDA' | 'CENTRO' | 'DIREITA')}
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+              >
+                <option value="ESQUERDA">Esquerda</option>
+                <option value="CENTRO">Centro</option>
+                <option value="DIREITA">Direita</option>
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="logo-offset-y" className="block text-sm font-medium text-gray-700 mb-1">
+                Deslocamento vertical (px)
+              </label>
+              <input
+                id="logo-offset-y"
+                type="range"
+                min={-20}
+                max={40}
+                step={1}
+                value={config.logoDeslocamentoYRelatorio}
+                onChange={(e) => handleChange('logoDeslocamentoYRelatorio', Number(e.target.value))}
+                className="w-full"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                {config.logoDeslocamentoYRelatorio > 0 ? `+${config.logoDeslocamentoYRelatorio}` : config.logoDeslocamentoYRelatorio}px
+              </p>
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+            <p className="text-sm font-semibold text-gray-900 mb-3">PrÃ©-visualizaÃ§Ã£o no relatÃ³rio</p>
+            <div className="mx-auto w-full max-w-[720px] rounded-md bg-white border border-gray-200 px-8 py-6">
+              <div className="relative h-24">
+                {config.exibirLogoRelatorio && logoSrc && !logoLoadError ? (
+                  <img
+                    src={logoSrc}
+                    alt="PrÃ©-visualizaÃ§Ã£o da logo"
+                    className="absolute max-h-20 object-contain"
+                    style={{
+                      width: `${config.logoLarguraRelatorio}px`,
+                      top: `${Math.max(config.logoDeslocamentoYRelatorio, -12)}px`,
+                      left: config.logoAlinhamentoRelatorio === 'ESQUERDA'
+                        ? '0'
+                        : config.logoAlinhamentoRelatorio === 'DIREITA'
+                          ? `calc(100% - ${config.logoLarguraRelatorio}px)`
+                          : `calc(50% - ${config.logoLarguraRelatorio / 2}px)`,
+                    }}
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center text-xs text-gray-400">
+                    Sem logo no cabeÃ§alho
+                  </div>
+                )}
+              </div>
+              <div className="h-[3px] bg-blue-800 mt-1" />
+              <p className="mt-3 text-center text-[11px] text-gray-500">CabeÃ§alho simulado em A4</p>
             </div>
           </div>
         </div>

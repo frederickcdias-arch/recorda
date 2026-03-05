@@ -13,6 +13,9 @@ interface ConfiguracaoEmpresaInput {
   exibirLogoRelatorio: boolean;
   exibirEnderecoRelatorio: boolean;
   exibirContatoRelatorio: boolean;
+  logoLarguraRelatorio: number;
+  logoAlinhamentoRelatorio: 'ESQUERDA' | 'CENTRO' | 'DIREITA';
+  logoDeslocamentoYRelatorio: number;
 }
 
 interface ConfiguracaoProjetoInput {
@@ -33,6 +36,9 @@ function mapRowToConfig(row: Record<string, unknown>) {
     exibirLogoRelatorio: row.exibir_logo_relatorio as boolean,
     exibirEnderecoRelatorio: row.exibir_endereco_relatorio as boolean,
     exibirContatoRelatorio: row.exibir_contato_relatorio as boolean,
+    logoLarguraRelatorio: Number(row.logo_largura_relatorio ?? 120),
+    logoAlinhamentoRelatorio: (row.logo_alinhamento_relatorio as string) || 'CENTRO',
+    logoDeslocamentoYRelatorio: Number(row.logo_deslocamento_y_relatorio ?? 0),
   };
 }
 
@@ -45,7 +51,8 @@ export function createConfiguracaoRoutes(): FastifyPluginAsync {
       try {
         const result = await server.database.query(
           `SELECT id, nome, cnpj, endereco, telefone, email, logo_url,
-                  exibir_logo_relatorio, exibir_endereco_relatorio, exibir_contato_relatorio
+                  exibir_logo_relatorio, exibir_endereco_relatorio, exibir_contato_relatorio,
+                  logo_largura_relatorio, logo_alinhamento_relatorio, logo_deslocamento_y_relatorio
            FROM configuracao_empresa LIMIT 1`
         );
 
@@ -61,6 +68,9 @@ export function createConfiguracaoRoutes(): FastifyPluginAsync {
             exibirLogoRelatorio: true,
             exibirEnderecoRelatorio: true,
             exibirContatoRelatorio: true,
+            logoLarguraRelatorio: 120,
+            logoAlinhamentoRelatorio: 'CENTRO',
+            logoDeslocamentoYRelatorio: 0,
           });
         }
 
@@ -82,12 +92,27 @@ export function createConfiguracaoRoutes(): FastifyPluginAsync {
         if (existsResult.rows.length === 0) {
           const insertResult = await server.database.query(
             `INSERT INTO configuracao_empresa 
-             (nome, cnpj, endereco, telefone, email, logo_url, exibir_logo_relatorio, exibir_endereco_relatorio, exibir_contato_relatorio)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+             (nome, cnpj, endereco, telefone, email, logo_url, exibir_logo_relatorio, exibir_endereco_relatorio, exibir_contato_relatorio,
+              logo_largura_relatorio, logo_alinhamento_relatorio, logo_deslocamento_y_relatorio)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
              RETURNING id, nome, cnpj, endereco, telefone, email, logo_url,
-                       exibir_logo_relatorio, exibir_endereco_relatorio, exibir_contato_relatorio`,
+                       exibir_logo_relatorio, exibir_endereco_relatorio, exibir_contato_relatorio,
+                       logo_largura_relatorio, logo_alinhamento_relatorio, logo_deslocamento_y_relatorio`,
 
-            [config.nome, config.cnpj, config.endereco, config.telefone, config.email, config.logoUrl, config.exibirLogoRelatorio, config.exibirEnderecoRelatorio, config.exibirContatoRelatorio]
+            [
+              config.nome,
+              config.cnpj,
+              config.endereco,
+              config.telefone,
+              config.email,
+              config.logoUrl,
+              config.exibirLogoRelatorio,
+              config.exibirEnderecoRelatorio,
+              config.exibirContatoRelatorio,
+              Math.min(Math.max(Number(config.logoLarguraRelatorio ?? 120), 60), 260),
+              (config.logoAlinhamentoRelatorio ?? 'CENTRO').toUpperCase(),
+              Math.min(Math.max(Number(config.logoDeslocamentoYRelatorio ?? 0), -20), 40),
+            ]
           );
           return reply.status(201).send(mapRowToConfig(insertResult.rows[0] as Record<string, unknown>));
         }
@@ -95,11 +120,27 @@ export function createConfiguracaoRoutes(): FastifyPluginAsync {
         const existingId = (existsResult.rows[0] as Record<string, unknown>).id;
         const updateResult = await server.database.query(
           `UPDATE configuracao_empresa SET nome = $1, cnpj = $2, endereco = $3, telefone = $4, email = $5,
-           logo_url = $6, exibir_logo_relatorio = $7, exibir_endereco_relatorio = $8, exibir_contato_relatorio = $9
-           WHERE id = $10
+           logo_url = $6, exibir_logo_relatorio = $7, exibir_endereco_relatorio = $8, exibir_contato_relatorio = $9,
+           logo_largura_relatorio = $10, logo_alinhamento_relatorio = $11, logo_deslocamento_y_relatorio = $12
+           WHERE id = $13
            RETURNING id, nome, cnpj, endereco, telefone, email, logo_url,
-                     exibir_logo_relatorio, exibir_endereco_relatorio, exibir_contato_relatorio`,
-          [config.nome, config.cnpj, config.endereco, config.telefone, config.email, config.logoUrl, config.exibirLogoRelatorio, config.exibirEnderecoRelatorio, config.exibirContatoRelatorio, existingId]
+                     exibir_logo_relatorio, exibir_endereco_relatorio, exibir_contato_relatorio,
+                     logo_largura_relatorio, logo_alinhamento_relatorio, logo_deslocamento_y_relatorio`,
+          [
+            config.nome,
+            config.cnpj,
+            config.endereco,
+            config.telefone,
+            config.email,
+            config.logoUrl,
+            config.exibirLogoRelatorio,
+            config.exibirEnderecoRelatorio,
+            config.exibirContatoRelatorio,
+            Math.min(Math.max(Number(config.logoLarguraRelatorio ?? 120), 60), 260),
+            (config.logoAlinhamentoRelatorio ?? 'CENTRO').toUpperCase(),
+            Math.min(Math.max(Number(config.logoDeslocamentoYRelatorio ?? 0), -20), 40),
+            existingId,
+          ]
         );
         return reply.status(200).send(mapRowToConfig(updateResult.rows[0] as Record<string, unknown>));
       } catch (error) {

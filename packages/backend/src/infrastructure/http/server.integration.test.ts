@@ -199,13 +199,16 @@ function createMockDatabase(): DatabaseConnection & {
         exibir_logo_relatorio: params?.[6],
         exibir_endereco_relatorio: params?.[7],
         exibir_contato_relatorio: params?.[8],
+        logo_largura_relatorio: params?.[9] ?? 120,
+        logo_alinhamento_relatorio: params?.[10] ?? 'CENTRO',
+        logo_deslocamento_y_relatorio: params?.[11] ?? 0,
       };
       return makeResult([configuracaoEmpresa], 'INSERT');
     }
 
     if (text.includes('UPDATE configuracao_empresa SET')) {
       configuracaoEmpresa = {
-        ...(configuracaoEmpresa ?? { id: params?.[9] ?? 'config-1' }),
+        ...(configuracaoEmpresa ?? { id: params?.[12] ?? 'config-1' }),
         nome: params?.[0],
         cnpj: params?.[1],
         endereco: params?.[2],
@@ -215,6 +218,9 @@ function createMockDatabase(): DatabaseConnection & {
         exibir_logo_relatorio: params?.[6],
         exibir_endereco_relatorio: params?.[7],
         exibir_contato_relatorio: params?.[8],
+        logo_largura_relatorio: params?.[9] ?? 120,
+        logo_alinhamento_relatorio: params?.[10] ?? 'CENTRO',
+        logo_deslocamento_y_relatorio: params?.[11] ?? 0,
       };
       return makeResult([configuracaoEmpresa], 'UPDATE');
     }
