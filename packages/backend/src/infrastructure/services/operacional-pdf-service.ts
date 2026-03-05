@@ -116,11 +116,13 @@ interface DevolucaoPayload {
   geradoEm: string;
 }
 
+const PDF_PAGE_SIZE = 'A4';
+
 export class OperacionalPDFService {
   async gerarRelatorioEntrega(payload: EntregaPayload): Promise<Buffer> {
     return new Promise((resolve, reject) => {
       try {
-        const doc = new PDFDocument({ margin: 34, size: 'A4' });
+        const doc = new PDFDocument({ margin: 34, size: PDF_PAGE_SIZE });
         const chunks: Buffer[] = [];
 
         doc.on('data', (chunk: Buffer) => chunks.push(chunk));
@@ -228,7 +230,7 @@ export class OperacionalPDFService {
 
     return new Promise((resolve, reject) => {
       try {
-        const doc = new PDFDocument({ margin: 34, size: 'A4' });
+        const doc = new PDFDocument({ margin: 34, size: PDF_PAGE_SIZE });
         const chunks: Buffer[] = [];
 
         doc.on('data', (chunk: Buffer) => chunks.push(chunk));
@@ -324,8 +326,8 @@ export class OperacionalPDFService {
         doc.font('Helvetica-Bold').fontSize(9).fillColor('#1e3a5f');
         doc.text(`Documentos: ${processos.length}`, marginLeft + 12, boxY + 10);
         doc.text(totalApensos > 0 ? `(${mainProcessos.length} processos + ${totalApensos} apensos)` : `Repositórios: ${repos.length}`, marginLeft + 120, boxY + 10);
-        const totalCaixas = mainProcessos.reduce((sum, p) => sum + p.numeroCaixas, 0);
-        if (totalCaixas > 0) doc.text(`Caixas: ${totalCaixas}`, marginLeft + 380, boxY + 10);
+        const totalCaixas = repos.length;
+        if (totalCaixas > 0) doc.text(`Repositório: ${totalCaixas}`, marginLeft + 380, boxY + 10);
         doc.y = boxY + 40;
 
         // Tabela de processos (com apensos intercalados)
@@ -345,7 +347,7 @@ export class OperacionalPDFService {
           this.renderRecebimentoTable(
             doc,
             ['#', 'REPOSITORIO', 'UNIDADE', 'SETOR', 'PROTOCOLO', 'INTERESSADO', 'CLASSIF.', 'VOL.', 'OBS'],
-            [16, 46, 44, 58, 58, 72, 44, 22, 120],
+            [16, 68, 44, 58, 58, 72, 44, 34, 120],
             tableRows,
             processos.map((p) => !!p.isApenso),
           );
@@ -369,7 +371,7 @@ export class OperacionalPDFService {
   async gerarTermoCorrecao(payload: CorrecaoPayload): Promise<Buffer> {
     return new Promise((resolve, reject) => {
       try {
-        const doc = new PDFDocument({ margin: 34, size: 'A4' });
+        const doc = new PDFDocument({ margin: 34, size: PDF_PAGE_SIZE });
         const chunks: Buffer[] = [];
 
         doc.on('data', (chunk: Buffer) => chunks.push(chunk));
@@ -465,7 +467,7 @@ export class OperacionalPDFService {
 
     return new Promise((resolve, reject) => {
       try {
-        const doc = new PDFDocument({ margin: 34, size: 'A4' });
+        const doc = new PDFDocument({ margin: 34, size: PDF_PAGE_SIZE });
         const chunks: Buffer[] = [];
 
         doc.on('data', (chunk: Buffer) => chunks.push(chunk));
@@ -576,7 +578,7 @@ export class OperacionalPDFService {
           this.renderRecebimentoTable(
             doc,
             ['#', 'REPOSITORIO', 'UNIDADE', 'SETOR', 'PROTOCOLO', 'INTERESSADO', 'CLASSIF.', 'VOL.', 'OBS'],
-            [16, 46, 44, 58, 58, 72, 44, 22, 120],
+            [16, 68, 44, 58, 58, 72, 44, 34, 120],
             tableRows,
             processos.map((p) => !!p.isApenso),
           );
@@ -596,7 +598,7 @@ export class OperacionalPDFService {
   async gerarRelatorioProducao(payload: ProducaoPayload): Promise<Buffer> {
     return new Promise((resolve, reject) => {
       try {
-        const doc = new PDFDocument({ margin: 42, size: 'A4' });
+        const doc = new PDFDocument({ margin: 42, size: PDF_PAGE_SIZE });
         const chunks: Buffer[] = [];
 
         doc.on('data', (chunk: Buffer) => chunks.push(chunk));
@@ -651,6 +653,7 @@ export class OperacionalPDFService {
     const cellPadX = 2;
     const cellPadY = 2.5;
     const minRowH = 13;
+    const noWrapCols = new Set([1, 7]); // REPOSITORIO e VOL.
 
     // Header row
     doc.save();
@@ -660,7 +663,7 @@ export class OperacionalPDFService {
     let hx = startX;
     for (let i = 0; i < headers.length; i++) {
       const width = widths[i] ?? 60;
-      doc.text(headers[i] ?? '', hx + cellPadX, y + 5, { width: width - cellPadX * 2 });
+      doc.text(headers[i] ?? '', hx + cellPadX, y + 5, { width: width - cellPadX * 2, align: 'center' });
       hx += width;
     }
     y += 18;
@@ -679,7 +682,10 @@ export class OperacionalPDFService {
         const cellW = width - cellPadX * 2;
         const text = row[i] ?? '';
         if (text) {
-          const h = doc.heightOfString(text, { width: cellW });
+          const measureOpts = noWrapCols.has(i)
+            ? { width: cellW, lineBreak: false }
+            : { width: cellW };
+          const h = doc.heightOfString(text, measureOpts);
           if (h > maxCellH) maxCellH = h;
         }
       }
@@ -705,7 +711,13 @@ export class OperacionalPDFService {
       let x = startX;
       for (let i = 0; i < widths.length; i++) {
         const width = widths[i] ?? 60;
-        doc.text(row[i] ?? '', x + cellPadX, y + cellPadY, { width: width - cellPadX * 2 });
+        const textOpts = noWrapCols.has(i)
+          ? { width: width - cellPadX * 2, lineBreak: false, ellipsis: true }
+          : { width: width - cellPadX * 2 };
+        doc.text(row[i] ?? '', x + cellPadX, y + cellPadY, {
+          ...textOpts,
+          align: 'center',
+        });
         x += width;
       }
       y += rowH;
@@ -769,7 +781,9 @@ export class OperacionalPDFService {
     const marginLeft = doc.page.margins.left;
 
     // Garantir espaço mínimo para data + assinaturas (~140px)
-    if (doc.y > doc.page.height - 180) {
+    const assinaturaHeight = 118;
+    const limiteInferior = doc.page.height - doc.page.margins.bottom;
+    if (doc.y + assinaturaHeight > limiteInferior) {
       doc.addPage();
     }
 
@@ -855,3 +869,4 @@ export class OperacionalPDFService {
     return parsed.toLocaleString('pt-BR');
   }
 }
+
