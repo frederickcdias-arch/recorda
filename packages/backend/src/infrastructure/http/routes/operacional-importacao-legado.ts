@@ -58,8 +58,138 @@ function buildImportRowHash(parts: Record<string, unknown>): string {
   return createHash('sha256').update(payload).digest('hex');
 }
 
+interface ParsedImportRow {
+  data: string;
+  colaborador: string;
+  funcao: string;
+  repositorio: string;
+  coordenadoria: string;
+  quantidade: string;
+  tipo: string;
+}
+
+interface CsvFetchResult {
+  csvUrl: string;
+  csvContent: string;
+  contentType: string;
+}
+
+function buildCsvUrlFromSourceUrl(rawUrl: string): string {
+  const trimmed = rawUrl.trim();
+  let csvUrl = trimmed;
+  const spreadsheetIdMatch = trimmed.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+  if (spreadsheetIdMatch) {
+    const spreadsheetId = spreadsheetIdMatch[1];
+    const gidMatch = trimmed.match(/[?&#]gid=(\d+)/);
+    const gid = gidMatch?.[1] ?? '0';
+    csvUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=${gid}`;
+  } else if (trimmed.includes('/spreadsheets/d/e/') && !trimmed.includes('output=csv')) {
+    csvUrl = trimmed.includes('?') ? `${trimmed}&output=csv` : `${trimmed}?output=csv`;
+  }
+  return csvUrl;
+}
+
+async function fetchCsvFromSourceUrl(rawUrl: string, timeoutMs = 15_000): Promise<CsvFetchResult> {
+  const csvUrl = buildCsvUrlFromSourceUrl(rawUrl);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  let response: Response;
+  try {
+    response = await fetch(csvUrl, {
+      signal: controller.signal,
+      headers: { Accept: 'text/csv, text/plain, */*' },
+      redirect: 'follow',
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
+
+  if (!response.ok) {
+    const error = new Error(`Erro ao acessar planilha (HTTP ${response.status})`) as Error & { status?: number };
+    error.status = response.status;
+    throw error;
+  }
+
+  return {
+    csvUrl,
+    csvContent: await response.text(),
+    contentType: response.headers.get('content-type') ?? '',
+  };
+}
+
+function parseImportRowsFromCsv(csvContent: string): ParsedImportRow[] {
+  const lines = csvContent.split(/\r?\n/).map((l) => l.trim()).filter((l) => l.length > 0);
+  if (lines.length < 2) return [];
+
+  const isTab = lines[0]!.includes('\t');
+  const separator = lines[0]!.includes(';') ? ';' : ',';
+
+  const splitLine = (line: string): string[] => {
+    if (isTab) return line.split('\t').map((c) => c.trim());
+    const out: string[] = [];
+    let current = '';
+    let quoted = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i]!;
+      if (ch === '"') {
+        if (quoted && line[i + 1] === '"') {
+          current += '"';
+          i++;
+        } else {
+          quoted = !quoted;
+        }
+        continue;
+      }
+      if (ch === separator && !quoted) {
+        out.push(current);
+        current = '';
+        continue;
+      }
+      current += ch;
+    }
+    out.push(current);
+    return out.map((s) => s.trim());
+  };
+
+  const normalizeH = (v: string) => v.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const headersRaw = splitLine(lines[0]!);
+  const headers = headersRaw.map(normalizeH);
+  const indexOf = (aliases: string[]) => headers.findIndex((h) => aliases.includes(h));
+
+  const idxData = indexOf(['data', 'date']);
+  const idxColaborador = indexOf(['colaborador', 'nome', 'funcionario']);
+  const idxFuncao = indexOf(['funcao', 'funcao', 'cargo']);
+  const idxRepositorio = indexOf(['repositorio', 'repositorio', 'repo', 'protocolo', 'numero', 'numero', 'id', 'identificacao']);
+  const idxCoordenadoria = indexOf(['coordenadoria', 'coord', 'unidade']);
+  const idxQuantidade = indexOf(['quantidade', 'qtd', 'qtde']);
+  const idxTipo = indexOf(['tipo']);
+
+  if (idxRepositorio < 0 || idxColaborador < 0) {
+    return [];
+  }
+
+  const registros: ParsedImportRow[] = [];
+  for (let i = 1; i < lines.length; i++) {
+    const cols = splitLine(lines[i]!);
+    const colaborador = (cols[idxColaborador] ?? '').trim();
+    const repositorio = (cols[idxRepositorio] ?? '').trim();
+    if (!colaborador || !repositorio) continue;
+    registros.push({
+      data: idxData >= 0 ? (cols[idxData] ?? '').trim() : '',
+      colaborador,
+      funcao: idxFuncao >= 0 ? (cols[idxFuncao] ?? '').trim() : '',
+      repositorio,
+      coordenadoria: idxCoordenadoria >= 0 ? (cols[idxCoordenadoria] ?? '').trim() : '',
+      quantidade: idxQuantidade >= 0 ? (cols[idxQuantidade] ?? '1').trim() || '1' : '1',
+      tipo: idxTipo >= 0 ? (cols[idxTipo] ?? '').trim() : '',
+    });
+  }
+
+  return registros;
+}
+
 /**
- * Importação legado routes: validar, importar recebimento, importar produção, listar, limpar.
+ * Importacao legado routes: validar, importar recebimento, importar producao, listar, limpar.
  */
 // Helper function to import production from URL
 async function importarProducaoLegado(
@@ -68,92 +198,10 @@ async function importarProducaoLegado(
   url: string
 ): Promise<{ importados: number; duplicados: number; erros: number; errosAmostra: Array<{ linha: number; erro: string }> }> {
   try {
-    // Handle Google Sheets redirect
-    let csvData: string = '';
-    if (url.includes('docs.google.com/spreadsheets/')) {
-      // Extract sheet ID and create export URL
-      const sheetIdMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
-      if (sheetIdMatch) {
-        const sheetId = sheetIdMatch[1];
-        const exportUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`;
-        
-        // Follow redirects manually
-        let finalUrl = exportUrl;
-        let maxRedirects = 5;
-        
-        while (maxRedirects > 0) {
-          const response = await fetch(finalUrl, { redirect: 'manual' });
-          
-          if (response.status === 302 || response.status === 307) {
-            const location = response.headers.get('location');
-            if (location) {
-              finalUrl = location;
-              maxRedirects--;
-            } else {
-              throw new Error('Redirecionamento sem localização');
-            }
-          } else if (response.ok) {
-            csvData = await response.text();
-            break;
-          } else {
-            throw new Error(`Erro HTTP ${response.status}: ${response.statusText}`);
-          }
-        }
-        
-        if (maxRedirects === 0) {
-          throw new Error('Muitos redirecionamentos');
-        }
-      } else {
-        throw new Error('URL do Google Sheets inválida');
-      }
-    } else {
-      // Regular URL fetch
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`Erro HTTP ${response.status}: ${response.statusText}`);
-      }
-      csvData = await response.text();
-    }
-
-    const lines = csvData.split('\n').map((l: string) => l.trim()).filter((l: string) => l);
-
-    // Parse CSV (same logic as existing)
-    const normalizeH = (v: string) => v.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
-    const headersRaw = lines[0]!.split(',').map((h: string) => h.trim().replace(/^"|"$/g, ''));
-    const headers = headersRaw.map(normalizeH);
-    const indexOf = (aliases: string[]) => headers.findIndex((h: string) => aliases.includes(h));
-
-    const idxData = indexOf(['data', 'date']);
-    const idxColaborador = indexOf(['colaborador', 'nome', 'funcionario']);
-    const idxFuncao = indexOf(['funcao', 'função', 'cargo']);
-    const idxRepositorio = indexOf(['repositorio', 'repositório', 'repo', 'protocolo', 'numero', 'número', 'id', 'identificacao']);
-    const idxCoordenadoria = indexOf(['coordenadoria', 'coord', 'unidade']);
-    const idxQuantidade = indexOf(['quantidade', 'qtd', 'qtde']);
-    const idxTipo = indexOf(['tipo']);
-
-    if (idxRepositorio < 0 || idxColaborador < 0) {
-      throw new Error('Planilha inválida');
-    }
-
-    interface ParsedRow {
-      data: string; colaborador: string; funcao: string; repositorio: string;
-      coordenadoria: string; quantidade: string; tipo: string;
-    }
-    const registros: ParsedRow[] = [];
-    for (let i = 1; i < lines.length; i++) {
-      const cols = lines[i]!.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
-      const colaborador = (cols[idxColaborador] ?? '').trim();
-      const repositorio = (cols[idxRepositorio] ?? '').trim();
-      if (!colaborador || !repositorio) continue;
-      registros.push({
-        data: idxData >= 0 ? (cols[idxData] ?? '').trim() : '',
-        colaborador,
-        funcao: idxFuncao >= 0 ? (cols[idxFuncao] ?? '').trim() : '',
-        repositorio,
-        coordenadoria: idxCoordenadoria >= 0 ? (cols[idxCoordenadoria] ?? '').trim() : '',
-        quantidade: idxQuantidade >= 0 ? (cols[idxQuantidade] ?? '1').trim() || '1' : '1',
-        tipo: idxTipo >= 0 ? (cols[idxTipo] ?? '').trim() : '',
-      });
+    const fetched = await fetchCsvFromSourceUrl(url);
+    const registros = parseImportRowsFromCsv(fetched.csvContent);
+    if (registros.length === 0) {
+      throw new Error('Planilha invalida');
     }
 
     // Use the same import logic as the main import function
@@ -233,7 +281,7 @@ async function importarProducaoLegado(
           if (!repoId) {
             erros.push({
               linha: idx + 1,
-              erro: 'Repositório inválido'
+              erro: 'Repositorio invalido'
             });
             continue;
           }
@@ -246,7 +294,7 @@ async function importarProducaoLegado(
           if (repoResult.rows.length === 0) {
             erros.push({
               linha: idx + 1,
-              erro: `Repositório não encontrado: ${repoId}`
+              erro: `Repositorio nao encontrado: ${repoId}`
             });
             continue;
           }
@@ -335,7 +383,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
             }
           }
 
-          // Detectar duplicatas contra o banco (repositório + processo já existente)
+          // Detectar duplicatas contra o banco (repositorio + processo ja existente)
           const repoIds = [...new Set(registros.map(r => {
             const raw = ((r as Record<string, string>).idRepositorioGed ?? '').trim();
             return raw ? normalizeIdRepositorioGed(raw) : '';
@@ -364,7 +412,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
             }
           }
         } else {
-          // Produção: duplicata intra-planilha por (data, colaborador, repositorio, quantidade, tipo, funcao)
+          // Producao: duplicata intra-planilha por (data, colaborador, repositorio, quantidade, tipo, funcao)
           const vistos = new Map<string, number>();
           for (let i = 0; i < registros.length; i++) {
             const row = registros[i] as Record<string, string | undefined>;
@@ -386,7 +434,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
             }
           }
 
-          // Produção: duplicata contra o banco (inclui etapa derivada da funcao)
+          // Producao: duplicata contra o banco (inclui etapa derivada da funcao)
           const repoIds = [...new Set(registros.map(r => {
             const raw = ((r as Record<string, string>).repositorio ?? '').trim();
             return raw ? normalizeIdRepositorioGed(raw) : '';
@@ -554,7 +602,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
               repositorioId = createdRepo.rows[0]?.id_repositorio_recorda ?? '';
             }
 
-            // Verificar se já existe recebimento idêntico (mesmo repositório, processo, interessado)
+            // Verificar se ja existe recebimento identico (mesmo repositorio, processo, interessado)
             const existenteRec = await server.database.query<{ id: string }>(
               `SELECT id FROM recebimento_documentos
                WHERE repositorio_id = $1 AND processo = $2 AND interessado = $3
@@ -617,9 +665,9 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
       }
     });
 
-    // POST /operacional/importacoes-legado/producao - Importar produção legada de colaboradores
+    // POST /operacional/importacoes-legado/producao - Importar producao legada de colaboradores
     server.post('/operacional/importacoes-legado/producao', {
-      schema: { tags: ['operacional'], summary: 'Importar produção legada de colaboradores', security: [{ bearerAuth: [] }] },
+      schema: { tags: ['operacional'], summary: 'Importar producao legada de colaboradores', security: [{ bearerAuth: [] }] },
       preHandler: [server.authenticate, authorize('operador', 'administrador'), validateBody(importacaoLegadoProducaoSchema)],
     }, async (request, reply) => {
       try {
@@ -670,7 +718,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
 
         const usuarioDestinoId = body.usuarioId?.trim() || user.id;
         if (usuarioDestinoId !== user.id && user.perfil !== 'administrador') {
-          return reply.status(403).send({ error: 'Apenas administradores podem importar para outro usuário' });
+          return reply.status(403).send({ error: 'Apenas administradores podem importar para outro usuario' });
         }
 
         // Buscar mapeamento de colaboradores por nome
@@ -687,14 +735,14 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
 
         await server.database.query('BEGIN');
         try {
-          // Desabilitar triggers apenas nesta transação (seguro: reverte automaticamente no ROLLBACK)
+          // Desabilitar triggers apenas nesta transacao (seguro: reverte automaticamente no ROLLBACK)
           await server.database.query(`SET LOCAL session_replication_role = 'replica'`);
 
           for (let idx = 0; idx < registros.length; idx++) {
             const row = registros[idx];
             const linha = idx + 1;
             if (!row) {
-              erros.push({ linha, erro: 'Registro inválido' });
+              erros.push({ linha, erro: 'Registro invalido' });
               continue;
             }
 
@@ -706,15 +754,15 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
             const statusImport = etapaStatusMap[etapaImport] ?? 'RECEBIDO';
 
             if (!repoIdentificadorRaw) {
-              erros.push({ linha, erro: 'Coluna repositório é obrigatória' });
+              erros.push({ linha, erro: 'Coluna repositorio e obrigatoria' });
               continue;
             }
             if (!colaboradorNome) {
-              erros.push({ linha, erro: 'Coluna colaborador é obrigatória' });
+              erros.push({ linha, erro: 'Coluna colaborador e obrigatoria' });
               continue;
             }
 
-            // Resolver usuário pelo nome do colaborador
+            // Resolver usuario pelo nome do colaborador
             let colaboradorId = usuariosPorNome.get(colaboradorNome.toLowerCase());
             if (!colaboradorId) {
               // Fallback: busca parcial
@@ -729,7 +777,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
               colaboradorId = usuarioDestinoId;
             }
 
-            // Extrair ano da data de produção para normalização do ID
+            // Extrair ano da data de producao para normalizacao do ID
             let anoRef = new Date().getFullYear();
             if (dataStr) {
               if (dataStr.includes('/')) {
@@ -746,7 +794,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
             const orgaoRepositorio = (row.coordenadoria ?? '').trim() || 'NAO INFORMADO';
 
             try {
-              // Buscar repositório existente pelo ID normalizado
+              // Buscar repositorio existente pelo ID normalizado
               const repoResult = await server.database.query<{ id_repositorio_recorda: string }>(
                 `SELECT id_repositorio_recorda FROM repositorios
                  WHERE id_repositorio_ged = $1
@@ -757,7 +805,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
 
               let repositorioId = repoResult.rows[0]?.id_repositorio_recorda ?? '';
               if (!repositorioId) {
-                // Criar repositório legado automaticamente
+                // Criar repositorio legado automaticamente
                 const createdRepo = await server.database.query<{ id_repositorio_recorda: string }>(
                   `INSERT INTO repositorios (
                      id_repositorio_ged, orgao, projeto, status_atual, etapa_atual
@@ -769,7 +817,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
                 repositorioId = createdRepo.rows[0]?.id_repositorio_recorda ?? '';
               }
 
-              // Buscar ou criar checklist CONCLUIDO para satisfazer o trigger de validação
+              // Buscar ou criar checklist CONCLUIDO para satisfazer o trigger de validacao
               const existingChecklist = await server.database.query<{ id: string }>(
                 `SELECT id FROM checklists
                  WHERE repositorio_id = $1 AND etapa = $2
@@ -780,14 +828,14 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
               if (!checklistId) {
                 const checklistResult = await server.database.query<{ id: string }>(
                   `INSERT INTO checklists (repositorio_id, etapa, status, observacao, responsavel_id, ativo, data_conclusao)
-                   VALUES ($1, $2, 'CONCLUIDO', 'Importação legada', $3, FALSE, CURRENT_TIMESTAMP)
+                   VALUES ($1, $2, 'CONCLUIDO', 'Importacao legada', $3, FALSE, CURRENT_TIMESTAMP)
                    RETURNING id`,
                   [repositorioId, etapaImport, colaboradorId]
                 );
                 checklistId = checklistResult.rows[0]?.id ?? '';
               }
 
-              // Parsear data — produce YYYY-MM-DD string (NOT a Date object, to avoid pg driver timezone shift)
+              // Parsear data - produce YYYY-MM-DD string (NOT a Date object, to avoid pg driver timezone shift)
               let dataProducaoStr: string;
               const currentYear = new Date().getFullYear();
               if (dataStr) {
@@ -830,7 +878,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
                 colaborador_nome: colaboradorNome,
               });
 
-              // Verificar se já existe registro idêntico (mesmo colaborador, repositório, data, tipo, etapa, quantidade, função, coordenadoria)
+              // Verificar se ja existe registro identico (mesmo colaborador, repositorio, data, tipo, etapa, quantidade, funcao, coordenadoria)
               const tipoMarcador = (row.tipo ?? '').trim();
               const funcaoMarcador = (row.funcao ?? '').trim();
               const coordenadoriaMarcador = (row.coordenadoria ?? '').trim();
@@ -881,10 +929,10 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
             }
           }
 
-          // Fechar todos os checklists legados abertos criados nesta importação
+          // Fechar todos os checklists legados abertos criados nesta importacao
           await server.database.query(
             `UPDATE checklists SET status = 'CONCLUIDO', ativo = FALSE, data_conclusao = CURRENT_TIMESTAMP
-             WHERE observacao = 'Importação legada' AND status = 'ABERTO' AND ativo = TRUE`
+             WHERE observacao = 'Importacao legada' AND status = 'ABERTO' AND ativo = TRUE`
           );
 
           await server.database.query('COMMIT');
@@ -912,16 +960,16 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
           erros,
         });
       } catch (error) {
-        const message = error instanceof Error ? error.message : 'Erro ao importar produção legada';
+        const message = error instanceof Error ? error.message : 'Erro ao importar producao legada';
         const stack = error instanceof Error ? error.stack : '';
-        request.log.error({ err: error, msg: `Importação produção falhou: ${message}` });
+        request.log.error({ err: error, msg: `Importacao producao falhou: ${message}` });
         return reply.status(400).send({ error: message, stack: process.env.NODE_ENV !== 'production' ? stack : undefined });
       }
     });
 
     // GET /operacional/importacoes-legado
     server.get('/operacional/importacoes-legado', {
-      schema: { tags: ['operacional'], summary: 'Listar importações legadas', security: [{ bearerAuth: [] }] },
+      schema: { tags: ['operacional'], summary: 'Listar importacoes legadas', security: [{ bearerAuth: [] }] },
       preHandler: [server.authenticate, authorize('operador', 'administrador')],
     }, async (request, reply) => {
       try {
@@ -992,7 +1040,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
       try {
         await server.database.query('BEGIN');
         const prodResult = await server.database.query('DELETE FROM producao_repositorio');
-        const checkResult = await server.database.query("DELETE FROM checklists WHERE observacao = 'Importação legada'");
+        const checkResult = await server.database.query("DELETE FROM checklists WHERE observacao = 'Importacao legada'");
         const recebResult = await server.database.query('DELETE FROM recebimento_documentos');
         const repoResult = await server.database.query("DELETE FROM repositorios WHERE projeto = 'LEGADO'");
         const importResult = await server.database.query('DELETE FROM importacoes_legado_operacional');
@@ -1024,47 +1072,25 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
       try {
         const { url } = request.body as { url?: string };
         if (!url || typeof url !== 'string' || !url.trim()) {
-          return reply.status(400).send({ error: 'URL é obrigatória' });
+          return reply.status(400).send({ error: 'URL e obrigatoria' });
         }
 
-        const trimmed = url.trim();
-        let csvUrl = trimmed;
-
-        const spreadsheetIdMatch = trimmed.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
-        if (spreadsheetIdMatch) {
-          const spreadsheetId = spreadsheetIdMatch[1];
-          const gidMatch = trimmed.match(/[?&#]gid=(\d+)/);
-          const gid = gidMatch?.[1] ?? '0';
-          csvUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=${gid}`;
-        } else if (trimmed.includes('/spreadsheets/d/e/') && !trimmed.includes('output=csv')) {
-          csvUrl = trimmed.includes('?') ? `${trimmed}&output=csv` : `${trimmed}?output=csv`;
-        }
-
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 15_000);
-        let response: Response;
         try {
-          response = await fetch(csvUrl, { signal: controller.signal, headers: { 'Accept': 'text/csv, text/plain, */*' }, redirect: 'follow' });
-        } finally {
-          clearTimeout(timeout);
+          const fetched = await fetchCsvFromSourceUrl(url);
+          if (fetched.csvContent.length === 0) {
+            return reply.status(400).send({ error: 'A planilha retornou conteudo vazio.' });
+          }
+          if (fetched.contentType.includes('text/html') && fetched.csvContent.includes('<html')) {
+            return reply.status(400).send({ error: 'A planilha nao esta publicada. Publique via Arquivo > Compartilhar > Publicar na Web > CSV.' });
+          }
+          return reply.send({ csv: fetched.csvContent, url: fetched.csvUrl });
+        } catch (fetchError) {
+          const status = (fetchError as { status?: number }).status;
+          if (status === 404) return reply.status(400).send({ error: 'Planilha nao encontrada. Verifique se a URL esta correta e a planilha esta publicada.' });
+          if (status === 403 || status === 401) return reply.status(400).send({ error: 'Acesso negado. A planilha precisa estar publicada na web (Arquivo > Compartilhar > Publicar na Web).' });
+          if (status) return reply.status(400).send({ error: `Erro ao acessar planilha (HTTP ${status}). Verifique se a URL esta correta.` });
+          throw fetchError;
         }
-
-        if (!response.ok) {
-          const status = response.status;
-          if (status === 404) return reply.status(400).send({ error: 'Planilha não encontrada. Verifique se a URL está correta e a planilha está publicada.' });
-          if (status === 403 || status === 401) return reply.status(400).send({ error: 'Acesso negado. A planilha precisa estar publicada na web (Arquivo → Compartilhar → Publicar na Web).' });
-          return reply.status(400).send({ error: `Erro ao acessar planilha (HTTP ${status}). Verifique se a URL está correta.` });
-        }
-
-        const contentType = response.headers.get('content-type') ?? '';
-        const csvContent = await response.text();
-
-        if (csvContent.length === 0) return reply.status(400).send({ error: 'A planilha retornou conteúdo vazio.' });
-        if (contentType.includes('text/html') && csvContent.includes('<html')) {
-          return reply.status(400).send({ error: 'A planilha não está publicada. Publique via Arquivo → Compartilhar → Publicar na Web → CSV.' });
-        }
-
-        return reply.send({ csv: csvContent, url: csvUrl });
       } catch (error) {
         if (error instanceof Error && error.name === 'AbortError') return reply.status(408).send({ error: 'Timeout ao acessar a planilha. Tente novamente.' });
         const message = error instanceof Error ? error.message : 'Erro ao buscar dados da planilha';
@@ -1072,11 +1098,11 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
       }
     });
 
-    // ── Fontes de Importação (saved links) ──
+    // -- Fontes de Importacao (saved links) --
 
     // GET /operacional/fontes-importacao - List saved import sources
     server.get('/operacional/fontes-importacao', {
-      schema: { tags: ['operacional'], summary: 'Listar fontes de importação salvas', security: [{ bearerAuth: [] }] },
+      schema: { tags: ['operacional'], summary: 'Listar fontes de importacao salvas', security: [{ bearerAuth: [] }] },
       preHandler: [server.authenticate, authorize('operador', 'administrador')],
     }, async (_request, reply) => {
       const result = await server.database.query<{
@@ -1091,13 +1117,13 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
 
     // POST /operacional/fontes-importacao - Create a saved import source
     server.post('/operacional/fontes-importacao', {
-      schema: { tags: ['operacional'], summary: 'Criar fonte de importação', security: [{ bearerAuth: [] }] },
+      schema: { tags: ['operacional'], summary: 'Criar fonte de importacao', security: [{ bearerAuth: [] }] },
       preHandler: [server.authenticate, authorize('operador', 'administrador')],
     }, async (request, reply) => {
       const user = getCurrentUser(request);
       const { nome, url } = request.body as { nome?: string; url?: string };
       if (!nome?.trim() || !url?.trim()) {
-        return reply.status(400).send({ error: 'Nome e URL são obrigatórios' });
+        return reply.status(400).send({ error: 'Nome e URL sao obrigatorios' });
       }
       const result = await server.database.query<{ id: string }>(
         `INSERT INTO fontes_importacao (nome, url, tipo, criado_por) VALUES ($1, $2, 'sheets', $3) RETURNING id`,
@@ -1108,7 +1134,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
 
     // DELETE /operacional/fontes-importacao/:id - Delete a saved import source
     server.delete<{ Params: { id: string } }>('/operacional/fontes-importacao/:id', {
-      schema: { tags: ['operacional'], summary: 'Excluir fonte de importação', security: [{ bearerAuth: [] }] },
+      schema: { tags: ['operacional'], summary: 'Excluir fonte de importacao', security: [{ bearerAuth: [] }] },
       preHandler: [server.authenticate, authorize('operador', 'administrador')],
     }, async (request, reply) => {
       const { id } = request.params;
@@ -1127,117 +1153,19 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
           `SELECT id, nome, url FROM fontes_importacao WHERE id = $1`, [id]
         );
         if (fonteResult.rows.length === 0) {
-          return reply.status(404).send({ error: 'Fonte de importação não encontrada' });
+          return reply.status(404).send({ error: 'Fonte de importacao nao encontrada' });
         }
         const fonte = fonteResult.rows[0]!;
 
-        const trimmed = fonte.url.trim();
-        let csvUrl = trimmed;
-        const spreadsheetIdMatch = trimmed.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
-        if (spreadsheetIdMatch) {
-          const spreadsheetId = spreadsheetIdMatch[1];
-          const gidMatch = trimmed.match(/[?&#]gid=(\d+)/);
-          const gid = gidMatch?.[1] ?? '0';
-          csvUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=${gid}`;
+        const fetched = await fetchCsvFromSourceUrl(fonte.url);
+        if (!fetched.csvContent.trim()) {
+          return reply.status(400).send({ error: 'A planilha retornou conteudo vazio.' });
         }
 
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 15_000);
-        let csvResponse: Response;
-        try {
-          csvResponse = await fetch(csvUrl, { signal: controller.signal, headers: { 'Accept': 'text/csv, text/plain, */*' }, redirect: 'follow' });
-        } catch (fetchErr) {
-          clearTimeout(timeout);
-          if (fetchErr instanceof Error && fetchErr.name === 'AbortError') {
-            return reply.status(408).send({ error: 'Timeout ao acessar a planilha.' });
-          }
-          throw fetchErr;
-        } finally {
-          clearTimeout(timeout);
-        }
-
-        if (!csvResponse.ok) {
-          return reply.status(400).send({ error: `Erro ao acessar planilha (HTTP ${csvResponse.status})` });
-        }
-        const csvContent = await csvResponse.text();
-        if (!csvContent.trim()) {
-          return reply.status(400).send({ error: 'A planilha retornou conteúdo vazio.' });
-        }
-
-        const lines = csvContent.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
-        if (lines.length < 2) {
-          return reply.status(400).send({ error: 'Planilha sem dados (apenas cabeçalho ou vazia).' });
-        }
-
-        const isTab = lines[0]!.includes('\t');
-        const separator = lines[0]!.includes(';') ? ';' : ',';
-        const splitLine = (line: string): string[] => {
-          if (isTab) return line.split('\t').map(c => c.trim());
-          const out: string[] = [];
-          let current = '';
-          let quoted = false;
-          for (let i = 0; i < line.length; i++) {
-            const ch = line[i]!;
-            if (ch === '"') {
-              if (quoted && line[i + 1] === '"') {
-                current += '"';
-                i++;
-              } else {
-                quoted = !quoted;
-              }
-              continue;
-            }
-            if (ch === separator && !quoted) {
-              out.push(current);
-              current = '';
-              continue;
-            }
-            current += ch;
-          }
-          out.push(current);
-          return out.map(s => s.trim());
-        };
-
-        const normalizeH = (v: string) => v.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
-        const headersRaw = splitLine(lines[0]!);
-        const headers = headersRaw.map(normalizeH);
-        const indexOf = (aliases: string[]) => headers.findIndex(h => aliases.includes(h));
-
-        const idxData = indexOf(['data', 'date']);
-        const idxColaborador = indexOf(['colaborador', 'nome', 'funcionario']);
-        const idxFuncao = indexOf(['funcao', 'função', 'cargo']);
-        const idxRepositorio = indexOf(['repositorio', 'repositório', 'repo', 'protocolo', 'numero', 'número', 'id', 'identificacao']);
-        const idxCoordenadoria = indexOf(['coordenadoria', 'coord', 'unidade']);
-        const idxQuantidade = indexOf(['quantidade', 'qtd', 'qtde']);
-        const idxTipo = indexOf(['tipo']);
-
-        if (idxRepositorio < 0 || idxColaborador < 0) {
-          return reply.status(400).send({ error: 'Planilha inválida: colunas obrigatórias Colaborador e Repositório não encontradas.' });
-        }
-
-        interface ParsedRow {
-          data: string; colaborador: string; funcao: string; repositorio: string;
-          coordenadoria: string; quantidade: string; tipo: string;
-        }
-        const registros: ParsedRow[] = [];
-        for (let i = 1; i < lines.length; i++) {
-          const cols = splitLine(lines[i]!);
-          const colaborador = (cols[idxColaborador] ?? '').trim();
-          const repositorio = (cols[idxRepositorio] ?? '').trim();
-          if (!colaborador || !repositorio) continue;
-          registros.push({
-            data: idxData >= 0 ? (cols[idxData] ?? '').trim() : '',
-            colaborador,
-            funcao: idxFuncao >= 0 ? (cols[idxFuncao] ?? '').trim() : '',
-            repositorio,
-            coordenadoria: idxCoordenadoria >= 0 ? (cols[idxCoordenadoria] ?? '').trim() : '',
-            quantidade: idxQuantidade >= 0 ? (cols[idxQuantidade] ?? '1').trim() || '1' : '1',
-            tipo: idxTipo >= 0 ? (cols[idxTipo] ?? '').trim() : '',
-          });
-        }
+        const registros = parseImportRowsFromCsv(fetched.csvContent);
 
         if (registros.length === 0) {
-          return reply.status(400).send({ error: 'Nenhum registro válido encontrado na planilha.' });
+          return reply.status(400).send({ error: 'Nenhum registro valido encontrado na planilha.' });
         }
 
         const usuariosResult = await server.database.query<{ id: string; nome: string }>(
@@ -1260,8 +1188,8 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
           return 'RECEBIMENTO';
         };
 
-        const novos: Array<{ linha: number; dados: ParsedRow; motivo: string }> = [];
-        const duplicados: Array<{ linha: number; dados: ParsedRow; motivo: string }> = [];
+        const novos: Array<{ linha: number; dados: ParsedImportRow; motivo: string }> = [];
+        const duplicados: Array<{ linha: number; dados: ParsedImportRow; motivo: string }> = [];
 
         for (let idx = 0; idx < registros.length; idx++) {
           const row = registros[idx]!;
@@ -1272,18 +1200,27 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
             const parts = row.data.split('/');
             const parsed = parseInt(parts[2] ?? '', 10);
             if (!isNaN(parsed)) anoRef = parsed < 100 ? 2000 + parsed : parsed;
+          } else if (row.data) {
+            const parsedDate = new Date(row.data);
+            if (!isNaN(parsedDate.getTime())) anoRef = parsedDate.getFullYear();
           }
           const repoId = normalizeIdRepositorioGed(row.repositorio ?? '', anoRef);
+          const orgaoRepositorio = (row.coordenadoria ?? '').trim() || 'NAO INFORMADO';
           if (!repoId) {
-            novos.push({ linha, dados: row, motivo: 'Repositório inválido' });
+            novos.push({ linha, dados: row, motivo: 'Repositorio invalido' });
             continue;
           }
 
           const repoResult = await server.database.query<{ id_repositorio_recorda: string }>(
-            `SELECT id_repositorio_recorda FROM repositorios WHERE id_repositorio_ged = $1`, [repoId]
+            `SELECT id_repositorio_recorda
+             FROM repositorios
+             WHERE id_repositorio_ged = $1
+               AND orgao = $2
+               AND projeto = 'LEGADO'`,
+            [repoId, orgaoRepositorio]
           );
           if (repoResult.rows.length === 0) {
-            novos.push({ linha, dados: row, motivo: 'Repositório não encontrado' });
+            novos.push({ linha, dados: row, motivo: 'Repositorio nao encontrado' });
             continue;
           }
           const repositorioId = repoResult.rows[0]!.id_repositorio_recorda;
@@ -1335,7 +1272,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
           );
 
           if (existente.rows.length > 0) {
-            duplicados.push({ linha, dados: row, motivo: 'Registro já existe no sistema' });
+            duplicados.push({ linha, dados: row, motivo: 'Registro ja existe no sistema' });
           } else {
             novos.push({ linha, dados: row, motivo: 'Novo registro' });
           }
@@ -1348,8 +1285,12 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
           duplicados: { quantidade: duplicados.length, itens: duplicados.slice(0, 10) },
         });
       } catch (error) {
+        const status = (error as { status?: number }).status;
         if (error instanceof Error && error.name === 'AbortError') {
           return reply.status(408).send({ error: 'Timeout ao acessar a planilha. Tente novamente.' });
+        }
+        if (status) {
+          return reply.status(400).send({ error: `Erro ao acessar planilha (HTTP ${status})` });
         }
         const message = error instanceof Error ? error.message : 'Erro ao validar duplicatas da fonte';
         return sendDatabaseError(reply, error, message);
@@ -1368,110 +1309,34 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
         `SELECT id, nome, url FROM fontes_importacao WHERE id = $1`, [id]
       );
       if (fonteResult.rows.length === 0) {
-        return reply.status(404).send({ error: 'Fonte de importação não encontrada' });
+        return reply.status(404).send({ error: 'Fonte de importacao nao encontrada' });
       }
       const fonte = fonteResult.rows[0]!;
 
-      // 2. Fetch CSV from Google Sheets
-      const trimmed = fonte.url.trim();
-      let csvUrl = trimmed;
-      const spreadsheetIdMatch = trimmed.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
-      if (spreadsheetIdMatch) {
-        const spreadsheetId = spreadsheetIdMatch[1];
-        const gidMatch = trimmed.match(/[?&#]gid=(\d+)/);
-        const gid = gidMatch?.[1] ?? '0';
-        csvUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=${gid}`;
-      }
-
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 15_000);
-      let csvResponse: Response;
+      // 2. Fetch CSV and parse rows from source
+      let registros: ParsedImportRow[] = [];
       try {
-        csvResponse = await fetch(csvUrl, { signal: controller.signal, headers: { 'Accept': 'text/csv, text/plain, */*' }, redirect: 'follow' });
-      } catch (fetchErr) {
-        clearTimeout(timeout);
-        if (fetchErr instanceof Error && fetchErr.name === 'AbortError') {
+        const fetched = await fetchCsvFromSourceUrl(fonte.url);
+        if (!fetched.csvContent.trim()) {
+          return reply.status(400).send({ error: 'A planilha retornou conteudo vazio.' });
+        }
+        registros = parseImportRowsFromCsv(fetched.csvContent);
+      } catch (error) {
+        const status = (error as { status?: number }).status;
+        if (error instanceof Error && error.name === 'AbortError') {
           return reply.status(408).send({ error: 'Timeout ao acessar a planilha.' });
         }
-        throw fetchErr;
-      } finally {
-        clearTimeout(timeout);
-      }
-
-      if (!csvResponse.ok) {
-        return reply.status(400).send({ error: `Erro ao acessar planilha (HTTP ${csvResponse.status})` });
-      }
-      const csvContent = await csvResponse.text();
-      if (!csvContent.trim()) {
-        return reply.status(400).send({ error: 'A planilha retornou conteúdo vazio.' });
-      }
-
-      // 3. Parse CSV (reuse same logic as frontend — header-based)
-      const lines = csvContent.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
-      if (lines.length < 2) {
-        return reply.status(400).send({ error: 'Planilha sem dados (apenas cabeçalho ou vazia).' });
-      }
-
-      const isTab = lines[0]!.includes('\t');
-      const separator = lines[0]!.includes(';') ? ';' : ',';
-      const splitLine = (line: string): string[] => {
-        if (isTab) return line.split('\t').map(c => c.trim());
-        const out: string[] = [];
-        let current = '';
-        let quoted = false;
-        for (let i = 0; i < line.length; i++) {
-          const ch = line[i]!;
-          if (ch === '"') { if (quoted && line[i + 1] === '"') { current += '"'; i++; } else { quoted = !quoted; } continue; }
-          if (ch === separator && !quoted) { out.push(current); current = ''; continue; }
-          current += ch;
+        if (status) {
+          return reply.status(400).send({ error: `Erro ao acessar planilha (HTTP ${status})` });
         }
-        out.push(current);
-        return out.map(s => s.trim());
-      };
-
-      const normalizeH = (v: string) => v.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
-      const headersRaw = splitLine(lines[0]!);
-      const headers = headersRaw.map(normalizeH);
-      const indexOf = (aliases: string[]) => headers.findIndex(h => aliases.includes(h));
-
-      const idxData = indexOf(['data', 'date']);
-      const idxColaborador = indexOf(['colaborador', 'nome', 'funcionario']);
-      const idxFuncao = indexOf(['funcao', 'função', 'cargo']);
-      const idxRepositorio = indexOf(['repositorio', 'repositório', 'repo', 'protocolo', 'numero', 'número', 'id', 'identificacao']);
-      const idxCoordenadoria = indexOf(['coordenadoria', 'coord', 'unidade']);
-      const idxQuantidade = indexOf(['quantidade', 'qtd', 'qtde']);
-      const idxTipo = indexOf(['tipo']);
-
-      if (idxRepositorio < 0 || idxColaborador < 0) {
-        return reply.status(400).send({ error: 'Planilha inválida: colunas obrigatórias Colaborador e Repositório não encontradas.' });
-      }
-
-      interface ParsedRow {
-        data: string; colaborador: string; funcao: string; repositorio: string;
-        coordenadoria: string; quantidade: string; tipo: string;
-      }
-      const registros: ParsedRow[] = [];
-      for (let i = 1; i < lines.length; i++) {
-        const cols = splitLine(lines[i]!);
-        const colaborador = (cols[idxColaborador] ?? '').trim();
-        const repositorio = (cols[idxRepositorio] ?? '').trim();
-        if (!colaborador || !repositorio) continue;
-        registros.push({
-          data: idxData >= 0 ? (cols[idxData] ?? '').trim() : '',
-          colaborador,
-          funcao: idxFuncao >= 0 ? (cols[idxFuncao] ?? '').trim() : '',
-          repositorio,
-          coordenadoria: idxCoordenadoria >= 0 ? (cols[idxCoordenadoria] ?? '').trim() : '',
-          quantidade: idxQuantidade >= 0 ? (cols[idxQuantidade] ?? '1').trim() || '1' : '1',
-          tipo: idxTipo >= 0 ? (cols[idxTipo] ?? '').trim() : '',
-        });
+        throw error;
       }
 
       if (registros.length === 0) {
-        return reply.status(400).send({ error: 'Nenhum registro válido encontrado na planilha.' });
+        return reply.status(400).send({ error: 'Nenhum registro valido encontrado na planilha.' });
       }
 
-      // 4. Import with auto-skip duplicates — delegate to the existing producao import handler logic
+      // 4. Import with auto-skip duplicates - delegate to the existing producao import handler logic
       //    but inline it here to auto-skip instead of prompting
       const user = getCurrentUser(request);
 
@@ -1508,7 +1373,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
 
       await server.database.query('BEGIN');
       try {
-        // Desabilitar triggers apenas nesta transação (seguro: reverte automaticamente no ROLLBACK)
+        // Desabilitar triggers apenas nesta transacao (seguro: reverte automaticamente no ROLLBACK)
         const lockResult = await server.database.query<{ acquired: boolean }>(
           `SELECT pg_try_advisory_xact_lock(hashtext($1)) AS acquired`,
           [`importacao_fonte:${fonte.id}`]
@@ -1577,7 +1442,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
               repositorioId = createdRepo.rows[0]?.id_repositorio_recorda ?? '';
             }
 
-            // Parse date — produce YYYY-MM-DD string (NOT a Date object, to avoid pg driver timezone shift)
+            // Parse date - produce YYYY-MM-DD string (NOT a Date object, to avoid pg driver timezone shift)
             let dataProducaoStr: string;
             const currentYear = new Date().getFullYear();
             if (dataStr) {
@@ -1613,7 +1478,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
               dataProducaoStr = getBrazilDateString();
             }
 
-            // Check for duplicate — auto-skip with comprehensive comparison
+            // Check for duplicate - auto-skip with comprehensive comparison
             const tipoMarcador = (row.tipo || '').trim();
             const funcaoMarcador = (row.funcao || '').trim();
             const coordenadoriaMarcador = (row.coordenadoria || '').trim();
@@ -1696,7 +1561,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
             if (!checklistId) {
               const checklistResult = await server.database.query<{ id: string }>(
                 `INSERT INTO checklists (repositorio_id, etapa, status, observacao, responsavel_id, ativo, data_conclusao)
-                 VALUES ($1, $2, 'CONCLUIDO', 'Importação legada', $3, FALSE, CURRENT_TIMESTAMP) RETURNING id`,
+                 VALUES ($1, $2, 'CONCLUIDO', 'Importacao legada', $3, FALSE, CURRENT_TIMESTAMP) RETURNING id`,
                 [repositorioId, etapaImport, colaboradorId]
               );
               checklistId = checklistResult.rows[0]?.id ?? '';
@@ -1796,7 +1661,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
         `SELECT id, nome, url FROM fontes_importacao ORDER BY nome`
       );
       if (fontesResult.rows.length === 0) {
-        return reply.status(400).send({ error: 'Nenhuma fonte de importação cadastrada.' });
+        return reply.status(400).send({ error: 'Nenhuma fonte de importacao cadastrada.' });
       }
 
       const fontes = fontesResult.rows;
@@ -1887,4 +1752,6 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
 
   };
 }
+
+
 
