@@ -349,7 +349,7 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
                     >
                       <div className="font-medium text-sm text-gray-900">{doc.codigo} — {doc.titulo}</div>
                       <div className="text-xs text-gray-500 mt-1">{categoriaLabel(doc.categoria)} · v{doc.versao_atual}</div>
-                      {doc.etapas.length > 0 && (
+                      {Array.isArray(doc.etapas) && doc.etapas.length > 0 && (
                         <div className="flex gap-1 mt-1.5 flex-wrap">
                           {doc.etapas.map((e) => (
                             <span key={e} className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">{e}</span>
