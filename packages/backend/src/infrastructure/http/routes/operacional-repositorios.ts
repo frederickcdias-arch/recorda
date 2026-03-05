@@ -111,9 +111,10 @@ export function createOperacionalRepositoriosRoutes(): FastifyPluginAsync {
 
         if (
           pgError.code === '23505' ||
-          pgError.constraint === 'repositorios_id_repositorio_ged_key'
+          pgError.constraint === 'repositorios_id_repositorio_ged_key' ||
+          pgError.constraint === 'uk_repositorios_ged_orgao_projeto'
         ) {
-          return reply.status(409).send({ error: 'id_repositorio_ged ja cadastrado' });
+          return reply.status(409).send({ error: 'repositorio ja cadastrado para esta unidade e projeto' });
         }
 
         if (

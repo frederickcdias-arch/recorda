@@ -1,4 +1,5 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
+import { createHash } from 'crypto';
 import { authorize } from '../middleware/auth.js';
 import { sendDatabaseError } from '../middleware/error-handler.js';
 import { validateBody } from '../middleware/validate.js';
@@ -39,6 +40,22 @@ function parseQuantidadePlanilha(input: unknown): number {
   const parsed = Number(normalized);
   if (!Number.isFinite(parsed)) return 1;
   return Math.max(Math.round(parsed), 1);
+}
+
+function normalizeImportKeyPart(value: unknown): string {
+  return String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
+function buildImportRowHash(parts: Record<string, unknown>): string {
+  const payload = Object.keys(parts)
+    .sort()
+    .map((k) => `${k}:${normalizeImportKeyPart(parts[k])}`)
+    .join('|');
+  return createHash('sha256').update(payload).digest('hex');
 }
 
 /**
@@ -726,26 +743,28 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
               }
             }
             const repoIdentificador = normalizeIdRepositorioGed(repoIdentificadorRaw, anoRef);
+            const orgaoRepositorio = (row.coordenadoria ?? '').trim() || 'NAO INFORMADO';
 
             try {
               // Buscar repositório existente pelo ID normalizado
               const repoResult = await server.database.query<{ id_repositorio_recorda: string }>(
                 `SELECT id_repositorio_recorda FROM repositorios
-                 WHERE id_repositorio_ged = $1`,
-                [repoIdentificador]
+                 WHERE id_repositorio_ged = $1
+                   AND orgao = $2
+                   AND projeto = 'LEGADO'`,
+                [repoIdentificador, orgaoRepositorio]
               );
 
               let repositorioId = repoResult.rows[0]?.id_repositorio_recorda ?? '';
               if (!repositorioId) {
                 // Criar repositório legado automaticamente
-                const orgao = (row.coordenadoria ?? '').trim() || 'NAO INFORMADO';
                 const createdRepo = await server.database.query<{ id_repositorio_recorda: string }>(
                   `INSERT INTO repositorios (
                      id_repositorio_ged, orgao, projeto, status_atual, etapa_atual
                    ) VALUES ($1, $2, 'LEGADO', $3, $4)
-                   ON CONFLICT (id_repositorio_ged) DO UPDATE SET id_repositorio_ged = EXCLUDED.id_repositorio_ged
+                   ON CONFLICT (id_repositorio_ged, orgao, projeto) DO UPDATE SET id_repositorio_ged = EXCLUDED.id_repositorio_ged
                    RETURNING id_repositorio_recorda`,
-                  [repoIdentificador, orgao, statusImport, etapaImport]
+                  [repoIdentificador, orgaoRepositorio, statusImport, etapaImport]
                 );
                 repositorioId = createdRepo.rows[0]?.id_repositorio_recorda ?? '';
               }
@@ -1485,11 +1504,18 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
       let atualizados = 0;
       let ignorados = 0;
       let duplicados = 0;
-      const erros: Array<{ linha: number; erro: string }> = [];
+      const erros: Array<{ linha: number; erro: string; dados?: Record<string, unknown> }> = [];
 
       await server.database.query('BEGIN');
       try {
         // Desabilitar triggers apenas nesta transação (seguro: reverte automaticamente no ROLLBACK)
+        const lockResult = await server.database.query<{ acquired: boolean }>(
+          `SELECT pg_try_advisory_xact_lock(hashtext($1)) AS acquired`,
+          [`importacao_fonte:${fonte.id}`]
+        );
+        if (!lockResult.rows[0]?.acquired) {
+          throw new Error('Importacao desta fonte ja esta em execucao. Tente novamente.');
+        }
         await server.database.query(`SET LOCAL session_replication_role = 'replica'`);
 
         for (let idx = 0; idx < registros.length; idx++) {
@@ -1527,21 +1553,26 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
             }
           }
           const repoIdentificador = normalizeIdRepositorioGed(repoIdentificadorRaw, anoRef);
+          const orgaoRepositorio = (row.coordenadoria ?? '').trim() || 'NAO INFORMADO';
 
           try {
             // Find or create repo
             const repoResult = await server.database.query<{ id_repositorio_recorda: string }>(
-              `SELECT id_repositorio_recorda FROM repositorios WHERE id_repositorio_ged = $1`, [repoIdentificador]
+              `SELECT id_repositorio_recorda
+               FROM repositorios
+               WHERE id_repositorio_ged = $1
+                 AND orgao = $2
+                 AND projeto = 'LEGADO'`,
+              [repoIdentificador, orgaoRepositorio]
             );
             let repositorioId = repoResult.rows[0]?.id_repositorio_recorda ?? '';
             if (!repositorioId) {
-              const orgao = row.coordenadoria || 'NAO INFORMADO';
               const createdRepo = await server.database.query<{ id_repositorio_recorda: string }>(
                 `INSERT INTO repositorios (id_repositorio_ged, orgao, projeto, status_atual, etapa_atual)
                  VALUES ($1, $2, 'LEGADO', $3, $4)
-                 ON CONFLICT (id_repositorio_ged) DO UPDATE SET id_repositorio_ged = EXCLUDED.id_repositorio_ged
+                 ON CONFLICT (id_repositorio_ged, orgao, projeto) DO UPDATE SET id_repositorio_ged = EXCLUDED.id_repositorio_ged
                  RETURNING id_repositorio_recorda`,
-                [repoIdentificador, orgao, statusImport, etapaImport]
+                [repoIdentificador, orgaoRepositorio, statusImport, etapaImport]
               );
               repositorioId = createdRepo.rows[0]?.id_repositorio_recorda ?? '';
             }
@@ -1587,6 +1618,30 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
             const funcaoMarcador = (row.funcao || '').trim();
             const coordenadoriaMarcador = (row.coordenadoria || '').trim();
             const colaboradorNomeMarcador = (colaboradorNome || '').trim();
+            const idempotencyHash = buildImportRowHash({
+              fonteId: fonte.id,
+              repositorioGed: repoIdentificador,
+              repositorioId,
+              colaboradorId,
+              colaboradorNome: colaboradorNomeMarcador,
+              etapa: etapaImport,
+              data: dataProducaoStr,
+              quantidade,
+              tipo: tipoMarcador,
+              funcao: funcaoMarcador,
+              coordenadoria: coordenadoriaMarcador,
+            });
+            const idemExistente = await server.database.query<{ id: string }>(
+              `SELECT id FROM importacao_fontes_linhas
+               WHERE fonte_id = $1 AND chave_hash = $2
+               LIMIT 1`,
+              [fonte.id, idempotencyHash]
+            );
+            if (idemExistente.rows.length > 0) {
+              duplicados++;
+              ignorados++;
+              continue;
+            }
             const marcadores = JSON.stringify({
               origem: 'LEGADO',
               funcao: row.funcao,
@@ -1621,6 +1676,12 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
                  WHERE id = $3`,
                 [quantidade, marcadores, existente.rows[0]!.id, etapaImport]
               );
+              await server.database.query(
+                `INSERT INTO importacao_fontes_linhas (fonte_id, chave_hash, linha)
+                 VALUES ($1, $2, $3)
+                 ON CONFLICT (fonte_id, chave_hash) DO NOTHING`,
+                [fonte.id, idempotencyHash, linha]
+              );
               atualizados++;
               sucesso++;
               continue;
@@ -1647,10 +1708,27 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
                ) VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7)`,
               [repositorioId, etapaImport, checklistId, colaboradorId, quantidade, marcadores, dataProducaoStr]
             );
+            await server.database.query(
+              `INSERT INTO importacao_fontes_linhas (fonte_id, chave_hash, linha)
+               VALUES ($1, $2, $3)
+               ON CONFLICT (fonte_id, chave_hash) DO NOTHING`,
+              [fonte.id, idempotencyHash, linha]
+            );
             inseridos++;
             sucesso++;
           } catch (error) {
-            erros.push({ linha, erro: error instanceof Error ? error.message : 'Erro desconhecido' });
+            erros.push({
+              linha,
+              erro: error instanceof Error ? error.message : 'Erro desconhecido',
+              dados: {
+                repositorio: repoIdentificadorRaw,
+                colaborador: colaboradorNome,
+                funcao: row.funcao,
+                tipo: row.tipo,
+                data: dataStr,
+                quantidade,
+              },
+            });
           }
         }
 
@@ -1701,7 +1779,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
         ignorados,
         duplicados,
         erros: erros.length,
-        detalhesErros: erros.slice(0, 10),
+        detalhesErros: erros.slice(0, 20),
       });
     });
 
