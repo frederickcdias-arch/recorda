@@ -105,11 +105,12 @@ npm run dev
 |--------|------|-----------|
 | GET | `/health` | Healthcheck da API |
 
-### Recebimento OCR
+### Recebimento (Operacional)
 | MÃ©todo | Rota | DescriÃ§Ã£o |
 |--------|------|-----------|
-| POST | `/recebimento` | Envio de lote de imagens (mÃ¡x 20) |
-| POST | `/recebimento/validar` | ValidaÃ§Ã£o de imagem |
+| POST | `/operacional/repositorios/:id/ocr-preview` | OCR assistido para pré-cadastro |
+| GET | `/operacional/repositorios/:id/recebimento-processos` | Lista processos do recebimento |
+| POST | `/operacional/repositorios/:id/recebimento-processos` | Cadastra processo no recebimento |
 
 ### RelatÃ³rios
 | MÃ©todo | Rota | DescriÃ§Ã£o |
@@ -117,13 +118,19 @@ npm run dev
 | GET | `/relatorios` | RelatÃ³rio completo (JSON/PDF/Excel) |
 | GET | `/relatorios/resumo` | Resumo rÃ¡pido |
 
-### Base de Conhecimento
+### Base de Conhecimento (Operacional)
 | MÃ©todo | Rota | DescriÃ§Ã£o |
 |--------|------|-----------|
-| GET | `/conhecimento/busca` | Busca full-text |
-| GET | `/conhecimento/artigos/:slug` | Artigo completo |
-| GET | `/conhecimento/categorias` | Lista categorias |
-| GET | `/conhecimento/tags` | Lista tags |
+| GET | `/operacional/conhecimento/documentos` | Lista documentos da base |
+| GET | `/operacional/conhecimento/documentos/:id` | Detalhe de documento |
+| POST | `/operacional/conhecimento/documentos` | Cria documento/versão inicial |
+| GET | `/operacional/conhecimento/glossario` | Lista glossário |
+
+### Endpoints Legados
+| MÃ©todo | Rota | Status |
+|--------|------|--------|
+| * | `/recebimento/*` | `410 LEGACY_ENDPOINT_GONE` |
+| * | `/conhecimento/*` | `410 LEGACY_ENDPOINT_GONE` |
 
 ## Arquitetura
 

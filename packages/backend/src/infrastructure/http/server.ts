@@ -36,11 +36,13 @@ export async function createServer(dependencies: ServerDependencies): Promise<Fa
     bodyLimit: 10 * 1024 * 1024, // 10MB default; import routes override per-route
   });
 
-  const legacyEndpointPrefixes = ['/recebimento', '/conhecimento'] as const;
+  // Block only exact legacy base paths and their children, without capturing
+  // unrelated prefixes such as "/conhecimento-v2" or "/recebimento-novo".
+  const legacyEndpointPattern = /^\/(recebimento|conhecimento)(\/|$)/;
 
   server.addHook('onRequest', async (request, reply) => {
     const pathname = request.url.split('?')[0] ?? request.url;
-    const isLegacyEndpoint = legacyEndpointPrefixes.some((prefix) => pathname.startsWith(prefix));
+    const isLegacyEndpoint = legacyEndpointPattern.test(pathname);
 
     if (!isLegacyEndpoint) {
       return;
