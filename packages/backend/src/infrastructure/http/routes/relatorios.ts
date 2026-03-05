@@ -682,6 +682,8 @@ async function gerarRelatorioCompleto(
     const colaboradoresRelatorio: ProducaoColaborador[] = [];
     const totaisPorEtapa = new Map<string, number>();
     let totalGeralCoordenadoria = 0;
+    let totalCaixasCoordenadoria = 0;
+    let totalImagensCoordenadoria = 0;
 
     for (const [colaboradorId, etapasProducao] of colaboradoresProducao) {
       const colaboradorInfo = chaveInfo.get(colaboradorId);
@@ -704,6 +706,11 @@ async function gerarRelatorioCompleto(
 
         totalColaborador += quantidade;
         totaisPorEtapa.set(etapaId, (totaisPorEtapa.get(etapaId) ?? 0) + quantidade);
+        if (etapaInfo.unidade === 'IMAGENS') {
+          totalImagensCoordenadoria += quantidade;
+        } else {
+          totalCaixasCoordenadoria += quantidade;
+        }
       }
 
       etapasColaborador.sort((a, b) => a.ordem - b.ordem);
@@ -744,6 +751,8 @@ async function gerarRelatorioCompleto(
       colaboradores: colaboradoresRelatorio,
       totaisPorEtapa: totaisEtapaArray,
       totalGeral: totalGeralCoordenadoria,
+      totalCaixas: totalCaixasCoordenadoria,
+      totalImagens: totalImagensCoordenadoria,
     });
   }
 
@@ -759,6 +768,12 @@ async function gerarRelatorioCompleto(
   ];
 
   const totalGeral = resumoPorEtapa.reduce((acc, e) => acc + e.totalQuantidade, 0);
+  const totalCaixas = resumoPorEtapa
+    .filter((e) => e.unidade === 'CAIXAS')
+    .reduce((acc, e) => acc + e.totalQuantidade, 0);
+  const totalImagens = resumoPorEtapa
+    .filter((e) => e.unidade === 'IMAGENS')
+    .reduce((acc, e) => acc + e.totalQuantidade, 0);
   const colaboradoresUnicos = new Set<string>();
   for (const coord of producaoPorCoordenadoria) {
     for (const colab of coord.colaboradores) {
@@ -778,6 +793,8 @@ async function gerarRelatorioCompleto(
     glossario,
     totais: {
       totalGeral,
+      totalCaixas,
+      totalImagens,
       totalColaboradores: colaboradoresUnicos.size,
       totalCoordenadorias: producaoPorCoordenadoria.length,
       totalEtapas: resumoPorEtapa.length,

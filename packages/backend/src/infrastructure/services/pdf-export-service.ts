@@ -174,9 +174,14 @@ export class PDFExportService {
     }));
 
     rows.push({
-      etapa: 'TOTAL GERAL',
-      total: relatorio.totais.totalGeral.toLocaleString('pt-BR'),
-      unidade: 'LANÇAMENTOS',
+      etapa: 'TOTAL CAIXAS',
+      total: relatorio.totais.totalCaixas.toLocaleString('pt-BR'),
+      unidade: 'CAIXAS',
+    });
+    rows.push({
+      etapa: 'TOTAL IMAGENS',
+      total: relatorio.totais.totalImagens.toLocaleString('pt-BR'),
+      unidade: 'IMAGENS',
     });
 
     this.renderTable(doc, columns, rows, { lastRowBold: true });

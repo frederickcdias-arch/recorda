@@ -8,8 +8,8 @@ import { api } from '../../services/api';
 interface PreviewData {
   titulo: string;
   resumoPorEtapa: { etapaNome: string; totalQuantidade: number; unidade: string }[];
-  producaoPorCoordenadoria: { coordenadoriaNome: string; coordenadoriaSigla: string; colaboradores: { colaboradorNome: string; total: number }[]; totalGeral: number }[];
-  totais: { totalGeral: number; totalColaboradores: number; totalCoordenadorias: number; totalEtapas: number };
+  producaoPorCoordenadoria: { coordenadoriaNome: string; coordenadoriaSigla: string; colaboradores: { colaboradorNome: string; total: number }[]; totalGeral: number; totalCaixas: number; totalImagens: number }[];
+  totais: { totalGeral: number; totalCaixas: number; totalImagens: number; totalColaboradores: number; totalCoordenadorias: number; totalEtapas: number };
 }
 
 interface OperacionalRow {
@@ -264,10 +264,14 @@ export function ExportacoesPage(): JSX.Element {
             </div>
             <div className="flex-1 overflow-auto p-6 space-y-4">
               {/* Totais */}
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div className="bg-gray-50 rounded-lg p-3 text-center">
-                  <p className="text-xs text-gray-500">Total Geral</p>
-                  <p className="text-lg font-bold text-gray-900">{previewData.totais.totalGeral.toLocaleString('pt-BR')}</p>
+                  <p className="text-xs text-gray-500">Total Caixas</p>
+                  <p className="text-lg font-bold text-gray-900">{previewData.totais.totalCaixas.toLocaleString('pt-BR')}</p>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-3 text-center">
+                  <p className="text-xs text-gray-500">Total Imagens</p>
+                  <p className="text-lg font-bold text-gray-900">{previewData.totais.totalImagens.toLocaleString('pt-BR')}</p>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-3 text-center">
                   <p className="text-xs text-gray-500">Colaboradores</p>
@@ -310,7 +314,9 @@ export function ExportacoesPage(): JSX.Element {
                     {previewData.producaoPorCoordenadoria.map((c) => (
                       <div key={c.coordenadoriaSigla} className="flex items-center justify-between p-2 bg-gray-50 rounded">
                         <span className="text-sm text-gray-700">{c.coordenadoriaNome} ({c.coordenadoriaSigla})</span>
-                        <span className="text-sm font-medium text-gray-900">{c.totalGeral.toLocaleString('pt-BR')}</span>
+                        <span className="text-sm font-medium text-gray-900">
+                          {c.totalCaixas.toLocaleString('pt-BR')} caixas | {c.totalImagens.toLocaleString('pt-BR')} imagens
+                        </span>
                       </div>
                     ))}
                   </div>

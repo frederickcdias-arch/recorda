@@ -46,6 +46,8 @@ export interface RelatorioProducao {
   periodo: { inicio: string; fim: string };
   totais: {
     totalGeral: number;
+    totalCaixas: number;
+    totalImagens: number;
     totalColaboradores: number;
     totalCoordenadorias: number;
   };

@@ -44,6 +44,8 @@ interface ProducaoCoordenadoria {
   colaboradores: ProducaoColaborador[];
   totaisPorEtapa: ProducaoEtapa[];
   totalGeral: number;
+  totalCaixas: number;
+  totalImagens: number;
 }
 
 interface RelatorioCompleto {
@@ -55,6 +57,8 @@ interface RelatorioCompleto {
   glossario: { termo: string; definicao: string }[];
   totais: {
     totalGeral: number;
+    totalCaixas: number;
+    totalImagens: number;
     totalColaboradores: number;
     totalCoordenadorias: number;
     totalEtapas: number;
@@ -327,8 +331,12 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
                 </div>
               ))}
               <div className="rounded-lg bg-gray-50 p-3">
-                <p className="text-xs font-semibold text-gray-600">TOTAL GERAL</p>
-                <p className="mt-1 text-sm font-bold text-gray-900 tabular-nums">{formatNum(relatorio.totais.totalGeral)}</p>
+                <p className="text-xs font-semibold text-gray-600">TOTAL CAIXAS</p>
+                <p className="mt-1 text-sm font-bold text-gray-900 tabular-nums">{formatNum(relatorio.totais.totalCaixas)}</p>
+              </div>
+              <div className="rounded-lg bg-gray-50 p-3">
+                <p className="text-xs font-semibold text-gray-600">TOTAL IMAGENS</p>
+                <p className="mt-1 text-sm font-bold text-gray-900 tabular-nums">{formatNum(relatorio.totais.totalImagens)}</p>
               </div>
             </div>
             <div className="hidden overflow-x-auto md:block">
@@ -349,9 +357,14 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
                     </tr>
                   ))}
                   <tr className="bg-gray-50 font-bold">
-                    <td className="px-4 py-2 text-sm text-gray-900">TOTAL GERAL</td>
-                    <td className="px-4 py-2 text-sm text-gray-900 text-right tabular-nums">{formatNum(relatorio.totais.totalGeral)}</td>
-                    <td className="px-4 py-2 text-sm text-gray-500">LANÇAMENTOS</td>
+                    <td className="px-4 py-2 text-sm text-gray-900">TOTAL CAIXAS</td>
+                    <td className="px-4 py-2 text-sm text-gray-900 text-right tabular-nums">{formatNum(relatorio.totais.totalCaixas)}</td>
+                    <td className="px-4 py-2 text-sm text-gray-500">CAIXAS</td>
+                  </tr>
+                  <tr className="bg-gray-50 font-bold">
+                    <td className="px-4 py-2 text-sm text-gray-900">TOTAL IMAGENS</td>
+                    <td className="px-4 py-2 text-sm text-gray-900 text-right tabular-nums">{formatNum(relatorio.totais.totalImagens)}</td>
+                    <td className="px-4 py-2 text-sm text-gray-500">IMAGENS</td>
                   </tr>
                 </tbody>
               </table>

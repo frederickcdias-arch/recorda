@@ -27,6 +27,8 @@ export interface ProducaoCoordenadoria {
   colaboradores: ProducaoColaborador[];
   totaisPorEtapa: ProducaoEtapa[];
   totalGeral: number;
+  totalCaixas: number;
+  totalImagens: number;
 }
 
 export interface ResumoEtapa {
@@ -56,6 +58,8 @@ export interface RelatorioCompleto {
   glossario: GlossarioItem[];
   totais: {
     totalGeral: number;
+    totalCaixas: number;
+    totalImagens: number;
     totalColaboradores: number;
     totalCoordenadorias: number;
     totalEtapas: number;
