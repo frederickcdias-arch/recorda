@@ -48,6 +48,15 @@ function createMockDatabase(): DatabaseConnection & {
     criado_em: string;
     atualizado_em: string;
   }>;
+  repositorios: Map<string, {
+    id_repositorio_recorda: string;
+    id_repositorio_ged: string;
+    orgao: string;
+    projeto: string;
+    status_atual: string;
+    etapa_atual: string;
+  }>;
+  fontesImportacao: Map<string, { id: string; nome: string; url: string; tipo: string }>;
 } {
   let configuracaoEmpresa: Record<string, unknown> | null = null;
   const configuracaoProjetos: Array<{
@@ -84,6 +93,16 @@ function createMockDatabase(): DatabaseConnection & {
     coordenadoria_id: string;
     ativo: boolean;
   }>();
+  const repositorios = new Map<string, {
+    id_repositorio_recorda: string;
+    id_repositorio_ged: string;
+    orgao: string;
+    projeto: string;
+    status_atual: string;
+    etapa_atual: string;
+  }>();
+  const fontesImportacao = new Map<string, { id: string; nome: string; url: string; tipo: string }>();
+  const importacaoFontesLinhas = new Set<string>();
   const lowerEmail = (value: unknown): string => String(value ?? '').toLowerCase();
 
   usuarios.set('user-1', {
@@ -528,6 +547,14 @@ function createMockDatabase(): DatabaseConnection & {
       return usuario ? makeResult([usuario]) : makeResult([]);
     }
 
+    if (text.includes('SELECT id, nome FROM usuarios WHERE ativo = TRUE')) {
+      return makeResult(
+        [...usuarios.values()]
+          .filter((u) => u.ativo)
+          .map((u) => ({ id: u.id, nome: u.nome }))
+      );
+    }
+
     if (text.includes('UPDATE usuarios SET senha_hash = $1 WHERE id = $2')) {
       const id = String(params?.[1]);
       const usuario = usuarios.get(id);
@@ -674,15 +701,43 @@ function createMockDatabase(): DatabaseConnection & {
     }
 
     // ── Repositorios ──
+    if (text.includes('SELECT id_repositorio_recorda FROM repositorios') && text.includes('WHERE id_repositorio_ged = $1')) {
+      const idGed = String(params?.[0] ?? '');
+      const orgao = String(params?.[1] ?? '');
+      const projeto = String(params?.[2] ?? '');
+      const rows = [...repositorios.values()].filter((r) => {
+        if (r.id_repositorio_ged !== idGed) return false;
+        if (orgao && r.orgao !== orgao) return false;
+        if (projeto && r.projeto !== projeto) return false;
+        return true;
+      }).map((r) => ({ id_repositorio_recorda: r.id_repositorio_recorda }));
+      return makeResult(rows);
+    }
     if (text.includes('INSERT INTO repositorios')) {
-      return makeResult([{
-        id_repositorio_recorda: 'repo-new',
-        id_repositorio_ged: String(params?.[0]),
-        orgao: String(params?.[1]),
-        projeto: String(params?.[2]),
+      const idGed = String(params?.[0] ?? '');
+      const orgao = String(params?.[1] ?? '');
+      const projeto = String(params?.[2] ?? '');
+      const key = `${idGed}::${orgao}::${projeto}`;
+      const existing = repositorios.get(key);
+      const hasContextConflictTarget = text.includes('ON CONFLICT (id_repositorio_ged, orgao, projeto)');
+      if (existing && !hasContextConflictTarget) {
+        const err = new Error('duplicate key value violates unique constraint') as Error & { code?: string; constraint?: string };
+        err.code = '23505';
+        err.constraint = 'uk_repositorios_ged_orgao_projeto';
+        throw err;
+      }
+      const row = existing ?? {
+        id_repositorio_recorda: `repo-${repositorios.size + 1}`,
+        id_repositorio_ged: idGed,
+        orgao,
+        projeto,
         status_atual: 'RECEBIDO',
         etapa_atual: 'RECEBIMENTO',
-        localizacao_fisica_armario_id: String(params?.[3]),
+      };
+      repositorios.set(key, row);
+      return makeResult([{
+        ...row,
+        localizacao_fisica_armario_id: String(params?.[3] ?? 'arm-1'),
       }], 'INSERT');
     }
     if (text.includes('COUNT(*)') && text.includes('total') && text.includes('FROM repositorios')) {
@@ -741,6 +796,13 @@ function createMockDatabase(): DatabaseConnection & {
     if (text.includes('INSERT INTO producao_repositorio')) {
       return makeResult([{ id: 'prod-1', repositorio_id: String(params?.[0]), etapa: String(params?.[1]), quantidade: Number(params?.[4]) }], 'INSERT');
     }
+    if (
+      text.includes('SELECT id FROM producao_repositorio')
+      && text.includes('WHERE usuario_id = $1 AND repositorio_id = $2')
+      && text.includes("COALESCE(marcadores->>'colaborador_nome', '') = $9")
+    ) {
+      return makeResult([]);
+    }
 
     // ── Excecoes ──
     if (text.includes('INSERT INTO excecoes_repositorio')) {
@@ -758,6 +820,54 @@ function createMockDatabase(): DatabaseConnection & {
     }
 
     // ── Importacoes legado ──
+    if (text.includes('SELECT id, nome, url FROM fontes_importacao WHERE id = $1')) {
+      const id = String(params?.[0] ?? '');
+      const fonte = fontesImportacao.get(id);
+      return fonte ? makeResult([{ id: fonte.id, nome: fonte.nome, url: fonte.url }]) : makeResult([]);
+    }
+    if (text.includes('SELECT id, nome, url, tipo, criado_em, ultima_importacao_em') && text.includes('FROM fontes_importacao')) {
+      return makeResult(
+        [...fontesImportacao.values()].map((f) => ({
+          id: f.id,
+          nome: f.nome,
+          url: f.url,
+          tipo: f.tipo,
+          criado_em: new Date().toISOString(),
+          ultima_importacao_em: null,
+        }))
+      );
+    }
+    if (text.includes('INSERT INTO fontes_importacao')) {
+      const id = `fonte-${fontesImportacao.size + 1}`;
+      const fonte = {
+        id,
+        nome: String(params?.[0] ?? ''),
+        url: String(params?.[1] ?? ''),
+        tipo: 'sheets',
+      };
+      fontesImportacao.set(id, fonte);
+      return makeResult([{ id }], 'INSERT');
+    }
+    if (text.includes('DELETE FROM fontes_importacao WHERE id = $1')) {
+      const id = String(params?.[0] ?? '');
+      fontesImportacao.delete(id);
+      return makeResult([], 'DELETE');
+    }
+    if (text.includes('UPDATE fontes_importacao SET ultima_importacao_em = NOW() WHERE id = $1')) {
+      return makeResult([], 'UPDATE');
+    }
+    if (text.includes('SELECT id FROM importacao_fontes_linhas')) {
+      const fonteId = String(params?.[0] ?? '');
+      const chaveHash = String(params?.[1] ?? '');
+      const key = `${fonteId}::${chaveHash}`;
+      return importacaoFontesLinhas.has(key) ? makeResult([{ id: `linha-${key}` }]) : makeResult([]);
+    }
+    if (text.includes('INSERT INTO importacao_fontes_linhas')) {
+      const fonteId = String(params?.[0] ?? '');
+      const chaveHash = String(params?.[1] ?? '');
+      importacaoFontesLinhas.add(`${fonteId}::${chaveHash}`);
+      return makeResult([], 'INSERT');
+    }
     if (text.includes('INSERT INTO importacoes_legado_operacional')) {
       return makeResult([{ id: 'imp-1', criado_em: new Date().toISOString() }], 'INSERT');
     }
@@ -913,6 +1023,9 @@ function createMockDatabase(): DatabaseConnection & {
     }
 
     // ── Transaction control ──
+    if (text.includes('SELECT pg_try_advisory_xact_lock')) {
+      return makeResult([{ acquired: true }]);
+    }
     if (text === 'BEGIN' || text === 'COMMIT' || text === 'ROLLBACK') {
       return makeResult([]);
     }
@@ -932,6 +1045,8 @@ function createMockDatabase(): DatabaseConnection & {
     colaboradores: typeof colaboradores;
     auditoria: typeof auditoria;
     configuracaoProjetos: typeof configuracaoProjetos;
+    repositorios: typeof repositorios;
+    fontesImportacao: typeof fontesImportacao;
   } = {
     pool: {} as never,
     query,
@@ -941,6 +1056,8 @@ function createMockDatabase(): DatabaseConnection & {
     auditoria,
     colaboradores,
     configuracaoProjetos,
+    repositorios,
+    fontesImportacao,
     healthCheck: vi.fn().mockResolvedValue(true),
     close: vi.fn().mockResolvedValue(undefined),
   };
@@ -1959,6 +2076,63 @@ describe('HTTP server integration', () => {
     expect(response.json().id_repositorio_ged).toContain('GED-NEW');
   });
 
+  it('permite mesmo ID GED em unidade/projeto diferentes', async () => {
+    const token = await authenticate();
+    const first = await server.inject({
+      method: 'POST',
+      url: '/operacional/repositorios',
+      headers: { authorization: `Bearer ${token}` },
+      payload: {
+        idRepositorioGed: '000025/2026',
+        orgao: 'SGPA',
+        projeto: 'SEMA',
+        classificacaoId: '550e8400-e29b-41d4-a716-446655440000',
+      },
+    });
+    const second = await server.inject({
+      method: 'POST',
+      url: '/operacional/repositorios',
+      headers: { authorization: `Bearer ${token}` },
+      payload: {
+        idRepositorioGed: '000025/2026',
+        orgao: 'SEPLAG',
+        projeto: 'SEMA',
+        classificacaoId: '550e8400-e29b-41d4-a716-446655440000',
+      },
+    });
+    expect(first.statusCode).toBe(201);
+    expect(second.statusCode).toBe(201);
+  });
+
+  it('bloqueia duplicidade no mesmo contexto (ID + unidade + projeto)', async () => {
+    const token = await authenticate();
+    const first = await server.inject({
+      method: 'POST',
+      url: '/operacional/repositorios',
+      headers: { authorization: `Bearer ${token}` },
+      payload: {
+        idRepositorioGed: '000026/2026',
+        orgao: 'SGPA',
+        projeto: 'SEMA',
+        classificacaoId: '550e8400-e29b-41d4-a716-446655440000',
+      },
+    });
+    const second = await server.inject({
+      method: 'POST',
+      url: '/operacional/repositorios',
+      headers: { authorization: `Bearer ${token}` },
+      payload: {
+        idRepositorioGed: '000026/2026',
+        orgao: 'SGPA',
+        projeto: 'SEMA',
+        classificacaoId: '550e8400-e29b-41d4-a716-446655440000',
+      },
+    });
+    expect(first.statusCode).toBe(201);
+    expect(second.statusCode).toBe(409);
+    expect(second.json()).toMatchObject({ error: 'repositorio ja cadastrado para esta unidade e projeto' });
+  });
+
   it('rejeita repositório sem campos obrigatórios', async () => {
     const response = await server.inject({
       method: 'POST',
@@ -2009,6 +2183,81 @@ describe('HTTP server integration', () => {
     const body = response.json();
     expect(body).toHaveProperty('itens');
     expect(body).toHaveProperty('total');
+  });
+
+  it('valida duplicatas de fonte respeitando contexto de repositorio', async () => {
+    const token = await authenticate();
+    database.repositorios.set('000025/2026::SEPLAG::LEGADO', {
+      id_repositorio_recorda: 'repo-legado-seplag',
+      id_repositorio_ged: '000025/2026',
+      orgao: 'SEPLAG',
+      projeto: 'LEGADO',
+      status_atual: 'RECEBIDO',
+      etapa_atual: 'RECEBIMENTO',
+    });
+
+    const fonteResp = await server.inject({
+      method: 'POST',
+      url: '/operacional/fontes-importacao',
+      headers: { authorization: `Bearer ${token}` },
+      payload: { nome: 'Fonte Teste', url: 'https://docs.google.com/spreadsheets/d/abc123/edit#gid=0' },
+    });
+    expect(fonteResp.statusCode).toBe(201);
+    const fonteId = fonteResp.json().id as string;
+
+    fetchMock.mockResolvedValueOnce(new Response(
+      'data,colaborador,repositorio,coordenadoria,quantidade,tipo,funcao\n05/03/2026,Usuario Teste,000025/2026,SGPA,1,,recebimento',
+      { status: 200, headers: { 'content-type': 'text/csv' } },
+    ));
+
+    const response = await server.inject({
+      method: 'POST',
+      url: `/operacional/fontes-importacao/${fonteId}/validar-duplicatas`,
+      headers: { authorization: `Bearer ${token}` },
+    });
+    expect(response.statusCode).toBe(200);
+    const body = response.json();
+    expect(body.novos.quantidade).toBeGreaterThan(0);
+    expect(body.duplicados.quantidade).toBe(0);
+  });
+
+  it('mantem idempotencia ao reimportar a mesma planilha de fonte', async () => {
+    const token = await authenticate();
+    fetchMock.mockReset();
+
+    const fonteResp = await server.inject({
+      method: 'POST',
+      url: '/operacional/fontes-importacao',
+      headers: { authorization: `Bearer ${token}` },
+      payload: { nome: 'Fonte Idempotencia', url: 'https://docs.google.com/spreadsheets/d/abc123/edit#gid=0' },
+    });
+    expect(fonteResp.statusCode).toBe(201);
+    const fonteId = fonteResp.json().id as string;
+
+    const csv = 'data,colaborador,repositorio,coordenadoria,quantidade,tipo,funcao\n05/03/2026,Usuario Teste,000027/2026,SGPA,1,,recebimento';
+    fetchMock
+      .mockResolvedValueOnce(new Response(csv, { status: 200, headers: { 'content-type': 'text/csv' } }))
+      .mockResolvedValueOnce(new Response(csv, { status: 200, headers: { 'content-type': 'text/csv' } }));
+
+    const primeiraImportacao = await server.inject({
+      method: 'POST',
+      url: `/operacional/fontes-importacao/${fonteId}/importar`,
+      headers: { authorization: `Bearer ${token}` },
+    });
+    expect(primeiraImportacao.statusCode).toBe(200);
+    const bodyPrimeira = primeiraImportacao.json();
+    expect(bodyPrimeira.importados).toBeGreaterThan(0);
+
+    const segundaImportacao = await server.inject({
+      method: 'POST',
+      url: `/operacional/fontes-importacao/${fonteId}/importar`,
+      headers: { authorization: `Bearer ${token}` },
+    });
+    expect(segundaImportacao.statusCode).toBe(200);
+    const bodySegunda = segundaImportacao.json();
+    expect(bodySegunda.importados).toBe(0);
+    expect(bodySegunda.ignorados).toBeGreaterThan(0);
+    expect(bodySegunda.duplicados).toBeGreaterThan(0);
   });
 
   // ═══════════════════════════════════════════════
