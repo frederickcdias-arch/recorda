@@ -12,7 +12,6 @@ export interface DashboardData {
     producaoTrend: string;
     processosAtivos: number;
     processosNovosHoje: number;
-    recebimentosPendentes: number;
     colaboradoresAtivos: number;
   };
   producaoPorEtapa: { etapa: string; valor: number }[];
