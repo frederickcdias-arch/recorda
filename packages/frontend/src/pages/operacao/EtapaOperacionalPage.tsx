@@ -24,7 +24,7 @@ import {
   useRepositorios, useCreateRepositorio, useDeleteRepositorio, useAvancarEtapa,
   useBatchProcessos, useRegistrarProducao, useGerarRelatorioRecebimento, useGerarRelatorioProducao,
   useCriarChecklist, useConcluirChecklist,
-  useOrgaosRecebimento, useProjetosConfiguracao, useCreateProjetoConfiguracao,
+  useOrgaosRecebimento, useProjetosConfiguracao, useCreateProjetoConfiguracao, useCriarOrgaoRecebimento,
   useQueryClient, queryKeys,
 } from '../../hooks/useQueries';
 
@@ -132,7 +132,6 @@ export function EtapaOperacionalPage(): JSX.Element {
   });
   const [novaUnidadeInput, setNovaUnidadeInput] = useState('');
   const [novoProjetoInput, setNovoProjetoInput] = useState('');
-  const [orgaosAdicionados, setOrgaosAdicionados] = useState<Array<{ id: string; nome: string }>>([]);
 
   const [checklistModalOpen, setChecklistModalOpen] = useState(false);
   const [checklistId, setChecklistId] = useState('');
@@ -215,17 +214,9 @@ export function EtapaOperacionalPage(): JSX.Element {
   const orgaosQuery = useOrgaosRecebimento();
   const projetosQuery = useProjetosConfiguracao();
   const createProjeto = useCreateProjetoConfiguracao();
+  const createOrgao = useCriarOrgaoRecebimento();
   const orgaosOptions = orgaosQuery.data ?? [];
   const projetosOptions = projetosQuery.data ?? [];
-  const orgaosComboboxOptions = useMemo(() => {
-    const mapa = new Map<string, { id: string; nome: string }>();
-    for (const o of [...orgaosOptions, ...orgaosAdicionados]) {
-      const key = o.nome.trim().toLowerCase();
-      if (!key) continue;
-      if (!mapa.has(key)) mapa.set(key, o);
-    }
-    return Array.from(mapa.values()).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
-  }, [orgaosOptions, orgaosAdicionados]);
 
   if (!etapaConfig) {
     return <div className="text-center text-gray-600 py-12">Etapa Operacional inválida.</div>;
@@ -239,11 +230,11 @@ export function EtapaOperacionalPage(): JSX.Element {
   const showSuccess = (texto: string): void => toast.success(texto);
   const showError = (texto: string): void => toast.error(texto);
 
-  const handleCriarUnidadeRapida = (): void => {
+  const handleCriarUnidadeRapida = async (): Promise<void> => {
     const nomeUnidade = novaUnidadeInput.trim();
     if (!nomeUnidade) return;
 
-    const existente = orgaosComboboxOptions.find((o) => o.nome.trim().toLowerCase() === nomeUnidade.toLowerCase());
+    const existente = orgaosOptions.find((o) => o.nome.trim().toLowerCase() === nomeUnidade.toLowerCase());
     if (existente) {
       setNovoRepositorio((prev) => ({ ...prev, orgao: existente.nome }));
       setNovaUnidadeInput('');
@@ -251,14 +242,17 @@ export function EtapaOperacionalPage(): JSX.Element {
       return;
     }
 
-    const novoItem = {
-      id: `local-${Date.now()}`,
-      nome: nomeUnidade,
-    };
-    setOrgaosAdicionados((prev) => [novoItem, ...prev]);
-    setNovoRepositorio((prev) => ({ ...prev, orgao: nomeUnidade }));
-    setNovaUnidadeInput('');
-    showSuccess('Unidade adicionada e selecionada.');
+    try {
+      setProcessando(true);
+      const created = await createOrgao.mutateAsync(nomeUnidade);
+      setNovoRepositorio((prev) => ({ ...prev, orgao: created.nome }));
+      setNovaUnidadeInput('');
+      showSuccess('Unidade cadastrada e selecionada com sucesso.');
+    } catch (error) {
+      showError(extractErrorMessage(error, 'Erro ao cadastrar unidade'));
+    } finally {
+      setProcessando(false);
+    }
   };
 
   const handleCriarProjetoRapido = async (): Promise<void> => {
@@ -680,7 +674,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                         onChange={(e) => setNovoRepositorio((p) => ({ ...p, orgao: e.target.value }))}
                       >
                         <option value="">— Selecione —</option>
-                        {orgaosComboboxOptions.map((o) => (
+                        {orgaosOptions.map((o) => (
                           <option key={o.id} value={o.nome}>{o.nome}</option>
                         ))}
                       </select>
@@ -690,13 +684,13 @@ export function EtapaOperacionalPage(): JSX.Element {
                           placeholder="Nova unidade..."
                           value={novaUnidadeInput}
                           onChange={(e) => setNovaUnidadeInput(e.target.value)}
-                          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleCriarUnidadeRapida(); } }}
+                          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void handleCriarUnidadeRapida(); } }}
                         />
                         <button
                           type="button"
                           className="h-10 px-3 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-                          onClick={handleCriarUnidadeRapida}
-                          disabled={!novaUnidadeInput.trim()}
+                          onClick={() => void handleCriarUnidadeRapida()}
+                          disabled={!novaUnidadeInput.trim() || processando}
                           title="Adicionar e selecionar unidade"
                         >
                           Adicionar
