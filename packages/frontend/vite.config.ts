@@ -60,20 +60,6 @@ export default defineConfig({
               },
             },
           },
-          {
-            urlPattern: ({ request, sameOrigin }) => sameOrigin && request.destination === 'style',
-            handler: 'StaleWhileRevalidate',
-            options: {
-              cacheName: 'recorda-styles',
-            },
-          },
-          {
-            urlPattern: ({ request, sameOrigin }) => sameOrigin && request.destination === 'script',
-            handler: 'StaleWhileRevalidate',
-            options: {
-              cacheName: 'recorda-scripts',
-            },
-          },
         ],
       },
     }),
