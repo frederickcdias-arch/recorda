@@ -11,6 +11,8 @@ import {
   getBrazilDateString,
 } from './operacional-helpers.js';
 import { normalizeIdRepositorioGed } from './operacional-repositorios.js';
+
+const PROJETO_IMPORTACAO_PRODUCAO = 'IMPORTACAO_PRODUCAO';
 function parseQuantidadePlanilha(input: unknown): number {
   const raw = String(input ?? '').trim();
   if (!raw) return 1;
@@ -660,8 +662,8 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
                 `SELECT id_repositorio_recorda FROM repositorios
                  WHERE id_repositorio_ged = $1
                    AND orgao = $2
-                   AND projeto = 'LEGADO'`,
-                [repoIdentificador, orgaoRepositorio]
+                   AND projeto = $3`,
+                [repoIdentificador, orgaoRepositorio, PROJETO_IMPORTACAO_PRODUCAO]
               );
 
               let repositorioId = repoResult.rows[0]?.id_repositorio_recorda ?? '';
@@ -670,10 +672,10 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
                 const createdRepo = await server.database.query<{ id_repositorio_recorda: string }>(
                   `INSERT INTO repositorios (
                      id_repositorio_ged, orgao, projeto, status_atual, etapa_atual
-                   ) VALUES ($1, $2, 'LEGADO', $3, $4)
+                   ) VALUES ($1, $2, $3, $4, $5)
                    ON CONFLICT (id_repositorio_ged, orgao, projeto) DO UPDATE SET id_repositorio_ged = EXCLUDED.id_repositorio_ged
                    RETURNING id_repositorio_recorda`,
-                  [repoIdentificador, orgaoRepositorio, statusImport, etapaImport]
+                  [repoIdentificador, orgaoRepositorio, PROJETO_IMPORTACAO_PRODUCAO, statusImport, etapaImport]
                 );
                 repositorioId = createdRepo.rows[0]?.id_repositorio_recorda ?? '';
               }
@@ -1129,7 +1131,10 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
         const prodResult = await server.database.query('DELETE FROM producao_repositorio');
         const checkResult = await server.database.query("DELETE FROM checklists WHERE observacao = 'Importacao legada'");
         const recebResult = await server.database.query('DELETE FROM recebimento_documentos');
-        const repoResult = await server.database.query("DELETE FROM repositorios WHERE projeto = 'LEGADO'");
+        const repoResult = await server.database.query(
+          "DELETE FROM repositorios WHERE projeto IN ('LEGADO', $1)",
+          [PROJETO_IMPORTACAO_PRODUCAO]
+        );
         const importResult = await server.database.query('DELETE FROM importacoes_legado_operacional');
         await server.database.query('COMMIT');
 
@@ -1303,8 +1308,8 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
              FROM repositorios
              WHERE id_repositorio_ged = $1
                AND orgao = $2
-               AND projeto = 'LEGADO'`,
-            [repoId, orgaoRepositorio]
+               AND projeto = $3`,
+            [repoId, orgaoRepositorio, PROJETO_IMPORTACAO_PRODUCAO]
           );
           if (repoResult.rows.length === 0) {
             novos.push({ linha, dados: row, motivo: 'Repositorio nao encontrado' });
@@ -1500,9 +1505,9 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
 
           const repoResult = await server.database.query<{ id_repositorio_recorda: string }>(
             `SELECT id_repositorio_recorda FROM repositorios
-             WHERE id_repositorio_ged = $1 AND orgao = $2 AND projeto = 'LEGADO'
+             WHERE id_repositorio_ged = $1 AND orgao = $2 AND projeto = $3
              LIMIT 1`,
-            [repoIdentificador, orgaoRepositorio]
+            [repoIdentificador, orgaoRepositorio, PROJETO_IMPORTACAO_PRODUCAO]
           );
           const repositorioId = repoResult.rows[0]?.id_repositorio_recorda;
           if (!repositorioId) {
@@ -1710,17 +1715,17 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
                FROM repositorios
                WHERE id_repositorio_ged = $1
                  AND orgao = $2
-                 AND projeto = 'LEGADO'`,
-              [repoIdentificador, orgaoRepositorio]
+                 AND projeto = $3`,
+              [repoIdentificador, orgaoRepositorio, PROJETO_IMPORTACAO_PRODUCAO]
             );
             let repositorioId = repoResult.rows[0]?.id_repositorio_recorda ?? '';
             if (!repositorioId) {
               const createdRepo = await server.database.query<{ id_repositorio_recorda: string }>(
                 `INSERT INTO repositorios (id_repositorio_ged, orgao, projeto, status_atual, etapa_atual)
-                 VALUES ($1, $2, 'LEGADO', $3, $4)
+                 VALUES ($1, $2, $3, $4, $5)
                  ON CONFLICT (id_repositorio_ged, orgao, projeto) DO UPDATE SET id_repositorio_ged = EXCLUDED.id_repositorio_ged
                  RETURNING id_repositorio_recorda`,
-                [repoIdentificador, orgaoRepositorio, statusImport, etapaImport]
+                [repoIdentificador, orgaoRepositorio, PROJETO_IMPORTACAO_PRODUCAO, statusImport, etapaImport]
               );
               repositorioId = createdRepo.rows[0]?.id_repositorio_recorda ?? '';
             }

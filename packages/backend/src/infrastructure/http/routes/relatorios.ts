@@ -227,7 +227,7 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
               p.quantidade,
               COALESCE(NULLIF(TRIM(p.marcadores->>'tipo'), ''), '') as tipo,
               COALESCE(co.sigla, COALESCE(NULLIF(TRIM(p.marcadores->>'coordenadoria'), ''), '')) as coordenadoria,
-              CASE WHEN r.projeto = 'LEGADO' THEN 'Legado' ELSE 'Fluxo' END as origem
+              CASE WHEN COALESCE(p.marcadores->>'origem', '') = 'LEGADO' THEN 'Legado' ELSE 'Fluxo' END as origem
             FROM producao_repositorio p
             JOIN usuarios u ON u.id = p.usuario_id
             JOIN repositorios r ON r.id_repositorio_recorda = p.repositorio_id
@@ -350,7 +350,7 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
           params.push(query.dataFim);
         }
         if (query.origem === 'legado') {
-          where += ` AND r.projeto = 'LEGADO'`;
+          where += ` AND COALESCE(p.marcadores->>'origem', '') = 'LEGADO'`;
         } else if (query.origem === 'fluxo') {
           // Produção desta tela é apenas importada; origem fluxo deve retornar vazio.
           where += ` AND 1 = 0`;
@@ -390,7 +390,7 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
              COALESCE(NULLIF(p.marcadores->>'colaborador_nome', ''), u.nome) as colaborador_nome,
              r.id_repositorio_ged as repositorio_ged,
              r.projeto as projeto,
-             CASE WHEN r.projeto = 'LEGADO' THEN 'LEGADO' ELSE 'FLUXO' END as origem,
+             CASE WHEN COALESCE(p.marcadores->>'origem', '') = 'LEGADO' THEN 'LEGADO' ELSE 'FLUXO' END as origem,
              COALESCE(co.sigla, COALESCE(p.marcadores->>'coordenadoria', '')) as coordenadoria_sigla
            FROM producao_repositorio p
            JOIN usuarios u ON u.id = p.usuario_id
