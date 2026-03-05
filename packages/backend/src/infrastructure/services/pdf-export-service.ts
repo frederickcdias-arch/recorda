@@ -184,7 +184,7 @@ export class PDFExportService {
       unidade: 'IMAGENS',
     });
 
-    this.renderTable(doc, columns, rows, { lastRowBold: true });
+    this.renderTable(doc, columns, rows, { highlightLastRows: 2 });
   }
 
   private renderCoordenadoriaEtapa(doc: PDFKit.PDFDocument, relatorio: RelatorioCompleto): void {
@@ -350,7 +350,7 @@ export class PDFExportService {
     doc: PDFKit.PDFDocument,
     columns: TableColumn[],
     rows: Record<string, string>[],
-    options?: { lastRowBold?: boolean }
+    options?: { lastRowBold?: boolean; highlightLastRows?: number }
   ): void {
     const widths = this.resolveColumnWidths(columns);
     const w = this.pageContentWidth;
@@ -392,22 +392,25 @@ export class PDFExportService {
 
       const row = rows[i]!;
       const isLast = i === rows.length - 1 && options?.lastRowBold;
+      const highlightLastRows = Math.max(options?.highlightLastRows ?? 0, 0);
+      const isHighlightedTail = highlightLastRows > 0 && i >= rows.length - highlightLastRows;
+      const isHighlighted = isLast || isHighlightedTail;
 
       // Zebra striping
-      if (i % 2 === 1 && !isLast) {
+      if (i % 2 === 1 && !isHighlighted) {
         doc.save();
         doc.fillColor(COLORS.zebraBg).rect(MARGIN, y, w, ROW_HEIGHT).fill();
         doc.restore();
       }
 
       // Bold last row (total)
-      if (isLast) {
+      if (isHighlighted) {
         doc.save();
         doc.fillColor(COLORS.headerBg).rect(MARGIN, y, w, ROW_HEIGHT).fill();
         doc.restore();
       }
 
-      doc.font(isLast ? 'Helvetica-Bold' : 'Helvetica').fontSize(8.5).fillColor('#111827');
+      doc.font(isHighlighted ? 'Helvetica-Bold' : 'Helvetica').fontSize(8.5).fillColor('#111827');
       x = MARGIN;
       for (let c = 0; c < columns.length; c++) {
         const value = row[columns[c]!.key] ?? '';

@@ -183,7 +183,7 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
             FROM producao_repositorio p
             JOIN usuarios u ON u.id = p.usuario_id
             JOIN repositorios r ON r.id_repositorio_recorda = p.repositorio_id
-            WHERE (p.data_producao AT TIME ZONE 'America/Sao_Paulo')::date BETWEEN $1::date AND $2::date
+            WHERE (p.data_producao AT TIME ZONE 'America/Cuiaba')::date BETWEEN $1::date AND $2::date
               AND COALESCE(p.marcadores->>'origem', '') = 'LEGADO'
               AND p.etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')
             ORDER BY p.data_producao DESC, u.nome
@@ -232,7 +232,7 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
             JOIN usuarios u ON u.id = p.usuario_id
             JOIN repositorios r ON r.id_repositorio_recorda = p.repositorio_id
             LEFT JOIN coordenadorias co ON co.id = u.coordenadoria_id
-            WHERE (p.data_producao AT TIME ZONE 'America/Sao_Paulo')::date BETWEEN $1::date AND $2::date
+            WHERE (p.data_producao AT TIME ZONE 'America/Cuiaba')::date BETWEEN $1::date AND $2::date
               AND COALESCE(p.marcadores->>'origem', '') = 'LEGADO'
               AND p.etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')
             ORDER BY p.data_producao DESC, colaborador
@@ -342,11 +342,11 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
           params.push(query.colaborador);
         }
         if (query.dataInicio) {
-          where += ` AND (p.data_producao AT TIME ZONE 'America/Sao_Paulo')::date >= $${p++}::date`;
+          where += ` AND (p.data_producao AT TIME ZONE 'America/Cuiaba')::date >= $${p++}::date`;
           params.push(query.dataInicio);
         }
         if (query.dataFim) {
-          where += ` AND (p.data_producao AT TIME ZONE 'America/Sao_Paulo')::date <= $${p++}::date`;
+          where += ` AND (p.data_producao AT TIME ZONE 'America/Cuiaba')::date <= $${p++}::date`;
           params.push(query.dataFim);
         }
         if (query.origem === 'legado') {
@@ -560,8 +560,8 @@ async function gerarRelatorioCompleto(
     FROM producao_repositorio p
     JOIN usuarios u ON u.id = p.usuario_id
     LEFT JOIN coordenadorias co ON co.id = u.coordenadoria_id
-    WHERE (p.data_producao AT TIME ZONE 'America/Sao_Paulo')::date >= $1::date
-      AND (p.data_producao AT TIME ZONE 'America/Sao_Paulo')::date <= $2::date
+    WHERE (p.data_producao AT TIME ZONE 'America/Cuiaba')::date >= $1::date
+      AND (p.data_producao AT TIME ZONE 'America/Cuiaba')::date <= $2::date
       AND COALESCE(p.marcadores->>'origem', '') = 'LEGADO'
       AND p.etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')
       ${coordenadoriaId ? 'AND u.coordenadoria_id = $3' : ''}
