@@ -20,6 +20,29 @@ type EtapaFluxo =
   | 'CONTROLE_QUALIDADE'
   | 'ENTREGA';
 
+function normalizeEtapas(value: unknown): EtapaFluxo[] {
+  if (Array.isArray(value)) {
+    return value.filter((item): item is EtapaFluxo => typeof item === 'string' && item.length > 0);
+  }
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) return [];
+    if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+      const inner = trimmed.slice(1, -1);
+      if (!inner) return [];
+      return inner
+        .split(',')
+        .map((item) => item.trim().replace(/^"|"$/g, ''))
+        .filter((item): item is EtapaFluxo => item.length > 0);
+    }
+    return trimmed
+      .split(',')
+      .map((item) => item.trim())
+      .filter((item): item is EtapaFluxo => item.length > 0);
+  }
+  return [];
+}
+
 function getCurrentUser(request: { user?: unknown }): { id: string; perfil: Perfil } {
   const user = request.user as { id: string; perfil: Perfil } | undefined;
   if (!user?.id) {
@@ -98,7 +121,12 @@ export function createConhecimentoOperacionalRoutes(): FastifyPluginAsync {
           params
         );
 
-        return reply.send({ itens: result.rows });
+        return reply.send({
+          itens: result.rows.map((row) => ({
+            ...row,
+            etapas: normalizeEtapas((row as { etapas?: unknown }).etapas),
+          })),
+        });
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Erro ao listar documentos da base operacional';
         return reply.status(500).send({ error: message });
@@ -539,4 +567,3 @@ export function createConhecimentoOperacionalRoutes(): FastifyPluginAsync {
     });
   };
 }
-

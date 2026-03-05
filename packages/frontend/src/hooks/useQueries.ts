@@ -792,7 +792,13 @@ export function useConhecimentoDocs(params: { busca?: string; categoria?: string
       const suffix = qs.toString() ? `?${qs.toString()}` : '';
       return api.get<{
         itens: { id: string; codigo: string; titulo: string; categoria: 'MANUAIS' | 'PROCEDIMENTOS_ETAPA' | 'CHECKLISTS_EXPLICADOS' | 'GLOSSARIO' | 'NORMAS_LEIS' | 'ATUALIZACOES_PROCESSO'; descricao: string; status: 'ATIVO' | 'INATIVO'; nivel_acesso: 'OPERADOR_ADMIN' | 'ADMIN'; versao_atual: number; etapas: EtapaFluxo[] }[];
-      }>(`/operacional/conhecimento/documentos${suffix}`);
+      }>(`/operacional/conhecimento/documentos${suffix}`).then((data) => ({
+        ...data,
+        itens: (data.itens ?? []).map((item) => ({
+          ...item,
+          etapas: normalizeEtapas(item.etapas),
+        })),
+      }));
     },
   });
 }
@@ -805,9 +811,33 @@ export function useConhecimentoDetalhe(id: string | null) {
       etapas: EtapaFluxo[];
       versaoAtual: { id: string; versao: number; conteudo: string; resumo_alteracao: string; publicado_em: string; publicado_por_nome: string } | null;
       versoes: { id: string; versao: number; resumo_alteracao: string; publicado_em: string; publicado_por_nome: string }[];
-    }>(`/operacional/conhecimento/documentos/${id}`),
+    }>(`/operacional/conhecimento/documentos/${id}`).then((data) => ({
+      ...data,
+      etapas: normalizeEtapas(data.etapas),
+      documento: {
+        ...data.documento,
+        etapas: normalizeEtapas(data.documento?.etapas),
+      },
+    })),
     enabled: !!id,
   });
+}
+
+function normalizeEtapas(value: unknown): EtapaFluxo[] {
+  if (Array.isArray(value)) {
+    return value.filter((v): v is EtapaFluxo => typeof v === 'string' && v.length > 0);
+  }
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) return [];
+    if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+      const inner = trimmed.slice(1, -1);
+      if (!inner) return [];
+      return inner.split(',').map((v) => v.trim().replace(/^"|"$/g, '')).filter((v): v is EtapaFluxo => v.length > 0);
+    }
+    return trimmed.split(',').map((v) => v.trim()).filter((v): v is EtapaFluxo => v.length > 0);
+  }
+  return [];
 }
 
 // ─── Glossário Dinâmico ─────────────────────────────────────
