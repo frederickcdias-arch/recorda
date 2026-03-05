@@ -708,7 +708,20 @@ export function useVincularProcessos() {
 export function useEmpresa() {
   return useQuery({
     queryKey: queryKeys.empresa,
-    queryFn: () => api.get<{ nome?: string; cnpj?: string; endereco?: string; telefone?: string; email?: string; logoUrl?: string; exibirLogoRelatorio?: boolean; exibirEnderecoRelatorio?: boolean; exibirContatoRelatorio?: boolean }>('/configuracao/empresa'),
+    queryFn: () => api.get<{
+      nome?: string;
+      cnpj?: string;
+      endereco?: string;
+      telefone?: string;
+      email?: string;
+      logoUrl?: string;
+      exibirLogoRelatorio?: boolean;
+      exibirEnderecoRelatorio?: boolean;
+      exibirContatoRelatorio?: boolean;
+      logoLarguraRelatorio?: number;
+      logoAlinhamentoRelatorio?: 'ESQUERDA' | 'CENTRO' | 'DIREITA';
+      logoDeslocamentoYRelatorio?: number;
+    }>('/configuracao/empresa'),
     staleTime: 5 * 60_000,
   });
 }

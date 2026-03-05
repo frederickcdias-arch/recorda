@@ -1,4 +1,4 @@
-import PDFDocument from 'pdfkit';
+﻿import PDFDocument from 'pdfkit';
 import { promises as fs } from 'fs';
 import path from 'path';
 
@@ -6,6 +6,9 @@ export interface EmpresaConfig {
   nome?: string;
   logoUrl?: string;
   exibirLogoRelatorio?: boolean;
+  logoLarguraRelatorio?: number;
+  logoAlinhamentoRelatorio?: 'ESQUERDA' | 'CENTRO' | 'DIREITA' | string;
+  logoDeslocamentoYRelatorio?: number;
 }
 
 interface EntregaLote {
@@ -243,9 +246,9 @@ export class OperacionalPDFService {
 
         // Logo da empresa (mesmo padrÃ£o do relatÃ³rio gerencial)
         if (logoBuffer) {
-          const imageWidth = 120;
-          const imageX = marginLeft + (pageWidth - imageWidth) / 2;
-          const imageY = doc.y;
+          const imageWidth = this.normalizeLogoWidth(empresa?.logoLarguraRelatorio);
+          const imageY = doc.y + this.normalizeLogoOffsetY(empresa?.logoDeslocamentoYRelatorio);
+          const imageX = this.resolveLogoX(empresa?.logoAlinhamentoRelatorio, marginLeft, pageWidth, imageWidth);
           let imgHeight = 60;
           try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -482,9 +485,9 @@ export class OperacionalPDFService {
 
         // Logo
         if (logoBuffer) {
-          const imageWidth = 120;
-          const imageX = marginLeft + (pageWidth - imageWidth) / 2;
-          const imageY = doc.y;
+          const imageWidth = this.normalizeLogoWidth(empresa?.logoLarguraRelatorio);
+          const imageY = doc.y + this.normalizeLogoOffsetY(empresa?.logoDeslocamentoYRelatorio);
+          const imageX = this.resolveLogoX(empresa?.logoAlinhamentoRelatorio, marginLeft, pageWidth, imageWidth);
           let imgHeight = 60;
           try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -874,5 +877,24 @@ export class OperacionalPDFService {
     if (Number.isNaN(parsed.getTime())) return '-';
     return parsed.toLocaleString('pt-BR');
   }
+
+  private normalizeLogoWidth(value?: number): number {
+    return Math.min(Math.max(Number(value ?? 120), 60), 260);
+  }
+
+  private normalizeLogoOffsetY(value?: number): number {
+    return Math.min(Math.max(Number(value ?? 0), -20), 40);
+  }
+
+  private resolveLogoX(alinhamento: string | undefined, left: number, totalWidth: number, imageWidth: number): number {
+    if (alinhamento === 'ESQUERDA') {
+      return left;
+    }
+    if (alinhamento === 'DIREITA') {
+      return left + totalWidth - imageWidth;
+    }
+    return left + (totalWidth - imageWidth) / 2;
+  }
 }
+
 

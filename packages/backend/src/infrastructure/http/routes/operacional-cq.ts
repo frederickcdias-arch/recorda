@@ -846,7 +846,15 @@ export function createOperacionalCQRoutes(): FastifyPluginAsync {
         }));
 
         const empresa = await server.database.query(
-          `SELECT nome, logo_url AS "logoUrl", exibir_logo_relatorio AS "exibirLogoRelatorio" FROM configuracao_empresa LIMIT 1`
+          `SELECT
+             nome,
+             logo_url AS "logoUrl",
+             exibir_logo_relatorio AS "exibirLogoRelatorio",
+             logo_largura_relatorio AS "logoLarguraRelatorio",
+             logo_alinhamento_relatorio AS "logoAlinhamentoRelatorio",
+             logo_deslocamento_y_relatorio AS "logoDeslocamentoYRelatorio"
+           FROM configuracao_empresa
+           LIMIT 1`
         );
 
         const pdfBuffer = await pdfService.gerarTermoDevolucao({
@@ -944,7 +952,15 @@ export function createOperacionalCQRoutes(): FastifyPluginAsync {
         }
 
         const empresa = await server.database.query(
-          `SELECT nome, logo_url AS "logoUrl", exibir_logo_relatorio AS "exibirLogoRelatorio" FROM configuracao_empresa LIMIT 1`
+          `SELECT
+             nome,
+             logo_url AS "logoUrl",
+             exibir_logo_relatorio AS "exibirLogoRelatorio",
+             logo_largura_relatorio AS "logoLarguraRelatorio",
+             logo_alinhamento_relatorio AS "logoAlinhamentoRelatorio",
+             logo_deslocamento_y_relatorio AS "logoDeslocamentoYRelatorio"
+           FROM configuracao_empresa
+           LIMIT 1`
         );
 
         const pdfBuffer = await pdfService.gerarTermoDevolucao({

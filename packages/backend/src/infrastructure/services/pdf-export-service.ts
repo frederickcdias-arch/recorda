@@ -12,6 +12,9 @@ export interface EmpresaConfig {
   exibirLogoRelatorio?: boolean;
   exibirEnderecoRelatorio?: boolean;
   exibirContatoRelatorio?: boolean;
+  logoLarguraRelatorio?: number;
+  logoAlinhamentoRelatorio?: 'ESQUERDA' | 'CENTRO' | 'DIREITA' | string;
+  logoDeslocamentoYRelatorio?: number;
 }
 
 type TableColumn = {
@@ -109,9 +112,14 @@ export class PDFExportService {
     const w = this.pageContentWidth;
 
     if (logoBuffer) {
-      const imageWidth = 120;
-      const imageX = MARGIN + (w - imageWidth) / 2;
-      const imageY = doc.y;
+      const imageWidth = this.normalizeLogoWidth(empresa?.logoLarguraRelatorio);
+      const imageY = doc.y + this.normalizeLogoOffsetY(empresa?.logoDeslocamentoYRelatorio);
+      const imageX = this.resolveLogoX(
+        empresa?.logoAlinhamentoRelatorio,
+        MARGIN,
+        w,
+        imageWidth,
+      );
       let imgHeight = 60;
       try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -156,6 +164,24 @@ export class PDFExportService {
     doc.moveTo(MARGIN, doc.y).lineWidth(1.5).strokeColor(COLORS.primary).lineTo(MARGIN + w, doc.y).stroke();
     doc.y += 10;
     doc.fillColor('#000000');
+  }
+
+  private normalizeLogoWidth(value?: number): number {
+    return Math.min(Math.max(Number(value ?? 120), 60), 260);
+  }
+
+  private normalizeLogoOffsetY(value?: number): number {
+    return Math.min(Math.max(Number(value ?? 0), -20), 40);
+  }
+
+  private resolveLogoX(alinhamento: string | undefined, left: number, totalWidth: number, imageWidth: number): number {
+    if (alinhamento === 'ESQUERDA') {
+      return left;
+    }
+    if (alinhamento === 'DIREITA') {
+      return left + totalWidth - imageWidth;
+    }
+    return left + (totalWidth - imageWidth) / 2;
   }
 
   private renderResumoEtapas(doc: PDFKit.PDFDocument, relatorio: RelatorioCompleto): void {
