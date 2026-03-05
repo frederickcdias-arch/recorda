@@ -563,9 +563,22 @@ export const authRoutes = fp(async (server: FastifyInstance): Promise<void> => {
         );
 
         // Enviar e-mail com link de reset
-        const appUrl = process.env.APP_URL?.trim()
-          || request.headers.origin
-          || 'http://localhost:5173';
+        const configuredAppUrl = process.env.APP_URL?.trim();
+        if (process.env.NODE_ENV === 'production' && !configuredAppUrl) {
+          request.log.error('APP_URL is required in production for password reset links');
+          return reply.status(500).send({ error: 'Configuração de ambiente incompleta para recuperação de senha' });
+        }
+
+        const originHeader = typeof request.headers.origin === 'string' ? request.headers.origin.trim() : '';
+        const hostHeader = typeof request.headers.host === 'string' ? request.headers.host.trim() : '';
+        const inferredAppUrl = hostHeader ? `${request.protocol}://${hostHeader}` : '';
+        const appUrl = configuredAppUrl || originHeader || inferredAppUrl;
+
+        if (!appUrl) {
+          request.log.error('Unable to resolve app URL for password reset link');
+          return reply.status(500).send({ error: 'Não foi possível gerar link de recuperação de senha' });
+        }
+
         const resetLink = `${appUrl}/reset-password?token=${resetToken}`;
 
         try {

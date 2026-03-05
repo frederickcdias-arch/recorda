@@ -5,6 +5,8 @@ Sistema de GestÃ£o de Processos Administrativos com rastreamento de produÃ§�
 > **Para entender o domÃ­nio do sistema, leia:** [docs/DOMINIO.md](docs/DOMINIO.md)
 >
 > **Deploy Git + Railway + Vercel:** [docs/DEPLOY_RAILWAY_VERCEL.md](docs/DEPLOY_RAILWAY_VERCEL.md)
+>
+> **Backlog de melhorias por seção:** [docs/BACKLOG_EXECUTAVEL_2026.md](docs/BACKLOG_EXECUTAVEL_2026.md)
 
 ## Requisitos
 
