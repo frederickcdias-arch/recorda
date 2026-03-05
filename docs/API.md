@@ -132,11 +132,26 @@
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| GET | `/conhecimento-operacional` | Yes | List knowledge base articles |
-| GET | `/conhecimento-operacional/:id` | Yes | Get article by ID |
-| POST | `/conhecimento-operacional` | Yes | Create article |
-| PUT | `/conhecimento-operacional/:id` | Yes | Update article |
-| DELETE | `/conhecimento-operacional/:id` | Yes | Delete article |
+| GET | `/operacional/conhecimento/documentos` | Yes | List knowledge base documents |
+| GET | `/operacional/conhecimento/documentos/:id` | Yes | Get document by ID |
+| POST | `/operacional/conhecimento/documentos` | Yes (admin) | Create document |
+| POST | `/operacional/conhecimento/documentos/:id/versoes` | Yes (admin) | Create new document version |
+| PATCH | `/operacional/conhecimento/documentos/:id` | Yes (admin) | Update document metadata/status |
+| GET | `/operacional/conhecimento/glossario` | Yes | List glossary terms |
+| POST | `/operacional/conhecimento/glossario` | Yes (admin) | Create glossary term |
+| PATCH | `/operacional/conhecimento/glossario/:id` | Yes (admin) | Update glossary term |
+| DELETE | `/operacional/conhecimento/glossario/:id` | Yes (admin) | Delete glossary term |
+| GET | `/operacional/conhecimento/leis-normas` | Yes | List laws/norms |
+| POST | `/operacional/conhecimento/leis-normas` | Yes (admin) | Create law/norm |
+| PATCH | `/operacional/conhecimento/leis-normas/:id` | Yes (admin) | Update law/norm |
+| DELETE | `/operacional/conhecimento/leis-normas/:id` | Yes (admin) | Delete law/norm |
+
+## Endpoints Legados
+
+| Path Pattern | Status |
+|--------------|--------|
+| `/recebimento/*` | `410 LEGACY_ENDPOINT_GONE` |
+| `/conhecimento/*` | `410 LEGACY_ENDPOINT_GONE` |
 
 ---
 
