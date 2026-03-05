@@ -130,7 +130,9 @@ export function EtapaOperacionalPage(): JSX.Element {
     projeto: '',
     classificacaoId: '',
   });
+  const [novaUnidadeInput, setNovaUnidadeInput] = useState('');
   const [novoProjetoInput, setNovoProjetoInput] = useState('');
+  const [orgaosAdicionados, setOrgaosAdicionados] = useState<Array<{ id: string; nome: string }>>([]);
 
   const [checklistModalOpen, setChecklistModalOpen] = useState(false);
   const [checklistId, setChecklistId] = useState('');
@@ -215,6 +217,15 @@ export function EtapaOperacionalPage(): JSX.Element {
   const createProjeto = useCreateProjetoConfiguracao();
   const orgaosOptions = orgaosQuery.data ?? [];
   const projetosOptions = projetosQuery.data ?? [];
+  const orgaosComboboxOptions = useMemo(() => {
+    const mapa = new Map<string, { id: string; nome: string }>();
+    for (const o of [...orgaosOptions, ...orgaosAdicionados]) {
+      const key = o.nome.trim().toLowerCase();
+      if (!key) continue;
+      if (!mapa.has(key)) mapa.set(key, o);
+    }
+    return Array.from(mapa.values()).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+  }, [orgaosOptions, orgaosAdicionados]);
 
   if (!etapaConfig) {
     return <div className="text-center text-gray-600 py-12">Etapa Operacional inválida.</div>;
@@ -227,6 +238,28 @@ export function EtapaOperacionalPage(): JSX.Element {
 
   const showSuccess = (texto: string): void => toast.success(texto);
   const showError = (texto: string): void => toast.error(texto);
+
+  const handleCriarUnidadeRapida = (): void => {
+    const nomeUnidade = novaUnidadeInput.trim();
+    if (!nomeUnidade) return;
+
+    const existente = orgaosComboboxOptions.find((o) => o.nome.trim().toLowerCase() === nomeUnidade.toLowerCase());
+    if (existente) {
+      setNovoRepositorio((prev) => ({ ...prev, orgao: existente.nome }));
+      setNovaUnidadeInput('');
+      showSuccess('Unidade já existente e selecionada.');
+      return;
+    }
+
+    const novoItem = {
+      id: `local-${Date.now()}`,
+      nome: nomeUnidade,
+    };
+    setOrgaosAdicionados((prev) => [novoItem, ...prev]);
+    setNovoRepositorio((prev) => ({ ...prev, orgao: nomeUnidade }));
+    setNovaUnidadeInput('');
+    showSuccess('Unidade adicionada e selecionada.');
+  };
 
   const handleCriarProjetoRapido = async (): Promise<void> => {
     const nomeProjeto = novoProjetoInput.trim();
@@ -647,16 +680,28 @@ export function EtapaOperacionalPage(): JSX.Element {
                         onChange={(e) => setNovoRepositorio((p) => ({ ...p, orgao: e.target.value }))}
                       >
                         <option value="">— Selecione —</option>
-                        {orgaosOptions.map((o) => (
+                        {orgaosComboboxOptions.map((o) => (
                           <option key={o.id} value={o.nome}>{o.nome}</option>
                         ))}
                       </select>
-                      <input
-                        className="w-full mt-1 h-8 px-2 border rounded text-xs"
-                        placeholder="Ou digite manualmente..."
-                        value={novoRepositorio.orgao}
-                        onChange={(e) => setNovoRepositorio((p) => ({ ...p, orgao: e.target.value }))}
-                      />
+                      <div className="flex gap-1 mt-1">
+                        <input
+                          className="flex-1 h-8 px-2 border rounded text-xs"
+                          placeholder="Nova unidade..."
+                          value={novaUnidadeInput}
+                          onChange={(e) => setNovaUnidadeInput(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleCriarUnidadeRapida(); } }}
+                        />
+                        <button
+                          type="button"
+                          className="h-8 px-2 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                          onClick={handleCriarUnidadeRapida}
+                          disabled={!novaUnidadeInput.trim()}
+                          title="Adicionar e selecionar unidade"
+                        >
+                          +
+                        </button>
+                      </div>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Projeto</label>
