@@ -182,6 +182,17 @@ export function useProjetosConfiguracao() {
   });
 }
 
+export function useCreateProjetoConfiguracao() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { nome: string; descricao?: string; ativo?: boolean }) =>
+      api.post('/configuracao/projetos', body),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: queryKeys.projetosConfiguracao });
+    },
+  });
+}
+
 // ─── Mutation Hooks ─────────────────────────────────────────
 
 export function useCreateRepositorio() {
