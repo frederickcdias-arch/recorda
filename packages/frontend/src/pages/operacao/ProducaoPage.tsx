@@ -9,7 +9,7 @@ import { useToastHelpers } from '../../components/ui/Toast';
 import { useAuth } from '../../contexts/AuthContext';
 import { useConfirmDialog } from '../../hooks/useConfirmDialog';
 import { extractErrorMessage } from '../../utils/errors';
-import { useProducao, useDeleteProducao, useQueryClient, queryKeys } from '../../hooks/useQueries';
+import { useProducao, useDeleteProducao, useLimparProducoes, useQueryClient, queryKeys } from '../../hooks/useQueries';
 import { api } from '../../services/api';
 
 const ETAPA_LABELS: Record<string, string> = {
@@ -26,6 +26,7 @@ export function ProducaoPage(): JSX.Element {
   const { usuario } = useAuth();
   const queryClient = useQueryClient();
   const deleteProducao = useDeleteProducao();
+  const limparProducoes = useLimparProducoes();
   const toast = useToastHelpers();
   const confirmDialog = useConfirmDialog();
 
@@ -33,7 +34,6 @@ export function ProducaoPage(): JSX.Element {
   const [pagina, setPagina] = useState(1);
   const [etapa, setEtapa] = useState('');
   const [colaborador, setColaborador] = useState('');
-  const [origem, setOrigem] = useState<'' | 'legado' | 'fluxo'>('');
   const [dataInicio, setDataInicio] = useState('');
   const [dataFim, setDataFim] = useState('');
   const [busca, setBusca] = useState('');
@@ -48,14 +48,13 @@ export function ProducaoPage(): JSX.Element {
   // Reset page when filters change
   useEffect(() => {
     setPagina(1);
-  }, [etapa, colaborador, origem, dataInicio, dataFim, buscaDebounced]);
+  }, [etapa, colaborador, dataInicio, dataFim, buscaDebounced]);
 
   const producaoQuery = useProducao({
     pagina,
     limite: 25,
     etapa: etapa || undefined,
     colaborador: colaborador || undefined,
-    origem: origem || undefined,
     dataInicio: dataInicio || undefined,
     dataFim: dataFim || undefined,
     busca: buscaDebounced || undefined,
@@ -80,6 +79,24 @@ export function ProducaoPage(): JSX.Element {
           toast.success('Registro excluído.');
         } catch (error) {
           toast.error(extractErrorMessage(error, 'Erro ao excluir'));
+        }
+      },
+    });
+  };
+
+  const handleLimparTodasProducoes = (): void => {
+    confirmDialog.confirm({
+      title: 'Limpar Produções Importadas',
+      message: 'Esta ação excluirá apenas registros de produção importada (LEGADO). Deseja continuar?',
+      confirmLabel: 'Limpar Importadas',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          const response = await limparProducoes.mutateAsync();
+          const removidos = Number(response?.removidos ?? 0);
+          toast.success(removidos > 0 ? `${removidos} registro(s) importado(s) removido(s).` : 'Não havia registros importados para remover.');
+        } catch (error) {
+          toast.error(extractErrorMessage(error, 'Erro ao limpar produções'));
         }
       },
     });
@@ -123,9 +140,23 @@ export function ProducaoPage(): JSX.Element {
               {totalFormatado} Registros de Produção
             </p>
           </div>
-          <Button className="w-full sm:w-auto" variant="secondary" icon="download" onClick={() => void handleExportarExcel()} loading={exportando} disabled={exportando || !dataInicio || !dataFim}>
-            Exportar Excel
-          </Button>
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+            {isAdmin && (
+              <Button
+                className="w-full sm:w-auto"
+                variant="danger"
+                icon="trash"
+                onClick={handleLimparTodasProducoes}
+                loading={limparProducoes.isPending}
+                disabled={limparProducoes.isPending}
+              >
+                Limpar produções importadas
+              </Button>
+            )}
+            <Button className="w-full sm:w-auto" variant="secondary" icon="download" onClick={() => void handleExportarExcel()} loading={exportando} disabled={exportando || !dataInicio || !dataFim}>
+              Exportar Excel
+            </Button>
+          </div>
         </div>
 
         <ConfirmDialog
@@ -137,7 +168,7 @@ export function ProducaoPage(): JSX.Element {
 
         {/* Filtros */}
         <Card>
-          <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Busca</label>
               <input
@@ -175,18 +206,6 @@ export function ProducaoPage(): JSX.Element {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Origem</label>
-              <select
-                value={origem}
-                onChange={(e) => setOrigem(e.target.value as '' | 'legado' | 'fluxo')}
-                className="w-full h-9 px-2 text-sm border rounded-lg"
-              >
-                <option value="">Todas</option>
-                <option value="legado">Legado</option>
-                <option value="fluxo">Fluxo</option>
-              </select>
-            </div>
-            <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Data início</label>
               <input
                 type="date"
@@ -205,12 +224,11 @@ export function ProducaoPage(): JSX.Element {
               />
             </div>
           </div>
-          {(etapa || colaborador || origem || dataInicio || dataFim || busca) && (
+          {(etapa || colaborador || dataInicio || dataFim || busca) && (
             <button
               onClick={() => {
                 setEtapa('');
                 setColaborador('');
-                setOrigem('');
                 setDataInicio('');
                 setDataFim('');
                 setBusca('');

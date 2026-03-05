@@ -184,6 +184,8 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
             JOIN usuarios u ON u.id = p.usuario_id
             JOIN repositorios r ON r.id_repositorio_recorda = p.repositorio_id
             WHERE (p.data_producao AT TIME ZONE 'America/Sao_Paulo')::date BETWEEN $1::date AND $2::date
+              AND COALESCE(p.marcadores->>'origem', '') = 'LEGADO'
+              AND p.etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')
             ORDER BY p.data_producao DESC, u.nome
           `, [dataInicio, dataFim]);
 
@@ -231,6 +233,8 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
             JOIN repositorios r ON r.id_repositorio_recorda = p.repositorio_id
             LEFT JOIN coordenadorias co ON co.id = u.coordenadoria_id
             WHERE (p.data_producao AT TIME ZONE 'America/Sao_Paulo')::date BETWEEN $1::date AND $2::date
+              AND COALESCE(p.marcadores->>'origem', '') = 'LEGADO'
+              AND p.etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')
             ORDER BY p.data_producao DESC, colaborador
           `, [dataInicio, dataFim]);
 
@@ -324,7 +328,8 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
         const limite = Math.min(Math.max(Number(query.limite ?? 25), 1), 100);
         const offset = (pagina - 1) * limite;
 
-        let where = 'WHERE 1=1';
+        let where = `WHERE COALESCE(p.marcadores->>'origem', '') = 'LEGADO'
+          AND p.etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')`;
         const params: (string | number)[] = [];
         let p = 1;
 
@@ -347,7 +352,8 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
         if (query.origem === 'legado') {
           where += ` AND r.projeto = 'LEGADO'`;
         } else if (query.origem === 'fluxo') {
-          where += ` AND r.projeto <> 'LEGADO'`;
+          // Produção desta tela é apenas importada; origem fluxo deve retornar vazio.
+          where += ` AND 1 = 0`;
         }
         if (query.repositorio) {
           where += ` AND r.id_repositorio_ged ILIKE $${p++}`;
@@ -403,11 +409,17 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
              INITCAP(LOWER(COALESCE(NULLIF(p.marcadores->>'colaborador_nome', ''), u.nome))) as id
            FROM producao_repositorio p
            JOIN usuarios u ON u.id = p.usuario_id
+           WHERE COALESCE(p.marcadores->>'origem', '') = 'LEGADO'
+             AND p.etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')
            ORDER BY nome`
         );
 
         const etapasResult = await server.database.query<{ etapa: string }>(
-          `SELECT DISTINCT etapa::text as etapa FROM producao_repositorio ORDER BY etapa`
+          `SELECT DISTINCT etapa::text as etapa
+           FROM producao_repositorio
+           WHERE COALESCE(marcadores->>'origem', '') = 'LEGADO'
+             AND etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')
+           ORDER BY etapa`
         );
 
         return reply.send({
@@ -423,6 +435,34 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
         });
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Erro ao listar produção';
+        return reply.status(500).send({ error: message });
+      }
+    });
+
+    // DELETE /producao - Limpar registros de produção importada (admin-only)
+    server.delete('/producao', {
+      preHandler: [server.authenticate, authorize('administrador')],
+    }, async (_request, reply) => {
+      try {
+        const countResult = await server.database.query<{ total: string }>(
+          `SELECT COUNT(*)::text as total
+           FROM producao_repositorio
+           WHERE COALESCE(marcadores->>'origem', '') = 'LEGADO'`
+        );
+        const total = Number(countResult.rows[0]?.total ?? '0');
+
+        if (total === 0) {
+          return reply.send({ message: 'Nenhum registro de produção importada para excluir', removidos: 0 });
+        }
+
+        await server.database.query(
+          `DELETE FROM producao_repositorio
+           WHERE COALESCE(marcadores->>'origem', '') = 'LEGADO'`
+        );
+        return reply.send({ message: 'Registros de produção importada foram excluídos', removidos: total });
+      } catch (error) {
+        server.log.error(error, 'Erro ao limpar registros de produção importada');
+        const message = error instanceof Error ? error.message : 'Erro ao limpar registros de produção importada';
         return reply.status(500).send({ error: message });
       }
     });
@@ -522,6 +562,8 @@ async function gerarRelatorioCompleto(
     LEFT JOIN coordenadorias co ON co.id = u.coordenadoria_id
     WHERE (p.data_producao AT TIME ZONE 'America/Sao_Paulo')::date >= $1::date
       AND (p.data_producao AT TIME ZONE 'America/Sao_Paulo')::date <= $2::date
+      AND COALESCE(p.marcadores->>'origem', '') = 'LEGADO'
+      AND p.etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')
       ${coordenadoriaId ? 'AND u.coordenadoria_id = $3' : ''}
     ORDER BY p.data_producao
   `;
@@ -742,6 +784,3 @@ async function gerarRelatorioCompleto(
     },
   };
 }
-
-
-
