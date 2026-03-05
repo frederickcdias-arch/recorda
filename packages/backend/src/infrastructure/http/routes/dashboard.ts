@@ -18,14 +18,6 @@ interface Alerta {
   descricao: string;
 }
 
-interface DashboardCache {
-  data: unknown;
-  expiresAt: number;
-}
-
-const CACHE_TTL_MS = 60 * 1000;
-let dashboardCache: DashboardCache | null = null;
-
 export function createDashboardRoutes(): FastifyPluginAsync {
   return async (server: FastifyInstance): Promise<void> => {
     server.get('/dashboard', {
@@ -63,10 +55,6 @@ export function createDashboardRoutes(): FastifyPluginAsync {
       preHandler: [server.authenticate, authorize('operador', 'administrador')],
     }, async (_request, reply) => {
       try {
-        if (dashboardCache && dashboardCache.expiresAt > Date.now()) {
-          return reply.status(200).send(dashboardCache.data);
-        }
-
         const agora = new Date();
         const inicioMes = new Date(agora.getFullYear(), agora.getMonth(), 1);
         const inicioMesAnterior = new Date(agora.getFullYear(), agora.getMonth() - 1, 1);
@@ -94,14 +82,18 @@ export function createDashboardRoutes(): FastifyPluginAsync {
           server.database.query<{ total: string }>(
             `SELECT COALESCE(SUM(quantidade), 0)::text AS total
              FROM producao_repositorio
-             WHERE data_producao >= $1`,
+             WHERE data_producao >= $1
+               AND COALESCE(marcadores->>'origem', '') = 'LEGADO'
+               AND etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')`,
             [inicioMes.toISOString()]
           ),
           server.database.query<{ total: string }>(
             `SELECT COALESCE(SUM(quantidade), 0)::text AS total
              FROM producao_repositorio
              WHERE data_producao >= $1
-               AND data_producao < $2`,
+               AND data_producao < $2
+               AND COALESCE(marcadores->>'origem', '') = 'LEGADO'
+               AND etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')`,
             [inicioMesAnterior.toISOString(), inicioMes.toISOString()]
           ),
           server.database.query<{ total: string }>(
@@ -143,6 +135,8 @@ export function createDashboardRoutes(): FastifyPluginAsync {
                COALESCE(SUM(p.quantidade), 0)::text AS valor
              FROM producao_repositorio p
              WHERE p.data_producao >= $1
+               AND COALESCE(p.marcadores->>'origem', '') = 'LEGADO'
+               AND p.etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')
              GROUP BY 1
              ORDER BY
                CASE UPPER(COALESCE(NULLIF(TRIM(p.marcadores->>'funcao'), ''),
@@ -359,8 +353,6 @@ export function createDashboardRoutes(): FastifyPluginAsync {
           tempoMedioPorEtapa,
           retrabalhoCQ,
         };
-
-        dashboardCache = { data: responseData, expiresAt: Date.now() + CACHE_TTL_MS };
 
         return reply.status(200).send(responseData);
       } catch (error) {

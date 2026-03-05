@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+﻿import { useMemo, useState } from 'react';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { PageState } from '../../components/ui/PageState';
@@ -10,7 +10,7 @@ import { extractErrorMessage } from '../../utils/errors';
 import { api } from '../../services/api';
 import {
   useImportacoesHistorico,
-  useValidarDuplicidadesLegado, useImportarProducaoLegado, useLimparImportacoesLegado,
+  useImportarProducaoLegado, useLimparImportacoesLegado, usePreviewImportacaoProducaoLegado, useRollbackImportacaoLegado,
   useFetchSheets, useFontesImportacao, useCriarFonteImportacao, useExcluirFonteImportacao,
   useImportarFonte, useImportarTodasFontes, useQueryClient, queryKeys,
 } from '../../hooks/useQueries';
@@ -25,12 +25,13 @@ interface RegistroProducao {
   tipo: string;
 }
 
-interface ValidacaoDuplicidade {
+interface PreviewImportacao {
   totalRegistros: number;
+  registrosValidos: number;
   duplicadasPlanilha: number[];
   duplicadasBanco: number[];
-  todasDuplicadas: number[];
-  registrosValidos: number;
+  linhasInvalidas: { linha: number; erro: string }[];
+  impacto: { inseridosPrevistos: number; atualizadosPrevistos: number; ignoradosPrevistos: number; invalidos: number };
 }
 
 function normalizeHeader(value: string): string {
@@ -87,14 +88,14 @@ function parseCsvToProducao(content: string): RegistroProducao[] {
 
   const idxData = indexOf(['data', 'date']);
   const idxColaborador = indexOf(['colaborador', 'nome', 'funcionario']);
-  const idxFuncao = indexOf(['funcao', 'função', 'cargo']);
-  const idxRepositorio = indexOf(['repositorio', 'repositório', 'repo']);
+  const idxFuncao = indexOf(['funcao', 'funÃ§Ã£o', 'cargo']);
+  const idxRepositorio = indexOf(['repositorio', 'repositÃ³rio', 'repo']);
   const idxCoordenadoria = indexOf(['coordenadoria', 'coord', 'unidade']);
   const idxQuantidade = indexOf(['quantidade', 'qtd', 'qtde']);
   const idxTipo = indexOf(['tipo']);
 
   if (idxRepositorio < 0 || idxColaborador < 0) {
-    throw new Error('CSV inválido: colunas obrigatórias Colaborador e Repositório');
+    throw new Error('CSV invÃ¡lido: colunas obrigatÃ³rias Colaborador e RepositÃ³rio');
   }
 
   const registros: RegistroProducao[] = [];
@@ -132,13 +133,13 @@ export function ImportarProducaoPage(): JSX.Element {
   const [sheetsUrl, setSheetsUrl] = useState('');
   const [dadosColados, setDadosColados] = useState('');
 
-  const [duplicidadeInfo, setDuplicidadeInfo] = useState<ValidacaoDuplicidade | null>(null);
+  const [previewImportacao, setPreviewImportacao] = useState<PreviewImportacao | null>(null);
   const [validando, setValidando] = useState(false);
 
   const isAdmin = usuario?.perfil === 'administrador';
   const previewProducao = useMemo(() => registrosProducao.slice(0, 10), [registrosProducao]);
 
-  // Fontes de importação (saved links)
+  // Fontes de importaÃ§Ã£o (saved links)
   const [novaFonteNome, setNovaFonteNome] = useState('');
   const [novaFonteUrl, setNovaFonteUrl] = useState('');
   const [importandoFonteId, setImportandoFonteId] = useState<string | null>(null);
@@ -176,7 +177,7 @@ export function ImportarProducaoPage(): JSX.Element {
       await criarFonteMut.mutateAsync({ nome: novaFonteNome.trim(), url: novaFonteUrl.trim() });
       setNovaFonteNome('');
       setNovaFonteUrl('');
-      toast.success('Fonte de importação salva.');
+      toast.success('Fonte de importaÃ§Ã£o salva.');
     } catch (error) {
       toast.error(extractErrorMessage(error, 'Erro ao salvar fonte'));
     }
@@ -221,7 +222,7 @@ export function ImportarProducaoPage(): JSX.Element {
 
   const handleImportarTodas = async (): Promise<void> => {
     if (fontes.length === 0) {
-      toast.error('Nenhuma fonte de importação cadastrada.');
+      toast.error('Nenhuma fonte de importaÃ§Ã£o cadastrada.');
       return;
     }
 
@@ -233,11 +234,11 @@ export function ImportarProducaoPage(): JSX.Element {
       
       const { resumo } = result;
       if (resumo.importados > 0) {
-        toast.success(`Importação em lote: ${resumo.importados} novos registros importados. ${resumo.duplicados} duplicados ignorados.`);
+        toast.success(`ImportaÃ§Ã£o em lote: ${resumo.importados} novos registros importados. ${resumo.duplicados} duplicados ignorados.`);
       } else if (resumo.duplicados > 0) {
-        toast.success(`Importação em lote: Nenhum registro novo. ${resumo.duplicados} duplicados ignorados.`);
+        toast.success(`ImportaÃ§Ã£o em lote: Nenhum registro novo. ${resumo.duplicados} duplicados ignorados.`);
       } else {
-        toast.success('Importação em lote: Nenhum registro para importar.');
+        toast.success('ImportaÃ§Ã£o em lote: Nenhum registro para importar.');
       }
       
       await invalidate();
@@ -250,14 +251,14 @@ export function ImportarProducaoPage(): JSX.Element {
 
   const handleExcluirFonte = (id: string, nome: string): void => {
     confirmDialog.confirm({
-      title: 'Excluir Fonte de Importação',
-      message: `Deseja excluir a fonte "${nome}"? Isso não remove dados já importados.`,
+      title: 'Excluir Fonte de ImportaÃ§Ã£o',
+      message: `Deseja excluir a fonte "${nome}"? Isso nÃ£o remove dados jÃ¡ importados.`,
       confirmLabel: 'Excluir',
       variant: 'danger',
       onConfirm: async () => {
         try {
           await excluirFonteMut.mutateAsync(id);
-          toast.success('Fonte excluída.');
+          toast.success('Fonte excluÃ­da.');
         } catch (error) {
           toast.error(extractErrorMessage(error, 'Erro ao excluir'));
         }
@@ -273,7 +274,7 @@ export function ImportarProducaoPage(): JSX.Element {
       const parsed = parseCsvToProducao(text);
       setRegistrosProducao(parsed);
       setArquivoNomeProducao(file.name);
-      toast.success(`${parsed.length} Registros de Produção prontos para importar.`);
+      toast.success(`${parsed.length} Registros de ProduÃ§Ã£o prontos para importar.`);
     } catch (error) {
       toast.error(extractErrorMessage(error, 'Falha ao ler CSV'));
       setRegistrosProducao([]);
@@ -283,8 +284,9 @@ export function ImportarProducaoPage(): JSX.Element {
     }
   };
 
-  const validarMut = useValidarDuplicidadesLegado();
   const importarProdMut = useImportarProducaoLegado();
+  const previewImportacaoMut = usePreviewImportacaoProducaoLegado();
+  const rollbackImportacaoMut = useRollbackImportacaoLegado();
   const limparMut = useLimparImportacoesLegado();
   const fetchSheetsMut = useFetchSheets();
 
@@ -299,7 +301,7 @@ export function ImportarProducaoPage(): JSX.Element {
       const parsed = parseCsvToProducao(result.csv);
       setRegistrosProducao(parsed);
       setArquivoNomeProducao('Google Sheets');
-      toast.success(`${parsed.length} Registros de Produção carregados do Sheets.`);
+      toast.success(`${parsed.length} Registros de ProduÃ§Ã£o carregados do Sheets.`);
     } catch (error) {
       toast.error(extractErrorMessage(error, 'Falha ao buscar dados do Google Sheets'));
       setRegistrosProducao([]);
@@ -317,12 +319,12 @@ export function ImportarProducaoPage(): JSX.Element {
     try {
       const parsed = parseCsvToProducao(dadosColados);
       if (parsed.length === 0) {
-        toast.error('Nenhum registro válido encontrado nos dados colados. Verifique se copiou o cabeçalho e os dados.');
+        toast.error('Nenhum registro vÃ¡lido encontrado nos dados colados. Verifique se copiou o cabeÃ§alho e os dados.');
         return;
       }
       setRegistrosProducao(parsed);
       setArquivoNomeProducao('Dados Colados');
-      toast.success(`${parsed.length} Registros de Produção carregados.`);
+      toast.success(`${parsed.length} Registros de ProduÃ§Ã£o carregados.`);
     } catch (error) {
       toast.error(extractErrorMessage(error, 'Falha ao processar dados colados'));
       setRegistrosProducao([]);
@@ -330,10 +332,10 @@ export function ImportarProducaoPage(): JSX.Element {
     }
   };
 
-  const validarDuplicidades = async (regs: object[]): Promise<ValidacaoDuplicidade | null> => {
+  const gerarPreviewImportacao = async (regs: object[]): Promise<PreviewImportacao | null> => {
     try {
       setValidando(true);
-      return await validarMut.mutateAsync({ tipo: 'producao', registros: regs });
+      return await previewImportacaoMut.mutateAsync({ registros: regs });
     } catch {
       return null;
     } finally {
@@ -345,12 +347,12 @@ export function ImportarProducaoPage(): JSX.Element {
     try {
       setProcessando(true);
       const result = await importarProdMut.mutateAsync({ registros: regs });
-      toast.success(`Importação de Produção concluída. Sucesso: ${result.registrosSucesso} | Erros: ${result.registrosErro}`);
+      toast.success(`ImportaÃ§Ã£o de ProduÃ§Ã£o concluÃ­da. Sucesso: ${result.registrosSucesso} | Erros: ${result.registrosErro}`);
       setRegistrosProducao([]);
       setArquivoNomeProducao('');
       await invalidate();
     } catch (error) {
-      toast.error(extractErrorMessage(error, 'Falha na importação'));
+      toast.error(extractErrorMessage(error, 'Falha na importaÃ§Ã£o'));
     } finally {
       setProcessando(false);
     }
@@ -361,32 +363,29 @@ export function ImportarProducaoPage(): JSX.Element {
       toast.error('Carregue os dados antes de importar.');
       return;
     }
-    const validacao = await validarDuplicidades(registrosProducao);
-    if (validacao && validacao.todasDuplicadas.length > 0) {
-      setDuplicidadeInfo(validacao);
+    const preview = await gerarPreviewImportacao(registrosProducao);
+    if (!preview) {
+      toast.error('Não foi possível gerar o preview da importação.');
       return;
     }
-
-    await executarImportacaoProducao(registrosProducao);
+    setPreviewImportacao(preview);
   };
 
-  const handleImportarApenasValidas = async (): Promise<void> => {
-    if (!duplicidadeInfo) return;
-    const linhasExcluir = new Set(duplicidadeInfo.todasDuplicadas);
-    setDuplicidadeInfo(null);
-
-    const validos = registrosProducao.filter((_, i) => !linhasExcluir.has(i + 1));
-    if (validos.length === 0) {
-      toast.error('Nenhum registro válido restante após remover duplicidades.');
+  const handleConfirmarImportacao = async (): Promise<void> => {
+    if (!previewImportacao) return;
+    const validos = previewImportacao.registrosValidos;
+    setPreviewImportacao(null);
+    if (validos <= 0) {
+      toast.error('Nenhum registro válido para importar.');
       return;
     }
-    await executarImportacaoProducao(validos);
+    await executarImportacaoProducao(registrosProducao);
   };
 
   const handleLimparImportacoes = (): void => {
     confirmDialog.confirm({
       title: 'Limpar Todos os Dados Importados',
-      message: 'Isso removerá todas as produções importadas, repositórios legados, checklists legados e histórico de importações. Essa ação não pode ser desfeita.',
+      message: 'Isso removerÃ¡ todas as produÃ§Ãµes importadas, repositÃ³rios legados, checklists legados e histÃ³rico de importaÃ§Ãµes. Essa aÃ§Ã£o nÃ£o pode ser desfeita.',
       confirmLabel: 'Limpar Tudo',
       variant: 'danger',
       onConfirm: async () => {
@@ -394,7 +393,7 @@ export function ImportarProducaoPage(): JSX.Element {
           setProcessando(true);
           const result = await limparMut.mutateAsync();
           const r = result.removidos;
-          toast.success(`${result.mensagem} (Produção: ${r.producao}, Repositórios: ${r.repositorios}, Importações: ${r.importacoes})`);
+          toast.success(`${result.mensagem} (ProduÃ§Ã£o: ${r.producao}, RepositÃ³rios: ${r.repositorios}, ImportaÃ§Ãµes: ${r.importacoes})`);
           setRegistrosProducao([]);
           setArquivoNomeProducao('');
           await invalidate();
@@ -402,6 +401,35 @@ export function ImportarProducaoPage(): JSX.Element {
           toast.error(extractErrorMessage(error, 'Falha ao limpar dados'));
         } finally {
           setProcessando(false);
+        }
+      },
+    });
+  };
+
+  const handleBaixarErrosCsv = async (id: string): Promise<void> => {
+    try {
+      await api.download(`/api/operacional/importacoes-legado/${id}/erros-csv`, `importacao-erros-${id}.csv`);
+      toast.success('CSV de erros baixado.');
+    } catch (error) {
+      toast.error(extractErrorMessage(error, 'Falha ao baixar CSV de erros'));
+    }
+  };
+
+  const handleRollbackImportacao = (id: string): void => {
+    confirmDialog.confirm({
+      title: 'Desfazer Importação',
+      message: 'Essa ação desfaz inserções e atualizações desta importação de produção. Deseja continuar?',
+      confirmLabel: 'Desfazer',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          const r = await rollbackImportacaoMut.mutateAsync(id);
+          toast.success(`${r.message} (removidos: ${r.removidos}, restaurados: ${r.restaurados})`);
+          await invalidate();
+          void queryClient.invalidateQueries({ queryKey: queryKeys.producaoAll });
+          void queryClient.invalidateQueries({ queryKey: queryKeys.dashboard });
+        } catch (error) {
+          toast.error(extractErrorMessage(error, 'Falha ao executar rollback'));
         }
       },
     });
@@ -419,49 +447,54 @@ export function ImportarProducaoPage(): JSX.Element {
   return (
     <PageState loading={carregando} loadingMessage="Carregando..." error={erroComAcao}>
       {/* Modal de Duplicidades */}
-      {duplicidadeInfo && (
+      {previewImportacao && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 animate-fade-in">
           <div className="bg-white rounded-xl shadow-xl max-w-lg w-full mx-4 p-6 animate-scale-in">
-            <h3 className="text-lg font-bold text-gray-900 mb-3">Duplicidades Detectadas</h3>
+            <h3 className="text-lg font-bold text-gray-900 mb-3">Preview de Importação</h3>
             <div className="space-y-3 text-sm text-gray-700">
               <p>
-                <strong>{duplicidadeInfo.totalRegistros}</strong> registros na planilha.
-                <strong className="text-blue-700"> {duplicidadeInfo.todasDuplicadas.length}</strong> duplicados.
-                <strong className="text-gray-900"> {duplicidadeInfo.registrosValidos}</strong> válidos.
+                <strong>{previewImportacao.totalRegistros}</strong> registros na planilha.
+                <strong className="text-gray-900"> {previewImportacao.registrosValidos}</strong> válidos.
               </p>
-
-              {duplicidadeInfo.duplicadasPlanilha.length > 0 && (
+              <p className="text-xs text-gray-600">
+                Inserções: <strong>{previewImportacao.impacto.inseridosPrevistos}</strong> ·
+                Atualizações: <strong>{previewImportacao.impacto.atualizadosPrevistos}</strong> ·
+                Ignorados: <strong>{previewImportacao.impacto.ignoradosPrevistos}</strong> ·
+                Inválidos: <strong>{previewImportacao.impacto.invalidos}</strong>
+              </p>
+              {previewImportacao.duplicadasPlanilha.length > 0 && (
                 <div>
                   <p className="font-semibold text-gray-700">Duplicadas na planilha:</p>
                   <p className="text-xs bg-gray-50 rounded p-2 max-h-24 overflow-y-auto font-mono">
-                    Linhas: {duplicidadeInfo.duplicadasPlanilha.join(', ')}
+                    Linhas: {previewImportacao.duplicadasPlanilha.join(', ')}
                   </p>
                 </div>
               )}
-
-              {duplicidadeInfo.duplicadasBanco.length > 0 && (
+              {previewImportacao.duplicadasBanco.length > 0 && (
                 <div>
                   <p className="font-semibold text-gray-700">Já existentes no sistema:</p>
                   <p className="text-xs bg-blue-50 rounded p-2 max-h-24 overflow-y-auto font-mono">
-                    Linhas: {duplicidadeInfo.duplicadasBanco.join(', ')}
+                    Linhas: {previewImportacao.duplicadasBanco.join(', ')}
+                  </p>
+                </div>
+              )}
+              {previewImportacao.linhasInvalidas.length > 0 && (
+                <div>
+                  <p className="font-semibold text-gray-700">Linhas inválidas:</p>
+                  <p className="text-xs bg-red-50 rounded p-2 max-h-24 overflow-y-auto font-mono">
+                    {previewImportacao.linhasInvalidas.slice(0, 10).map((i) => `${i.linha}: ${i.erro}`).join(' | ')}
                   </p>
                 </div>
               )}
             </div>
 
             <div className="flex gap-3 mt-5">
-              {duplicidadeInfo.registrosValidos > 0 && (
-                <Button
-                  onClick={() => void handleImportarApenasValidas()}
-                  loading={processando}
-                >
-                  Importar apenas válidos ({duplicidadeInfo.registrosValidos})
+              {previewImportacao.registrosValidos > 0 && (
+                <Button onClick={() => void handleConfirmarImportacao()} loading={processando}>
+                  Confirmar Importação ({previewImportacao.registrosValidos})
                 </Button>
               )}
-              <Button
-                variant="secondary"
-                onClick={() => setDuplicidadeInfo(null)}
-              >
+              <Button variant="secondary" onClick={() => setPreviewImportacao(null)}>
                 Cancelar
               </Button>
             </div>
@@ -469,11 +502,11 @@ export function ImportarProducaoPage(): JSX.Element {
         </div>
       )}
 
-      <div className="space-y-6">
+      <div className="space-y-6"> 
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Importar Produção</h1>
-            <p className="text-gray-500 mt-1">Carregue dados de produção via CSV, Google Sheets ou colando da planilha.</p>
+            <h1 className="text-2xl font-bold text-gray-900">Importar ProduÃ§Ã£o</h1>
+            <p className="text-gray-500 mt-1">Carregue dados de produÃ§Ã£o via CSV, Google Sheets ou colando da planilha.</p>
           </div>
           {isAdmin && (
             <Button
@@ -506,7 +539,7 @@ export function ImportarProducaoPage(): JSX.Element {
                     <p className="text-xs text-gray-400 truncate">{f.url}</p>
                     {f.ultima_importacao_em && (
                       <p className="text-xs text-gray-400 mt-0.5">
-                        Última importação: {new Date(f.ultima_importacao_em).toLocaleString('pt-BR')}
+                        Ãšltima importaÃ§Ã£o: {new Date(f.ultima_importacao_em).toLocaleString('pt-BR')}
                       </p>
                     )}
                   </div>
@@ -535,7 +568,7 @@ export function ImportarProducaoPage(): JSX.Element {
                     className="text-xs text-gray-400 hover:text-gray-700 transition"
                     title="Excluir fonte"
                   >
-                    ✕
+                    âœ•
                   </button>
                 </div>
               ))}
@@ -549,19 +582,19 @@ export function ImportarProducaoPage(): JSX.Element {
               <p className="font-medium text-gray-900">{ultimoResultado.fonte}</p>
               <p className="text-gray-600 mt-1">
                 <span className="font-semibold text-blue-700">{ultimoResultado.importados}</span> novos
-                {' · '}<span className="text-gray-500">{ultimoResultado.duplicados} duplicados ignorados</span>
-                {ultimoResultado.erros > 0 && <>{' · '}<span className="text-gray-600">{ultimoResultado.erros} erros</span></>}
+                {' Â· '}<span className="text-gray-500">{ultimoResultado.duplicados} duplicados ignorados</span>
+                {ultimoResultado.erros > 0 && <>{' Â· '}<span className="text-gray-600">{ultimoResultado.erros} erros</span></>}
               </p>
             </div>
           )}
 
           {validacaoResult && (
             <div className="mb-4 p-3 bg-yellow-50 border border-yellow-100 rounded-lg text-sm">
-              <p className="font-medium text-gray-900">{validacaoResult.fonte.nome} - Validação de Duplicatas</p>
+              <p className="font-medium text-gray-900">{validacaoResult.fonte.nome} - ValidaÃ§Ã£o de Duplicatas</p>
               <p className="text-gray-600 mt-1">
                 <span className="font-semibold text-green-700">{validacaoResult.novos.quantidade}</span> novos registros
-                {' · '}<span className="text-orange-600">{validacaoResult.duplicados.quantidade} duplicados</span>
-                {' · '}<span className="text-gray-500">{validacaoResult.total} total</span>
+                {' Â· '}<span className="text-orange-600">{validacaoResult.duplicados.quantidade} duplicados</span>
+                {' Â· '}<span className="text-gray-500">{validacaoResult.total} total</span>
               </p>
               {validacaoResult.novos.quantidade > 0 && (
                 <details className="mt-2">
@@ -598,12 +631,12 @@ export function ImportarProducaoPage(): JSX.Element {
 
           {resultadoImportacaoTodas && (
             <div className="mb-4 p-3 bg-green-50 border border-green-100 rounded-lg text-sm">
-              <p className="font-medium text-gray-900">Importação em Lote Concluída</p>
+              <p className="font-medium text-gray-900">ImportaÃ§Ã£o em Lote ConcluÃ­da</p>
               <p className="text-gray-600 mt-1">
                 <span className="font-semibold text-green-700">{resultadoImportacaoTodas.resumo.importados}</span> novos
-                {' · '}<span className="text-orange-600">{resultadoImportacaoTodas.resumo.duplicados} duplicados</span>
-                {' · '}<span className="text-red-600">{resultadoImportacaoTodas.resumo.erros} erros</span>
-                {' · '}<span className="text-gray-500">{resultadoImportacaoTodas.total} fontes processadas</span>
+                {' Â· '}<span className="text-orange-600">{resultadoImportacaoTodas.resumo.duplicados} duplicados</span>
+                {' Â· '}<span className="text-red-600">{resultadoImportacaoTodas.resumo.erros} erros</span>
+                {' Â· '}<span className="text-gray-500">{resultadoImportacaoTodas.total} fontes processadas</span>
               </p>
               <details className="mt-2">
                 <summary className="cursor-pointer text-xs text-gray-600 hover:text-gray-800">Ver detalhes por fonte</summary>
@@ -624,7 +657,7 @@ export function ImportarProducaoPage(): JSX.Element {
           <div className="flex items-center justify-between mb-4">
             <input
               type="text"
-              placeholder="Nome (ex: Produção Janeiro)"
+              placeholder="Nome (ex: ProduÃ§Ã£o Janeiro)"
               value={novaFonteNome}
               onChange={(e) => setNovaFonteNome(e.target.value)}
               className="w-48 h-9 px-3 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -646,7 +679,7 @@ export function ImportarProducaoPage(): JSX.Element {
         {/* Main import card */}
         <Card>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Importar Produção</h2>
+            <h2 className="text-lg font-semibold text-gray-900">Importar ProduÃ§Ã£o</h2>
             {fontes.length > 0 && (
               <Button
                 variant="primary"
@@ -690,7 +723,7 @@ export function ImportarProducaoPage(): JSX.Element {
                   className="block w-full text-sm text-gray-700"
                 />
                 <p className="text-xs text-gray-400">
-                  CSV ou TSV. Colunas obrigatórias: <strong>Colaborador</strong> e <strong>Repositório</strong>.
+                  CSV ou TSV. Colunas obrigatÃ³rias: <strong>Colaborador</strong> e <strong>RepositÃ³rio</strong>.
                 </p>
               </div>
             )}
@@ -719,7 +752,7 @@ export function ImportarProducaoPage(): JSX.Element {
             {fonteProducao === 'colar' && (
               <div className="space-y-2">
                 <textarea
-                  placeholder={"Data\tColaborador\tFunção\tRepositório\tCoordenadoria\tQuantidade\tTipo\n01/01/2025\tJoão Silva\tPreparação\tREP-001\tCOORD-A\t50\tProcesso"}
+                  placeholder={"Data\tColaborador\tFunÃ§Ã£o\tRepositÃ³rio\tCoordenadoria\tQuantidade\tTipo\n01/01/2025\tJoÃ£o Silva\tPreparaÃ§Ã£o\tREP-001\tCOORD-A\t50\tProcesso"}
                   value={dadosColados}
                   onChange={(e) => setDadosColados(e.target.value)}
                   rows={5}
@@ -735,10 +768,10 @@ export function ImportarProducaoPage(): JSX.Element {
           {/* Import action */}
           <div className="mt-4 pt-4 border-t flex items-center gap-3">
             <Button onClick={() => void handleImportarProducao()} loading={processando || validando} disabled={registrosProducao.length === 0}>
-              {validando ? 'Verificando...' : 'Importar Produção'}
+              {validando ? 'Verificando...' : 'Importar ProduÃ§Ã£o'}
             </Button>
             <span className="text-sm text-gray-500">
-              {arquivoNomeProducao ? `${arquivoNomeProducao} — ${registrosProducao.length} registros` : 'Nenhum dado carregado'}
+              {arquivoNomeProducao ? `${arquivoNomeProducao} â€” ${registrosProducao.length} registros` : 'Nenhum dado carregado'}
             </span>
           </div>
 
@@ -752,8 +785,8 @@ export function ImportarProducaoPage(): JSX.Element {
                     <tr>
                       <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Data</th>
                       <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Colaborador</th>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Função</th>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Repositório</th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">FunÃ§Ã£o</th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">RepositÃ³rio</th>
                       <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Coord.</th>
                       <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Qtd</th>
                       <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Tipo</th>
@@ -786,7 +819,7 @@ export function ImportarProducaoPage(): JSX.Element {
               onClick={() => setHistoricoAberto(!historicoAberto)}
               className="w-full flex items-center justify-between px-5 py-4 text-left"
             >
-              <span className="text-sm font-semibold text-gray-900">Histórico de Importações ({historico.length})</span>
+              <span className="text-sm font-semibold text-gray-900">HistÃ³rico de ImportaÃ§Ãµes ({historico.length})</span>
               <span className="text-xs text-gray-400">{historicoAberto ? 'Recolher' : 'Expandir'}</span>
             </button>
             {historicoAberto && (
@@ -813,27 +846,43 @@ export function ImportarProducaoPage(): JSX.Element {
                         <td className="px-3 py-2 text-gray-700">{item.registros_sucesso}</td>
                         <td className="px-3 py-2 text-gray-700">{item.registros_erro}</td>
                         <td className="px-3 py-2 text-right">
-                          <button
-                            className="text-xs text-blue-600 hover:text-blue-800 font-medium"
-                            onClick={() => {
-                              const detalhes = {
-                                id: item.id,
-                                tipo: item.tipo,
-                                criado_em: item.criado_em,
-                                executado_por: item.executado_por,
-                                usuario_destino_id: item.usuario_destino_id,
-                                total_registros: item.total_registros,
-                                registros_sucesso: item.registros_sucesso,
-                                registros_erro: item.registros_erro,
-                                detalhes_erros: item.detalhes_erros,
-                              };
-                              void navigator.clipboard.writeText(JSON.stringify(detalhes, null, 2)).then(() => {
-                                toast.success('Detalhes copiados.');
-                              });
-                            }}
-                          >
-                            Copiar
-                          </button>
+                          <div className="flex justify-end gap-2">
+                            <button
+                              className="text-xs text-gray-600 hover:text-gray-800 font-medium"
+                              onClick={() => void handleBaixarErrosCsv(item.id)}
+                            >
+                              Erros CSV
+                            </button>
+                            {isAdmin && item.tipo === 'PRODUCAO' && (
+                              <button
+                                className="text-xs text-red-600 hover:text-red-800 font-medium"
+                                onClick={() => handleRollbackImportacao(item.id)}
+                              >
+                                Desfazer
+                              </button>
+                            )}
+                            <button
+                              className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                              onClick={() => {
+                                const detalhes = {
+                                  id: item.id,
+                                  tipo: item.tipo,
+                                  criado_em: item.criado_em,
+                                  executado_por: item.executado_por,
+                                  usuario_destino_id: item.usuario_destino_id,
+                                  total_registros: item.total_registros,
+                                  registros_sucesso: item.registros_sucesso,
+                                  registros_erro: item.registros_erro,
+                                  detalhes_erros: item.detalhes_erros,
+                                };
+                                void navigator.clipboard.writeText(JSON.stringify(detalhes, null, 2)).then(() => {
+                                  toast.success('Detalhes copiados.');
+                                });
+                              }}
+                            >
+                              Copiar
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -847,3 +896,8 @@ export function ImportarProducaoPage(): JSX.Element {
     </PageState>
   );
 }
+
+
+
+
+
