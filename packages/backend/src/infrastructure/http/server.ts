@@ -35,6 +35,7 @@ export async function createServer(dependencies: ServerDependencies): Promise<Fa
     logger: true,
     bodyLimit: 10 * 1024 * 1024, // 10MB default; import routes override per-route
   });
+  const isProduction = process.env.NODE_ENV === 'production';
 
   // Block only exact legacy base paths and their children, without capturing
   // unrelated prefixes such as "/conhecimento-v2" or "/recebimento-novo".
@@ -55,9 +56,14 @@ export async function createServer(dependencies: ServerDependencies): Promise<Fa
   });
 
   // Segurança: CORS
-  const corsOrigin = process.env.NODE_ENV === 'production'
-    ? (process.env.CORS_ORIGIN || 'https://recorda.local')
-    : true;
+  const corsOrigin = (() => {
+    if (!isProduction) return true;
+    const configuredOrigin = process.env.CORS_ORIGIN?.trim();
+    if (!configuredOrigin) {
+      throw new Error('CORS_ORIGIN environment variable is required in production.');
+    }
+    return configuredOrigin;
+  })();
   await server.register(cors, {
     origin: corsOrigin,
     credentials: true,
@@ -74,8 +80,6 @@ export async function createServer(dependencies: ServerDependencies): Promise<Fa
   await server.register(helmet, {
     contentSecurityPolicy: process.env.NODE_ENV === 'production',
   });
-
-  const isProduction = process.env.NODE_ENV === 'production';
 
   if (isProduction) {
     await server.register(rateLimit, {

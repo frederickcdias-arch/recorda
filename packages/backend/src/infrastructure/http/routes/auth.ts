@@ -563,7 +563,9 @@ export const authRoutes = fp(async (server: FastifyInstance): Promise<void> => {
         );
 
         // Enviar e-mail com link de reset
-        const appUrl = process.env.APP_URL || 'http://localhost:5173';
+        const appUrl = process.env.APP_URL?.trim()
+          || request.headers.origin
+          || 'http://localhost:5173';
         const resetLink = `${appUrl}/reset-password?token=${resetToken}`;
 
         try {
@@ -658,4 +660,3 @@ declare module 'fastify' {
     authenticate: (request: FastifyRequest, reply: FastifyReply) => Promise<void>;
   }
 }
-

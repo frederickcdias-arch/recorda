@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
 const isDev = process.env.NODE_ENV !== 'production';
+const devApiTarget = process.env.VITE_DEV_API_TARGET || 'http://localhost:3000';
 
 export default defineConfig({
   plugins: [
@@ -82,7 +83,7 @@ export default defineConfig({
     host: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:3000',
+        target: devApiTarget,
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ''),
       },
