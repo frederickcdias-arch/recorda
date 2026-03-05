@@ -279,6 +279,17 @@ export function useDeleteProducao() {
   });
 }
 
+export function useLimparProducoes() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.delete<{ message: string; removidos: number }>('/producao'),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: queryKeys.producaoAll });
+      void qc.invalidateQueries({ queryKey: queryKeys.dashboard });
+    },
+  });
+}
+
 // ─── Operacional Mutations ───────────────────────────────────
 
 export function useBatchProcessos() {
