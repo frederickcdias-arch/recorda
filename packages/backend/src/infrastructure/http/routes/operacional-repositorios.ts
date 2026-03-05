@@ -3,6 +3,7 @@ import { authorize } from '../middleware/auth.js';
 import { sendDatabaseError } from '../middleware/error-handler.js';
 import { validateBody } from '../middleware/validate.js';
 import {
+  nomeObrigatorioSchema,
   criarRepositorioSchema,
   ocrPreviewSchema,
 } from '../schemas/operacional.js';
@@ -137,26 +138,80 @@ export function createOperacionalRepositoriosRoutes(): FastifyPluginAsync {
     server.get('/operacional/orgaos-recebimento', {
       schema: {
         tags: ['operacional'],
-        summary: 'Listar órgãos para criação de repositório',
+        summary: 'Listar unidades para criacao de repositorio',
         security: [{ bearerAuth: [] }],
       },
       preHandler: [server.authenticate, authorize('operador', 'administrador')],
     }, async (_request, reply) => {
       try {
         const result = await server.database.query(
-          `SELECT DISTINCT TRIM(orgao) AS nome
-           FROM repositorios
-           WHERE orgao IS NOT NULL AND TRIM(orgao) <> '' AND projeto <> 'LEGADO'
+          `WITH unidades_config AS (
+             SELECT id::text AS id, TRIM(nome) AS nome
+             FROM unidades_recebimento
+             WHERE ativo = TRUE AND TRIM(nome) <> ''
+           ),
+           unidades_historico AS (
+             SELECT DISTINCT md5(LOWER(TRIM(orgao))) AS id, TRIM(orgao) AS nome
+             FROM repositorios
+             WHERE orgao IS NOT NULL AND TRIM(orgao) <> '' AND projeto <> 'LEGADO'
+           )
+           SELECT id, nome
+           FROM (
+             SELECT id, nome FROM unidades_config
+             UNION
+             SELECT id, nome FROM unidades_historico
+           ) unidades
            ORDER BY nome ASC`
         );
         return reply.send({ itens: result.rows });
       } catch (error) {
-        const message = error instanceof Error ? error.message : 'Erro ao listar órgãos';
+        const message = error instanceof Error ? error.message : 'Erro ao listar unidades';
+        if (message.includes('unidades_recebimento')) {
+          const fallbackResult = await server.database.query(
+            `SELECT DISTINCT md5(LOWER(TRIM(orgao))) AS id, TRIM(orgao) AS nome
+             FROM repositorios
+             WHERE orgao IS NOT NULL AND TRIM(orgao) <> '' AND projeto <> 'LEGADO'
+             ORDER BY nome ASC`
+          );
+          return reply.send({ itens: fallbackResult.rows });
+        }
         return sendDatabaseError(reply, error, message);
       }
     });
 
-    // GET /operacional/repositorios - Listar repositórios operacionais
+    server.post('/operacional/orgaos-recebimento', {
+      schema: {
+        tags: ['operacional'],
+        summary: 'Criar unidade de recebimento',
+        security: [{ bearerAuth: [] }],
+        body: { type: 'object', required: ['nome'], properties: { nome: { type: 'string' } } },
+        response: {
+          201: { type: 'object', additionalProperties: true },
+          400: { type: 'object', properties: { error: { type: 'string' } } },
+          500: { type: 'object', properties: { error: { type: 'string' } } },
+        },
+      },
+      preHandler: [server.authenticate, authorize('operador', 'administrador'), validateBody(nomeObrigatorioSchema)],
+    }, async (request, reply) => {
+      try {
+        const user = getCurrentUser(request);
+        const { nome } = request.body as { nome: string };
+        const result = await server.database.query(
+          `INSERT INTO unidades_recebimento (nome, criado_por)
+           VALUES ($1, $2)
+           ON CONFLICT (LOWER(TRIM(nome))) WHERE ativo = TRUE
+           DO UPDATE SET nome = EXCLUDED.nome
+           RETURNING id, nome`,
+          [nome, user.id]
+        );
+        return reply.status(201).send(result.rows[0]);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Erro ao criar unidade';
+        return reply.status(400).send({ error: message });
+      }
+    });
+
+    // GET /operacional/repositorios - Listar repositorios operacionais
     server.get('/operacional/repositorios', {
       schema: {
         tags: ['operacional'],
@@ -430,5 +485,6 @@ export function createOperacionalRepositoriosRoutes(): FastifyPluginAsync {
 
   };
 }
+
 
 

@@ -570,6 +570,14 @@ export function useCriarSetorRecebimento() {
   });
 }
 
+export function useCriarOrgaoRecebimento() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (nome: string) => api.post<{ id: string; nome: string }>('/operacional/orgaos-recebimento', { nome }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: queryKeys.orgaosRecebimento }),
+  });
+}
+
 export function useCriarClassificacaoRecebimento() {
   const qc = useQueryClient();
   return useMutation({
