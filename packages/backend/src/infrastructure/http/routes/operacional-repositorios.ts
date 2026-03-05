@@ -50,6 +50,7 @@ export function normalizeIdRepositorioGed(raw: string, anoReferencia?: number): 
 export function createOperacionalRepositoriosRoutes(): FastifyPluginAsync {
   return async (server: FastifyInstance): Promise<void> => {
     const ocrService = server.ocrService;
+    const PROJETO_IMPORTACAO_PRODUCAO = 'IMPORTACAO_PRODUCAO';
 
     // POST /operacional/repositorios - Criar repositório
     server.post('/operacional/repositorios', {
@@ -154,7 +155,9 @@ export function createOperacionalRepositoriosRoutes(): FastifyPluginAsync {
            unidades_historico AS (
              SELECT DISTINCT md5(LOWER(TRIM(orgao))) AS id, TRIM(orgao) AS nome
              FROM repositorios
-             WHERE orgao IS NOT NULL AND TRIM(orgao) <> '' AND projeto <> 'LEGADO'
+             WHERE orgao IS NOT NULL
+               AND TRIM(orgao) <> ''
+               AND projeto NOT IN ('LEGADO', $1)
            )
            SELECT id, nome
            FROM (
@@ -162,7 +165,8 @@ export function createOperacionalRepositoriosRoutes(): FastifyPluginAsync {
              UNION
              SELECT id, nome FROM unidades_historico
            ) unidades
-           ORDER BY nome ASC`
+           ORDER BY nome ASC`,
+          [PROJETO_IMPORTACAO_PRODUCAO]
         );
         return reply.send({ itens: result.rows });
       } catch (error) {
@@ -171,8 +175,11 @@ export function createOperacionalRepositoriosRoutes(): FastifyPluginAsync {
           const fallbackResult = await server.database.query(
             `SELECT DISTINCT md5(LOWER(TRIM(orgao))) AS id, TRIM(orgao) AS nome
              FROM repositorios
-             WHERE orgao IS NOT NULL AND TRIM(orgao) <> '' AND projeto <> 'LEGADO'
-             ORDER BY nome ASC`
+             WHERE orgao IS NOT NULL
+               AND TRIM(orgao) <> ''
+               AND projeto NOT IN ('LEGADO', $1)
+             ORDER BY nome ASC`,
+            [PROJETO_IMPORTACAO_PRODUCAO]
           );
           return reply.send({ itens: fallbackResult.rows });
         }
@@ -245,9 +252,9 @@ export function createOperacionalRepositoriosRoutes(): FastifyPluginAsync {
         const limite = Math.min(Math.max(Number(query.limite ?? 20), 1), 100);
         const offset = (pagina - 1) * limite;
 
-        let where = "WHERE r.projeto <> 'LEGADO'";
-        const params: (string | number)[] = [];
-        let p = 1;
+        let where = 'WHERE r.projeto NOT IN ($1, $2)';
+        const params: (string | number)[] = ['LEGADO', PROJETO_IMPORTACAO_PRODUCAO];
+        let p = 3;
 
         if (query.status) {
           where += ` AND r.status_atual = $${p++}`;
@@ -334,8 +341,12 @@ export function createOperacionalRepositoriosRoutes(): FastifyPluginAsync {
         );
 
         // Contadores por status para a etapa filtrada (para summary cards)
-        const contadoresWhere = query.etapa ? `WHERE r.projeto <> 'LEGADO' AND r.etapa_atual = $1` : `WHERE r.projeto <> 'LEGADO'`;
-        const contadoresParams = query.etapa ? [query.etapa] : [];
+        const contadoresWhere = query.etapa
+          ? `WHERE r.projeto NOT IN ($1, $2) AND r.etapa_atual = $3`
+          : `WHERE r.projeto NOT IN ($1, $2)`;
+        const contadoresParams = query.etapa
+          ? ['LEGADO', PROJETO_IMPORTACAO_PRODUCAO, query.etapa]
+          : ['LEGADO', PROJETO_IMPORTACAO_PRODUCAO];
         const contadoresResult = await server.database.query<{ status_atual: string; qtd: string }>(
           `SELECT r.status_atual, COUNT(*)::text AS qtd
            FROM repositorios r
