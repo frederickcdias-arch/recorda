@@ -1,0 +1,159 @@
+{
+  "documentos": [
+    {
+      "codigo": "KB-REC-001",
+      "titulo": "Manual de Recebimento e Triagem",
+      "categoria": "MANUAIS",
+      "descricao": "Padrao para recebimento inicial, triagem e validacao minima.",
+      "nivelAcesso": "OPERADOR_ADMIN",
+      "etapas": ["RECEBIMENTO"],
+      "resumoAlteracao": "Versao inicial",
+      "conteudo": "# Objetivo\nPadronizar o recebimento e triagem de repositorios.\n\n## Entrada\n- Repositorio GED\n- Unidade\n- Projeto\n\n## Passos\n1. Validar identificacao e contexto (GED+unidade+projeto).\n2. Confirmar campos obrigatorios.\n3. Registrar inconsistencias como excecao.\n\n## Criterio de aceite\nRepositorio registrado sem pendencias criticas."
+    },
+    {
+      "codigo": "KB-PRE-001",
+      "titulo": "Procedimento de Preparacao Fisica",
+      "categoria": "PROCEDIMENTOS_ETAPA",
+      "descricao": "Higienizacao, ordenacao e preparo de volumes para digitalizacao.",
+      "nivelAcesso": "OPERADOR_ADMIN",
+      "etapas": ["PREPARACAO"],
+      "resumoAlteracao": "Versao inicial",
+      "conteudo": "# Objetivo\nPreparar documentos para digitalizacao com rastreabilidade.\n\n## Passos\n1. Conferir integridade fisica.\n2. Organizar sequencia logica.\n3. Sinalizar ausencias e danos.\n\n## Evidencias\nChecklist de preparacao concluido."
+    },
+    {
+      "codigo": "KB-DIG-001",
+      "titulo": "Padrao de Digitalizacao",
+      "categoria": "PROCEDIMENTOS_ETAPA",
+      "descricao": "Parametros operacionais de captura e qualidade minima de imagem.",
+      "nivelAcesso": "OPERADOR_ADMIN",
+      "etapas": ["DIGITALIZACAO"],
+      "resumoAlteracao": "Versao inicial",
+      "conteudo": "# Objetivo\nGarantir legibilidade e consistencia da digitalizacao.\n\n## Passos\n1. Configurar perfil de captura.\n2. Executar digitalizacao por lote.\n3. Validar amostra de qualidade.\n\n## Criterio de aceite\nImagem legivel e pagina completa."
+    },
+    {
+      "codigo": "KB-CON-001",
+      "titulo": "Conferencia Pos-Digitalizacao",
+      "categoria": "PROCEDIMENTOS_ETAPA",
+      "descricao": "Conferencia de completude, legibilidade e sequencia documental.",
+      "nivelAcesso": "OPERADOR_ADMIN",
+      "etapas": ["CONFERENCIA"],
+      "resumoAlteracao": "Versao inicial",
+      "conteudo": "# Objetivo\nDetectar falhas antes da montagem e CQ.\n\n## Passos\n1. Conferir pagina a pagina por amostragem.\n2. Validar indexacao minima.\n3. Abrir retrabalho quando necessario."
+    },
+    {
+      "codigo": "KB-MON-001",
+      "titulo": "Montagem e Encadeamento de Processos",
+      "categoria": "PROCEDIMENTOS_ETAPA",
+      "descricao": "Regras para vinculo correto de processos principais, apensos e avulsos.",
+      "nivelAcesso": "OPERADOR_ADMIN",
+      "etapas": ["MONTAGEM"],
+      "resumoAlteracao": "Versao inicial",
+      "conteudo": "# Objetivo\nGarantir encadeamento correto das pecas digitais.\n\n## Passos\n1. Validar processo principal.\n2. Vincular apensos/volumes.\n3. Registrar justificativa de excecoes."
+    },
+    {
+      "codigo": "KB-CQ-001",
+      "titulo": "Criterios de Controle de Qualidade",
+      "categoria": "CHECKLISTS_EXPLICADOS",
+      "descricao": "Criterios de aprovacao, reprovacao e retorno para etapa anterior.",
+      "nivelAcesso": "OPERADOR_ADMIN",
+      "etapas": ["CONTROLE_QUALIDADE"],
+      "resumoAlteracao": "Versao inicial",
+      "conteudo": "# Objetivo\nPadronizar decisao de CQ com criterios objetivos.\n\n## Regras\n- Aprovar quando todos os criterios forem atendidos.\n- Reprovar com motivo tipificado.\n- Retornar para etapa de origem quando houver falha estrutural."
+    },
+    {
+      "codigo": "KB-ENT-001",
+      "titulo": "Protocolo de Entrega e Evidencias",
+      "categoria": "PROCEDIMENTOS_ETAPA",
+      "descricao": "Checklist de saida, aceite e evidencias para encerramento.",
+      "nivelAcesso": "OPERADOR_ADMIN",
+      "etapas": ["ENTREGA"],
+      "resumoAlteracao": "Versao inicial",
+      "conteudo": "# Objetivo\nFinalizar entrega com rastreabilidade completa.\n\n## Passos\n1. Validar lote final.\n2. Emitir relatorio de entrega.\n3. Armazenar evidencias de aceite."
+    },
+    {
+      "codigo": "KB-ALL-001",
+      "titulo": "Matriz de Decisao Operacional",
+      "categoria": "CHECKLISTS_EXPLICADOS",
+      "descricao": "Quando aprovar, devolver, abrir excecao ou escalar.",
+      "nivelAcesso": "OPERADOR_ADMIN",
+      "etapas": ["RECEBIMENTO", "PREPARACAO", "DIGITALIZACAO", "CONFERENCIA", "MONTAGEM", "CONTROLE_QUALIDADE", "ENTREGA"],
+      "resumoAlteracao": "Versao inicial",
+      "conteudo": "# Objetivo\nReduzir ambiguidade nas decisoes operacionais.\n\n## Matriz\n- Falha leve: corrigir na etapa atual.\n- Falha media: abrir retrabalho.\n- Falha critica: escalar para lideranca."
+    },
+    {
+      "codigo": "KB-ALL-002",
+      "titulo": "Tratativa de Excecoes e Retrabalho",
+      "categoria": "ATUALIZACOES_PROCESSO",
+      "descricao": "Fluxo padrao para excecoes, retrabalho e reincidencia.",
+      "nivelAcesso": "OPERADOR_ADMIN",
+      "etapas": ["RECEBIMENTO", "PREPARACAO", "DIGITALIZACAO", "CONFERENCIA", "MONTAGEM", "CONTROLE_QUALIDADE", "ENTREGA"],
+      "resumoAlteracao": "Versao inicial",
+      "conteudo": "# Objetivo\nTratar excecoes sem perda de rastreabilidade.\n\n## Passos\n1. Classificar tipo de excecao.\n2. Registrar causa raiz.\n3. Definir acao corretiva e prazo."
+    },
+    {
+      "codigo": "KB-ALL-003",
+      "titulo": "Politica de Duplicidade de Repositorio",
+      "categoria": "NORMAS_LEIS",
+      "descricao": "Duplicidade somente quando ID GED + unidade + projeto coincidirem.",
+      "nivelAcesso": "OPERADOR_ADMIN",
+      "etapas": ["RECEBIMENTO"],
+      "resumoAlteracao": "Versao inicial",
+      "conteudo": "# Regra\nRepositorio e duplicado apenas quando os tres campos coincidirem:\n- idRepositorioGed\n- orgao/unidade\n- projeto\n\n## Exemplos\n- Mesmo GED em unidade diferente: permitido.\n- Mesmo GED e unidade, projeto diferente: permitido.\n- Mesmo GED, mesma unidade e mesmo projeto: bloqueado."
+    }
+  ],
+  "glossario": [
+    { "termo": "Repositorio", "definicao": "Unidade logica de controle no fluxo operacional." },
+    { "termo": "ID GED", "definicao": "Identificador principal do repositorio no padrao GED." },
+    { "termo": "Processo principal", "definicao": "Processo base ao qual documentos e apensos sao vinculados." },
+    { "termo": "Apenso", "definicao": "Documento/processo vinculado a um processo principal." },
+    { "termo": "Avulso", "definicao": "Documento sem vinculo inicial, tratado em fluxo dedicado." },
+    { "termo": "Lote CQ", "definicao": "Conjunto de itens submetidos a controle de qualidade." },
+    { "termo": "Marcador", "definicao": "Metadado complementar registrado na producao/importacao." },
+    { "termo": "Etapa atual", "definicao": "Posicao atual do repositorio no fluxo operacional." },
+    { "termo": "Excecao", "definicao": "Ocorrencia fora do fluxo padrao que exige tratativa registrada." },
+    { "termo": "Retrabalho", "definicao": "Reexecucao de atividade por falha de qualidade ou consistencia." },
+    { "termo": "Idempotencia", "definicao": "Garantia de nao duplicar efeito em reprocessamentos equivalentes." },
+    { "termo": "Fonte de importacao", "definicao": "Origem de dados externa usada para importar producao/legado." },
+    { "termo": "Checklist", "definicao": "Lista de validacoes obrigatorias por etapa." },
+    { "termo": "Protocolo de entrega", "definicao": "Registro formal de conclusao e envio de lote/repositorio." },
+    { "termo": "Evidencia", "definicao": "Prova objetiva da execucao correta de uma atividade." }
+  ],
+  "leisNormas": [
+    {
+      "nome": "Lei Geral de Protecao de Dados (LGPD)",
+      "descricao": "Define requisitos para tratamento de dados pessoais em toda operacao.",
+      "referencia": "Lei 13.709/2018",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709.htm"
+    },
+    {
+      "nome": "Politica interna de classificacao documental",
+      "descricao": "Estabelece classes documentais e criterios de tratamento.",
+      "referencia": "Norma interna",
+      "url": ""
+    },
+    {
+      "nome": "Norma de retencao e descarte documental",
+      "descricao": "Define prazos de guarda e regras de descarte seguro.",
+      "referencia": "Tabela de temporalidade",
+      "url": ""
+    },
+    {
+      "nome": "Procedimento de auditoria operacional",
+      "descricao": "Padroniza evidencias e controles para auditoria interna/externa.",
+      "referencia": "Procedimento interno",
+      "url": ""
+    },
+    {
+      "nome": "Norma de rastreabilidade de alteracoes",
+      "descricao": "Exige trilha de auditoria para mudancas em documentos e etapas.",
+      "referencia": "Politica de governanca",
+      "url": ""
+    },
+    {
+      "nome": "Guia de seguranca da informacao",
+      "descricao": "Regras de acesso, confidencialidade e integridade da informacao.",
+      "referencia": "Manual corporativo",
+      "url": ""
+    }
+  ]
+}
