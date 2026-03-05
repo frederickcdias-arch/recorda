@@ -33,6 +33,8 @@ export class ExcelExportService {
     sheet.addRow({ campo: 'Período', valor: `${dataInicio} a ${dataFim}` });
     sheet.addRow({ campo: 'Data de Geração', valor: dataGeracao });
     sheet.addRow({ campo: '', valor: '' });
+    sheet.addRow({ campo: 'Total Caixas', valor: relatorio.totais.totalCaixas });
+    sheet.addRow({ campo: 'Total Imagens', valor: relatorio.totais.totalImagens });
     sheet.addRow({ campo: 'Total Geral', valor: relatorio.totais.totalGeral });
     sheet.addRow({ campo: 'Total de Colaboradores', valor: relatorio.totais.totalColaboradores });
     sheet.addRow({ campo: 'Total de Coordenadorias', valor: relatorio.totais.totalCoordenadorias });
@@ -64,15 +66,24 @@ export class ExcelExportService {
       });
     }
 
-    const totalRow = sheet.addRow({
+    const totalCaixasRow = sheet.addRow({
       ordem: '',
-      etapa: 'TOTAL',
-      unidade: '',
-      quantidade: relatorio.totais.totalGeral,
+      etapa: 'TOTAL CAIXAS',
+      unidade: 'CAIXAS',
+      quantidade: relatorio.totais.totalCaixas,
       colaboradores: relatorio.totais.totalColaboradores,
       media: '',
     });
-    totalRow.font = { bold: true };
+    totalCaixasRow.font = { bold: true };
+    const totalImagensRow = sheet.addRow({
+      ordem: '',
+      etapa: 'TOTAL IMAGENS',
+      unidade: 'IMAGENS',
+      quantidade: relatorio.totais.totalImagens,
+      colaboradores: '',
+      media: '',
+    });
+    totalImagensRow.font = { bold: true };
 
     this.estilizarCabecalho(sheet);
   }
@@ -84,6 +95,8 @@ export class ExcelExportService {
       { header: 'Sigla', key: 'sigla', width: 15 },
       { header: 'Coordenadoria', key: 'nome', width: 35 },
       { header: 'Colaboradores', key: 'colaboradores', width: 15 },
+      { header: 'Caixas', key: 'caixas', width: 15 },
+      { header: 'Imagens', key: 'imagens', width: 15 },
       { header: 'Total', key: 'total', width: 15 },
     ];
 
@@ -92,6 +105,8 @@ export class ExcelExportService {
         sigla: coord.coordenadoriaSigla,
         nome: coord.coordenadoriaNome,
         colaboradores: coord.colaboradores.length,
+        caixas: coord.totalCaixas,
+        imagens: coord.totalImagens,
         total: coord.totalGeral,
       });
     }
@@ -100,6 +115,8 @@ export class ExcelExportService {
       sigla: '',
       nome: 'TOTAL',
       colaboradores: relatorio.totais.totalColaboradores,
+      caixas: relatorio.totais.totalCaixas,
+      imagens: relatorio.totais.totalImagens,
       total: relatorio.totais.totalGeral,
     });
     totalRow.font = { bold: true };

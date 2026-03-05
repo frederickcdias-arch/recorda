@@ -324,11 +324,13 @@ export class OperacionalPDFService {
         doc.roundedRect(marginLeft, boxY, pageWidth, 32, 4).fill('#eef2ff');
         doc.restore();
         doc.font('Helvetica-Bold').fontSize(9).fillColor('#1e3a5f');
-        doc.text(`Documentos: ${processos.length}`, marginLeft + 12, boxY + 10);
-        doc.text(totalApensos > 0 ? `(${mainProcessos.length} processos + ${totalApensos} apensos)` : `RepositÃ³rios: ${repos.length}`, marginLeft + 120, boxY + 10);
-        const totalCaixas = repos.length;
-        if (totalCaixas > 0) doc.text(`RepositÃ³rio: ${totalCaixas}`, marginLeft + 380, boxY + 10);
-        doc.y = boxY + 40;
+        const totalImagens = processos.length;
+        const totalCaixas = processos
+          .filter((p) => !p.isApenso)
+          .reduce((acc, p) => acc + Math.max(Number(p.numeroCaixas ?? 0), 0), 0);
+        doc.text(`Imagens: ${totalImagens}`, marginLeft + 12, boxY + 10);
+        doc.text(totalApensos > 0 ? `(${mainProcessos.length} processos + ${totalApensos} apensos)` : `Repositórios: ${repos.length}`, marginLeft + 120, boxY + 10);
+        doc.text(`Caixas: ${totalCaixas}`, marginLeft + 380, boxY + 10);
 
         // Tabela de processos (com apensos intercalados)
         if (processos.length > 0) {
@@ -557,9 +559,13 @@ export class OperacionalPDFService {
         doc.roundedRect(marginLeft, boxY, pageWidth, 32, 4).fill('#eef2ff');
         doc.restore();
         doc.font('Helvetica-Bold').fontSize(9).fillColor('#1e3a5f');
-        doc.text(`Documentos: ${processos.length}`, marginLeft + 12, boxY + 10);
-        doc.text(`RepositÃ³rios: ${repos.length}`, marginLeft + 140, boxY + 10);
-        doc.y = boxY + 40;
+        const totalImagens = processos.length;
+        const totalCaixas = processos
+          .filter((p) => !p.isApenso)
+          .reduce((acc, p) => acc + Math.max(Number(p.numeroCaixas ?? 0), 0), 0);
+        doc.text(`Imagens: ${totalImagens}`, marginLeft + 12, boxY + 10);
+        doc.text(`Repositórios: ${repos.length}`, marginLeft + 140, boxY + 10);
+        doc.text(`Caixas: ${totalCaixas}`, marginLeft + 320, boxY + 10);
 
         // Table (same format as recebimento)
         if (processos.length > 0) {
