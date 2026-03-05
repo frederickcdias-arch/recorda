@@ -4,6 +4,7 @@ import { Button } from '../../components/ui/Button';
 import { ActionFeedback } from '../../components/ui/PageState';
 import { api } from '../../services/api';
 import { useCoordenadorias } from '../../hooks/useQueries';
+import { formatDateBR, formatDateTimeBR } from '../../utils/date';
 
 interface Coordenadoria {
   id: string;
@@ -310,8 +311,8 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
           <div className="bg-blue-50 rounded-xl p-4 border border-blue-200 text-center">
             <h3 className="text-lg font-bold text-blue-900">{relatorio.titulo.toUpperCase()}</h3>
             <p className="text-sm text-blue-700 mt-1">
-              Período: {new Date(relatorio.periodo.inicio).toLocaleDateString('pt-BR')} a {new Date(relatorio.periodo.fim).toLocaleDateString('pt-BR')}
-              {' | '}Emitido em: {new Date(relatorio.dataGeracao).toLocaleString('pt-BR')}
+              Período: {formatDateBR(relatorio.periodo.inicio)} a {formatDateBR(relatorio.periodo.fim)}
+              {' | '}Emitido em: {formatDateTimeBR(relatorio.dataGeracao)}
             </p>
           </div>
 

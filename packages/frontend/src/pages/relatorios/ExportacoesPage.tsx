@@ -4,6 +4,7 @@ import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { ActionFeedback } from '../../components/ui/PageState';
 import { api } from '../../services/api';
+import { formatDateBR, toDateInputValue } from '../../utils/date';
 
 interface PreviewData {
   titulo: string;
@@ -75,9 +76,9 @@ export function ExportacoesPage(): JSX.Element {
   const [dataInicio, setDataInicio] = useState(() => {
     const d = new Date();
     d.setMonth(d.getMonth() - 1);
-    return d.toISOString().split('T')[0] ?? '';
+    return toDateInputValue(d);
   });
-  const [dataFim, setDataFim] = useState(() => new Date().toISOString().split('T')[0] ?? '');
+  const [dataFim, setDataFim] = useState(() => toDateInputValue(new Date()));
 
   const validarPeriodo = (): boolean => {
     if (!dataInicio || !dataFim) {
@@ -131,7 +132,7 @@ export function ExportacoesPage(): JSX.Element {
         setPreviewOperacional(
           (data.registros ?? []).map((r) => ({
             id: r.id,
-            data: r.data_producao ? new Date(r.data_producao).toLocaleDateString('pt-BR') : '',
+            data: formatDateBR(r.data_producao),
             colaborador: r.colaborador ?? '',
             etapa: r.etapa ?? '',
             funcao: r.funcao ?? '',
