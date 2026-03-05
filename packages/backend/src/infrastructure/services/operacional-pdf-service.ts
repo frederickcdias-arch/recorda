@@ -138,7 +138,7 @@ export class OperacionalPDFService {
         doc.restore();
         doc.moveDown(0.6);
 
-        // Título
+        // TÃ­tulo
         doc.font('Helvetica-Bold').fontSize(15).fillColor('#1e3a5f')
           .text('TERMO DE ENTREGA', { align: 'center' });
         doc.font('Helvetica').fontSize(9).fillColor('#6b7280')
@@ -152,7 +152,7 @@ export class OperacionalPDFService {
         doc.restore();
         doc.moveDown(0.6);
 
-        // Bloco de referência
+        // Bloco de referÃªncia
         const refBoxY = doc.y;
         doc.save();
         doc.roundedRect(marginLeft, refBoxY, pageWidth, 52, 4).fill('#f8fafc');
@@ -169,7 +169,7 @@ export class OperacionalPDFService {
         doc.text(payload.lote.auditor_nome ?? '-', marginLeft + 300, refBoxY + 20);
 
         doc.font('Helvetica-Bold').fontSize(8.5).fillColor('#6b7280');
-        doc.text('DATA CRIAÇÃO', marginLeft + 12, refBoxY + 34);
+        doc.text('DATA CRIAÃ‡ÃƒO', marginLeft + 12, refBoxY + 34);
         doc.text('DATA FECHAMENTO', marginLeft + 160, refBoxY + 34);
 
         doc.font('Helvetica').fontSize(9).fillColor('#374151');
@@ -180,7 +180,7 @@ export class OperacionalPDFService {
         doc.moveDown(0.5);
 
         // Texto formal
-        const auditor = payload.lote.auditor_nome || 'o auditor responsável';
+        const auditor = payload.lote.auditor_nome || 'o auditor responsÃ¡vel';
         doc.font('Helvetica').fontSize(10).fillColor('#111827');
         doc.text(
           `Pelo presente termo, declaramos que ${auditor} realizou a auditoria de controle de qualidade do lote ${payload.lote.codigo}, conforme itens discriminados na tabela abaixo:`,
@@ -215,7 +215,7 @@ export class OperacionalPDFService {
         );
 
         // Data e assinaturas
-        this.renderDataAssinaturas(doc, payload.geradoEm, 'Auditor / Controle de Qualidade', 'Responsável pela Entrega');
+        this.renderDataAssinaturas(doc, payload.geradoEm, 'Auditor / Controle de Qualidade', 'ResponsÃ¡vel pela Entrega');
 
         this.renderRodape(doc);
         doc.end();
@@ -241,7 +241,7 @@ export class OperacionalPDFService {
         const marginLeft = doc.page.margins.left;
         const processos = payload.processos ?? [];
 
-        // Logo da empresa (mesmo padrão do relatório gerencial)
+        // Logo da empresa (mesmo padrÃ£o do relatÃ³rio gerencial)
         if (logoBuffer) {
           const imageWidth = 120;
           const imageX = marginLeft + (pageWidth - imageWidth) / 2;
@@ -270,7 +270,7 @@ export class OperacionalPDFService {
         doc.restore();
         doc.moveDown(0.6);
 
-        // Título
+        // TÃ­tulo
         doc.font('Helvetica-Bold').fontSize(15).fillColor('#1e3a5f')
           .text('TERMO DE RECEBIMENTO DE DOCUMENTOS', { align: 'center' });
         doc.font('Helvetica').fontSize(9).fillColor('#6b7280')
@@ -284,7 +284,7 @@ export class OperacionalPDFService {
         doc.restore();
         doc.moveDown(0.6);
 
-        // Bloco de referência
+        // Bloco de referÃªncia
         const setores = [...new Set(processos.map((p) => (p.setor ?? '').trim()).filter(Boolean))];
         const setorTexto = setores.length > 0 ? setores.join(', ') : 'NAO INFORMADO';
 
@@ -296,7 +296,7 @@ export class OperacionalPDFService {
         doc.font('Helvetica-Bold').fontSize(8.5).fillColor('#6b7280');
         doc.text('SETOR', marginLeft + 12, refBoxY + 8);
         doc.text('PROJETO', marginLeft + 240, refBoxY + 8);
-        doc.text('RESPONSÁVEL', marginLeft + 380, refBoxY + 8);
+        doc.text('RESPONSÃVEL', marginLeft + 380, refBoxY + 8);
 
         doc.font('Helvetica').fontSize(9.5).fillColor('#111827');
         doc.text(setorTexto, marginLeft + 12, refBoxY + 20, { width: 220, lineBreak: true });
@@ -329,7 +329,7 @@ export class OperacionalPDFService {
           .filter((p) => !p.isApenso)
           .reduce((acc, p) => acc + Math.max(Number(p.numeroCaixas ?? 0), 0), 0);
         doc.text(`Imagens: ${totalImagens}`, marginLeft + 12, boxY + 10);
-        doc.text(totalApensos > 0 ? `(${mainProcessos.length} processos + ${totalApensos} apensos)` : `Reposit�rios: ${repos.length}`, marginLeft + 120, boxY + 10);
+        doc.text(totalApensos > 0 ? `(${mainProcessos.length} processos + ${totalApensos} apensos)` : `Repositórios: ${repos.length}`, marginLeft + 120, boxY + 10);
         doc.text(`Caixas: ${totalCaixas}`, marginLeft + 380, boxY + 10);
 
         // Tabela de processos (com apensos intercalados)
@@ -391,7 +391,7 @@ export class OperacionalPDFService {
 
         // Title
         doc.font('Helvetica-Bold').fontSize(15).fillColor('#b91c1c')
-          .text('TERMO DE CORREÇÃO', { align: 'center' });
+          .text('TERMO DE CORREÃ‡ÃƒO', { align: 'center' });
         doc.font('Helvetica').fontSize(9).fillColor('#6b7280')
           .text('Controle de Qualidade', { align: 'center' });
         doc.moveDown(0.4);
@@ -410,7 +410,7 @@ export class OperacionalPDFService {
         doc.restore();
 
         doc.font('Helvetica-Bold').fontSize(8.5).fillColor('#6b7280');
-        doc.text('REPOSITÓRIO', marginLeft + 12, refBoxY + 8);
+        doc.text('REPOSITÃ“RIO', marginLeft + 12, refBoxY + 8);
         doc.text('UNIDADE', marginLeft + 200, refBoxY + 8);
         doc.text('PROJETO', marginLeft + 360, refBoxY + 8);
 
@@ -425,7 +425,7 @@ export class OperacionalPDFService {
         // Formal text
         doc.font('Helvetica').fontSize(10).fillColor('#111827');
         doc.text(
-          `Pelo presente termo, informamos que os documentos abaixo listados do repositório ${payload.repositorio.id_repositorio_ged} foram reprovados na auditoria de controle de qualidade e necessitam de correção conforme observações indicadas.`,
+          `Pelo presente termo, informamos que os documentos abaixo listados do repositÃ³rio ${payload.repositorio.id_repositorio_ged} foram reprovados na auditoria de controle de qualidade e necessitam de correÃ§Ã£o conforme observaÃ§Ãµes indicadas.`,
           marginLeft, doc.y, { width: pageWidth, align: 'justify', lineGap: 3 }
         );
         doc.moveDown(0.6);
@@ -442,7 +442,7 @@ export class OperacionalPDFService {
         // Table
         this.renderGenericTable(
           doc,
-          ['#', 'PROTOCOLO', 'INTERESSADO', 'VOL.', 'OBSERVAÇÃO'],
+          ['#', 'PROTOCOLO', 'INTERESSADO', 'VOL.', 'OBSERVAÃ‡ÃƒO'],
           [28, 100, 130, 36, 210],
           payload.documentos.map((item, idx) => [
             String(idx + 1),
@@ -454,7 +454,7 @@ export class OperacionalPDFService {
         );
 
         // Date and signatures
-        this.renderDataAssinaturas(doc, payload.geradoEm, 'Controle de Qualidade', 'Conferente Responsável');
+        this.renderDataAssinaturas(doc, payload.geradoEm, 'Controle de Qualidade', 'Conferente ResponsÃ¡vel');
 
         this.renderRodape(doc);
         doc.end();
@@ -511,7 +511,7 @@ export class OperacionalPDFService {
 
         // Title
         doc.font('Helvetica-Bold').fontSize(15).fillColor('#1e3a5f')
-          .text('TERMO DE DEVOLUÇÃO DE DOCUMENTOS', { align: 'center' });
+          .text('TERMO DE DEVOLUÃ‡ÃƒO DE DOCUMENTOS', { align: 'center' });
         doc.font('Helvetica').fontSize(9).fillColor('#6b7280')
           .text('Controle de Qualidade', { align: 'center' });
         doc.moveDown(0.4);
@@ -533,7 +533,7 @@ export class OperacionalPDFService {
         doc.restore();
 
         doc.font('Helvetica-Bold').fontSize(8.5).fillColor('#6b7280');
-        doc.text('SETOR DESTINATÁRIO', marginLeft + 12, refBoxY + 8);
+        doc.text('SETOR DESTINATÃRIO', marginLeft + 12, refBoxY + 8);
         doc.text('PROJETO', marginLeft + 240, refBoxY + 8);
 
         doc.font('Helvetica').fontSize(9.5).fillColor('#111827');
@@ -547,7 +547,7 @@ export class OperacionalPDFService {
         const setorFormal = setores.length > 0 ? setores.join(', ') : 'setor de destino';
         doc.font('Helvetica').fontSize(10).fillColor('#111827');
         doc.text(
-          `Pelo presente termo, declaramos que devolvemos ao(à) ${setorFormal} os processos e documentos abaixo discriminados, após conclusão do tratamento documental e aprovação no controle de qualidade.`,
+          `Pelo presente termo, declaramos que devolvemos ao(Ã ) ${setorFormal} os processos e documentos abaixo discriminados, apÃ³s conclusÃ£o do tratamento documental e aprovaÃ§Ã£o no controle de qualidade.`,
           marginLeft, doc.y, { width: pageWidth, align: 'justify', lineGap: 3 }
         );
         doc.moveDown(0.6);
@@ -564,7 +564,7 @@ export class OperacionalPDFService {
           .filter((p) => !p.isApenso)
           .reduce((acc, p) => acc + Math.max(Number(p.numeroCaixas ?? 0), 0), 0);
         doc.text(`Imagens: ${totalImagens}`, marginLeft + 12, boxY + 10);
-        doc.text(`Reposit�rios: ${repos.length}`, marginLeft + 140, boxY + 10);
+        doc.text(`Repositórios: ${repos.length}`, marginLeft + 140, boxY + 10);
         doc.text(`Caixas: ${totalCaixas}`, marginLeft + 320, boxY + 10);
 
         // Table (same format as recebimento)
@@ -591,7 +591,7 @@ export class OperacionalPDFService {
         }
 
         // Date and signatures
-        this.renderDataAssinaturas(doc, payload.geradoEm, 'Equipe de Controle de Qualidade', 'Setor Destinatário');
+        this.renderDataAssinaturas(doc, payload.geradoEm, 'Equipe de Controle de Qualidade', 'Setor DestinatÃ¡rio');
 
         this.renderRodape(doc);
         doc.end();
@@ -786,7 +786,7 @@ export class OperacionalPDFService {
     const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
     const marginLeft = doc.page.margins.left;
 
-    // Garantir espaço mínimo para data + assinaturas (~140px)
+    // Garantir espaÃ§o mÃ­nimo para data + assinaturas (~140px)
     const assinaturaHeight = 118;
     const limiteInferior = doc.page.height - doc.page.margins.bottom;
     if (doc.y + assinaturaHeight > limiteInferior) {
@@ -797,7 +797,7 @@ export class OperacionalPDFService {
 
     // Data por extenso
     const meses = [
-      'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
+      'janeiro', 'fevereiro', 'marÃ§o', 'abril', 'maio', 'junho',
       'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro',
     ];
     const data = new Date(dataRef);
