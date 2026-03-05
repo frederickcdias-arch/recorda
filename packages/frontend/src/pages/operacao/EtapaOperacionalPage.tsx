@@ -24,7 +24,7 @@ import {
   useRepositorios, useCreateRepositorio, useDeleteRepositorio, useAvancarEtapa,
   useBatchProcessos, useRegistrarProducao, useGerarRelatorioRecebimento, useGerarRelatorioProducao,
   useCriarChecklist, useConcluirChecklist,
-  useOrgaosRecebimento, useProjetosConfiguracao,
+  useOrgaosRecebimento, useProjetosConfiguracao, useCreateProjetoConfiguracao,
   useQueryClient, queryKeys,
 } from '../../hooks/useQueries';
 
@@ -130,6 +130,7 @@ export function EtapaOperacionalPage(): JSX.Element {
     projeto: '',
     classificacaoId: '',
   });
+  const [novoProjetoInput, setNovoProjetoInput] = useState('');
 
   const [checklistModalOpen, setChecklistModalOpen] = useState(false);
   const [checklistId, setChecklistId] = useState('');
@@ -211,6 +212,7 @@ export function EtapaOperacionalPage(): JSX.Element {
   const concluirChecklist = useConcluirChecklist();
   const orgaosQuery = useOrgaosRecebimento();
   const projetosQuery = useProjetosConfiguracao();
+  const createProjeto = useCreateProjetoConfiguracao();
   const orgaosOptions = orgaosQuery.data ?? [];
   const projetosOptions = projetosQuery.data ?? [];
 
@@ -225,6 +227,37 @@ export function EtapaOperacionalPage(): JSX.Element {
 
   const showSuccess = (texto: string): void => toast.success(texto);
   const showError = (texto: string): void => toast.error(texto);
+
+  const handleCriarProjetoRapido = async (): Promise<void> => {
+    const nomeProjeto = novoProjetoInput.trim();
+    if (!nomeProjeto) return;
+
+    const existente = projetosOptions.find((p) => p.nome.trim().toLowerCase() === nomeProjeto.toLowerCase());
+    if (existente) {
+      setNovoRepositorio((prev) => ({ ...prev, projeto: existente.nome }));
+      setNovoProjetoInput('');
+      showSuccess('Projeto já existente e selecionado.');
+      return;
+    }
+
+    if (!isAdmin) {
+      showError('Somente administradores podem cadastrar projeto rápido.');
+      return;
+    }
+
+    try {
+      setProcessando(true);
+      const projetoCriado = await createProjeto.mutateAsync({ nome: nomeProjeto, ativo: true });
+      const nomeCriado = (projetoCriado as { nome?: string }).nome ?? nomeProjeto;
+      setNovoRepositorio((prev) => ({ ...prev, projeto: nomeCriado }));
+      setNovoProjetoInput('');
+      showSuccess('Projeto cadastrado e selecionado com sucesso.');
+    } catch (error) {
+      showError(extractErrorMessage(error, 'Erro ao cadastrar projeto'));
+    } finally {
+      setProcessando(false);
+    }
+  };
 
   const handleCriarRepositorio = async (): Promise<void> => {
     if (!novoRepositorio.idRepositorioGed || !novoRepositorio.orgao || !novoRepositorio.projeto || !novoRepositorio.classificacaoId) {
@@ -637,12 +670,27 @@ export function EtapaOperacionalPage(): JSX.Element {
                           <option key={o.id} value={o.nome}>{o.nome}</option>
                         ))}
                       </select>
-                      <input
-                        className="w-full mt-1 h-8 px-2 border rounded text-xs"
-                        placeholder="Ou digite manualmente..."
-                        value={novoRepositorio.projeto}
-                        onChange={(e) => setNovoRepositorio((p) => ({ ...p, projeto: e.target.value }))}
-                      />
+                      <div className="flex gap-1 mt-1">
+                        <input
+                          className="flex-1 h-8 px-2 border rounded text-xs"
+                          placeholder="Novo projeto..."
+                          value={novoProjetoInput}
+                          onChange={(e) => setNovoProjetoInput(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void handleCriarProjetoRapido(); } }}
+                        />
+                        <button
+                          type="button"
+                          className="h-8 px-2 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                          onClick={() => void handleCriarProjetoRapido()}
+                          disabled={!novoProjetoInput.trim() || processando}
+                          title={isAdmin ? 'Cadastrar e selecionar projeto' : 'Apenas administrador pode cadastrar projeto'}
+                        >
+                          +
+                        </button>
+                      </div>
+                      {!isAdmin ? (
+                        <p className="mt-1 text-[11px] text-gray-500">Cadastro rápido disponível para administrador.</p>
+                      ) : null}
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Classificação</label>
