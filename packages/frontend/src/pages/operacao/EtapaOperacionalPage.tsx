@@ -663,7 +663,7 @@ export function EtapaOperacionalPage(): JSX.Element {
             </div>
 
             {recebSubTab === 'repositorios' ? (
-              <>
+              <div className="space-y-6 pb-24 md:pb-0">
                 <Card>
                   <h2 className="text-lg font-semibold text-gray-900 mb-4">Criar repositório</h2>
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
@@ -675,7 +675,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Unidade</label>
                       <select
-                        className="w-full h-9 px-3 border rounded-lg text-sm"
+                        className="w-full h-11 px-3 border rounded-lg text-sm"
                         value={novoRepositorio.orgao}
                         onChange={(e) => setNovoRepositorio((p) => ({ ...p, orgao: e.target.value }))}
                       >
@@ -686,7 +686,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                       </select>
                       <div className="flex gap-1 mt-1">
                         <input
-                          className="flex-1 h-8 px-2 border rounded text-xs"
+                          className="flex-1 h-10 px-3 border rounded text-sm"
                           placeholder="Nova unidade..."
                           value={novaUnidadeInput}
                           onChange={(e) => setNovaUnidadeInput(e.target.value)}
@@ -694,19 +694,19 @@ export function EtapaOperacionalPage(): JSX.Element {
                         />
                         <button
                           type="button"
-                          className="h-8 px-2 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                          className="h-10 px-3 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
                           onClick={handleCriarUnidadeRapida}
                           disabled={!novaUnidadeInput.trim()}
                           title="Adicionar e selecionar unidade"
                         >
-                          +
+                          Adicionar
                         </button>
                       </div>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Projeto</label>
                       <select
-                        className="w-full h-9 px-3 border rounded-lg text-sm"
+                        className="w-full h-11 px-3 border rounded-lg text-sm"
                         value={novoRepositorio.projeto}
                         onChange={(e) => setNovoRepositorio((p) => ({ ...p, projeto: e.target.value }))}
                       >
@@ -717,7 +717,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                       </select>
                       <div className="flex gap-1 mt-1">
                         <input
-                          className="flex-1 h-8 px-2 border rounded text-xs"
+                          className="flex-1 h-10 px-3 border rounded text-sm"
                           placeholder="Novo projeto..."
                           value={novoProjetoInput}
                           onChange={(e) => setNovoProjetoInput(e.target.value)}
@@ -725,12 +725,12 @@ export function EtapaOperacionalPage(): JSX.Element {
                         />
                         <button
                           type="button"
-                          className="h-8 px-2 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                          className="h-10 px-3 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
                           onClick={() => void handleCriarProjetoRapido()}
                           disabled={!novoProjetoInput.trim() || processando}
                           title={isAdmin ? 'Cadastrar e selecionar projeto' : 'Apenas administrador pode cadastrar projeto'}
                         >
-                          +
+                          Adicionar
                         </button>
                       </div>
                       {!isAdmin ? (
@@ -740,7 +740,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Classificação</label>
                       <select
-                        className="w-full h-9 px-3 border rounded-lg text-sm"
+                        className="w-full h-11 px-3 border rounded-lg text-sm"
                         value={novoRepositorio.classificacaoId}
                         onChange={(e) => setNovoRepositorio((p) => ({ ...p, classificacaoId: e.target.value }))}
                       >
@@ -751,13 +751,13 @@ export function EtapaOperacionalPage(): JSX.Element {
                       </select>
                     </div>
                   </div>
-                  <div className="mt-4">
+                  <div className="mt-4 hidden md:block">
                     <Button onClick={() => void handleCriarRepositorio()} loading={processando}>Criar repositorio</Button>
                   </div>
                 </Card>
 
                 <Card>
-                  <div className="flex flex-wrap gap-3 items-end mb-4">
+                  <div className="flex flex-col md:flex-row gap-3 md:items-end mb-4">
                     <div className="flex-1 min-w-[200px]">
                       <Input
                         label="Buscar"
@@ -766,12 +766,13 @@ export function EtapaOperacionalPage(): JSX.Element {
                         placeholder="ID GED, unidade ou projeto"
                       />
                     </div>
-                    <Button variant="secondary" onClick={() => invalidateRepos()} loading={processando}>Atualizar</Button>
-                    <Button variant="outline" onClick={() => { setBatchRepoId(''); setBatchText(''); setBatchAddModalOpen(true); }}>
+                    <Button className="w-full md:w-auto" variant="secondary" onClick={() => invalidateRepos()} loading={processando}>Atualizar</Button>
+                    <Button className="w-full md:w-auto" variant="outline" onClick={() => { setBatchRepoId(''); setBatchText(''); setBatchAddModalOpen(true); }}>
                       Adicionar em Lote
                     </Button>
                     {reposSelecionadosTermo.size > 0 && (
                       <Button
+                        className="w-full md:w-auto"
                         variant="outline"
                         onClick={() => void handleGerarRelatorioRecebimento(Array.from(reposSelecionadosTermo))}
                         loading={processando}
@@ -781,7 +782,63 @@ export function EtapaOperacionalPage(): JSX.Element {
                     )}
                   </div>
 
-                  <div className="overflow-x-auto">
+                  <div className="md:hidden space-y-3">
+                    {itens.length === 0 ? (
+                      <div className="px-4 py-8 text-center text-gray-500 border rounded-lg">Nenhum Repositório na Fila desta Etapa.</div>
+                    ) : (
+                      itens.map((item) => (
+                        <div
+                          key={item.id_repositorio_recorda}
+                          className={`border rounded-xl p-3 ${reposSelecionadosTermo.has(item.id_repositorio_recorda) ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-200'}`}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="text-sm font-semibold text-gray-900">{item.id_repositorio_ged}</p>
+                              <p className="text-xs text-gray-500 mt-0.5">{item.orgao}</p>
+                              <p className="text-xs text-gray-500">{item.projeto}</p>
+                            </div>
+                            <input
+                              type="checkbox"
+                              checked={reposSelecionadosTermo.has(item.id_repositorio_recorda)}
+                              onChange={() => {
+                                setReposSelecionadosTermo((prev) => {
+                                  const next = new Set(prev);
+                                  if (next.has(item.id_repositorio_recorda)) next.delete(item.id_repositorio_recorda);
+                                  else next.add(item.id_repositorio_recorda);
+                                  return next;
+                                });
+                              }}
+                              className="mt-1 rounded h-5 w-5"
+                            />
+                          </div>
+                          <div className="mt-3 flex items-center justify-between gap-2">
+                            <StatusBadge status={item.status_atual} />
+                            <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold ${(item.total_processos ?? 0) > 0 ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-400'}`}>
+                              {item.total_processos ?? 0}
+                            </span>
+                          </div>
+                          <div className="mt-3"><ProgressIndicator steps={[
+                            { label: 'CK', done: !!item.checklist_concluido, active: !!item.checklist_aberto },
+                            { label: 'Prod', done: !!item.producao_registrada },
+                            { label: 'Rel', done: (item.total_relatorios ?? 0) > 0 },
+                          ]} /></div>
+                          <div className="mt-3 flex items-center justify-between">
+                            <div>{item.segundos_na_etapa != null ? <AgingBadge segundos={item.segundos_na_etapa} /> : null}</div>
+                            <ActionMenu disabled={processando} items={[
+                              { label: 'Checklist', onClick: () => void handleAbrirChecklist(item.id_repositorio_recorda) },
+                              { label: 'OCR / Docs', onClick: () => void handleOpenOCRModal(item) },
+                              { label: 'Gerar Termo', onClick: () => void handleGerarRelatorioRecebimento([item.id_repositorio_recorda]) },
+                              { label: 'Registrar Produção', onClick: () => void handleRegistrarProducao(item.id_repositorio_recorda) },
+                              { label: 'Avançar Etapa', onClick: () => void handleOpenAvancar(item.id_repositorio_recorda), hidden: !etapaConfig.nextEtapaApi },
+                              { label: 'Excluir', onClick: () => handleOpenExcluir(item.id_repositorio_recorda), variant: 'danger', hidden: !isAdmin },
+                            ]} />
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  <div className="hidden md:block overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
                       <thead className="bg-gray-50">
                         <tr>
@@ -869,7 +926,12 @@ export function EtapaOperacionalPage(): JSX.Element {
                   </div>
                   <Pagination pagina={pagina} totalPaginas={totalPaginas} onChange={setPagina} disabled={carregando} />
                 </Card>
-              </>
+                <div className="fixed bottom-0 inset-x-0 z-30 p-3 bg-white/95 border-t border-gray-200 backdrop-blur md:hidden">
+                  <Button className="w-full h-11" onClick={() => void handleCriarRepositorio()} loading={processando}>
+                    Criar repositório
+                  </Button>
+                </div>
+              </div>
             ) : (
               <RecebimentoAvulsosPanel onSuccess={showSuccess} onError={showError} />
             )}
