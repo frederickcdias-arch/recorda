@@ -65,8 +65,9 @@ interface RelatorioCompleto {
   };
 }
 
-function formatNum(n: number): string {
-  return n.toLocaleString('pt-BR');
+function formatNum(n: unknown): string {
+  const parsed = Number(n ?? 0);
+  return (Number.isFinite(parsed) ? parsed : 0).toLocaleString('pt-BR');
 }
 
 export function RelatoriosGerenciaisPage(): JSX.Element {

@@ -62,6 +62,11 @@ const EXPORTACOES: ExportItem[] = [
   },
 ];
 
+const toSafeNumber = (value: unknown): number => {
+  const parsed = Number(value ?? 0);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
 export function ExportacoesPage(): JSX.Element {
   const [mensagem, setMensagem] = useState<{ tipo: 'success' | 'error'; texto: string } | null>(null);
   const [exportando, setExportando] = useState<string | null>(null);
@@ -267,11 +272,11 @@ export function ExportacoesPage(): JSX.Element {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div className="bg-gray-50 rounded-lg p-3 text-center">
                   <p className="text-xs text-gray-500">Total Caixas</p>
-                  <p className="text-lg font-bold text-gray-900">{previewData.totais.totalCaixas.toLocaleString('pt-BR')}</p>
+                  <p className="text-lg font-bold text-gray-900">{toSafeNumber(previewData.totais.totalCaixas).toLocaleString('pt-BR')}</p>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-3 text-center">
                   <p className="text-xs text-gray-500">Total Imagens</p>
-                  <p className="text-lg font-bold text-gray-900">{previewData.totais.totalImagens.toLocaleString('pt-BR')}</p>
+                  <p className="text-lg font-bold text-gray-900">{toSafeNumber(previewData.totais.totalImagens).toLocaleString('pt-BR')}</p>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-3 text-center">
                   <p className="text-xs text-gray-500">Colaboradores</p>
@@ -298,7 +303,7 @@ export function ExportacoesPage(): JSX.Element {
                       {previewData.resumoPorEtapa.map((r) => (
                         <tr key={r.etapaNome} className="hover:bg-gray-50">
                           <td className="px-3 py-2 text-gray-700">{r.etapaNome}</td>
-                          <td className="px-3 py-2 text-right text-gray-900 font-medium">{r.totalQuantidade.toLocaleString('pt-BR')}</td>
+                          <td className="px-3 py-2 text-right text-gray-900 font-medium">{toSafeNumber(r.totalQuantidade).toLocaleString('pt-BR')}</td>
                           <td className="px-3 py-2 text-right text-gray-500 text-xs">{r.unidade}</td>
                         </tr>
                       ))}
@@ -315,7 +320,7 @@ export function ExportacoesPage(): JSX.Element {
                       <div key={c.coordenadoriaSigla} className="flex items-center justify-between p-2 bg-gray-50 rounded">
                         <span className="text-sm text-gray-700">{c.coordenadoriaNome} ({c.coordenadoriaSigla})</span>
                         <span className="text-sm font-medium text-gray-900">
-                          {c.totalCaixas.toLocaleString('pt-BR')} caixas | {c.totalImagens.toLocaleString('pt-BR')} imagens
+                          {toSafeNumber(c.totalCaixas).toLocaleString('pt-BR')} caixas | {toSafeNumber(c.totalImagens).toLocaleString('pt-BR')} imagens
                         </span>
                       </div>
                     ))}
