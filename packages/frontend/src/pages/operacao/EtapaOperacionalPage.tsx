@@ -27,6 +27,7 @@ import {
   useOrgaosRecebimento, useProjetosConfiguracao, useCreateProjetoConfiguracao, useCriarOrgaoRecebimento,
   useQueryClient, queryKeys,
 } from '../../hooks/useQueries';
+import { useUltimoIdRepositorioGed } from '../../hooks/useUltimoIdRepositorioGed';
 
 type EtapaSlug =
   | 'recebimento'
@@ -129,6 +130,7 @@ export function EtapaOperacionalPage(): JSX.Element {
     orgao: '',
     projeto: '',
     classificacaoId: '',
+    idGedEditado: false,
   });
   const [novaUnidadeInput, setNovaUnidadeInput] = useState('');
   const [novoProjetoInput, setNovoProjetoInput] = useState('');
@@ -218,6 +220,32 @@ export function EtapaOperacionalPage(): JSX.Element {
   const orgaosOptions = orgaosQuery.data ?? [];
   const projetosOptions = projetosQuery.data ?? [];
 
+  const { data: ultimoIdGed, isFetching: buscandoIdGed } = useUltimoIdRepositorioGed(novoRepositorio.orgao, novoRepositorio.projeto);
+
+  // Sugere o proximo ID GED automaticamente ao selecionar unidade/projeto,
+  // enquanto o usuario nao tiver editado o campo manualmente.
+  useEffect(() => {
+    if (!novoRepositorio.orgao || !novoRepositorio.projeto || novoRepositorio.idGedEditado) {
+      return;
+    }
+
+    if (!ultimoIdGed) {
+      const anoAtual = String(new Date().getFullYear());
+      setNovoRepositorio((prev) => ({ ...prev, idRepositorioGed: `000001/${anoAtual}` }));
+      return;
+    }
+
+    const match = ultimoIdGed.match(/(\d{1,6})\/(\d{4})/);
+    if (!match) return;
+
+    const numeroAtual = Number(match[1]);
+    if (Number.isNaN(numeroAtual)) return;
+
+    const proximoNumero = String(numeroAtual + 1).padStart(6, '0');
+    const ano = match[2];
+    setNovoRepositorio((prev) => ({ ...prev, idRepositorioGed: `${proximoNumero}/${ano}` }));
+  }, [novoRepositorio.orgao, novoRepositorio.projeto, novoRepositorio.idGedEditado, ultimoIdGed]);
+
   if (!etapaConfig) {
     return <div className="text-center text-gray-600 py-12">Etapa Operacional inválida.</div>;
   }
@@ -236,7 +264,7 @@ export function EtapaOperacionalPage(): JSX.Element {
 
     const existente = orgaosOptions.find((o) => o.nome.trim().toLowerCase() === nomeUnidade.toLowerCase());
     if (existente) {
-      setNovoRepositorio((prev) => ({ ...prev, orgao: existente.nome }));
+      setNovoRepositorio((prev) => ({ ...prev, orgao: existente.nome, idGedEditado: false }));
       setNovaUnidadeInput('');
       showSuccess('Unidade já existente e selecionada.');
       return;
@@ -245,9 +273,10 @@ export function EtapaOperacionalPage(): JSX.Element {
     try {
       setProcessando(true);
       const created = await createOrgao.mutateAsync(nomeUnidade);
-      setNovoRepositorio((prev) => ({ ...prev, orgao: created.nome }));
+      setNovoRepositorio((prev) => ({ ...prev, orgao: created.nome, idGedEditado: false }));
       setNovaUnidadeInput('');
       showSuccess('Unidade cadastrada e selecionada com sucesso.');
+      if (orgaosQuery.refetch) await orgaosQuery.refetch();
     } catch (error) {
       showError(extractErrorMessage(error, 'Erro ao cadastrar unidade'));
     } finally {
@@ -261,7 +290,7 @@ export function EtapaOperacionalPage(): JSX.Element {
 
     const existente = projetosOptions.find((p) => p.nome.trim().toLowerCase() === nomeProjeto.toLowerCase());
     if (existente) {
-      setNovoRepositorio((prev) => ({ ...prev, projeto: existente.nome }));
+      setNovoRepositorio((prev) => ({ ...prev, projeto: existente.nome, idGedEditado: false }));
       setNovoProjetoInput('');
       showSuccess('Projeto já existente e selecionado.');
       return;
@@ -276,9 +305,10 @@ export function EtapaOperacionalPage(): JSX.Element {
       setProcessando(true);
       const projetoCriado = await createProjeto.mutateAsync({ nome: nomeProjeto, ativo: true });
       const nomeCriado = (projetoCriado as { nome?: string }).nome ?? nomeProjeto;
-      setNovoRepositorio((prev) => ({ ...prev, projeto: nomeCriado }));
+      setNovoRepositorio((prev) => ({ ...prev, projeto: nomeCriado, idGedEditado: false }));
       setNovoProjetoInput('');
       showSuccess('Projeto cadastrado e selecionado com sucesso.');
+      if (projetosQuery.refetch) await projetosQuery.refetch();
     } catch (error) {
       showError(extractErrorMessage(error, 'Erro ao cadastrar projeto'));
     } finally {
@@ -301,7 +331,7 @@ export function EtapaOperacionalPage(): JSX.Element {
         classificacaoId: novoRepositorio.classificacaoId,
       });
       showSuccess('Repositório criado com sucesso.');
-      setNovoRepositorio((prev) => ({ ...prev, idRepositorioGed: '', orgao: '', projeto: '', classificacaoId: '' }));
+      setNovoRepositorio((prev) => ({ ...prev, idRepositorioGed: '', orgao: '', projeto: '', classificacaoId: '', idGedEditado: false }));
     } catch (error) {
       showError(extractErrorMessage(error, 'Erro ao Criar Repositório'));
     } finally {
@@ -664,14 +694,15 @@ export function EtapaOperacionalPage(): JSX.Element {
                     <Input
                       label="ID GED"
                       value={novoRepositorio.idRepositorioGed}
-                      onChange={(e) => setNovoRepositorio((p) => ({ ...p, idRepositorioGed: e.target.value }))}
+                      onChange={(e) => setNovoRepositorio((p) => ({ ...p, idRepositorioGed: e.target.value, idGedEditado: true }))}
+                      helperText={buscandoIdGed ? 'Buscando sugestão...' : (!novoRepositorio.idGedEditado && novoRepositorio.orgao && novoRepositorio.projeto ? 'Sugerido automaticamente. Você pode editar.' : undefined)}
                     />
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Unidade</label>
                       <select
                         className="w-full h-11 px-3 border rounded-lg text-sm"
                         value={novoRepositorio.orgao}
-                        onChange={(e) => setNovoRepositorio((p) => ({ ...p, orgao: e.target.value }))}
+                        onChange={(e) => setNovoRepositorio((p) => ({ ...p, orgao: e.target.value, idGedEditado: false }))}
                       >
                         <option value="">— Selecione —</option>
                         {orgaosOptions.map((o) => (
@@ -702,7 +733,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                       <select
                         className="w-full h-11 px-3 border rounded-lg text-sm"
                         value={novoRepositorio.projeto}
-                        onChange={(e) => setNovoRepositorio((p) => ({ ...p, projeto: e.target.value }))}
+                        onChange={(e) => setNovoRepositorio((p) => ({ ...p, projeto: e.target.value, idGedEditado: false }))}
                       >
                         <option value="">— Selecione —</option>
                         {projetosOptions.map((o) => (
@@ -746,7 +777,28 @@ export function EtapaOperacionalPage(): JSX.Element {
                     </div>
                   </div>
                   <div className="mt-4 hidden md:block">
-                    <Button onClick={() => void handleCriarRepositorio()} loading={processando}>Criar repositorio</Button>
+                    <div style={{ position: 'relative', display: 'inline-block' }}>
+                      <Button
+                        onClick={() => { void handleCriarRepositorio(); }}
+                        loading={processando}
+                        disabled={
+                          !novoRepositorio.idRepositorioGed ||
+                          !novoRepositorio.orgao ||
+                          !novoRepositorio.projeto ||
+                          !novoRepositorio.classificacaoId ||
+                          processando
+                        }
+                        title={
+                          !novoRepositorio.idRepositorioGed ? 'Preencha o ID GED.' :
+                          !novoRepositorio.orgao ? 'Selecione a Unidade.' :
+                          !novoRepositorio.projeto ? 'Selecione o Projeto.' :
+                          !novoRepositorio.classificacaoId ? 'Selecione a Classificação.' :
+                          processando ? 'Processando...' : ''
+                        }
+                      >
+                        Criar repositório
+                      </Button>
+                    </div>
                   </div>
                 </Card>
 
@@ -921,9 +973,29 @@ export function EtapaOperacionalPage(): JSX.Element {
                   <Pagination pagina={pagina} totalPaginas={totalPaginas} onChange={setPagina} disabled={carregando} />
                 </Card>
                 <div className="fixed bottom-0 inset-x-0 z-30 p-3 bg-white/95 border-t border-gray-200 backdrop-blur md:hidden">
-                  <Button className="w-full h-11" onClick={() => void handleCriarRepositorio()} loading={processando}>
-                    Criar repositório
-                  </Button>
+                  <div style={{ position: 'relative', width: '100%' }}>
+                    <Button
+                      className="w-full h-11"
+                      onClick={() => { void handleCriarRepositorio(); }}
+                      loading={processando}
+                      disabled={
+                        !novoRepositorio.idRepositorioGed ||
+                        !novoRepositorio.orgao ||
+                        !novoRepositorio.projeto ||
+                        !novoRepositorio.classificacaoId ||
+                        processando
+                      }
+                      title={
+                        !novoRepositorio.idRepositorioGed ? 'Preencha o ID GED.' :
+                        !novoRepositorio.orgao ? 'Selecione a Unidade.' :
+                        !novoRepositorio.projeto ? 'Selecione o Projeto.' :
+                        !novoRepositorio.classificacaoId ? 'Selecione a Classificação.' :
+                        processando ? 'Processando...' : ''
+                      }
+                    >
+                      Criar repositório
+                    </Button>
+                  </div>
                 </div>
               </div>
             ) : (

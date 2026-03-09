@@ -231,6 +231,8 @@ export function createOperacionalRepositoriosRoutes(): FastifyPluginAsync {
           properties: {
             status: { type: 'string', description: 'Filtrar por status' },
             etapa: { type: 'string', description: 'Filtrar por etapa' },
+            orgao: { type: 'string', description: 'Filtrar por unidade (exato, case-insensitive)' },
+            projeto: { type: 'string', description: 'Filtrar por projeto (exato, case-insensitive)' },
             busca: { type: 'string', description: 'Busca por ID GED, órgão ou projeto' },
             pagina: { type: 'integer', default: 1 },
             limite: { type: 'integer', default: 20 },
@@ -243,6 +245,8 @@ export function createOperacionalRepositoriosRoutes(): FastifyPluginAsync {
         const query = request.query as {
           status?: StatusRepositorio;
           etapa?: EtapaFluxo;
+          orgao?: string;
+          projeto?: string;
           busca?: string;
           pagina?: string | number;
           limite?: string | number;
@@ -263,6 +267,14 @@ export function createOperacionalRepositoriosRoutes(): FastifyPluginAsync {
         if (query.etapa) {
           where += ` AND r.etapa_atual = $${p++}`;
           params.push(query.etapa);
+        }
+        if (query.orgao) {
+          where += ` AND LOWER(TRIM(r.orgao)) = LOWER(TRIM($${p++}))`;
+          params.push(query.orgao);
+        }
+        if (query.projeto) {
+          where += ` AND LOWER(TRIM(r.projeto)) = LOWER(TRIM($${p++}))`;
+          params.push(query.projeto);
         }
         if (query.busca) {
           where += ` AND (r.id_repositorio_ged ILIKE $${p} OR r.orgao ILIKE $${p} OR r.projeto ILIKE $${p})`;
@@ -341,12 +353,22 @@ export function createOperacionalRepositoriosRoutes(): FastifyPluginAsync {
         );
 
         // Contadores por status para a etapa filtrada (para summary cards)
-        const contadoresWhere = query.etapa
-          ? `WHERE r.projeto NOT IN ($1, $2) AND r.etapa_atual = $3`
-          : `WHERE r.projeto NOT IN ($1, $2)`;
-        const contadoresParams = query.etapa
-          ? ['LEGADO', PROJETO_IMPORTACAO_PRODUCAO, query.etapa]
-          : ['LEGADO', PROJETO_IMPORTACAO_PRODUCAO];
+        let contadoresWhere = 'WHERE r.projeto NOT IN ($1, $2)';
+        const contadoresParams: (string | number)[] = ['LEGADO', PROJETO_IMPORTACAO_PRODUCAO];
+        let cp = 3;
+
+        if (query.etapa) {
+          contadoresWhere += ` AND r.etapa_atual = $${cp++}`;
+          contadoresParams.push(query.etapa);
+        }
+        if (query.orgao) {
+          contadoresWhere += ` AND LOWER(TRIM(r.orgao)) = LOWER(TRIM($${cp++}))`;
+          contadoresParams.push(query.orgao);
+        }
+        if (query.projeto) {
+          contadoresWhere += ` AND LOWER(TRIM(r.projeto)) = LOWER(TRIM($${cp++}))`;
+          contadoresParams.push(query.projeto);
+        }
         const contadoresResult = await server.database.query<{ status_atual: string; qtd: string }>(
           `SELECT r.status_atual, COUNT(*)::text AS qtd
            FROM repositorios r
