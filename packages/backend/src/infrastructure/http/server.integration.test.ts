@@ -2161,6 +2161,34 @@ describe('HTTP server integration', () => {
     expect(body).toHaveProperty('total');
   });
 
+  it('aplica filtros de orgao e projeto na listagem de repositorios', async () => {
+    database.queryMock.mockClear();
+
+    const response = await server.inject({
+      method: 'GET',
+      url: '/operacional/repositorios?orgao=SGPA&projeto=SEMA&pagina=1&limite=10',
+      headers: { authorization: `Bearer ${await authenticate()}` },
+    });
+
+    expect(response.statusCode).toBe(200);
+
+    const countCall = database.queryMock.mock.calls.find(([sql]) =>
+      sql.includes('SELECT COUNT(*)::text as total') && sql.includes('FROM repositorios r')
+    );
+    expect(countCall).toBeTruthy();
+    expect(countCall?.[0]).toContain('LOWER(TRIM(r.orgao)) = LOWER(TRIM($');
+    expect(countCall?.[0]).toContain('LOWER(TRIM(r.projeto)) = LOWER(TRIM($');
+    expect(countCall?.[1]).toEqual(expect.arrayContaining(['SGPA', 'SEMA']));
+
+    const contadoresCall = database.queryMock.mock.calls.find(([sql]) =>
+      sql.includes('SELECT r.status_atual, COUNT(*)::text AS qtd') && sql.includes('FROM repositorios r')
+    );
+    expect(contadoresCall).toBeTruthy();
+    expect(contadoresCall?.[0]).toContain('LOWER(TRIM(r.orgao)) = LOWER(TRIM($');
+    expect(contadoresCall?.[0]).toContain('LOWER(TRIM(r.projeto)) = LOWER(TRIM($');
+    expect(contadoresCall?.[1]).toEqual(expect.arrayContaining(['SGPA', 'SEMA']));
+  });
+
   // ═══════════════════════════════════════════════
   // Operacional - Checklists
   // ═══════════════════════════════════════════════
