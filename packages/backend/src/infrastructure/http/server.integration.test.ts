@@ -2189,6 +2189,28 @@ describe('HTTP server integration', () => {
     expect(contadoresCall?.[1]).toEqual(expect.arrayContaining(['SGPA', 'SEMA']));
   });
 
+  it('aplica busca por processo/apenso na listagem de repositorios', async () => {
+    database.queryMock.mockClear();
+
+    const response = await server.inject({
+      method: 'GET',
+      url: '/operacional/repositorios?etapa=RECEBIMENTO&busca=502824/2021&pagina=1&limite=10',
+      headers: { authorization: `Bearer ${await authenticate()}` },
+    });
+
+    expect(response.statusCode).toBe(200);
+
+    const countCall = database.queryMock.mock.calls.find(([sql]) =>
+      sql.includes('SELECT COUNT(*)::text as total') && sql.includes('FROM repositorios r')
+    );
+    expect(countCall).toBeTruthy();
+    expect(countCall?.[0]).toContain('FROM recebimento_processos rp');
+    expect(countCall?.[0]).toContain('FROM recebimento_apensos ra');
+    expect(countCall?.[0]).toContain('rp.protocolo ILIKE');
+    expect(countCall?.[0]).toContain('ra.protocolo ILIKE');
+    expect(countCall?.[1]).toEqual(expect.arrayContaining(['%502824/2021%']));
+  });
+
   // ═══════════════════════════════════════════════
   // Operacional - Checklists
   // ═══════════════════════════════════════════════

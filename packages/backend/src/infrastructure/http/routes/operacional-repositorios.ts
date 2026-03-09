@@ -277,7 +277,24 @@ export function createOperacionalRepositoriosRoutes(): FastifyPluginAsync {
           params.push(query.projeto);
         }
         if (query.busca) {
-          where += ` AND (r.id_repositorio_ged ILIKE $${p} OR r.orgao ILIKE $${p} OR r.projeto ILIKE $${p})`;
+          where += ` AND (
+            r.id_repositorio_ged ILIKE $${p}
+            OR r.orgao ILIKE $${p}
+            OR r.projeto ILIKE $${p}
+            OR EXISTS (
+              SELECT 1
+              FROM recebimento_processos rp
+              WHERE rp.repositorio_id = r.id_repositorio_recorda
+                AND (rp.protocolo ILIKE $${p} OR rp.interessado ILIKE $${p})
+            )
+            OR EXISTS (
+              SELECT 1
+              FROM recebimento_apensos ra
+              JOIN recebimento_processos rp ON rp.id = ra.processo_principal_id
+              WHERE rp.repositorio_id = r.id_repositorio_recorda
+                AND (ra.protocolo ILIKE $${p} OR ra.interessado ILIKE $${p})
+            )
+          )`;
           params.push(`%${query.busca}%`);
           p++;
         }
