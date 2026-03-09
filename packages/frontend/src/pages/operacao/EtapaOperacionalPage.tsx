@@ -92,6 +92,12 @@ interface DocumentoRecebimentoItem {
   criado_em: string;
 }
 
+interface AvulsoBuscaItem {
+  id: string;
+  protocolo: string;
+  interessado: string;
+}
+
 interface EtapaConfig {
   label: string;
   etapaApi: EtapaApi;
@@ -151,6 +157,8 @@ export function EtapaOperacionalPage(): JSX.Element {
   const [batchText, setBatchText] = useState('');
   const [previewTermoUrl, setPreviewTermoUrl] = useState<string | null>(null);
   const [previewTermoReportId, setPreviewTermoReportId] = useState<string | null>(null);
+  const [avulsosBuscaLoading, setAvulsosBuscaLoading] = useState(false);
+  const [avulsosBuscaItens, setAvulsosBuscaItens] = useState<AvulsoBuscaItem[]>([]);
 
   const {
     ocrModalOpen, setOcrModalOpen, ocrRepo, setOcrImagemBase64,
@@ -184,6 +192,38 @@ export function EtapaOperacionalPage(): JSX.Element {
   }, [filtrosUrl.busca]);
 
   const debouncedBusca = useDebounce(filtroBusca.trim(), 300);
+
+  useEffect(() => {
+    if (etapa !== 'recebimento' || !debouncedBusca) {
+      setAvulsosBuscaItens([]);
+      setAvulsosBuscaLoading(false);
+      return;
+    }
+
+    let ativo = true;
+    setAvulsosBuscaLoading(true);
+
+    void api
+      .get<{ processos: AvulsoBuscaItem[] }>(
+        `/operacional/recebimento-avulsos?busca=${encodeURIComponent(debouncedBusca)}&pagina=1&limite=5`
+      )
+      .then((data) => {
+        if (!ativo) return;
+        setAvulsosBuscaItens(data.processos ?? []);
+      })
+      .catch(() => {
+        if (!ativo) return;
+        setAvulsosBuscaItens([]);
+      })
+      .finally(() => {
+        if (!ativo) return;
+        setAvulsosBuscaLoading(false);
+      });
+
+    return () => {
+      ativo = false;
+    };
+  }, [debouncedBusca, etapa]);
 
   const repoQuery = useRepositorios({
     etapa: etapaConfig?.etapaApi,
@@ -809,7 +849,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                         label="Buscar"
                         value={filtroBusca}
                         onChange={(e) => { setFiltroBusca(e.target.value); setPagina(1); }}
-                        placeholder="ID GED, unidade ou projeto"
+                        placeholder="ID GED, unidade, projeto ou processo"
                       />
                     </div>
                     <Button className="w-full md:w-auto" variant="secondary" onClick={() => invalidateRepos()} loading={processando}>Atualizar</Button>
@@ -827,6 +867,34 @@ export function EtapaOperacionalPage(): JSX.Element {
                       </Button>
                     )}
                   </div>
+
+                  {debouncedBusca ? (
+                    <div className="mb-4 p-3 border rounded-lg bg-amber-50 border-amber-200">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-sm text-amber-900 font-medium">
+                          {avulsosBuscaLoading
+                            ? 'Buscando também nos avulsos...'
+                            : avulsosBuscaItens.length > 0
+                              ? `Também encontrado(s) ${avulsosBuscaItens.length} processo(s) avulso(s)`
+                              : 'Nenhum avulso encontrado para este termo'}
+                        </p>
+                        {avulsosBuscaItens.length > 0 ? (
+                          <Button size="xs" variant="outline" onClick={() => setRecebSubTab('avulsos')}>
+                            Ver avulsos
+                          </Button>
+                        ) : null}
+                      </div>
+                      {avulsosBuscaItens.length > 0 ? (
+                        <div className="mt-2 space-y-1">
+                          {avulsosBuscaItens.map((item) => (
+                            <p key={item.id} className="text-xs text-amber-800">
+                              {item.protocolo} - {item.interessado}
+                            </p>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
 
                   <div className="md:hidden space-y-3">
                     {itens.length === 0 ? (
