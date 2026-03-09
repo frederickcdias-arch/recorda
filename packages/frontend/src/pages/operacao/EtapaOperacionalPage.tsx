@@ -776,7 +776,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                       </select>
                     </div>
                   </div>
-                  <div className="mt-4 hidden md:block">
+                  <div className="mt-4">
                     <div style={{ position: 'relative', display: 'inline-block' }}>
                       <Button
                         onClick={() => { void handleCriarRepositorio(); }}
@@ -972,31 +972,6 @@ export function EtapaOperacionalPage(): JSX.Element {
                   </div>
                   <Pagination pagina={pagina} totalPaginas={totalPaginas} onChange={setPagina} disabled={carregando} />
                 </Card>
-                <div className="fixed bottom-0 inset-x-0 z-30 p-3 bg-white/95 border-t border-gray-200 backdrop-blur md:hidden">
-                  <div style={{ position: 'relative', width: '100%' }}>
-                    <Button
-                      className="w-full h-11"
-                      onClick={() => { void handleCriarRepositorio(); }}
-                      loading={processando}
-                      disabled={
-                        !novoRepositorio.idRepositorioGed ||
-                        !novoRepositorio.orgao ||
-                        !novoRepositorio.projeto ||
-                        !novoRepositorio.classificacaoId ||
-                        processando
-                      }
-                      title={
-                        !novoRepositorio.idRepositorioGed ? 'Preencha o ID GED.' :
-                        !novoRepositorio.orgao ? 'Selecione a Unidade.' :
-                        !novoRepositorio.projeto ? 'Selecione o Projeto.' :
-                        !novoRepositorio.classificacaoId ? 'Selecione a Classificação.' :
-                        processando ? 'Processando...' : ''
-                      }
-                    >
-                      Criar repositório
-                    </Button>
-                  </div>
-                </div>
               </div>
             ) : (
               <RecebimentoAvulsosPanel onSuccess={showSuccess} onError={showError} />
