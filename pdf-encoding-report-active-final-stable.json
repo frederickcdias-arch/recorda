@@ -1,0 +1,338 @@
+{
+  "total": 55,
+  "suspect": 0,
+  "no_text": 0,
+  "read_error": 0,
+  "files": [
+    {
+      "file": "docs/MODELO_PADRAO_RELATORIO.pdf",
+      "status": "ok",
+      "hits": {},
+      "sample": ""
+    },
+    {
+      "file": "packages/backend/uploads/relatorios/devolucao/000001_2025-1771596590929.pdf",
+      "status": "ok",
+      "hits": {},
+      "sample": ""
+    },
+    {
+      "file": "packages/backend/uploads/relatorios/devolucao/000232_2026-1771006111662.pdf",
+      "status": "ok",
+      "hits": {},
+      "sample": ""
+    },
+    {
+      "file": "packages/backend/uploads/relatorios/devolucao/000232_2026-1771007557888.pdf",
+      "status": "ok",
+      "hits": {},
+      "sample": ""
+    },
+    {
+      "file": "packages/backend/uploads/relatorios/devolucao/registro-1771534249354.pdf",
+      "status": "ok",
+      "hits": {},
+      "sample": ""
+    },
+    {
+      "file": "packages/backend/uploads/relatorios/entrega/CQ-20260213165956-1771002009799.pdf",
+      "status": "ok",
+      "hits": {},
+      "sample": ""
+    },
+    {
+      "file": "packages/backend/uploads/relatorios/entrega/CQ-20260213165956-1771002014328.pdf",
+      "status": "ok",
+      "hits": {},
+      "sample": ""
+    },
+    {
+      "file": "packages/backend/uploads/relatorios/entrega/CQ-20260213171720-1771003069498.pdf",
+      "status": "ok",
+      "hits": {},
+      "sample": ""
+    },
+    {
+      "file": "packages/backend/uploads/relatorios/entrega/lote-CQ-20260210185208-1770749528273.pdf",
+      "status": "ok",
+      "hits": {},
+      "sample": ""
+    },
+    {
+      "file": "packages/backend/uploads/relatorios/producao/000001_2025-1771593950590.pdf",
+      "status": "ok",
+      "hits": {},
+      "sample": ""
+    },
+    {
+      "file": "packages/backend/uploads/relatorios/producao/000004_2025-1771534153466.pdf",
+      "status": "ok",
+      "hits": {},
+      "sample": ""
+    },
+    {
+      "file": "packages/backend/uploads/relatorios/producao/000231_2026-1771002421943.pdf",
+      "status": "ok",
+      "hits": {},
+      "sample": ""
+    },
+    {
+      "file": "packages/backend/uploads/relatorios/producao/000232_2026-1771000437373.pdf",
+      "status": "ok",
+      "hits": {},
+      "sample": ""
+    },
+    {
+      "file": "packages/backend/uploads/relatorios/producao/000232_2026-1771001137517.pdf",
+      "status": "ok",
+      "hits": {},
+      "sample": ""
+    },
+    {
+      "file": "packages/backend/uploads/relatorios/producao/000232_2026-1771001174785.pdf",
+      "status": "ok",
+      "hits": {},
+      "sample": ""
+    },
+    {
+      "file": "packages/backend/uploads/relatorios/producao/000232_2026-1771001211940.pdf",
+      "status": "ok",
+      "hits": {},
+      "sample": ""
+    },
+    {
+      "file": "packages/backend/uploads/relatorios/producao/000232_2026-1771001538365.pdf",
+      "status": "ok",
+      "hits": {},
+      "sample": ""
+    },
+    {
+      "file": "packages/backend/uploads/relatorios/producao/000232_2026-1771001561725.pdf",
+      "status": "ok",
+      "hits": {},
+      "sample": ""
+    },
+    {
+      "file": "packages/backend/uploads/relatorios/producao/000232_2026-1771600739079.pdf",
+      "status": "ok",
+      "hits": {},
+      "sample": ""
+    },
+    {
+      "file": "packages/backend/uploads/relatorios/recebimento/0000000___2026-1770839040494.pdf",
+      "status": "ok",
+      "hits": {},
+      "sample": ""
+    },
+    {
+      "file": "packages/backend/uploads/relatorios/recebimento/0000000___2026-1770839045425.pdf",
+      "status": "ok",
+      "hits": {},
+      "sample": ""
+    },
+    {
+      "file": "packages/backend/uploads/relatorios/recebimento/0000000___2026-1770840802779.pdf",
+      "status": "ok",
+      "hits": {},
+      "sample": ""
+    },
+    {
+      "file": "packages/backend/uploads/relatorios/recebimento/000000_2026-1770914516554.pdf",
+      "status": "ok",
+      "hits": {},
+      "sample": ""
+    },
+    {
+      "file": "packages/backend/uploads/relatorios/recebimento/000000_2026-1770914518950.pdf",
+      "status": "ok",
+      "hits": {},
+      "sample": ""
+    },
+    {
+      "file": "packages/backend/uploads/relatorios/recebimento/000000_2026-1770915181719.pdf",
+      "status": "ok",
+      "hits": {},
+      "sample": ""
+    },
+    {
+      "file": "packages/backend/uploads/relatorios/recebimento/000000_2026-1770915558834.pdf",
+      "status": "ok",
+      "hits": {},
+      "sample": ""
+    },
+    {
+      "file": "packages/backend/uploads/relatorios/recebimento/registro-1770916351660.pdf",
+      "status": "ok",
+      "hits": {},
+      "sample": ""
+    },
+    {
+      "file": "packages/backend/uploads/relatorios/recebimento/registro-1770916593347.pdf",
+      "status": "ok",
+      "hits": {},
+      "sample": ""
+    },
+    {
+      "file": "packages/backend/uploads/relatorios/recebimento/registro-1770922357678.pdf",
+      "status": "ok",
+      "hits": {},
+      "sample": ""
+    },
+    {
+      "file": "packages/backend/uploads/relatorios/recebimento/registro-1770922644698.pdf",
+      "status": "ok",
+      "hits": {},
+      "sample": ""
+    },
+    {
+      "file": "packages/backend/uploads/relatorios/recebimento/registro-1770922861824.pdf",
+      "status": "ok",
+      "hits": {},
+      "sample": ""
+    },
+    {
+      "file": "packages/backend/uploads/relatorios/recebimento/registro-1770927708560.pdf",
+      "status": "ok",
+      "hits": {},
+      "sample": ""
+    },
+    {
+      "file": "packages/backend/uploads/relatorios/recebimento/registro-1770927775076.pdf",
+      "status": "ok",
+      "hits": {},
+      "sample": ""
+    },
+    {
+      "file": "packages/backend/uploads/relatorios/recebimento/registro-1770927990450.pdf",
+      "status": "ok",
+      "hits": {},
+      "sample": ""
+    },
+    {
+      "file": "packages/backend/uploads/relatorios/recebimento/registro-1770928145200.pdf",
+      "status": "ok",
+      "hits": {},
+      "sample": ""
+    },
+    {
+      "file": "packages/backend/uploads/relatorios/recebimento/registro-1770928504442.pdf",
+      "status": "ok",
+      "hits": {},
+      "sample": ""
+    },
+    {
+      "file": "packages/backend/uploads/relatorios/recebimento/registro-1770928655522.pdf",
+      "status": "ok",
+      "hits": {},
+      "sample": ""
+    },
+    {
+      "file": "packages/backend/uploads/relatorios/recebimento/registro-1770928828541.pdf",
+      "status": "ok",
+      "hits": {},
+      "sample": ""
+    },
+    {
+      "file": "packages/backend/uploads/relatorios/recebimento/registro-1770928896109.pdf",
+      "status": "ok",
+      "hits": {},
+      "sample": ""
+    },
+    {
+      "file": "packages/backend/uploads/relatorios/recebimento/registro-1770997708054.pdf",
+      "status": "ok",
+      "hits": {},
+      "sample": ""
+    },
+    {
+      "file": "packages/backend/uploads/relatorios/recebimento/registro-1770999723111.pdf",
+      "status": "ok",
+      "hits": {},
+      "sample": ""
+    },
+    {
+      "file": "packages/backend/uploads/relatorios/recebimento/registro-1771002418062.pdf",
+      "status": "ok",
+      "hits": {},
+      "sample": ""
+    },
+    {
+      "file": "packages/backend/uploads/relatorios/recebimento/registro-1771009824335.pdf",
+      "status": "ok",
+      "hits": {},
+      "sample": ""
+    },
+    {
+      "file": "packages/backend/uploads/relatorios/recebimento/registro-1771023116036.pdf",
+      "status": "ok",
+      "hits": {},
+      "sample": ""
+    },
+    {
+      "file": "packages/backend/uploads/relatorios/recebimento/registro-1771023333721.pdf",
+      "status": "ok",
+      "hits": {},
+      "sample": ""
+    },
+    {
+      "file": "packages/backend/uploads/relatorios/recebimento/registro-1771531994077.pdf",
+      "status": "ok",
+      "hits": {},
+      "sample": ""
+    },
+    {
+      "file": "packages/backend/uploads/relatorios/recebimento/registro-1771532022400.pdf",
+      "status": "ok",
+      "hits": {},
+      "sample": ""
+    },
+    {
+      "file": "packages/backend/uploads/relatorios/recebimento/registro-1771533891562.pdf",
+      "status": "ok",
+      "hits": {},
+      "sample": ""
+    },
+    {
+      "file": "packages/backend/uploads/relatorios/recebimento/registro-1771533945406.pdf",
+      "status": "ok",
+      "hits": {},
+      "sample": ""
+    },
+    {
+      "file": "packages/backend/uploads/relatorios/recebimento/registro-1771534146922.pdf",
+      "status": "ok",
+      "hits": {},
+      "sample": ""
+    },
+    {
+      "file": "packages/backend/uploads/relatorios/recebimento/registro-1771593944284.pdf",
+      "status": "ok",
+      "hits": {},
+      "sample": ""
+    },
+    {
+      "file": "packages/backend/uploads/relatorios/recebimento/registro-1771600727426.pdf",
+      "status": "ok",
+      "hits": {},
+      "sample": ""
+    },
+    {
+      "file": "uploads/relatorios/producao/GED-SMOKE-20260210165333-1770756921212.pdf",
+      "status": "ok",
+      "hits": {},
+      "sample": ""
+    },
+    {
+      "file": "uploads/relatorios/recebimento/GED-SMOKE-1770755915800-1770755916156.pdf",
+      "status": "ok",
+      "hits": {},
+      "sample": ""
+    },
+    {
+      "file": "uploads/relatorios/recebimento/GED-SMOKE-20260210165333-1770756814422.pdf",
+      "status": "ok",
+      "hits": {},
+      "sample": ""
+    }
+  ]
+}
