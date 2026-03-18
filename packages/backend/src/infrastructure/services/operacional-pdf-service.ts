@@ -1,4 +1,4 @@
-﻿import PDFDocument from 'pdfkit';
+import PDFDocument from 'pdfkit';
 import { promises as fs } from 'fs';
 import path from 'path';
 
@@ -122,8 +122,8 @@ interface DevolucaoPayload {
 const PDF_PAGE_SIZE = 'A4';
 
 export class OperacionalPDFService {
-  async gerarRelatorioEntrega(payload: EntregaPayload): Promise<Buffer> {
-    return new Promise((resolve, reject) => {
+  async gerarRelatorioEntrega(payload: EntregaPayload, empresa?: EmpresaConfig | null): Promise<Buffer> {
+    return new Promise(async (resolve, reject) => {
       try {
         const doc = new PDFDocument({ margin: 34, size: PDF_PAGE_SIZE });
         const chunks: Buffer[] = [];
@@ -134,6 +134,9 @@ export class OperacionalPDFService {
 
         const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
         const marginLeft = doc.page.margins.left;
+
+        // Espaço reservado para logo (4x10cm centralizado)
+        await this.renderLogoSpace(doc, empresa);
 
         // Linha decorativa superior
         doc.save();
@@ -229,9 +232,7 @@ export class OperacionalPDFService {
   }
 
   async gerarRelatorioRecebimento(payload: RecebimentoPayload, empresa?: EmpresaConfig | null): Promise<Buffer> {
-    const logoBuffer = await this.loadLogoBuffer(empresa);
-
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       try {
         // Margem menor para melhor aproveitamento do A4
         const doc = new PDFDocument({ margin: 24, size: PDF_PAGE_SIZE });
@@ -246,28 +247,8 @@ export class OperacionalPDFService {
         const colPad = 8;
         const processos = payload.processos ?? [];
 
-        // Logo da empresa (mesmo padrao do relatorio gerencial)
-        if (logoBuffer) {
-          const imageWidth = this.normalizeLogoWidth(empresa?.logoLarguraRelatorio);
-          const imageY = doc.y + this.normalizeLogoOffsetY(empresa?.logoDeslocamentoYRelatorio);
-          const imageX = this.resolveLogoX(empresa?.logoAlinhamentoRelatorio, marginLeft, pageWidth, imageWidth);
-          let imgHeight = 60;
-          try {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const img = (doc as any).openImage(logoBuffer);
-            if (img && img.width && img.height) {
-              imgHeight = (imageWidth / img.width) * img.height;
-            }
-          } catch { /* fallback */ }
-          doc.image(logoBuffer, imageX, imageY, { width: imageWidth });
-          doc.y = imageY + imgHeight + 8;
-        }
-
-        if (empresa?.nome) {
-          doc.font('Helvetica-Bold').fontSize(12).fillColor('#4B5563')
-            .text(empresa.nome, marginLeft, doc.y, { width: pageWidth, align: 'center' });
-          doc.moveDown(0.25);
-        }
+        // Espaço reservado para logo (4x10cm centralizado)
+        await this.renderLogoSpace(doc, empresa);
 
         // Linha decorativa superior
         doc.save();
@@ -395,8 +376,8 @@ export class OperacionalPDFService {
     });
   }
 
-  async gerarTermoCorrecao(payload: CorrecaoPayload): Promise<Buffer> {
-    return new Promise((resolve, reject) => {
+  async gerarTermoCorrecao(payload: CorrecaoPayload, empresa?: EmpresaConfig | null): Promise<Buffer> {
+    return new Promise(async (resolve, reject) => {
       try {
         const doc = new PDFDocument({ margin: 34, size: PDF_PAGE_SIZE });
         const chunks: Buffer[] = [];
@@ -407,6 +388,9 @@ export class OperacionalPDFService {
 
         const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
         const marginLeft = doc.page.margins.left;
+
+        // Espaço reservado para logo (4x10cm centralizado)
+        await this.renderLogoSpace(doc, empresa);
 
         // Decorative bar
         doc.save();
@@ -490,9 +474,7 @@ export class OperacionalPDFService {
   }
 
   async gerarTermoDevolucao(payload: DevolucaoPayload, empresa?: EmpresaConfig | null): Promise<Buffer> {
-    const logoBuffer = await this.loadLogoBuffer(empresa);
-
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       try {
         const doc = new PDFDocument({ margin: 34, size: PDF_PAGE_SIZE });
         const chunks: Buffer[] = [];
@@ -505,28 +487,8 @@ export class OperacionalPDFService {
         const marginLeft = doc.page.margins.left;
         const processos = payload.processos ?? [];
 
-        // Logo
-        if (logoBuffer) {
-          const imageWidth = this.normalizeLogoWidth(empresa?.logoLarguraRelatorio);
-          const imageY = doc.y + this.normalizeLogoOffsetY(empresa?.logoDeslocamentoYRelatorio);
-          const imageX = this.resolveLogoX(empresa?.logoAlinhamentoRelatorio, marginLeft, pageWidth, imageWidth);
-          let imgHeight = 60;
-          try {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const img = (doc as any).openImage(logoBuffer);
-            if (img && img.width && img.height) {
-              imgHeight = (imageWidth / img.width) * img.height;
-            }
-          } catch { /* fallback */ }
-          doc.image(logoBuffer, imageX, imageY, { width: imageWidth });
-          doc.y = imageY + imgHeight + 8;
-        }
-
-        if (empresa?.nome) {
-          doc.font('Helvetica-Bold').fontSize(11).fillColor('#4B5563')
-            .text(empresa.nome, marginLeft, doc.y, { width: pageWidth, align: 'center' });
-          doc.moveDown(0.15);
-        }
+        // Espaço reservado para logo (4x10cm centralizado)
+        await this.renderLogoSpace(doc, empresa);
 
         // Decorative bar
         doc.save();
@@ -626,8 +588,8 @@ export class OperacionalPDFService {
     });
   }
 
-  async gerarRelatorioProducao(payload: ProducaoPayload): Promise<Buffer> {
-    return new Promise((resolve, reject) => {
+  async gerarRelatorioProducao(payload: ProducaoPayload, empresa?: EmpresaConfig | null): Promise<Buffer> {
+    return new Promise(async (resolve, reject) => {
       try {
         const doc = new PDFDocument({ margin: 42, size: PDF_PAGE_SIZE });
         const chunks: Buffer[] = [];
@@ -635,6 +597,9 @@ export class OperacionalPDFService {
         doc.on('data', (chunk: Buffer) => chunks.push(chunk));
         doc.on('end', () => resolve(Buffer.concat(chunks)));
         doc.on('error', reject);
+
+        // Espaço reservado para logo (4x10cm centralizado)
+        await this.renderLogoSpace(doc, empresa);
 
         doc.font('Helvetica-Bold').fontSize(16).fillColor('#1f2937').text('RELATORIO DE PRODUCAO', { align: 'center' });
         doc.moveDown(0.8);
@@ -866,6 +831,57 @@ export class OperacionalPDFService {
     });
   }
 
+  private async renderLogoSpace(doc: PDFKit.PDFDocument, empresa?: EmpresaConfig | null): Promise<void> {
+    const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+    const marginLeft = doc.page.margins.left;
+    
+    // Espaço reservado para logo: 4x10cm (convertido para pontos: 1cm = 28.35pt)
+    const logoSpaceWidth = 4 * 28.35; // ~113.4 pontos
+    const logoSpaceHeight = 10 * 28.35; // ~283.5 pontos
+    
+    // Centralizar o espaço na página
+    const logoX = marginLeft + (pageWidth - logoSpaceWidth) / 2;
+    const logoY = doc.y;
+    
+    // Desenhar o quadro "invisível" (borda muito clara para debug - opcional)
+    // doc.save();
+    // doc.rect(logoX, logoY, logoSpaceWidth, logoSpaceHeight).strokeColor('#f0f0f0').lineWidth(0.5).stroke();
+    // doc.restore();
+    
+    if (empresa?.logoUrl && empresa.exibirLogoRelatorio !== false) {
+      try {
+        const logoBuffer = await this.loadLogoBuffer(empresa);
+        if (logoBuffer) {
+          const imageWidth = Math.min(logoSpaceWidth - 10, this.normalizeLogoWidth(empresa?.logoLarguraRelatorio));
+          const imageX = logoX + (logoSpaceWidth - imageWidth) / 2;
+          const imageY = logoY + 10;
+          
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const img = (doc as any).openImage(logoBuffer);
+          let imgHeight = logoSpaceHeight - 20;
+          if (img && img.width && img.height) {
+            imgHeight = (imageWidth / img.width) * img.height;
+            imgHeight = Math.min(imgHeight, logoSpaceHeight - 20);
+          }
+          
+          doc.image(logoBuffer, imageX, imageY, { width: imageWidth });
+        }
+      } catch {
+        // Se falhar, apenas reserva o espaço
+      }
+    }
+    
+    // Sempre reserva o espaço, mesmo que não tenha logo
+    doc.y = logoY + logoSpaceHeight + 8;
+    
+    // Nome da empresa abaixo do espaço da logo (se existir)
+    if (empresa?.nome) {
+      doc.font('Helvetica-Bold').fontSize(12).fillColor('#4B5563')
+        .text(empresa.nome, marginLeft, logoY + logoSpaceHeight + 12, { width: pageWidth, align: 'center' });
+      doc.y = logoY + logoSpaceHeight + 28;
+    }
+  }
+
   private async loadLogoBuffer(empresa?: EmpresaConfig | null): Promise<Buffer | null> {
     if (!empresa?.logoUrl || empresa.exibirLogoRelatorio === false) {
       return null;
@@ -901,20 +917,6 @@ export class OperacionalPDFService {
 
   private normalizeLogoWidth(value?: number): number {
     return Math.min(Math.max(Number(value ?? 120), 60), 260);
-  }
-
-  private normalizeLogoOffsetY(value?: number): number {
-    return Math.min(Math.max(Number(value ?? 0), -20), 40);
-  }
-
-  private resolveLogoX(alinhamento: string | undefined, left: number, totalWidth: number, imageWidth: number): number {
-    if (alinhamento === 'ESQUERDA') {
-      return left;
-    }
-    if (alinhamento === 'DIREITA') {
-      return left + totalWidth - imageWidth;
-    }
-    return left + (totalWidth - imageWidth) / 2;
   }
 }
 
