@@ -847,8 +847,16 @@ export class OperacionalPDFService {
     
     if (empresa?.logoUrl && empresa.exibirLogoRelatorio !== false) {
       try {
+        console.log('🔍 Tentando carregar logo:', {
+          logoUrl: empresa.logoUrl,
+          exibirLogo: empresa.exibirLogoRelatorio,
+          nomeEmpresa: empresa.nome
+        });
+        
         const logoBuffer = await this.loadLogoBuffer(empresa);
         if (logoBuffer) {
+          console.log('✅ Logo carregada com sucesso, tamanho:', logoBuffer.length, 'bytes');
+          
           const imageWidth = Math.min(logoSpaceWidth - 10, this.normalizeLogoWidth(empresa?.logoLarguraRelatorio));
           const imageX = logoX + (logoSpaceWidth - imageWidth) / 2;
           const imageY = logoY + 10;
@@ -859,15 +867,25 @@ export class OperacionalPDFService {
           if (img && img.width && img.height) {
             imgHeight = (imageWidth / img.width) * img.height;
             imgHeight = Math.min(imgHeight, maxLogoSpaceHeight - 20);
+            console.log('📏 Dimensões da imagem:', { width: img.width, height: img.height, imgHeight });
           }
           
           doc.image(logoBuffer, imageX, imageY, { width: imageWidth });
           actualImageHeight = imgHeight + 20; // altura da imagem + margens
+          console.log('🎯 Logo inserida com sucesso');
+        } else {
+          console.log('❌ Logo buffer é null');
         }
-      } catch {
+      } catch (error) {
+        console.log('💥 Erro ao carregar logo:', error);
         // Se falhar, apenas reserva o espaço mínimo
         actualImageHeight = 60; // espaço mínimo de fallback
       }
+    } else {
+      console.log('⚠️ Logo não configurada ou exibição desabilitada:', {
+        logoUrl: empresa?.logoUrl,
+        exibirLogo: empresa?.exibirLogoRelatorio
+      });
     }
     
     // Usar altura real da imagem ou espaço mínimo
@@ -891,26 +909,55 @@ export class OperacionalPDFService {
 
   private async loadLogoBuffer(empresa?: EmpresaConfig | null): Promise<Buffer | null> {
     if (!empresa?.logoUrl || empresa.exibirLogoRelatorio === false) {
+      console.log('❌ Logo URL não encontrada ou exibição desabilitada');
       return null;
     }
 
     try {
+      console.log('📁 Tentando carregar logo do URL:', empresa.logoUrl);
+      
+      // Tentar carregar de arquivo local primeiro
       const uploadsDir = path.resolve('uploads', 'logos');
-      const files = await fs.readdir(uploadsDir);
-      const logoFile = files.find(f => f.startsWith('logo_empresa'));
-      if (logoFile) {
-        return await fs.readFile(path.join(uploadsDir, logoFile));
+      console.log('📂 Verificando diretório de uploads:', uploadsDir);
+      
+      try {
+        const files = await fs.readdir(uploadsDir);
+        console.log('📋 Arquivos encontrados no diretório:', files);
+        const logoFile = files.find(f => f.startsWith('logo_empresa'));
+        console.log('🎯 Logo file encontrado:', logoFile);
+        
+        if (logoFile) {
+          const logoPath = path.join(uploadsDir, logoFile);
+          console.log('📄 Caminho completo da logo:', logoPath);
+          const buffer = await fs.readFile(logoPath);
+          console.log('✅ Logo carregada do arquivo, tamanho:', buffer.length, 'bytes');
+          return buffer;
+        }
+      } catch (dirError) {
+        console.log('💥 Erro ao ler diretório de uploads:', dirError);
       }
 
+      // Tentar carregar de URL HTTP
       if (empresa.logoUrl.startsWith('http')) {
+        console.log('🌐 Tentando carregar logo da URL:', empresa.logoUrl);
         const response = await fetch(empresa.logoUrl);
-        if (!response.ok) return null;
+        console.log('📡 Status da resposta:', response.status, response.statusText);
+        
+        if (!response.ok) {
+          console.log('❌ Falha na requisição HTTP');
+          return null;
+        }
+        
         const arrayBuffer = await response.arrayBuffer();
-        return Buffer.from(arrayBuffer);
+        const buffer = Buffer.from(arrayBuffer);
+        console.log('✅ Logo carregada da URL, tamanho:', buffer.length, 'bytes');
+        return buffer;
       }
 
+      console.log('❌ Nenhuma fonte de logo disponível');
       return null;
-    } catch {
+    } catch (error) {
+      console.log('💥 Erro geral ao carregar logo:', error);
       return null;
     }
   }
