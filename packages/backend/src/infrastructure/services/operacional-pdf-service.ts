@@ -835,18 +835,15 @@ export class OperacionalPDFService {
     const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
     const marginLeft = doc.page.margins.left;
     
-    // Espaço reservado para logo: 4x10cm (convertido para pontos: 1cm = 28.35pt)
+    // Espaço reservado para logo: 4x10cm máximo (convertido para pontos: 1cm = 28.35pt)
     const logoSpaceWidth = 4 * 28.35; // ~113.4 pontos
-    const logoSpaceHeight = 10 * 28.35; // ~283.5 pontos
+    const maxLogoSpaceHeight = 10 * 28.35; // ~283.5 pontos
     
     // Centralizar o espaço na página
     const logoX = marginLeft + (pageWidth - logoSpaceWidth) / 2;
     const logoY = doc.y;
     
-    // Desenhar o quadro "invisível" (borda muito clara para debug - opcional)
-    // doc.save();
-    // doc.rect(logoX, logoY, logoSpaceWidth, logoSpaceHeight).strokeColor('#f0f0f0').lineWidth(0.5).stroke();
-    // doc.restore();
+    let actualImageHeight = 0;
     
     if (empresa?.logoUrl && empresa.exibirLogoRelatorio !== false) {
       try {
@@ -858,27 +855,32 @@ export class OperacionalPDFService {
           
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const img = (doc as any).openImage(logoBuffer);
-          let imgHeight = logoSpaceHeight - 20;
+          let imgHeight = maxLogoSpaceHeight - 20;
           if (img && img.width && img.height) {
             imgHeight = (imageWidth / img.width) * img.height;
-            imgHeight = Math.min(imgHeight, logoSpaceHeight - 20);
+            imgHeight = Math.min(imgHeight, maxLogoSpaceHeight - 20);
           }
           
           doc.image(logoBuffer, imageX, imageY, { width: imageWidth });
+          actualImageHeight = imgHeight + 20; // altura da imagem + margens
         }
       } catch {
-        // Se falhar, apenas reserva o espaço
+        // Se falhar, apenas reserva o espaço mínimo
+        actualImageHeight = 60; // espaço mínimo de fallback
       }
     }
     
-    // Sempre reserva o espaço, mesmo que não tenha logo
-    doc.y = logoY + logoSpaceHeight + 2;
+    // Usar altura real da imagem ou espaço mínimo
+    const usedHeight = Math.max(actualImageHeight, 60); // mínimo 60 pontos
+    
+    // Posicionar o cursor após o espaço usado
+    doc.y = logoY + usedHeight + 2;
     
     // Nome da empresa abaixo do espaço da logo (se existir)
     if (empresa?.nome) {
       doc.font('Helvetica-Bold').fontSize(12).fillColor('#4B5563')
-        .text(empresa.nome, marginLeft, logoY + logoSpaceHeight + 6, { width: pageWidth, align: 'center' });
-      doc.y = logoY + logoSpaceHeight + 18;
+        .text(empresa.nome, marginLeft, logoY + usedHeight + 6, { width: pageWidth, align: 'center' });
+      doc.y = logoY + usedHeight + 18;
     }
   }
 
