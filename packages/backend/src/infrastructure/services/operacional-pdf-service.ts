@@ -872,13 +872,13 @@ export class OperacionalPDFService {
     }
     
     // Sempre reserva o espaço, mesmo que não tenha logo
-    doc.y = logoY + logoSpaceHeight + 8;
+    doc.y = logoY + logoSpaceHeight + 2;
     
     // Nome da empresa abaixo do espaço da logo (se existir)
     if (empresa?.nome) {
       doc.font('Helvetica-Bold').fontSize(12).fillColor('#4B5563')
-        .text(empresa.nome, marginLeft, logoY + logoSpaceHeight + 12, { width: pageWidth, align: 'center' });
-      doc.y = logoY + logoSpaceHeight + 28;
+        .text(empresa.nome, marginLeft, logoY + logoSpaceHeight + 6, { width: pageWidth, align: 'center' });
+      doc.y = logoY + logoSpaceHeight + 18;
     }
   }
 
