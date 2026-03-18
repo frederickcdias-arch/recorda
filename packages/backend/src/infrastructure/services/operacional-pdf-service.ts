@@ -233,7 +233,8 @@ export class OperacionalPDFService {
 
     return new Promise((resolve, reject) => {
       try {
-        const doc = new PDFDocument({ margin: 34, size: PDF_PAGE_SIZE });
+        // Margem menor para melhor aproveitamento do A4
+        const doc = new PDFDocument({ margin: 24, size: PDF_PAGE_SIZE });
         const chunks: Buffer[] = [];
 
         doc.on('data', (chunk: Buffer) => chunks.push(chunk));
@@ -242,6 +243,7 @@ export class OperacionalPDFService {
 
         const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
         const marginLeft = doc.page.margins.left;
+        const colPad = 8;
         const processos = payload.processos ?? [];
 
         // Logo da empresa (mesmo padrao do relatorio gerencial)
@@ -262,30 +264,30 @@ export class OperacionalPDFService {
         }
 
         if (empresa?.nome) {
-          doc.font('Helvetica-Bold').fontSize(11).fillColor('#4B5563')
+          doc.font('Helvetica-Bold').fontSize(12).fillColor('#4B5563')
             .text(empresa.nome, marginLeft, doc.y, { width: pageWidth, align: 'center' });
-          doc.moveDown(0.15);
+          doc.moveDown(0.25);
         }
 
         // Linha decorativa superior
         doc.save();
         doc.rect(marginLeft, doc.y, pageWidth, 3).fill('#1e3a5f');
         doc.restore();
-        doc.moveDown(0.6);
+        doc.moveDown(0.4);
 
         // Titulo
-        doc.font('Helvetica-Bold').fontSize(15).fillColor('#1e3a5f')
+        doc.font('Helvetica-Bold').fontSize(16).fillColor('#1e3a5f')
           .text('TERMO DE RECEBIMENTO DE DOCUMENTOS', { align: 'center' });
-        doc.font('Helvetica').fontSize(9).fillColor('#6b7280')
+        doc.font('Helvetica').fontSize(10).fillColor('#6b7280')
           .text('Controle Operacional', { align: 'center' });
-        doc.moveDown(0.4);
+        doc.moveDown(0.3);
 
         // Linha fina separadora
         doc.save();
         doc.moveTo(marginLeft, doc.y).lineTo(marginLeft + pageWidth, doc.y)
           .strokeColor('#d1d5db').lineWidth(0.5).stroke();
         doc.restore();
-        doc.moveDown(0.6);
+        doc.moveDown(0.4);
 
         // Bloco de referencia
         const setores = [...new Set(processos.map((p) => (p.setor ?? '').trim()).filter(Boolean))];
@@ -293,30 +295,35 @@ export class OperacionalPDFService {
 
         const refBoxY = doc.y;
         doc.save();
-        doc.roundedRect(marginLeft, refBoxY, pageWidth, 38, 4).fill('#f8fafc');
+        doc.roundedRect(marginLeft, refBoxY, pageWidth, 36, 4).fill('#f8fafc');
         doc.restore();
 
-        doc.font('Helvetica-Bold').fontSize(8.5).fillColor('#6b7280');
-        doc.text('SETOR', marginLeft + 12, refBoxY + 8);
-        doc.text('PROJETO', marginLeft + 240, refBoxY + 8);
-        doc.text('RESPONS\u00C1VEL', marginLeft + 380, refBoxY + 8);
+        // Distribuição proporcional das colunas
+        const col1 = marginLeft + 12;
+        const col2 = marginLeft + Math.floor(pageWidth * 0.38);
+        const col3 = marginLeft + Math.floor(pageWidth * 0.68);
 
-        doc.font('Helvetica').fontSize(9.5).fillColor('#111827');
-        doc.text(setorTexto, marginLeft + 12, refBoxY + 20, { width: 220, lineBreak: true });
-        doc.text(payload.projeto, marginLeft + 240, refBoxY + 20, { width: 130, ellipsis: true });
-        doc.text(payload.responsavel, marginLeft + 380, refBoxY + 20, { width: 120, ellipsis: true });
+        doc.font('Helvetica-Bold').fontSize(9).fillColor('#6b7280');
+        doc.text('SETOR', col1, refBoxY + 8);
+        doc.text('PROJETO', col2, refBoxY + 8);
+        doc.text('RESPONSÁVEL', col3, refBoxY + 8);
+
+        doc.font('Helvetica').fontSize(10).fillColor('#111827');
+        doc.text(setorTexto, col1, refBoxY + 20, { width: col2 - col1 - colPad, lineBreak: true });
+        doc.text(payload.projeto, col2, refBoxY + 20, { width: col3 - col2 - colPad, ellipsis: true });
+        doc.text(payload.responsavel, col3, refBoxY + 20, { width: pageWidth - (col3 - marginLeft) - 12, ellipsis: true });
 
         doc.y = refBoxY + 46;
-        doc.moveDown(0.3);
+        doc.moveDown(0.2);
 
         // Texto formal
         const setorFormal = setores.length > 0 ? setores.join(', ') : 'setor de origem';
         doc.font('Helvetica').fontSize(10).fillColor('#111827');
         doc.text(
           `Pelo presente termo, declaramos que recebemos do(a) ${setorFormal} os processos e documentos abaixo discriminados, para fins de tratamento documental.`,
-          marginLeft, doc.y, { width: pageWidth, align: 'justify', lineGap: 3 }
+          marginLeft, doc.y, { width: pageWidth, align: 'justify', lineGap: 2 }
         );
-        doc.moveDown(0.6);
+        doc.moveDown(0.4);
 
         // Resumo (box)
         const repos = [...new Set(processos.map((p) => p.repositorio).filter(Boolean))];
@@ -324,19 +331,21 @@ export class OperacionalPDFService {
         const totalApensos = processos.filter((p) => p.isApenso).length;
         const boxY = doc.y;
         doc.save();
-        doc.roundedRect(marginLeft, boxY, pageWidth, 32, 4).fill('#eef2ff');
+        doc.roundedRect(marginLeft, boxY, pageWidth, 28, 4).fill('#eef2ff');
         doc.restore();
-        doc.font('Helvetica-Bold').fontSize(9).fillColor('#1e3a5f');
+        doc.font('Helvetica-Bold').fontSize(10).fillColor('#1e3a5f');
         const totalImagens = processos.length;
         const totalCaixas = processos
           .filter((p) => !p.isApenso)
-          .reduce((acc, p) => acc + Math.max(Number(p.numeroCaixas ?? 0), 0), 0);
-        doc.text(`Imagens: ${totalImagens}`, marginLeft + 12, boxY + 10);
-        doc.text(totalApensos > 0 ? `(${mainProcessos.length} processos + ${totalApensos} apensos)` : `Repositórios: ${repos.length}`, marginLeft + 120, boxY + 10);
-        doc.text(`Caixas: ${totalCaixas}`, marginLeft + 380, boxY + 10);
+          .reduce((acc, p) => acc + Math.max(Number(p.numeroCaixas ?? 0), 0);
+        // Resumo mais distribuído
+        doc.text(`Imagens: ${totalImagens}`, marginLeft + 12, boxY + 8);
+        doc.text(totalApensos > 0 ? `(${mainProcessos.length} processos + ${totalApensos} apensos)` : `Repositórios: ${repos.length}`, marginLeft + Math.floor(pageWidth / 2.5), boxY + 8);
+        doc.text(`Caixas: ${totalCaixas}`, marginLeft + Math.floor(pageWidth * 0.75), boxY + 8);
 
         // Tabela de processos (com apensos intercalados)
         if (processos.length > 0) {
+          // Colunas mais largas e proporcionais para melhor uso do A4
           const tableRows = processos.map((item, idx) => [
             String(idx + 1),
             item.repositorio,
@@ -349,10 +358,23 @@ export class OperacionalPDFService {
             item.obs || '',
           ]);
 
+          // Larguras proporcionais (soma ~100% do pageWidth)
+          const colWidths = [
+            22, // #
+            Math.floor(pageWidth * 0.13), // REPOSITORIO
+            Math.floor(pageWidth * 0.13), // UNIDADE
+            Math.floor(pageWidth * 0.11), // SETOR
+            Math.floor(pageWidth * 0.11), // PROTOCOLO
+            Math.floor(pageWidth * 0.17), // INTERESSADO
+            Math.floor(pageWidth * 0.10), // CLASSIF.
+            Math.floor(pageWidth * 0.08), // VOL.
+            Math.floor(pageWidth * 0.17), // OBS
+          ];
+
           this.renderRecebimentoTable(
             doc,
             ['#', 'REPOSITORIO', 'UNIDADE', 'SETOR', 'PROTOCOLO', 'INTERESSADO', 'CLASSIF.', 'VOL.', 'OBS'],
-            [16, 68, 44, 58, 58, 72, 44, 34, 120],
+            colWidths,
             tableRows,
             processos.map((p) => !!p.isApenso),
           );
