@@ -337,7 +337,7 @@ export class OperacionalPDFService {
         const totalImagens = processos.length;
         const totalCaixas = processos
           .filter((p) => !p.isApenso)
-          .reduce((acc, p) => acc + Math.max(Number(p.numeroCaixas ?? 0), 0);
+          .reduce((acc, p) => acc + Math.max(Number(p.numeroCaixas ?? 0), 0), 0);
         // Resumo mais distribuído
         doc.text(`Imagens: ${totalImagens}`, marginLeft + 12, boxY + 8);
         doc.text(totalApensos > 0 ? `(${mainProcessos.length} processos + ${totalApensos} apensos)` : `Repositórios: ${repos.length}`, marginLeft + Math.floor(pageWidth / 2.5), boxY + 8);
