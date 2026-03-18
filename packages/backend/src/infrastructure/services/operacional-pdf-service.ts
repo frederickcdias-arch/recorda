@@ -873,6 +873,11 @@ export class OperacionalPDFService {
     // Usar altura real da imagem ou espaço mínimo
     const usedHeight = Math.max(actualImageHeight, 60); // mínimo 60 pontos
     
+    // Desenhar borda de debug para visualizar espaço da logo
+    doc.save();
+    doc.rect(logoX, logoY, logoSpaceWidth, usedHeight).strokeColor('#ff0000').lineWidth(0.5).stroke();
+    doc.restore();
+    
     // Posicionar o cursor após o espaço usado
     doc.y = logoY + usedHeight + 2;
     
