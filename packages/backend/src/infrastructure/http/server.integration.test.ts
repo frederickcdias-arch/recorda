@@ -1418,6 +1418,74 @@ describe('HTTP server integration', () => {
     expect(listBody.projetos[0]).toMatchObject({ nome: 'Projeto Integracao' });
   });
 
+  it('retorna unidades de recebimento sem duplicar nomes', async () => {
+    const token = await authenticate();
+
+    await server.inject({
+      method: 'POST',
+      url: '/operacional/repositorios',
+      headers: { authorization: `Bearer ${token}` },
+      payload: {
+        idRepositorioGed: '000900/2026',
+        orgao: 'CINF',
+        projeto: 'SEMA',
+        classificacaoId: '550e8400-e29b-41d4-a716-446655440000',
+      },
+    });
+
+    await server.inject({
+      method: 'POST',
+      url: '/operacional/repositorios',
+      headers: { authorization: `Bearer ${token}` },
+      payload: {
+        idRepositorioGed: '000901/2026',
+        orgao: 'cinf',
+        projeto: 'SGPA',
+        classificacaoId: '550e8400-e29b-41d4-a716-446655440000',
+      },
+    });
+
+    const response = await server.inject({
+      method: 'GET',
+      url: '/operacional/orgaos-recebimento',
+      headers: { authorization: `Bearer ${token}` },
+    });
+
+    expect(response.statusCode).toBe(200);
+    const itens = response.json().itens;
+    const cinfMatches = itens.filter((u: any) => u.nome.trim().toLowerCase() === 'cinf');
+    expect(cinfMatches.length).toBe(1);
+  });
+
+  it('evita duplicatas no nome de projetos configuracao', async () => {
+    const token = await authenticate();
+
+    await server.inject({
+      method: 'POST',
+      url: '/configuracao/projetos',
+      headers: { authorization: `Bearer ${token}` },
+      payload: { nome: 'Projeto Duplicado', descricao: 'Duplicado 1', ativo: true },
+    });
+
+    await server.inject({
+      method: 'POST',
+      url: '/configuracao/projetos',
+      headers: { authorization: `Bearer ${token}` },
+      payload: { nome: 'projeto duplicado', descricao: 'Duplicado 2', ativo: true },
+    });
+
+    const listResponse = await server.inject({
+      method: 'GET',
+      url: '/configuracao/projetos',
+      headers: { authorization: `Bearer ${token}` },
+    });
+
+    expect(listResponse.statusCode).toBe(200);
+    const projetos = listResponse.json().projetos;
+    const filtered = projetos.filter((p: any) => p.nome.trim().toLowerCase() === 'projeto duplicado');
+    expect(filtered.length).toBe(1);
+  });
+
   it('rejects project creation with empty name', async () => {
     const accessToken = await authenticate();
     const response = await server.inject({
