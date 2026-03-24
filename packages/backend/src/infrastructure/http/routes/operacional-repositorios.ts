@@ -234,6 +234,8 @@ export function createOperacionalRepositoriosRoutes(): FastifyPluginAsync {
             orgao: { type: 'string', description: 'Filtrar por unidade (exato, case-insensitive)' },
             projeto: { type: 'string', description: 'Filtrar por projeto (exato, case-insensitive)' },
             busca: { type: 'string', description: 'Busca por ID GED, órgão ou projeto' },
+            dataInicio: { type: 'string', format: 'date', description: 'Filtrar por data de criação a partir desta data (inclusive)' },
+            dataFim: { type: 'string', format: 'date', description: 'Filtrar por data de criação até esta data (inclusive)' },
             pagina: { type: 'integer', default: 1 },
             limite: { type: 'integer', default: 20 },
           },
@@ -248,6 +250,8 @@ export function createOperacionalRepositoriosRoutes(): FastifyPluginAsync {
           orgao?: string;
           projeto?: string;
           busca?: string;
+          dataInicio?: string;
+          dataFim?: string;
           pagina?: string | number;
           limite?: string | number;
         };
@@ -275,6 +279,14 @@ export function createOperacionalRepositoriosRoutes(): FastifyPluginAsync {
         if (query.projeto) {
           where += ` AND LOWER(TRIM(r.projeto)) = LOWER(TRIM($${p++}))`;
           params.push(query.projeto);
+        }
+        if (query.dataInicio) {
+          where += ` AND r.data_criacao >= $${p++}::date`;
+          params.push(query.dataInicio);
+        }
+        if (query.dataFim) {
+          where += ` AND r.data_criacao < ($${p++}::date + INTERVAL '1 day')`;
+          params.push(query.dataFim);
         }
         if (query.busca) {
           where += ` AND (
@@ -385,6 +397,14 @@ export function createOperacionalRepositoriosRoutes(): FastifyPluginAsync {
         if (query.projeto) {
           contadoresWhere += ` AND LOWER(TRIM(r.projeto)) = LOWER(TRIM($${cp++}))`;
           contadoresParams.push(query.projeto);
+        }
+        if (query.dataInicio) {
+          contadoresWhere += ` AND r.data_criacao >= $${cp++}::date`;
+          contadoresParams.push(query.dataInicio);
+        }
+        if (query.dataFim) {
+          contadoresWhere += ` AND r.data_criacao < ($${cp++}::date + INTERVAL '1 day')`;
+          contadoresParams.push(query.dataFim);
         }
         const contadoresResult = await server.database.query<{ status_atual: string; qtd: string }>(
           `SELECT r.status_atual, COUNT(*)::text AS qtd

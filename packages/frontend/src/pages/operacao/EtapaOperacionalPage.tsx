@@ -130,6 +130,9 @@ export function EtapaOperacionalPage(): JSX.Element {
 
   const [pagina, setPagina] = useState(1);
   const [filtroBusca, setFiltroBusca] = useState('');
+  const [filtroUnidade, setFiltroUnidade] = useState('');
+  const [filtroDataInicio, setFiltroDataInicio] = useState('');
+  const [filtroDataFim, setFiltroDataFim] = useState('');
 
   const [novoRepositorio, setNovoRepositorio] = useState({
     idRepositorioGed: '',
@@ -184,12 +187,18 @@ export function EtapaOperacionalPage(): JSX.Element {
     return {
       status: params.get('status') ?? '',
       busca: params.get('busca') ?? '',
+      orgao: params.get('orgao') ?? '',
+      dataInicio: params.get('dataInicio') ?? '',
+      dataFim: params.get('dataFim') ?? '',
     };
   }, [location.search]);
 
   useEffect(() => {
     setFiltroBusca(filtrosUrl.busca);
-  }, [filtrosUrl.busca]);
+    setFiltroUnidade(filtrosUrl.orgao);
+    setFiltroDataInicio(filtrosUrl.dataInicio);
+    setFiltroDataFim(filtrosUrl.dataFim);
+  }, [filtrosUrl.busca, filtrosUrl.orgao, filtrosUrl.dataInicio, filtrosUrl.dataFim]);
 
   const debouncedBusca = useDebounce(filtroBusca.trim(), 300);
 
@@ -228,6 +237,9 @@ export function EtapaOperacionalPage(): JSX.Element {
   const repoQuery = useRepositorios({
     etapa: etapaConfig?.etapaApi,
     status: filtrosUrl.status || undefined,
+    orgao: filtroUnidade || undefined,
+    dataInicio: filtroDataInicio || undefined,
+    dataFim: filtroDataFim || undefined,
     busca: debouncedBusca || undefined,
     pagina,
     limite: 50,
@@ -843,8 +855,8 @@ export function EtapaOperacionalPage(): JSX.Element {
                 </Card>
 
                 <Card>
-                  <div className="flex flex-col md:flex-row gap-3 md:items-end mb-4">
-                    <div className="flex-1 min-w-[200px]">
+                  <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 mb-4">
+                    <div>
                       <Input
                         label="Buscar"
                         value={filtroBusca}
@@ -852,6 +864,37 @@ export function EtapaOperacionalPage(): JSX.Element {
                         placeholder="ID GED, unidade, projeto ou processo"
                       />
                     </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Unidade</label>
+                      <select
+                        className="w-full h-11 px-3 border rounded-lg text-sm"
+                        value={filtroUnidade}
+                        onChange={(e) => { setFiltroUnidade(e.target.value); setPagina(1); }}
+                      >
+                        <option value="">— Todas —</option>
+                        {orgaosOptions.map((o) => (
+                          <option key={o.id} value={o.nome}>{o.nome}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <Input
+                        label="Data Início"
+                        type="date"
+                        value={filtroDataInicio}
+                        onChange={(e) => { setFiltroDataInicio(e.target.value); setPagina(1); }}
+                      />
+                    </div>
+                    <div>
+                      <Input
+                        label="Data Fim"
+                        type="date"
+                        value={filtroDataFim}
+                        onChange={(e) => { setFiltroDataFim(e.target.value); setPagina(1); }}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2 items-center mb-4">
                     <Button className="w-full md:w-auto" variant="secondary" onClick={() => invalidateRepos()} loading={processando}>Atualizar</Button>
                     <Button className="w-full md:w-auto" variant="outline" onClick={() => { setBatchRepoId(''); setBatchText(''); setBatchAddModalOpen(true); }}>
                       Adicionar em Lote
