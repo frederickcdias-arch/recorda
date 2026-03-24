@@ -342,14 +342,14 @@ export class OperacionalPDFService {
           // Larguras proporcionais (soma ~100% do pageWidth)
           const colWidths = [
             22, // #
-            Math.floor(pageWidth * 0.13), // REPOSITORIO
-            Math.floor(pageWidth * 0.13), // UNIDADE
-            Math.floor(pageWidth * 0.11), // SETOR
-            Math.floor(pageWidth * 0.11), // PROTOCOLO
-            Math.floor(pageWidth * 0.17), // INTERESSADO
-            Math.floor(pageWidth * 0.10), // CLASSIF.
+            Math.floor(pageWidth * 0.12), // REPOSITORIO
+            Math.floor(pageWidth * 0.12), // UNIDADE
+            Math.floor(pageWidth * 0.10), // SETOR
+            Math.floor(pageWidth * 0.10), // PROTOCOLO
+            Math.floor(pageWidth * 0.15), // INTERESSADO
+            Math.floor(pageWidth * 0.14), // CLASSIF. (aumentado)
             Math.floor(pageWidth * 0.08), // VOL.
-            Math.floor(pageWidth * 0.17), // OBS
+            Math.floor(pageWidth * 0.14), // OBS
           ];
 
           this.renderRecebimentoTable(
