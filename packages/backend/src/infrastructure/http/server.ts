@@ -79,6 +79,7 @@ export async function createServer(dependencies: ServerDependencies): Promise<Fa
   // Segurança: Headers HTTP
   await server.register(helmet, {
     contentSecurityPolicy: process.env.NODE_ENV === 'production',
+    crossOriginResourcePolicy: false,
   });
 
   if (isProduction) {
