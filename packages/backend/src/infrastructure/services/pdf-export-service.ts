@@ -15,6 +15,7 @@ export interface EmpresaConfig {
   logoLarguraRelatorio?: number;
   logoAlinhamentoRelatorio?: 'ESQUERDA' | 'CENTRO' | 'DIREITA' | string;
   logoDeslocamentoYRelatorio?: number;
+  paginaTamanho?: 'A4' | string;
 }
 
 type TableColumn = {
@@ -43,10 +44,11 @@ const HEADER_HEIGHT = 22;
 export class PDFExportService {
   async exportar(relatorio: RelatorioCompleto, empresa?: EmpresaConfig | null): Promise<Buffer> {
     const logoBuffer = await this.loadLogoBuffer(empresa);
+    const pageSize = String(empresa?.paginaTamanho ?? 'A4').toUpperCase() === 'A4' ? 'A4' : 'A4'; // Força A4 se não estiver definido
 
     return new Promise((resolve, reject) => {
       try {
-        const doc = new PDFDocument({ margin: MARGIN, size: 'A4', bufferPages: true });
+        const doc = new PDFDocument({ margin: MARGIN, size: pageSize, bufferPages: true });
         const chunks: Buffer[] = [];
 
         doc.on('data', (chunk: Buffer) => chunks.push(chunk));
