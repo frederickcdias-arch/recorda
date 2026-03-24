@@ -117,14 +117,20 @@ export function useRepositoriosRecebimento() {
 export function useRepositorios(params: {
   etapa?: string;
   status?: string;
+  orgao?: string;
+  dataInicio?: string;
+  dataFim?: string;
   busca?: string;
   pagina?: number;
   limite?: number;
 }) {
-  const { etapa, status, busca, pagina = 1, limite = 50 } = params;
+  const { etapa, status, orgao, dataInicio, dataFim, busca, pagina = 1, limite = 50 } = params;
   const queryParams: Record<string, string | number> = { pagina, limite };
   if (etapa) queryParams.etapa = etapa;
   if (status) queryParams.status = status;
+  if (orgao) queryParams.orgao = orgao;
+  if (dataInicio) queryParams.dataInicio = dataInicio;
+  if (dataFim) queryParams.dataFim = dataFim;
   if (busca) queryParams.busca = busca;
 
   return useQuery({

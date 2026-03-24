@@ -2189,6 +2189,34 @@ describe('HTTP server integration', () => {
     expect(contadoresCall?.[1]).toEqual(expect.arrayContaining(['SGPA', 'SEMA']));
   });
 
+  it('aplica filtros por data de criação na listagem de repositorios', async () => {
+    database.queryMock.mockClear();
+
+    const response = await server.inject({
+      method: 'GET',
+      url: '/operacional/repositorios?orgao=SGPA&dataInicio=2026-01-01&dataFim=2026-01-31&pagina=1&limite=10',
+      headers: { authorization: `Bearer ${await authenticate()}` },
+    });
+
+    expect(response.statusCode).toBe(200);
+
+    const countCall = database.queryMock.mock.calls.find(([sql]) =>
+      sql.includes('SELECT COUNT(*)::text as total') && sql.includes('FROM repositorios r')
+    );
+    expect(countCall).toBeTruthy();
+    expect(countCall?.[0]).toContain('r.data_criacao >= $');
+    expect(countCall?.[0]).toContain('r.data_criacao < ($');
+    expect(countCall?.[1]).toEqual(expect.arrayContaining(['SGPA', '2026-01-01', '2026-01-31']));
+
+    const contadoresCall = database.queryMock.mock.calls.find(([sql]) =>
+      sql.includes('SELECT r.status_atual, COUNT(*)::text AS qtd') && sql.includes('FROM repositorios r')
+    );
+    expect(contadoresCall).toBeTruthy();
+    expect(contadoresCall?.[0]).toContain('r.data_criacao >= $');
+    expect(contadoresCall?.[0]).toContain('r.data_criacao < ($');
+    expect(contadoresCall?.[1]).toEqual(expect.arrayContaining(['SGPA', '2026-01-01', '2026-01-31']));
+  });
+
   it('aplica busca por processo/apenso na listagem de repositorios', async () => {
     database.queryMock.mockClear();
 

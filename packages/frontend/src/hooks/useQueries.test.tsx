@@ -100,12 +100,15 @@ describe('useRepositorios', () => {
     mockGet.mockResolvedValueOnce({ itens: [], total: 0, pagina: 1, totalPaginas: 1 });
 
     const { result } = renderHook(
-      () => useRepositorios({ etapa: 'RECEBIMENTO', pagina: 1, limite: 50 }),
+      () => useRepositorios({ etapa: 'RECEBIMENTO', orgao: 'SGPA', dataInicio: '2026-01-01', dataFim: '2026-12-31', pagina: 1, limite: 50 }),
       { wrapper },
     );
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(mockGet).toHaveBeenCalledWith(expect.stringContaining('etapa=RECEBIMENTO'));
+    expect(mockGet).toHaveBeenCalledWith(expect.stringContaining('orgao=SGPA'));
+    expect(mockGet).toHaveBeenCalledWith(expect.stringContaining('dataInicio=2026-01-01'));
+    expect(mockGet).toHaveBeenCalledWith(expect.stringContaining('dataFim=2026-12-31'));
     expect(mockGet).toHaveBeenCalledWith(expect.stringContaining('pagina=1'));
     expect(mockGet).toHaveBeenCalledWith(expect.stringContaining('limite=50'));
   });
