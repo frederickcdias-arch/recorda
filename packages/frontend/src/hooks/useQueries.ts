@@ -183,7 +183,19 @@ export function useProjetosConfiguracao() {
     queryFn: () =>
       api.get<{ projetos: Array<{ id: string; nome: string; ativo: boolean }> }>('/configuracao/projetos'),
     staleTime: 5 * 60_000,
-    select: (data) => (data.projetos ?? []).filter((p) => p.ativo).map((p) => ({ id: p.id, nome: p.nome })),
+    select: (data) => {
+      const uniqueByName = new Map<string, { id: string; nome: string }>();
+      for (const projeto of data.projetos ?? []) {
+        if (!projeto.ativo) continue;
+        const nome = projeto.nome.trim();
+        if (!nome) continue;
+        const key = nome.toLowerCase();
+        if (!uniqueByName.has(key)) {
+          uniqueByName.set(key, { id: projeto.id, nome });
+        }
+      }
+      return Array.from(uniqueByName.values());
+    },
   });
 }
 

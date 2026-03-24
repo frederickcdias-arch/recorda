@@ -284,7 +284,17 @@ export function createConfiguracaoRoutes(): FastifyPluginAsync {
         `);
 
         const projetosRows = result.rows as Record<string, unknown>[];
-        return reply.status(200).send({ projetos: projetosRows.map((projeto) => ({
+        const uniqueMap = new Map<string, Record<string, unknown>>();
+        for (const projeto of projetosRows) {
+          const nome = String(projeto.nome ?? '').trim();
+          if (!nome) continue;
+          const key = nome.toLowerCase();
+          if (!uniqueMap.has(key)) {
+            uniqueMap.set(key, projeto);
+          }
+        }
+
+        return reply.status(200).send({ projetos: Array.from(uniqueMap.values()).map((projeto) => ({
           id: String(projeto.id),
           nome: String(projeto.nome),
           descricao: (projeto.descricao as string) ?? '',

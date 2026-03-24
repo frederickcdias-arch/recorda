@@ -158,14 +158,20 @@ export function createOperacionalRepositoriosRoutes(): FastifyPluginAsync {
              WHERE orgao IS NOT NULL
                AND TRIM(orgao) <> ''
                AND projeto NOT IN ('LEGADO', $1)
+           ),
+           unidades_uniao AS (
+             SELECT id, nome FROM unidades_config
+             UNION ALL
+             SELECT id, nome FROM unidades_historico
+           ),
+           unidades_dedup AS (
+             SELECT MIN(id) AS id, nome
+             FROM unidades_uniao
+             GROUP BY LOWER(TRIM(nome))
            )
            SELECT id, nome
-           FROM (
-             SELECT id, nome FROM unidades_config
-             UNION
-             SELECT id, nome FROM unidades_historico
-           ) unidades
-           ORDER BY nome ASC`,
+           FROM unidades_dedup
+           ORDER BY LOWER(nome) ASC`,
           [PROJETO_IMPORTACAO_PRODUCAO]
         );
         return reply.send({ itens: result.rows });
