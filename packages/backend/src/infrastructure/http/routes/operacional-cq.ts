@@ -1070,7 +1070,7 @@ export function createOperacionalCQRoutes(): FastifyPluginAsync {
             ].join(','));
           });
 
-          const csvContent = rows.join('\r\n');
+          const csvContent = '\uFEFF' + rows.join('\r\n'); // BOM UTF-8 para evitar problemas de encoding em Excel e outros leitores
           return reply
             .header('Content-Type', 'text/csv; charset=utf-8')
             .header('Content-Disposition', `attachment; filename="relatorio-recebimento-${id}.csv"`)
