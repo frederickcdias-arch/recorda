@@ -1031,6 +1031,52 @@ export function createOperacionalCQRoutes(): FastifyPluginAsync {
         const fileBuffer = await fs.readFile(fullPath);
         const filename = `relatorio-${report.tipo.toLowerCase()}-${report.id}.pdf`;
 
+        const query = request.query as { token?: string; formato?: string };
+        const format = String(query.formato ?? '').toLowerCase();
+
+        if (format === 'csv') {
+          const snapshotResult = await server.database.query(
+            `SELECT dados_snapshot
+             FROM relatorios_operacionais
+             WHERE id = $1`,
+            [id]
+          );
+
+          const snapshot = snapshotResult.rows[0]?.dados_snapshot as Record<string, unknown> | undefined;
+          const processos = Array.isArray(snapshot?.processos) ? snapshot.processos as Array<Record<string, unknown>> : [];
+
+          const escapeCsv = (value: unknown): string => {
+            const text = String(value ?? '');
+            if (text.includes('"') || text.includes(',') || text.includes('\n') || text.includes('\r')) {
+              return '"' + text.replace(/"/g, '""') + '"';
+            }
+            return text;
+          };
+
+          const header = ['#', 'REPOSITORIO', 'UNIDADE', 'SETOR', 'PROTOCOLO', 'INTERESSADO', 'CLASSIFICACAO', 'VOLUME', 'OBS'];
+          const rows = [header.join(',')];
+
+          processos.forEach((processo, idx) => {
+            rows.push([
+              String(idx + 1),
+              escapeCsv(processo.repositorio),
+              escapeCsv(processo.orgao),
+              escapeCsv(processo.setor),
+              escapeCsv(processo.protocolo),
+              escapeCsv(processo.interessado),
+              escapeCsv(processo.classificacao),
+              escapeCsv(processo.volume),
+              escapeCsv(processo.obs),
+            ].join(','));
+          });
+
+          const csvContent = rows.join('\r\n');
+          return reply
+            .header('Content-Type', 'text/csv; charset=utf-8')
+            .header('Content-Disposition', `attachment; filename="relatorio-recebimento-${id}.csv"`)
+            .send(csvContent);
+        }
+
         const { token: qToken } = request.query as { token?: string };
         const disposition = qToken ? 'inline' : `attachment; filename="${filename}"`;
 

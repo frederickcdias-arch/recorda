@@ -127,6 +127,7 @@ export function EtapaOperacionalPage(): JSX.Element {
   const toast = useToastHelpers();
   const queryClient = useQueryClient();
   const [processando, setProcessando] = useState(false);
+  const [processandoCsv, setProcessandoCsv] = useState(false);
 
   const [pagina, setPagina] = useState(1);
   const [filtroBusca, setFiltroBusca] = useState('');
@@ -545,6 +546,18 @@ export function EtapaOperacionalPage(): JSX.Element {
     }
   };
 
+  const handleGerarRelatorioRecebimentoCsv = async (repositorioIds: string[]): Promise<void> => {
+    try {
+      setProcessandoCsv(true);
+      const report = await gerarRelRecebimento.mutateAsync(repositorioIds);
+      await api.download(`/api/operacional/relatorios/${report.id}/download?formato=csv`, `termo-recebimento-${report.id}.csv`);
+    } catch (error) {
+      showError(extractErrorMessage(error, 'Erro ao gerar CSV de Recebimento'));
+    } finally {
+      setProcessandoCsv(false);
+    }
+  };
+
   const handleDownloadTermo = async (): Promise<void> => {
     if (!previewTermoReportId) return;
     try {
@@ -900,14 +913,24 @@ export function EtapaOperacionalPage(): JSX.Element {
                       Adicionar em Lote
                     </Button>
                     {reposSelecionadosTermo.size > 0 && (
-                      <Button
-                        className="w-full md:w-auto"
-                        variant="outline"
-                        onClick={() => void handleGerarRelatorioRecebimento(Array.from(reposSelecionadosTermo))}
-                        loading={processando}
-                      >
-                        Gerar Termo ({reposSelecionadosTermo.size})
-                      </Button>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          className="w-full md:w-auto"
+                          variant="outline"
+                          onClick={() => void handleGerarRelatorioRecebimento(Array.from(reposSelecionadosTermo))}
+                          loading={processando}
+                        >
+                          Gerar Termo ({reposSelecionadosTermo.size})
+                        </Button>
+                        <Button
+                          className="w-full md:w-auto"
+                          variant="secondary"
+                          onClick={() => void handleGerarRelatorioRecebimentoCsv(Array.from(reposSelecionadosTermo))}
+                          loading={processandoCsv}
+                        >
+                          Gerar CSV ({reposSelecionadosTermo.size})
+                        </Button>
+                      </div>
                     )}
                   </div>
 
