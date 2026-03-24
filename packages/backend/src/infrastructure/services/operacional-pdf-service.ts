@@ -342,14 +342,14 @@ export class OperacionalPDFService {
           // Larguras proporcionais (soma ~100% do pageWidth)
           const colWidths = [
             22, // #
-            Math.floor(pageWidth * 0.12), // REPOSITORIO
-            Math.floor(pageWidth * 0.12), // UNIDADE
-            Math.floor(pageWidth * 0.10), // SETOR
+            Math.floor(pageWidth * 0.11), // REPOSITORIO
+            Math.floor(pageWidth * 0.11), // UNIDADE
+            Math.floor(pageWidth * 0.09), // SETOR
             Math.floor(pageWidth * 0.10), // PROTOCOLO
             Math.floor(pageWidth * 0.15), // INTERESSADO
-            Math.floor(pageWidth * 0.14), // CLASSIF. (aumentado)
-            Math.floor(pageWidth * 0.08), // VOL.
-            Math.floor(pageWidth * 0.14), // OBS
+            Math.floor(pageWidth * 0.18), // CLASSIF. (aumentado)
+            Math.floor(pageWidth * 0.07), // VOL.
+            Math.floor(pageWidth * 0.13), // OBS
           ];
 
           this.renderRecebimentoTable(
@@ -707,12 +707,13 @@ export class OperacionalPDFService {
       let x = startX;
       for (let i = 0; i < widths.length; i++) {
         const width = widths[i] ?? 60;
+        const isClassificacao = i === 6;
         const textOpts = noWrapCols.has(i)
           ? { width: width - cellPadX * 2, lineBreak: false, ellipsis: true }
-          : { width: width - cellPadX * 2 };
+          : { width: width - cellPadX * 2, lineBreak: true };
         doc.text(row[i] ?? '', x + cellPadX, y + cellPadY, {
           ...textOpts,
-          align: 'center',
+          align: isClassificacao ? 'left' : 'center',
         });
         x += width;
       }
