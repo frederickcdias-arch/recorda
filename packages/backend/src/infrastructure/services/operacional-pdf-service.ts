@@ -911,6 +911,20 @@ export class OperacionalPDFService {
         return Buffer.from(arrayBuffer);
       }
 
+      // Suporte URL relativa (vindo de /configuracao/empresa/logo/arquivo)
+      if (empresa.logoUrl.startsWith('/')) {
+        const baseUrl = process.env.SERVER_URL?.replace(/\/+$/, '') || 'http://localhost:80';
+        try {
+          const response = await fetch(`${baseUrl}${empresa.logoUrl}`);
+          if (response.ok) {
+            const arrayBuffer = await response.arrayBuffer();
+            return Buffer.from(arrayBuffer);
+          }
+        } catch {
+          // fallback
+        }
+      }
+
       return null;
     } catch {
       return null;
