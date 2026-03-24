@@ -131,7 +131,9 @@ export class PDFExportService {
     const w = this.pageContentWidth;
 
     if (logoBuffer) {
-      const imageWidth = this.normalizeLogoWidth(empresa?.logoLarguraRelatorio);
+      const logoSpaceWidth = 4 * 28.35; // 4cm em pt
+      const logoSpaceHeight = 10 * 28.35; // 10cm em pt
+      const imageWidth = Math.min(logoSpaceWidth - 10, this.normalizeLogoWidth(empresa?.logoLarguraRelatorio));
       const imageY = doc.y + this.normalizeLogoOffsetY(empresa?.logoDeslocamentoYRelatorio);
       const imageX = this.resolveLogoX(
         empresa?.logoAlinhamentoRelatorio,
@@ -139,16 +141,17 @@ export class PDFExportService {
         w,
         imageWidth,
       );
-      let imgHeight = 60;
+      let imgHeight = Math.min(logoSpaceHeight - 20, 60);
       try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const img = (doc as any).openImage(logoBuffer);
         if (img && img.width && img.height) {
           imgHeight = (imageWidth / img.width) * img.height;
+          imgHeight = Math.min(imgHeight, logoSpaceHeight - 20);
         }
       } catch { /* fallback */ }
       doc.image(logoBuffer, imageX, imageY, { width: imageWidth });
-      doc.y = imageY + imgHeight + 8;
+      doc.y = imageY + Math.max(imgHeight, 60) + 8;
     }
 
     if (empresa?.nome) {
