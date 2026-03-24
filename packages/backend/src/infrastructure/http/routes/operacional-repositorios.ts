@@ -165,7 +165,7 @@ export function createOperacionalRepositoriosRoutes(): FastifyPluginAsync {
              SELECT id, nome FROM unidades_historico
            ),
            unidades_dedup AS (
-             SELECT MIN(id) AS id, nome
+             SELECT MIN(id) AS id, MIN(nome) AS nome
              FROM unidades_uniao
              GROUP BY LOWER(TRIM(nome))
            )
