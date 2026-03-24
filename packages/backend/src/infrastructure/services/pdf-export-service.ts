@@ -86,17 +86,34 @@ export class PDFExportService {
 
     try {
       const uploadsDir = path.resolve('uploads', 'logos');
-      const files = await fs.readdir(uploadsDir);
-      const logoFile = files.find(f => f.startsWith('logo_empresa'));
-      if (logoFile) {
-        return await fs.readFile(path.join(uploadsDir, logoFile));
+      try {
+        const files = await fs.readdir(uploadsDir);
+        const logoFile = files.find(f => f.startsWith('logo_empresa'));
+        if (logoFile) {
+          return await fs.readFile(path.join(uploadsDir, logoFile));
+        }
+      } catch {
+        // Diretório não existe ou erro de leitura - fallback para URL
       }
 
-      if (empresa.logoUrl.startsWith('http')) {
+      if (empresa.logoUrl?.startsWith('http')) {
         const response = await fetch(empresa.logoUrl);
         if (!response.ok) return null;
         const arrayBuffer = await response.arrayBuffer();
         return Buffer.from(arrayBuffer);
+      }
+
+      if (empresa.logoUrl?.startsWith('/')) {
+        const baseUrl = process.env.SERVER_URL?.replace(/\/+$/, '') || 'http://localhost:80';
+        try {
+          const response = await fetch(`${baseUrl}${empresa.logoUrl}`);
+          if (response.ok) {
+            const arrayBuffer = await response.arrayBuffer();
+            return Buffer.from(arrayBuffer);
+          }
+        } catch {
+          // fallback
+        }
       }
 
       return null;
