@@ -4,18 +4,18 @@
 
 ## Summary
 
-| # | OWASP Category | Status | Notes |
-|---|----------------|--------|-------|
-| A01 | Broken Access Control | ✅ Mitigated | JWT auth + role-based `authorize()` middleware on all protected routes |
-| A02 | Cryptographic Failures | ✅ Mitigated | bcrypt(10) for passwords, SHA-256 for reset tokens, JWT with env-based secret |
-| A03 | Injection | ✅ Mitigated | All SQL uses parameterized queries ($1, $2...), no string interpolation in SQL |
-| A04 | Insecure Design | ⚠️ Partial | Reset tokens expire in 1h, but no account lockout after failed login attempts |
-| A05 | Security Misconfiguration | ✅ Mitigated | Helmet headers, restrictive CORS in prod, CSP enabled, rate limiting |
-| A06 | Vulnerable Components | ⚠️ Partial | `xlsx` has known vuln (no fix available), fastify + jwt updated to latest |
-| A07 | Auth Failures | ✅ Mitigated | Passwords hashed, tokens hashed, refresh token rotation, graceful expiry |
-| A08 | Data Integrity Failures | ✅ OK | No deserialization of untrusted data, PDF reports use server-side generation |
-| A09 | Logging & Monitoring | ✅ Mitigated | Structured logging (Pino + custom logger), /health and /metrics endpoints |
-| A10 | SSRF | ✅ OK | No user-controlled URL fetching in backend |
+| #   | OWASP Category            | Status       | Notes                                                                          |
+| --- | ------------------------- | ------------ | ------------------------------------------------------------------------------ |
+| A01 | Broken Access Control     | ✅ Mitigated | JWT auth + role-based `authorize()` middleware on all protected routes         |
+| A02 | Cryptographic Failures    | ✅ Mitigated | bcrypt(10) for passwords, SHA-256 for reset tokens, JWT with env-based secret  |
+| A03 | Injection                 | ✅ Mitigated | All SQL uses parameterized queries ($1, $2...), no string interpolation in SQL |
+| A04 | Insecure Design           | ⚠️ Partial   | Reset tokens expire in 1h, but no account lockout after failed login attempts  |
+| A05 | Security Misconfiguration | ✅ Mitigated | Helmet headers, restrictive CORS in prod, CSP enabled, rate limiting           |
+| A06 | Vulnerable Components     | ⚠️ Partial   | `xlsx` has known vuln (no fix available), fastify + jwt updated to latest      |
+| A07 | Auth Failures             | ✅ Mitigated | Passwords hashed, tokens hashed, refresh token rotation, graceful expiry       |
+| A08 | Data Integrity Failures   | ✅ OK        | No deserialization of untrusted data, PDF reports use server-side generation   |
+| A09 | Logging & Monitoring      | ✅ Mitigated | Structured logging (Pino + custom logger), /health and /metrics endpoints      |
+| A10 | SSRF                      | ✅ OK        | No user-controlled URL fetching in backend                                     |
 
 ## Detailed Findings
 

@@ -69,7 +69,11 @@ function DashboardContent({ data }: { data: DashboardData }): JSX.Element {
             title="Repositórios Ativos"
             value={processosAtivos.toLocaleString('pt-BR')}
             icon="folder"
-            subtitle={processosNovosHoje > 0 ? `${processosNovosHoje.toLocaleString('pt-BR')} importados hoje` : undefined}
+            subtitle={
+              processosNovosHoje > 0
+                ? `${processosNovosHoje.toLocaleString('pt-BR')} importados hoje`
+                : undefined
+            }
             onClick={() => navigate('/producao')}
           />
           <StatCard
@@ -91,22 +95,27 @@ function DashboardContent({ data }: { data: DashboardData }): JSX.Element {
               producaoPorEtapa.map((item) => {
                 const valor = toSafeNumber(item?.valor);
                 return (
-                <button
-                  key={item.etapa}
-                  type="button"
-                  onClick={() => navigate('/producao')}
-                  className="w-full text-left"
-                >
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="text-gray-600">{item.etapa}</span>
-                    <span className="font-medium text-gray-900">{valor.toLocaleString('pt-BR')}</span>
-                  </div>
-                  <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-blue-500 rounded-full transition-all duration-500" style={{ width: `${(valor / maxProducao) * 100}%` }} />
-                  </div>
-                </button>
-              );
-            })
+                  <button
+                    key={item.etapa}
+                    type="button"
+                    onClick={() => navigate('/producao')}
+                    className="w-full text-left"
+                  >
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="text-gray-600">{item.etapa}</span>
+                      <span className="font-medium text-gray-900">
+                        {valor.toLocaleString('pt-BR')}
+                      </span>
+                    </div>
+                    <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-blue-500 rounded-full transition-all duration-500"
+                        style={{ width: `${(valor / maxProducao) * 100}%` }}
+                      />
+                    </div>
+                  </button>
+                );
+              })
             )}
           </div>
         </div>
@@ -125,7 +134,9 @@ function DashboardContent({ data }: { data: DashboardData }): JSX.Element {
                   <Icon name={item.icon} className="w-5 h-5 text-blue-600" />
                   <span className="text-gray-700">{item.status}</span>
                 </div>
-                <span className="font-semibold text-gray-900">{toSafeNumber(item?.valor).toLocaleString('pt-BR')}</span>
+                <span className="font-semibold text-gray-900">
+                  {toSafeNumber(item?.valor).toLocaleString('pt-BR')}
+                </span>
               </button>
             ))}
           </div>
@@ -141,10 +152,14 @@ function DashboardContent({ data }: { data: DashboardData }): JSX.Element {
                 <div key={i} className="p-3 bg-blue-50 border border-blue-100 rounded-lg">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-sm font-medium text-gray-800">{item.motivo}</span>
-                    <span className="text-sm font-bold text-blue-700">{toSafeNumber(item?.total).toLocaleString('pt-BR')}</span>
+                    <span className="text-sm font-bold text-blue-700">
+                      {toSafeNumber(item?.total).toLocaleString('pt-BR')}
+                    </span>
                   </div>
                   {item.repositorios ? (
-                    <p className="text-xs text-gray-500 truncate" title={item.repositorios}>{item.repositorios}</p>
+                    <p className="text-xs text-gray-500 truncate" title={item.repositorios}>
+                      {item.repositorios}
+                    </p>
                   ) : null}
                 </div>
               ))}
@@ -162,7 +177,10 @@ export function DashboardPage(): JSX.Element {
   const errorObj = error
     ? {
         message: 'Não foi possível carregar os dados do dashboard',
-        details: error instanceof Error ? error.message : (error as { error?: string })?.error ?? 'Verifique sua conexão',
+        details:
+          error instanceof Error
+            ? error.message
+            : ((error as { error?: string })?.error ?? 'Verifique sua conexão'),
         action: { label: 'Tentar novamente', onClick: () => void refetch() },
       }
     : null;

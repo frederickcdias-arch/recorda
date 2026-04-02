@@ -20,11 +20,7 @@ export function Header({ onMenuToggle, title }: HeaderProps): JSX.Element {
       </button>
 
       <div className="flex items-center rounded-full w-10 h-10 overflow-hidden shadow-sm md:hidden">
-        <img
-          src="/images/logo-icon.png"
-          alt="Recorda"
-          className="h-full w-full object-contain"
-        />
+        <img src="/images/logo-icon.png" alt="Recorda" className="h-full w-full object-contain" />
       </div>
 
       {/* Breadcrumbs — desktop only */}
@@ -43,7 +39,9 @@ export function Header({ onMenuToggle, title }: HeaderProps): JSX.Element {
 
       {/* Mobile title */}
       {title && (
-        <h1 className="text-base font-semibold text-gray-900 sm:hidden truncate">{title.split(' - ').pop()}</h1>
+        <h1 className="text-base font-semibold text-gray-900 sm:hidden truncate">
+          {title.split(' - ').pop()}
+        </h1>
       )}
 
       <div className="flex-1" />

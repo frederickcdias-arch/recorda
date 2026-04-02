@@ -65,7 +65,9 @@ export class RepositorioRepository {
     }
 
     if (opts?.busca) {
-      conditions.push(`(id_repositorio_ged ILIKE $${paramIdx} OR orgao ILIKE $${paramIdx} OR projeto ILIKE $${paramIdx})`);
+      conditions.push(
+        `(id_repositorio_ged ILIKE $${paramIdx} OR orgao ILIKE $${paramIdx} OR projeto ILIKE $${paramIdx})`
+      );
       params.push(`%${opts.busca}%`);
       paramIdx++;
     }

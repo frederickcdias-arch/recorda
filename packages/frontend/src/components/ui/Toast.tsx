@@ -51,11 +51,14 @@ export function ToastProvider({ children }: { children: React.ReactNode }): JSX.
   );
 }
 
-const variantStyles: Record<ToastVariant, {
-  container: string;
-  icon: string;
-  iconName: string;
-}> = {
+const variantStyles: Record<
+  ToastVariant,
+  {
+    container: string;
+    icon: string;
+    iconName: string;
+  }
+> = {
   info: {
     container: 'bg-white border-[var(--color-gray-200)]',
     icon: 'text-[var(--color-primary-600)]',
@@ -117,13 +120,9 @@ function ToastItem({ toast, onRemove }: ToastItemProps): JSX.Element {
           <Icon name={styles.iconName} className="w-5 h-5" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-medium text-[var(--color-text-primary)] text-sm">
-            {toast.title}
-          </p>
+          <p className="font-medium text-[var(--color-text-primary)] text-sm">{toast.title}</p>
           {toast.message && (
-            <p className="text-sm text-[var(--color-text-secondary)] mt-0.5">
-              {toast.message}
-            </p>
+            <p className="text-sm text-[var(--color-text-secondary)] mt-0.5">{toast.message}</p>
           )}
         </div>
         <button
@@ -166,13 +165,9 @@ export function useToastHelpers() {
   const { addToast } = useToast();
 
   return {
-    success: (title: string, message?: string) => 
-      addToast({ variant: 'success', title, message }),
-    error: (title: string, message?: string) => 
-      addToast({ variant: 'error', title, message }),
-    warning: (title: string, message?: string) => 
-      addToast({ variant: 'warning', title, message }),
-    info: (title: string, message?: string) => 
-      addToast({ variant: 'info', title, message }),
+    success: (title: string, message?: string) => addToast({ variant: 'success', title, message }),
+    error: (title: string, message?: string) => addToast({ variant: 'error', title, message }),
+    warning: (title: string, message?: string) => addToast({ variant: 'warning', title, message }),
+    info: (title: string, message?: string) => addToast({ variant: 'info', title, message }),
   };
 }

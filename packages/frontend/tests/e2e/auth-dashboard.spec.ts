@@ -4,7 +4,9 @@ const ADMIN_EMAIL = process.env.E2E_ADMIN_EMAIL ?? 'admin@recorda.local';
 const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD ?? 'admin123';
 
 test.describe('Fluxo de autenticação e dashboard', () => {
-  test('usuário administrador faz login, visualiza dashboard e realiza logout', async ({ page }) => {
+  test('usuário administrador faz login, visualiza dashboard e realiza logout', async ({
+    page,
+  }) => {
     await page.goto('/login');
     // Garantir que qualquer sessão anterior seja descartada
     await page.evaluate(() => {

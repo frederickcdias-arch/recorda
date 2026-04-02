@@ -18,19 +18,27 @@ export function AdminPage(): JSX.Element {
   const confirmDialog = useConfirmDialog();
   const ambiente = import.meta.env.MODE === 'production' ? 'Produção' : 'Desenvolvimento';
   const versao = import.meta.env.VITE_APP_VERSION ?? 'dev';
-  
+
   const [processando, setProcessando] = useState(false);
   const [resultados, setResultados] = useState<any>(null);
-  
+
   // Verificar se o usuário é administrador
   if (usuario?.perfil !== 'administrador') {
     return (
-      <PageState loading={false} error={{ message: 'Acesso Negado', details: 'Você não tem permissão para acessar esta página.' }}>
+      <PageState
+        loading={false}
+        error={{
+          message: 'Acesso Negado',
+          details: 'Você não tem permissão para acessar esta página.',
+        }}
+      >
         <div className="text-center py-8">
           <Icon name="lock" className="w-12 h-12 text-gray-400 mx-auto mb-4" />
           <h2 className="text-lg font-medium text-gray-900 mb-2">Acesso Restrito</h2>
           <p className="text-gray-600">Apenas administradores podem acessar esta página.</p>
-          <p className="text-gray-400 text-sm mt-2">Perfil atual: {usuario?.perfil || 'não definido'}</p>
+          <p className="text-gray-400 text-sm mt-2">
+            Perfil atual: {usuario?.perfil || 'não definido'}
+          </p>
         </div>
       </PageState>
     );
@@ -61,13 +69,16 @@ export function AdminPage(): JSX.Element {
   const handleLimparDuplicatasRecebimento = async (): Promise<void> => {
     confirmDialog.confirm({
       title: 'Limpar Duplicatas de Recebimento',
-      message: 'Deseja remover registros duplicados de recebimento? Esta ação não pode ser desfeita.',
+      message:
+        'Deseja remover registros duplicados de recebimento? Esta ação não pode ser desfeita.',
       confirmLabel: 'Limpar',
       variant: 'danger',
       onConfirm: async () => {
         setProcessando(true);
         try {
-          const result = await api.post<{ removidos: number }>('/admin/limpar-duplicatas-recebimento');
+          const result = await api.post<{ removidos: number }>(
+            '/admin/limpar-duplicatas-recebimento'
+          );
           setResultados(result);
           toast.success(`${result.removidos} duplicatas removidas.`);
           await queryClient.invalidateQueries({ queryKey: queryKeys.repositoriosAll });
@@ -106,7 +117,8 @@ export function AdminPage(): JSX.Element {
   const handleOtimizarBanco = async (): Promise<void> => {
     confirmDialog.confirm({
       title: 'Otimizar Banco de Dados',
-      message: 'Deseja otimizar o banco de dados? Isso irá atualizar estatísticas e reindexar tabelas.',
+      message:
+        'Deseja otimizar o banco de dados? Isso irá atualizar estatísticas e reindexar tabelas.',
       confirmLabel: 'Otimizar',
       variant: 'warning',
       onConfirm: async () => {
@@ -128,9 +140,7 @@ export function AdminPage(): JSX.Element {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Administração do Sistema</h1>
-        <p className="text-gray-500 mt-1">
-          Ferramentas de manutenção e gerenciamento de dados
-        </p>
+        <p className="text-gray-500 mt-1">Ferramentas de manutenção e gerenciamento de dados</p>
       </div>
 
       <ConfirmDialog
@@ -167,7 +177,7 @@ export function AdminPage(): JSX.Element {
           <p className="text-gray-600 mb-6">
             Remova registros duplicados para manter a integridade dos dados.
           </p>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="p-4 border border-red-200 rounded-lg">
               <div className="flex items-center mb-2">
@@ -175,7 +185,8 @@ export function AdminPage(): JSX.Element {
                 <h3 className="font-medium text-gray-900">Produção</h3>
               </div>
               <p className="text-sm text-gray-600 mb-3">
-                Remove registros duplicados de produção baseado em colaborador, data, etapa e quantidade.
+                Remove registros duplicados de produção baseado em colaborador, data, etapa e
+                quantidade.
               </p>
               <Button
                 variant="danger"
@@ -187,7 +198,7 @@ export function AdminPage(): JSX.Element {
                 Limpar Duplicatas
               </Button>
             </div>
-            
+
             <div className="p-4 border border-orange-200 rounded-lg">
               <div className="flex items-center mb-2">
                 <Icon name="trash" className="w-5 h-5 text-orange-600 mr-2" />
@@ -214,10 +225,8 @@ export function AdminPage(): JSX.Element {
       <Card>
         <div className="p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Manutenção do Sistema</h2>
-          <p className="text-gray-600 mb-6">
-            Operações de manutenção e otimização do sistema.
-          </p>
-          
+          <p className="text-gray-600 mb-6">Operações de manutenção e otimização do sistema.</p>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="p-4 border border-blue-200 rounded-lg">
               <div className="flex items-center mb-2">
@@ -237,7 +246,7 @@ export function AdminPage(): JSX.Element {
                 Recontar
               </Button>
             </div>
-            
+
             <div className="p-4 border border-purple-200 rounded-lg">
               <div className="flex items-center mb-2">
                 <Icon name="settings" className="w-5 h-5 text-purple-600 mr-2" />

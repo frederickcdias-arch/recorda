@@ -47,14 +47,18 @@ class ApiService {
 
   private async request<T>(endpoint: string, options: ApiOptions = {}): Promise<T> {
     const { skipAuth = false, headers: customHeaders, ...restOptions } = options;
-    
+
     const headers = new Headers(customHeaders);
-    
+
     // Adicionar Content-Type se não for FormData e houver body
-    if (restOptions.body && !(restOptions.body instanceof FormData) && !headers.has('Content-Type')) {
+    if (
+      restOptions.body &&
+      !(restOptions.body instanceof FormData) &&
+      !headers.has('Content-Type')
+    ) {
       headers.set('Content-Type', 'application/json');
     }
-    
+
     // Adicionar token de autenticação
     if (!skipAuth) {
       const token = getToken();
@@ -64,7 +68,7 @@ class ApiService {
     }
 
     const url = resolveApiUrl(endpoint, this.baseUrl);
-    
+
     const response = await fetch(url, {
       ...restOptions,
       headers,
@@ -103,10 +107,12 @@ class ApiService {
     if (contentType?.includes('application/json')) {
       return response.json();
     }
-    
+
     // Para downloads de arquivos (PDF, Excel)
-    if (contentType?.includes('application/pdf') || 
-        contentType?.includes('application/vnd.openxmlformats')) {
+    if (
+      contentType?.includes('application/pdf') ||
+      contentType?.includes('application/vnd.openxmlformats')
+    ) {
       return response.blob() as Promise<T>;
     }
 
@@ -124,14 +130,16 @@ class ApiService {
       }
     }
 
-    if (!(rest.body instanceof FormData) && !mergedHeaders.has('Content-Type') && rest.method && ['POST', 'PUT', 'PATCH'].includes(rest.method.toUpperCase())) {
+    if (
+      !(rest.body instanceof FormData) &&
+      !mergedHeaders.has('Content-Type') &&
+      rest.method &&
+      ['POST', 'PUT', 'PATCH'].includes(rest.method.toUpperCase())
+    ) {
       mergedHeaders.set('Content-Type', 'application/json');
     }
 
-    const target =
-      typeof input === 'string'
-        ? resolveApiUrl(input, this.baseUrl)
-        : input;
+    const target = typeof input === 'string' ? resolveApiUrl(input, this.baseUrl) : input;
 
     return fetch(target, {
       ...rest,
@@ -180,10 +188,10 @@ class ApiService {
   }
 
   async patch<T>(endpoint: string, data?: unknown, options?: ApiOptions): Promise<T> {
-    return this.request<T>(endpoint, { 
-      ...options, 
-      method: 'PATCH', 
-      body: JSON.stringify(data) 
+    return this.request<T>(endpoint, {
+      ...options,
+      method: 'PATCH',
+      body: JSON.stringify(data),
     });
   }
 

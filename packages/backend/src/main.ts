@@ -10,7 +10,9 @@ if (!process.env.TZ) {
   process.env.TZ = 'America/Sao_Paulo';
 }
 
-async function cleanupExpiredTokens(database: Awaited<ReturnType<typeof createDatabaseConnection>>): Promise<void> {
+async function cleanupExpiredTokens(
+  database: Awaited<ReturnType<typeof createDatabaseConnection>>
+): Promise<void> {
   try {
     // Keep revoked tokens for 30 days for audit trail, then delete
     const result = await database.query(
@@ -18,14 +20,18 @@ async function cleanupExpiredTokens(database: Awaited<ReturnType<typeof createDa
     );
     const deleted = (result as { rowCount?: number }).rowCount ?? 0;
     if (deleted > 0) {
-      logger.info(`Removed ${deleted} expired refresh tokens (>30 days old)`, { component: 'cleanup' });
+      logger.info(`Removed ${deleted} expired refresh tokens (>30 days old)`, {
+        component: 'cleanup',
+      });
     }
   } catch (err) {
     logger.error('Failed to clean expired tokens', { component: 'cleanup', error: String(err) });
   }
 }
 
-async function cleanupOldAuditLogs(database: Awaited<ReturnType<typeof createDatabaseConnection>>): Promise<void> {
+async function cleanupOldAuditLogs(
+  database: Awaited<ReturnType<typeof createDatabaseConnection>>
+): Promise<void> {
   try {
     const result = await database.query(
       `DELETE FROM auditoria WHERE data_operacao < NOW() - INTERVAL '90 days'`
@@ -78,7 +84,9 @@ async function bootstrap(): Promise<void> {
 
   try {
     await server.listen({ port: config.server.port, host: config.server.host });
-    logger.info(`Server running at http://${config.server.host}:${config.server.port}`, { component: 'bootstrap' });
+    logger.info(`Server running at http://${config.server.host}:${config.server.port}`, {
+      component: 'bootstrap',
+    });
   } catch (err) {
     server.log.error(err);
     process.exit(1);

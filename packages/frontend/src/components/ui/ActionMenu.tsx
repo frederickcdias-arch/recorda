@@ -45,7 +45,9 @@ export function ActionMenu({ items, disabled = false }: ActionMenuProps): JSX.El
       if (menuRef.current?.contains(target)) return;
       setOpen(false);
     }
-    function handleScroll(): void { setOpen(false); }
+    function handleScroll(): void {
+      setOpen(false);
+    }
     document.addEventListener('mousedown', handleClickOutside);
     window.addEventListener('scroll', handleScroll, true);
     return () => {
@@ -71,33 +73,35 @@ export function ActionMenu({ items, disabled = false }: ActionMenuProps): JSX.El
         </svg>
       </button>
 
-      {open ? createPortal(
-        <div
-          ref={menuRef}
-          className="fixed z-[9999] w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 max-h-[calc(100vh-16px)] overflow-auto"
-          style={{ top: pos.top, left: Math.max(pos.left, 8) }}
-        >
-          {visibleItems.map((item, i) => (
-            <button
-              key={i}
-              type="button"
-              className={`w-full text-left px-3 py-2 text-sm transition-colors ${
-                item.variant === 'danger'
-                  ? 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
-                  : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'
-              } disabled:opacity-40 disabled:cursor-not-allowed`}
-              onClick={() => {
-                setOpen(false);
-                item.onClick();
-              }}
-              disabled={item.disabled}
+      {open
+        ? createPortal(
+            <div
+              ref={menuRef}
+              className="fixed z-[9999] w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 max-h-[calc(100vh-16px)] overflow-auto"
+              style={{ top: pos.top, left: Math.max(pos.left, 8) }}
             >
-              {item.label}
-            </button>
-          ))}
-        </div>,
-        document.body
-      ) : null}
+              {visibleItems.map((item, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  className={`w-full text-left px-3 py-2 text-sm transition-colors ${
+                    item.variant === 'danger'
+                      ? 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                      : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'
+                  } disabled:opacity-40 disabled:cursor-not-allowed`}
+                  onClick={() => {
+                    setOpen(false);
+                    item.onClick();
+                  }}
+                  disabled={item.disabled}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>,
+            document.body
+          )
+        : null}
     </>
   );
 }

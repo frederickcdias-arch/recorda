@@ -17,14 +17,24 @@ test.describe('Navegação principal', () => {
 
     const operacaoSection = page.getByRole('button', { name: /Opera/i });
     await operacaoSection.click();
-    await page.getByRole('link', { name: /Recebimento/i }).first().click();
+    await page
+      .getByRole('link', { name: /Recebimento/i })
+      .first()
+      .click();
     await expect(page).toHaveURL(/\/operacao\/recebimento$/);
-    await expect(page.getByRole('main').getByRole('heading', { name: /Recebimento/i })).toBeVisible();
+    await expect(
+      page.getByRole('main').getByRole('heading', { name: /Recebimento/i })
+    ).toBeVisible();
 
     const relatoriosSection = page.getByRole('button', { name: /Relat/i });
     await relatoriosSection.click();
     await page.getByRole('link', { name: /Relatórios Gerenciais/i }).click();
     await expect(page).toHaveURL(/\/relatorios\/gerenciais$/);
-    await expect(page.getByRole('main').getByText(/Relatórios Gerenciais/i).first()).toBeVisible();
+    await expect(
+      page
+        .getByRole('main')
+        .getByText(/Relatórios Gerenciais/i)
+        .first()
+    ).toBeVisible();
   });
 });

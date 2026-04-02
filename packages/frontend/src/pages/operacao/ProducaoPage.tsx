@@ -9,7 +9,13 @@ import { useToastHelpers } from '../../components/ui/Toast';
 import { useAuth } from '../../contexts/AuthContext';
 import { useConfirmDialog } from '../../hooks/useConfirmDialog';
 import { extractErrorMessage } from '../../utils/errors';
-import { useProducao, useDeleteProducao, useLimparProducoes, useQueryClient, queryKeys } from '../../hooks/useQueries';
+import {
+  useProducao,
+  useDeleteProducao,
+  useLimparProducoes,
+  useQueryClient,
+  queryKeys,
+} from '../../hooks/useQueries';
 import { api } from '../../services/api';
 
 const ETAPA_LABELS: Record<string, string> = {
@@ -67,7 +73,11 @@ export function ProducaoPage(): JSX.Element {
   const dados = producaoQuery.data ?? null;
   const carregando = producaoQuery.isLoading;
   const erro = producaoQuery.error
-    ? { message: 'Erro ao carregar Registros de Produção', details: producaoQuery.error instanceof Error ? producaoQuery.error.message : 'Falha desconhecida' }
+    ? {
+        message: 'Erro ao carregar Registros de Produção',
+        details:
+          producaoQuery.error instanceof Error ? producaoQuery.error.message : 'Falha desconhecida',
+      }
     : null;
 
   const invalidate = () => void queryClient.invalidateQueries({ queryKey: queryKeys.producaoAll });
@@ -92,14 +102,19 @@ export function ProducaoPage(): JSX.Element {
   const handleLimparTodasProducoes = (): void => {
     confirmDialog.confirm({
       title: 'Limpar Produções Importadas',
-      message: 'Esta ação excluirá apenas registros de produção importada (LEGADO). Deseja continuar?',
+      message:
+        'Esta ação excluirá apenas registros de produção importada (LEGADO). Deseja continuar?',
       confirmLabel: 'Limpar Importadas',
       variant: 'danger',
       onConfirm: async () => {
         try {
           const response = await limparProducoes.mutateAsync();
           const removidos = Number(response?.removidos ?? 0);
-          toast.success(removidos > 0 ? `${removidos} registro(s) importado(s) removido(s).` : 'Não havia registros importados para remover.');
+          toast.success(
+            removidos > 0
+              ? `${removidos} registro(s) importado(s) removido(s).`
+              : 'Não havia registros importados para remover.'
+          );
         } catch (error) {
           toast.error(extractErrorMessage(error, 'Erro ao limpar produções'));
         }
@@ -117,7 +132,10 @@ export function ProducaoPage(): JSX.Element {
       if (dataInicio) params.set('dataInicio', dataInicio);
       if (dataFim) params.set('dataFim', dataFim);
       params.set('formato', 'excel');
-      await api.download(`/api/relatorios/operacional/export?${params.toString()}`, `producao_${dataInicio || 'inicio'}_${dataFim || 'fim'}.xlsx`);
+      await api.download(
+        `/api/relatorios/operacional/export?${params.toString()}`,
+        `producao_${dataInicio || 'inicio'}_${dataFim || 'fim'}.xlsx`
+      );
       toast.success('Exportação concluída.');
     } catch (error) {
       toast.error(extractErrorMessage(error, 'Erro ao exportar'));
@@ -136,14 +154,16 @@ export function ProducaoPage(): JSX.Element {
     : null;
 
   return (
-    <PageState loading={carregando && !dados} loadingMessage="Carregando Produção..." error={erroComAcao}>
+    <PageState
+      loading={carregando && !dados}
+      loadingMessage="Carregando Produção..."
+      error={erroComAcao}
+    >
       <div className="space-y-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Produção</h1>
-            <p className="text-gray-500 mt-1">
-              {totalFormatado} Registros de Produção
-            </p>
+            <p className="text-gray-500 mt-1">{totalFormatado} Registros de Produção</p>
           </div>
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
             {isAdmin && (
@@ -158,7 +178,14 @@ export function ProducaoPage(): JSX.Element {
                 Limpar produções importadas
               </Button>
             )}
-            <Button className="w-full sm:w-auto" variant="secondary" icon="download" onClick={() => void handleExportarExcel()} loading={exportando} disabled={exportando || !dataInicio || !dataFim}>
+            <Button
+              className="w-full sm:w-auto"
+              variant="secondary"
+              icon="download"
+              onClick={() => void handleExportarExcel()}
+              loading={exportando}
+              disabled={exportando || !dataInicio || !dataFim}
+            >
               Exportar Excel
             </Button>
           </div>
@@ -193,7 +220,9 @@ export function ProducaoPage(): JSX.Element {
               >
                 <option value="">Todas</option>
                 {(dados?.filtros.etapas ?? []).map((e) => (
-                  <option key={e} value={e}>{ETAPA_LABELS[e] ?? e}</option>
+                  <option key={e} value={e}>
+                    {ETAPA_LABELS[e] ?? e}
+                  </option>
                 ))}
               </select>
             </div>
@@ -206,7 +235,9 @@ export function ProducaoPage(): JSX.Element {
               >
                 <option value="">Todos</option>
                 {(dados?.filtros.colaboradores ?? []).map((c) => (
-                  <option key={c.id} value={c.id}>{c.nome}</option>
+                  <option key={c.id} value={c.id}>
+                    {c.nome}
+                  </option>
                 ))}
               </select>
             </div>
@@ -248,7 +279,7 @@ export function ProducaoPage(): JSX.Element {
         {/* Tabela */}
         <Card>
           <div className="space-y-3 md:hidden">
-            {(!dados || dados.registros.length === 0) ? (
+            {!dados || dados.registros.length === 0 ? (
               <div className="rounded-lg border border-dashed border-gray-200 px-4 py-8 text-center text-sm text-gray-500">
                 {carregando ? 'Carregando...' : 'Nenhum registro encontrado.'}
               </div>
@@ -258,13 +289,21 @@ export function ProducaoPage(): JSX.Element {
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-sm font-semibold text-gray-900">{reg.colaborador_nome}</p>
-                      <p className="text-xs text-gray-500">{new Date(reg.data_producao).toLocaleDateString('pt-BR')}</p>
+                      <p className="text-xs text-gray-500">
+                        {new Date(reg.data_producao).toLocaleDateString('pt-BR')}
+                      </p>
                     </div>
-                    <span className="text-sm font-semibold text-gray-900 tabular-nums">{toSafeNumber(reg.quantidade).toLocaleString('pt-BR')}</span>
+                    <span className="text-sm font-semibold text-gray-900 tabular-nums">
+                      {toSafeNumber(reg.quantidade).toLocaleString('pt-BR')}
+                    </span>
                   </div>
-                  <p className="mt-2 font-mono text-xs text-gray-700 break-all">{reg.repositorio_ged}</p>
+                  <p className="mt-2 font-mono text-xs text-gray-700 break-all">
+                    {reg.repositorio_ged}
+                  </p>
                   <div className="mt-2 flex items-center justify-between gap-2 text-xs">
-                    <span className="text-gray-600">{reg.funcao || ETAPA_LABELS[reg.etapa] || reg.etapa}</span>
+                    <span className="text-gray-600">
+                      {reg.funcao || ETAPA_LABELS[reg.etapa] || reg.etapa}
+                    </span>
                     <span className="text-gray-500">{reg.coordenadoria_sigla || '-'}</span>
                   </div>
                   <div className="mt-3 flex items-center justify-between">
@@ -296,23 +335,44 @@ export function ProducaoPage(): JSX.Element {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase">Data</th>
-                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase">Colaborador</th>
-                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase">Repositório</th>
-                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase">Função</th>
-                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase">Unidade</th>
-                  <th className="px-3 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase">Qtd</th>
-                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase">Coord.</th>
-                  <th className="px-3 py-2.5 text-center text-xs font-semibold text-gray-500 uppercase">Origem</th>
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase">
+                    Data
+                  </th>
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase">
+                    Colaborador
+                  </th>
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase">
+                    Repositório
+                  </th>
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase">
+                    Função
+                  </th>
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase">
+                    Unidade
+                  </th>
+                  <th className="px-3 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase">
+                    Qtd
+                  </th>
+                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase">
+                    Coord.
+                  </th>
+                  <th className="px-3 py-2.5 text-center text-xs font-semibold text-gray-500 uppercase">
+                    Origem
+                  </th>
                   {isAdmin && (
-                    <th className="px-3 py-2.5 text-center text-xs font-semibold text-gray-500 uppercase">Ações</th>
+                    <th className="px-3 py-2.5 text-center text-xs font-semibold text-gray-500 uppercase">
+                      Ações
+                    </th>
                   )}
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-100">
-                {(!dados || dados.registros.length === 0) ? (
+                {!dados || dados.registros.length === 0 ? (
                   <tr>
-                    <td colSpan={isAdmin ? 9 : 8} className="px-3 py-8 text-center text-sm text-gray-500">
+                    <td
+                      colSpan={isAdmin ? 9 : 8}
+                      className="px-3 py-8 text-center text-sm text-gray-500"
+                    >
                       {carregando ? 'Carregando...' : 'Nenhum registro encontrado.'}
                     </td>
                   </tr>
@@ -322,18 +382,14 @@ export function ProducaoPage(): JSX.Element {
                       <td className="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">
                         {new Date(reg.data_producao).toLocaleDateString('pt-BR')}
                       </td>
-                      <td className="px-3 py-2 text-sm text-gray-800">
-                        {reg.colaborador_nome}
-                      </td>
+                      <td className="px-3 py-2 text-sm text-gray-800">{reg.colaborador_nome}</td>
                       <td className="px-3 py-2 text-xs text-gray-800 font-mono">
                         {reg.repositorio_ged}
                       </td>
                       <td className="px-3 py-2 text-sm text-gray-800">
                         {reg.funcao || ETAPA_LABELS[reg.etapa] || reg.etapa}
                       </td>
-                      <td className="px-3 py-2 text-sm text-gray-600">
-                        {reg.tipo || '-'}
-                      </td>
+                      <td className="px-3 py-2 text-sm text-gray-600">{reg.tipo || '-'}</td>
                       <td className="px-3 py-2 text-sm text-gray-800 text-right font-medium tabular-nums">
                         {toSafeNumber(reg.quantidade).toLocaleString('pt-BR')}
                       </td>

@@ -12,12 +12,12 @@ O sistema Recorda apresenta **maturidade técnica média-alta** no backend e ban
 
 ### Classificação Geral
 
-| Camada | Maturidade | Nota |
-|--------|------------|------|
-| Backend | Sólida | 7/10 |
-| Frontend | Básica | 4/10 |
-| Banco de Dados | Forte | 8/10 |
-| Integração Ponta-a-Ponta | Fraca | 3/10 |
+| Camada                   | Maturidade | Nota |
+| ------------------------ | ---------- | ---- |
+| Backend                  | Sólida     | 7/10 |
+| Frontend                 | Básica     | 4/10 |
+| Banco de Dados           | Forte      | 8/10 |
+| Integração Ponta-a-Ponta | Fraca      | 3/10 |
 
 ---
 
@@ -25,29 +25,31 @@ O sistema Recorda apresenta **maturidade técnica média-alta** no backend e ban
 
 ### 1.1 Mapa de Rotas HTTP
 
-| Rota | Método | Caso de Uso | Status |
-|------|--------|-------------|--------|
-| `/health` | GET | Healthcheck | ✅ Sólida |
-| `/recebimento` | POST | OCR em lote | ⚠️ Básica |
-| `/recebimento/validar` | POST | Validar imagem | ✅ Sólida |
-| `/relatorios` | GET | Gerar relatório | 🔴 NÃO REGISTRADA |
-| `/relatorios/resumo` | GET | Resumo rápido | 🔴 NÃO REGISTRADA |
-| `/conhecimento/busca` | GET | Busca full-text | ✅ Sólida |
-| `/conhecimento/artigos/:slug` | GET | Detalhe artigo | ✅ Sólida |
-| `/conhecimento/categorias` | GET | Listar categorias | ✅ Sólida |
-| `/conhecimento/tags` | GET | Listar tags | ✅ Sólida |
-| `/conhecimento/categorias/:slug/artigos` | GET | Artigos por categoria | ✅ Sólida |
+| Rota                                     | Método | Caso de Uso           | Status            |
+| ---------------------------------------- | ------ | --------------------- | ----------------- |
+| `/health`                                | GET    | Healthcheck           | ✅ Sólida         |
+| `/recebimento`                           | POST   | OCR em lote           | ⚠️ Básica         |
+| `/recebimento/validar`                   | POST   | Validar imagem        | ✅ Sólida         |
+| `/relatorios`                            | GET    | Gerar relatório       | 🔴 NÃO REGISTRADA |
+| `/relatorios/resumo`                     | GET    | Resumo rápido         | 🔴 NÃO REGISTRADA |
+| `/conhecimento/busca`                    | GET    | Busca full-text       | ✅ Sólida         |
+| `/conhecimento/artigos/:slug`            | GET    | Detalhe artigo        | ✅ Sólida         |
+| `/conhecimento/categorias`               | GET    | Listar categorias     | ✅ Sólida         |
+| `/conhecimento/tags`                     | GET    | Listar tags           | ✅ Sólida         |
+| `/conhecimento/categorias/:slug/artigos` | GET    | Artigos por categoria | ✅ Sólida         |
 
 ### 1.2 Análise Detalhada das Rotas
 
 #### ROTAS SÓLIDAS
 
 **`GET /health`**
+
 - Retorna status do servidor
 - Simples e funcional
 - Sem dependências externas
 
 **`GET /conhecimento/*`**
+
 - 5 endpoints completos
 - Busca full-text com `ts_rank`
 - Paginação implementada
@@ -56,6 +58,7 @@ O sistema Recorda apresenta **maturidade técnica média-alta** no backend e ban
 - **Problema menor**: SQL inline nas rotas (deveria estar em repository)
 
 **`POST /recebimento/validar`**
+
 - Validação de formato base64
 - Validação de tamanho (máx 10MB)
 - Erros claros e específicos
@@ -63,6 +66,7 @@ O sistema Recorda apresenta **maturidade técnica média-alta** no backend e ban
 #### ROTAS BÁSICAS
 
 **`POST /recebimento`**
+
 - Limite de 20 itens respeitado
 - Validação de schema via Fastify
 - **Problema crítico**: OCR é SIMULADO (retorna texto vazio)
@@ -73,6 +77,7 @@ O sistema Recorda apresenta **maturidade técnica média-alta** no backend e ban
 #### ROTAS NÃO REGISTRADAS NO SERVER
 
 **`GET /relatorios` e `GET /relatorios/resumo`**
+
 - Código existe em `routes/relatorios.ts`
 - **NÃO ESTÁ REGISTRADO** em `server.ts`
 - Caso de uso `GerarRelatorioCompleto` está completo
@@ -81,24 +86,24 @@ O sistema Recorda apresenta **maturidade técnica média-alta** no backend e ban
 
 ### 1.3 Casos de Uso
 
-| Caso de Uso | Arquivo | Status | Observação |
-|-------------|---------|--------|------------|
-| CriarProcesso | `criar-processo.ts` | ✅ Completo | Com testes |
-| VincularApenso | `vincular-apenso.ts` | ✅ Completo | Com testes |
-| ImportarPlanilha | `importar-planilha.ts` | ✅ Completo | Com testes, valida tudo |
-| RegistrarRecebimentoOCR | `registrar-recebimento-ocr.ts` | ✅ Completo | Com testes |
-| RegistrarRecebimentoOCRLote | `registrar-recebimento-ocr-lote.ts` | ✅ Completo | Limite 20 |
-| ConsolidarProducao | `consolidar-producao.ts` | ✅ Completo | Agregação correta |
-| GerarRelatorio | `gerar-relatorio.ts` | ✅ Completo | Básico |
-| GerarRelatorioCompleto | `gerar-relatorio-completo.ts` | ✅ Completo | Fabrivo-compatível |
+| Caso de Uso                 | Arquivo                             | Status      | Observação              |
+| --------------------------- | ----------------------------------- | ----------- | ----------------------- |
+| CriarProcesso               | `criar-processo.ts`                 | ✅ Completo | Com testes              |
+| VincularApenso              | `vincular-apenso.ts`                | ✅ Completo | Com testes              |
+| ImportarPlanilha            | `importar-planilha.ts`              | ✅ Completo | Com testes, valida tudo |
+| RegistrarRecebimentoOCR     | `registrar-recebimento-ocr.ts`      | ✅ Completo | Com testes              |
+| RegistrarRecebimentoOCRLote | `registrar-recebimento-ocr-lote.ts` | ✅ Completo | Limite 20               |
+| ConsolidarProducao          | `consolidar-producao.ts`            | ✅ Completo | Agregação correta       |
+| GerarRelatorio              | `gerar-relatorio.ts`                | ✅ Completo | Básico                  |
+| GerarRelatorioCompleto      | `gerar-relatorio-completo.ts`       | ✅ Completo | Fabrivo-compatível      |
 
 ### 1.4 Serviços de Infraestrutura
 
-| Serviço | Status | Observação |
-|---------|--------|------------|
-| OCRServiceDefault | ⚠️ STUB | Retorna texto vazio, confiança 0 |
-| PDFExportService | ✅ Implementado | Gera PDF real |
-| ExcelExportService | ✅ Implementado | Gera XLSX real |
+| Serviço            | Status          | Observação                       |
+| ------------------ | --------------- | -------------------------------- |
+| OCRServiceDefault  | ⚠️ STUB         | Retorna texto vazio, confiança 0 |
+| PDFExportService   | ✅ Implementado | Gera PDF real                    |
+| ExcelExportService | ✅ Implementado | Gera XLSX real                   |
 
 ### 1.5 Problemas Identificados no Backend
 
@@ -136,21 +141,22 @@ O sistema Recorda apresenta **maturidade técnica média-alta** no backend e ban
 
 ### 2.1 Mapa de Telas
 
-| Rota | Componente | Status | Dependência Backend |
-|------|------------|--------|---------------------|
-| `/login` | LoginPage | ⚠️ Decorativa | Nenhuma (simulado) |
-| `/dashboard` | DashboardPage | ⚠️ Decorativa | Nenhuma (dados fixos) |
-| `/recebimento/captura` | CapturaPage | ⚠️ Básica | POST /recebimento |
-| `/relatorios/gerenciais` | RelatoriosGerenciaisPage | 🔴 Quebrada | GET /relatorios (não existe) |
-| `/conhecimento/buscar` | BuscarPage | ✅ Funcional | GET /conhecimento/* |
-| `/configuracoes/empresa` | EmpresaPage | ⚠️ Decorativa | Nenhuma (não salva) |
-| 27 outras rotas | PlaceholderPage | 🔴 Placeholder | Nenhuma |
+| Rota                     | Componente               | Status         | Dependência Backend          |
+| ------------------------ | ------------------------ | -------------- | ---------------------------- |
+| `/login`                 | LoginPage                | ⚠️ Decorativa  | Nenhuma (simulado)           |
+| `/dashboard`             | DashboardPage            | ⚠️ Decorativa  | Nenhuma (dados fixos)        |
+| `/recebimento/captura`   | CapturaPage              | ⚠️ Básica      | POST /recebimento            |
+| `/relatorios/gerenciais` | RelatoriosGerenciaisPage | 🔴 Quebrada    | GET /relatorios (não existe) |
+| `/conhecimento/buscar`   | BuscarPage               | ✅ Funcional   | GET /conhecimento/\*         |
+| `/configuracoes/empresa` | EmpresaPage              | ⚠️ Decorativa  | Nenhuma (não salva)          |
+| 27 outras rotas          | PlaceholderPage          | 🔴 Placeholder | Nenhuma                      |
 
 ### 2.2 Análise Detalhada das Telas
 
 #### TELAS FUNCIONAIS
 
 **`/conhecimento/buscar` (BuscarPage)**
+
 - Integra com backend real
 - Estados: loading, erro, vazio, resultados
 - Paginação funcional
@@ -160,6 +166,7 @@ O sistema Recorda apresenta **maturidade técnica média-alta** no backend e ban
 #### TELAS BÁSICAS
 
 **`/recebimento/captura` (CapturaPage)**
+
 - UI de captura implementada
 - Modo lote com limite 20
 - Preview editável
@@ -171,12 +178,14 @@ O sistema Recorda apresenta **maturidade técnica média-alta** no backend e ban
 #### TELAS DECORATIVAS
 
 **`/login` (LoginPage)**
+
 - UI bonita e responsiva
 - **Não autentica** - aceita qualquer coisa
 - Redireciona direto para dashboard
 - Sem integração com backend
 
 **`/dashboard` (DashboardPage)**
+
 - Cards de estatísticas
 - Gráficos de produção
 - Alertas
@@ -185,6 +194,7 @@ O sistema Recorda apresenta **maturidade técnica média-alta** no backend e ban
 - Puramente visual
 
 **`/configuracoes/empresa` (EmpresaPage)**
+
 - Formulário completo
 - Upload de logo
 - Opções de exibição
@@ -192,6 +202,7 @@ O sistema Recorda apresenta **maturidade técnica média-alta** no backend e ban
 - Sem endpoint no backend
 
 **`/relatorios/gerenciais` (RelatoriosGerenciaisPage)**
+
 - UI de filtros
 - Botões de export
 - **QUEBRADA** - backend não tem rota registrada
@@ -200,6 +211,7 @@ O sistema Recorda apresenta **maturidade técnica média-alta** no backend e ban
 #### TELAS PLACEHOLDER (27 rotas)
 
 Todas usam `PlaceholderPage`:
+
 - Recebimento: 5 rotas
 - Produção: 8 rotas
 - Relatórios: 2 rotas
@@ -209,14 +221,14 @@ Todas usam `PlaceholderPage`:
 
 ### 2.3 Estados de UI
 
-| Tela | Loading | Vazio | Erro | Sucesso |
-|------|---------|-------|------|---------|
-| Login | ✅ | N/A | ❌ | ✅ |
-| Dashboard | ❌ | ❌ | ❌ | ✅ |
-| Captura | ✅ | ✅ | ⚠️ | ✅ |
-| Relatórios | ✅ | ❌ | ❌ | ❌ |
-| Busca | ✅ | ✅ | ✅ | ✅ |
-| Empresa | ✅ | N/A | ⚠️ | ✅ |
+| Tela       | Loading | Vazio | Erro | Sucesso |
+| ---------- | ------- | ----- | ---- | ------- |
+| Login      | ✅      | N/A   | ❌   | ✅      |
+| Dashboard  | ❌      | ❌    | ❌   | ✅      |
+| Captura    | ✅      | ✅    | ⚠️   | ✅      |
+| Relatórios | ✅      | ❌    | ❌   | ❌      |
+| Busca      | ✅      | ✅    | ✅   | ✅      |
+| Empresa    | ✅      | N/A   | ⚠️   | ✅      |
 
 ### 2.4 Problemas Identificados no Frontend
 
@@ -253,22 +265,22 @@ Todas usam `PlaceholderPage`:
 
 ### 3.1 Estrutura
 
-| Tabela | CHECK | FK | Trigger | Status |
-|--------|-------|-----|---------|--------|
-| registros_producao | 4 | 6 | 2 | ✅ Blindada |
-| processos_principais | 5 | 2 | 1 | ✅ Forte |
-| volumes | 5 | 1 | 1 | ✅ Forte |
-| apensos | 4 | 1 | 1 | ✅ Forte |
-| colaboradores | 2 | 1 | 1 | ✅ Forte |
-| coordenadorias | 2 | 0 | 1 | ✅ Forte |
-| etapas | 2 | 0 | 1 | ✅ Forte |
-| fontes_dados | 1 | 0 | 1 | ⚠️ Média |
-| importacoes | 9 | 1 | 1 | ✅ Forte |
-| documentos_ocr | 4 | 2 | 1 | ✅ Forte |
-| artigos | 6 | 2 | 1 | ✅ Forte |
-| categorias | 4 | 1 | 0 | ⚠️ Média |
-| tags | 4 | 0 | 0 | ⚠️ Média |
-| auditoria | 2 | 1 | 0 | ✅ Forte |
+| Tabela               | CHECK | FK  | Trigger | Status      |
+| -------------------- | ----- | --- | ------- | ----------- |
+| registros_producao   | 4     | 6   | 2       | ✅ Blindada |
+| processos_principais | 5     | 2   | 1       | ✅ Forte    |
+| volumes              | 5     | 1   | 1       | ✅ Forte    |
+| apensos              | 4     | 1   | 1       | ✅ Forte    |
+| colaboradores        | 2     | 1   | 1       | ✅ Forte    |
+| coordenadorias       | 2     | 0   | 1       | ✅ Forte    |
+| etapas               | 2     | 0   | 1       | ✅ Forte    |
+| fontes_dados         | 1     | 0   | 1       | ⚠️ Média    |
+| importacoes          | 9     | 1   | 1       | ✅ Forte    |
+| documentos_ocr       | 4     | 2   | 1       | ✅ Forte    |
+| artigos              | 6     | 2   | 1       | ✅ Forte    |
+| categorias           | 4     | 1   | 0       | ⚠️ Média    |
+| tags                 | 4     | 0   | 0       | ⚠️ Média    |
+| auditoria            | 2     | 1   | 0       | ✅ Forte    |
 
 ### 3.2 Garantias de Integridade
 
@@ -335,25 +347,25 @@ Todas usam `PlaceholderPage`:
 
 ### 4.1 Backend vs Frontend
 
-| Funcionalidade | Backend | Frontend | Status |
-|----------------|---------|----------|--------|
-| Relatórios | ✅ Implementado | ✅ Implementado | 🔴 **DESCONECTADOS** |
-| OCR | ⚠️ Stub | ✅ UI pronta | 🔴 **NÃO FUNCIONA** |
-| Autenticação | ❌ Não existe | ⚠️ Simulado | 🔴 **INEXISTENTE** |
-| Dashboard | ✅ Dados existem | ❌ Hardcoded | 🔴 **DESCONECTADOS** |
-| Configurações | ❌ Não existe | ✅ UI pronta | 🔴 **SEM BACKEND** |
-| Conhecimento | ✅ Completo | ✅ Completo | ✅ **ALINHADOS** |
+| Funcionalidade | Backend          | Frontend        | Status               |
+| -------------- | ---------------- | --------------- | -------------------- |
+| Relatórios     | ✅ Implementado  | ✅ Implementado | 🔴 **DESCONECTADOS** |
+| OCR            | ⚠️ Stub          | ✅ UI pronta    | 🔴 **NÃO FUNCIONA**  |
+| Autenticação   | ❌ Não existe    | ⚠️ Simulado     | 🔴 **INEXISTENTE**   |
+| Dashboard      | ✅ Dados existem | ❌ Hardcoded    | 🔴 **DESCONECTADOS** |
+| Configurações  | ❌ Não existe    | ✅ UI pronta    | 🔴 **SEM BACKEND**   |
+| Conhecimento   | ✅ Completo      | ✅ Completo     | ✅ **ALINHADOS**     |
 
 ### 4.2 Casos de Uso vs Rotas HTTP
 
-| Caso de Uso | Rota HTTP | Status |
-|-------------|-----------|--------|
-| CriarProcesso | ❌ Não exposto | 🔴 Só via código |
-| VincularApenso | ❌ Não exposto | 🔴 Só via código |
-| ImportarPlanilha | ❌ Não exposto | 🔴 Só via código |
-| RegistrarRecebimentoOCR | ⚠️ Parcial | ⚠️ Rota não usa o UC |
-| ConsolidarProducao | ❌ Não exposto | 🔴 Só via código |
-| GerarRelatorioCompleto | ⚠️ Existe | 🔴 Não registrada |
+| Caso de Uso             | Rota HTTP      | Status               |
+| ----------------------- | -------------- | -------------------- |
+| CriarProcesso           | ❌ Não exposto | 🔴 Só via código     |
+| VincularApenso          | ❌ Não exposto | 🔴 Só via código     |
+| ImportarPlanilha        | ❌ Não exposto | 🔴 Só via código     |
+| RegistrarRecebimentoOCR | ⚠️ Parcial     | ⚠️ Rota não usa o UC |
+| ConsolidarProducao      | ❌ Não exposto | 🔴 Só via código     |
+| GerarRelatorioCompleto  | ⚠️ Existe      | 🔴 Não registrada    |
 
 ---
 
@@ -361,29 +373,29 @@ Todas usam `PlaceholderPage`:
 
 ### ALTA PRIORIDADE (Bloqueia uso real)
 
-| # | Item | Esforço | Impacto |
-|---|------|---------|---------|
-| 1 | Registrar rota de relatórios no server.ts | 1 linha | Desbloqueia relatórios |
-| 2 | Conectar Dashboard ao backend | Médio | Dados reais |
-| 3 | Implementar OCR real (Tesseract/Vision) | Alto | Core do sistema |
-| 4 | Conectar rota /recebimento aos casos de uso | Médio | Persistência |
+| #   | Item                                        | Esforço | Impacto                |
+| --- | ------------------------------------------- | ------- | ---------------------- |
+| 1   | Registrar rota de relatórios no server.ts   | 1 linha | Desbloqueia relatórios |
+| 2   | Conectar Dashboard ao backend               | Médio   | Dados reais            |
+| 3   | Implementar OCR real (Tesseract/Vision)     | Alto    | Core do sistema        |
+| 4   | Conectar rota /recebimento aos casos de uso | Médio   | Persistência           |
 
 ### MÉDIA PRIORIDADE (Melhora qualidade)
 
-| # | Item | Esforço | Impacto |
-|---|------|---------|---------|
-| 5 | Implementar autenticação | Alto | Segurança |
-| 6 | Criar rotas para CriarProcesso, ImportarPlanilha | Médio | Funcionalidade |
-| 7 | Implementar câmera real no frontend | Médio | UX |
-| 8 | Mover SQL das rotas para repositories | Médio | Manutenibilidade |
+| #   | Item                                             | Esforço | Impacto          |
+| --- | ------------------------------------------------ | ------- | ---------------- |
+| 5   | Implementar autenticação                         | Alto    | Segurança        |
+| 6   | Criar rotas para CriarProcesso, ImportarPlanilha | Médio   | Funcionalidade   |
+| 7   | Implementar câmera real no frontend              | Médio   | UX               |
+| 8   | Mover SQL das rotas para repositories            | Médio   | Manutenibilidade |
 
 ### BAIXA PRIORIDADE (Pode esperar)
 
-| # | Item | Esforço | Impacto |
-|---|------|---------|---------|
-| 9 | Implementar telas placeholder | Alto | Completude |
-| 10 | Adicionar constraint UNIQUE em produção | Baixo | Integridade |
-| 11 | Política de retenção de auditoria | Baixo | Performance futura |
+| #   | Item                                    | Esforço | Impacto            |
+| --- | --------------------------------------- | ------- | ------------------ |
+| 9   | Implementar telas placeholder           | Alto    | Completude         |
+| 10  | Adicionar constraint UNIQUE em produção | Baixo   | Integridade        |
+| 11  | Política de retenção de auditoria       | Baixo   | Performance futura |
 
 ---
 
@@ -424,20 +436,20 @@ Todas usam `PlaceholderPage`:
 
 ### PODE REFINAR
 
-| Tela | Motivo |
-|------|--------|
-| BuscarPage | Funcional, integrada |
-| CapturaPage | UI completa, só falta câmera |
+| Tela        | Motivo                        |
+| ----------- | ----------------------------- |
+| BuscarPage  | Funcional, integrada          |
+| CapturaPage | UI completa, só falta câmera  |
 | EmpresaPage | UI completa, só falta backend |
-| Login | UI completa |
+| Login       | UI completa                   |
 
 ### NÃO REFINAR AINDA
 
-| Tela | Motivo |
-|------|--------|
-| Dashboard | Dados hardcoded |
+| Tela                     | Motivo               |
+| ------------------------ | -------------------- |
+| Dashboard                | Dados hardcoded      |
 | RelatoriosGerenciaisPage | Backend desconectado |
-| PlaceholderPages | Não fazem nada |
+| PlaceholderPages         | Não fazem nada       |
 
 ---
 
@@ -482,5 +494,5 @@ O sistema Recorda tem **fundações sólidas** mas está **desconectado**. O bac
 
 ---
 
-*Documento gerado em Janeiro 2026*
-*Auditoria técnica completa do sistema Recorda*
+_Documento gerado em Janeiro 2026_
+_Auditoria técnica completa do sistema Recorda_

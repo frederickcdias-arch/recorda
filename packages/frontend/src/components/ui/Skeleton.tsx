@@ -3,12 +3,16 @@ interface SkeletonProps {
 }
 
 export function Skeleton({ className = '' }: SkeletonProps): JSX.Element {
-  return (
-    <div className={`animate-pulse bg-gray-200 rounded ${className}`} />
-  );
+  return <div className={`animate-pulse bg-gray-200 rounded ${className}`} />;
 }
 
-export function SkeletonTable({ rows = 5, cols = 4 }: { rows?: number; cols?: number }): JSX.Element {
+export function SkeletonTable({
+  rows = 5,
+  cols = 4,
+}: {
+  rows?: number;
+  cols?: number;
+}): JSX.Element {
   return (
     <div className="space-y-3">
       <div className="flex gap-4">

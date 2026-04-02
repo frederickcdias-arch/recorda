@@ -184,7 +184,10 @@ export function useRecebimento() {
 
     try {
       setOcrProcessando(true);
-      const preview = await ocrPreviewMut.mutateAsync({ repoId: ocrRepo.id_repositorio_recorda, imagemBase64: ocrImagemBase64 });
+      const preview = await ocrPreviewMut.mutateAsync({
+        repoId: ocrRepo.id_repositorio_recorda,
+        imagemBase64: ocrImagemBase64,
+      });
       setOcrPreview(preview);
       setDocForm((prev) => ({
         ...prev,

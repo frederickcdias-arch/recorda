@@ -20,9 +20,12 @@ interface BadgeProps {
 
 const variantClasses: Record<BadgeVariant, string> = {
   default: 'bg-[var(--color-gray-100)] text-[var(--color-gray-700)] border-[var(--color-gray-200)]',
-  primary: 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)] border-[var(--color-primary-200)]',
-  success: 'bg-[var(--color-success-50)] text-[var(--color-success-700)] border-[var(--color-success-200)]',
-  warning: 'bg-[var(--color-warning-50)] text-[var(--color-warning-700)] border-[var(--color-warning-200)]',
+  primary:
+    'bg-[var(--color-primary-50)] text-[var(--color-primary-700)] border-[var(--color-primary-200)]',
+  success:
+    'bg-[var(--color-success-50)] text-[var(--color-success-700)] border-[var(--color-success-200)]',
+  warning:
+    'bg-[var(--color-warning-50)] text-[var(--color-warning-700)] border-[var(--color-warning-200)]',
   error: 'bg-[var(--color-error-50)] text-[var(--color-error-700)] border-[var(--color-error-200)]',
   info: 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)] border-[var(--color-primary-200)]',
 };
@@ -73,12 +76,8 @@ export function Badge({
         ${className}
       `}
     >
-      {dot && (
-        <span className={`${dotSizes[size]} ${dotColors[variant]} rounded-full`} />
-      )}
-      {icon && !dot && (
-        <Icon name={icon} className={iconSizes[size]} />
-      )}
+      {dot && <span className={`${dotSizes[size]} ${dotColors[variant]} rounded-full`} />}
+      {icon && !dot && <Icon name={icon} className={iconSizes[size]} />}
       {children}
       {removable && onRemove && (
         <button

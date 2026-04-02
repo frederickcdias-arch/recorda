@@ -8,7 +8,7 @@ export function RouteErrorFallback(): JSX.Element {
   const message =
     error instanceof Error
       ? error.message
-      : (error as { statusText?: string })?.statusText ?? 'Erro desconhecido';
+      : ((error as { statusText?: string })?.statusText ?? 'Erro desconhecido');
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
@@ -17,9 +17,7 @@ export function RouteErrorFallback(): JSX.Element {
           <Icon name="x" className="w-7 h-7 text-gray-500" />
         </div>
         <h2 className="text-xl font-semibold text-gray-900 mb-2">Erro na página</h2>
-        <p className="text-sm text-gray-500 mb-4">
-          Não foi possível carregar esta página.
-        </p>
+        <p className="text-sm text-gray-500 mb-4">Não foi possível carregar esta página.</p>
         {import.meta.env.DEV && (
           <pre className="text-xs text-left bg-gray-50 border rounded-lg p-3 mb-4 overflow-auto max-h-40 text-gray-700">
             {message}

@@ -6,7 +6,9 @@ import { api } from '../services/api';
 export function ForgotPasswordPage(): JSX.Element {
   const [email, setEmail] = useState('');
   const [carregando, setCarregando] = useState(false);
-  const [mensagem, setMensagem] = useState<{ tipo: 'success' | 'error'; texto: string } | null>(null);
+  const [mensagem, setMensagem] = useState<{ tipo: 'success' | 'error'; texto: string } | null>(
+    null
+  );
   const [enviado, setEnviado] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
@@ -15,16 +17,22 @@ export function ForgotPasswordPage(): JSX.Element {
     setMensagem(null);
 
     try {
-      const response = await api.post<{ message: string; resetToken?: string }>('/auth/forgot-password', { email }, { skipAuth: true });
+      const response = await api.post<{ message: string; resetToken?: string }>(
+        '/auth/forgot-password',
+        { email },
+        { skipAuth: true }
+      );
       setMensagem({ tipo: 'success', texto: response.message });
       setEnviado(true);
-      
+
       // Token de reset é enviado por email em produção
       // Em desenvolvimento, o token é retornado na resposta para facilitar testes
       void response.resetToken; // Ignorar em produção
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 
-        (error as { error?: string })?.error || 'Erro ao processar solicitação';
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : (error as { error?: string })?.error || 'Erro ao processar solicitação';
       setMensagem({ tipo: 'error', texto: errorMessage });
     } finally {
       setCarregando(false);
@@ -96,8 +104,18 @@ export function ForgotPasswordPage(): JSX.Element {
           ) : (
             <div className="text-center">
               <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                <svg
+                  className="w-8 h-8 text-blue-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 13l4 4L19 7"
+                  />
                 </svg>
               </div>
               <p className="text-gray-600 mb-4">
@@ -107,10 +125,7 @@ export function ForgotPasswordPage(): JSX.Element {
           )}
 
           <div className="mt-6 text-center">
-            <Link 
-              to="/login" 
-              className="text-blue-600 hover:text-blue-700 font-medium text-sm"
-            >
+            <Link to="/login" className="text-blue-600 hover:text-blue-700 font-medium text-sm">
               ← Voltar para o login
             </Link>
           </div>

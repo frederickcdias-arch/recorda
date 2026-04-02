@@ -4,7 +4,7 @@
 
 export type PerfilUsuario = 'operador' | 'administrador';
 
-export type PermissaoTipo = 
+export type PermissaoTipo =
   | 'visualizar_dashboard'
   | 'gerar_relatorios'
   | 'importar_producao'

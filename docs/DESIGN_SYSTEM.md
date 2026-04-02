@@ -15,55 +15,61 @@
 ## 🎨 Cores
 
 ### Primária (Brand)
+
 Azul sofisticado e profissional.
 
-| Token | Hex | Uso |
-|-------|-----|-----|
-| `--color-primary-25` | #f5f8ff | Background hover sutil |
-| `--color-primary-50` | #eef4ff | Background de destaque |
-| `--color-primary-100` | #e0eaff | Focus ring |
-| `--color-primary-500` | #6172f3 | Texto secundário |
-| `--color-primary-600` | #444ce7 | **Cor principal** |
-| `--color-primary-700` | #3538cd | Hover state |
+| Token                 | Hex     | Uso                    |
+| --------------------- | ------- | ---------------------- |
+| `--color-primary-25`  | #f5f8ff | Background hover sutil |
+| `--color-primary-50`  | #eef4ff | Background de destaque |
+| `--color-primary-100` | #e0eaff | Focus ring             |
+| `--color-primary-500` | #6172f3 | Texto secundário       |
+| `--color-primary-600` | #444ce7 | **Cor principal**      |
+| `--color-primary-700` | #3538cd | Hover state            |
 
 ### Semânticas
 
 #### Success (Verde)
-| Token | Hex | Uso |
-|-------|-----|-----|
-| `--color-success-50` | #ecfdf3 | Background |
+
+| Token                 | Hex     | Uso         |
+| --------------------- | ------- | ----------- |
+| `--color-success-50`  | #ecfdf3 | Background  |
 | `--color-success-600` | #039855 | Texto/Ícone |
 
 #### Warning (Âmbar)
-| Token | Hex | Uso |
-|-------|-----|-----|
-| `--color-warning-50` | #fffaeb | Background |
+
+| Token                 | Hex     | Uso         |
+| --------------------- | ------- | ----------- |
+| `--color-warning-50`  | #fffaeb | Background  |
 | `--color-warning-600` | #dc6803 | Texto/Ícone |
 
 #### Error (Vermelho)
-| Token | Hex | Uso |
-|-------|-----|-----|
-| `--color-error-50` | #fef3f2 | Background |
+
+| Token               | Hex     | Uso         |
+| ------------------- | ------- | ----------- |
+| `--color-error-50`  | #fef3f2 | Background  |
 | `--color-error-600` | #d92d20 | Texto/Ícone |
 
 ### Neutras (Cinza)
-| Token | Hex | Uso |
-|-------|-----|-----|
-| `--color-gray-50` | #f9fafb | Background secundário |
-| `--color-gray-100` | #f2f4f7 | Background terciário |
-| `--color-gray-200` | #eaecf0 | Bordas |
-| `--color-gray-300` | #d0d5dd | Bordas hover |
-| `--color-gray-400` | #98a2b3 | Placeholder |
-| `--color-gray-500` | #667085 | Texto terciário |
-| `--color-gray-600` | #475467 | Texto secundário |
-| `--color-gray-700` | #344054 | Texto primário |
-| `--color-gray-900` | #101828 | Títulos |
+
+| Token              | Hex     | Uso                   |
+| ------------------ | ------- | --------------------- |
+| `--color-gray-50`  | #f9fafb | Background secundário |
+| `--color-gray-100` | #f2f4f7 | Background terciário  |
+| `--color-gray-200` | #eaecf0 | Bordas                |
+| `--color-gray-300` | #d0d5dd | Bordas hover          |
+| `--color-gray-400` | #98a2b3 | Placeholder           |
+| `--color-gray-500` | #667085 | Texto terciário       |
+| `--color-gray-600` | #475467 | Texto secundário      |
+| `--color-gray-700` | #344054 | Texto primário        |
+| `--color-gray-900` | #101828 | Títulos               |
 
 ---
 
 ## 📝 Tipografia
 
 ### Família
+
 ```css
 --font-family-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 --font-family-mono: 'JetBrains Mono', 'Fira Code', monospace;
@@ -71,17 +77,17 @@ Azul sofisticado e profissional.
 
 ### Escala de Tamanhos
 
-| Token | Tamanho | Uso |
-|-------|---------|-----|
-| `--font-size-2xs` | 11px | Badges, overlines |
-| `--font-size-xs` | 12px | Captions, labels pequenos |
-| `--font-size-sm` | 13px | Texto secundário |
-| `--font-size-base` | 14px | **Corpo principal** |
-| `--font-size-md` | 16px | Texto de destaque |
-| `--font-size-lg` | 18px | Headings pequenos |
-| `--font-size-xl` | 20px | Headings médios |
-| `--font-size-2xl` | 24px | Títulos de página |
-| `--font-size-3xl` | 30px | Display |
+| Token              | Tamanho | Uso                       |
+| ------------------ | ------- | ------------------------- |
+| `--font-size-2xs`  | 11px    | Badges, overlines         |
+| `--font-size-xs`   | 12px    | Captions, labels pequenos |
+| `--font-size-sm`   | 13px    | Texto secundário          |
+| `--font-size-base` | 14px    | **Corpo principal**       |
+| `--font-size-md`   | 16px    | Texto de destaque         |
+| `--font-size-lg`   | 18px    | Headings pequenos         |
+| `--font-size-xl`   | 20px    | Headings médios           |
+| `--font-size-2xl`  | 24px    | Títulos de página         |
+| `--font-size-3xl`  | 30px    | Display                   |
 
 ### Classes Tipográficas
 
@@ -109,17 +115,17 @@ Azul sofisticado e profissional.
 
 Sistema baseado em 4px.
 
-| Token | Valor | Pixels |
-|-------|-------|--------|
-| `--space-1` | 0.25rem | 4px |
-| `--space-2` | 0.5rem | 8px |
-| `--space-3` | 0.75rem | 12px |
-| `--space-4` | 1rem | 16px |
-| `--space-5` | 1.25rem | 20px |
-| `--space-6` | 1.5rem | 24px |
-| `--space-8` | 2rem | 32px |
-| `--space-10` | 2.5rem | 40px |
-| `--space-12` | 3rem | 48px |
+| Token        | Valor   | Pixels |
+| ------------ | ------- | ------ |
+| `--space-1`  | 0.25rem | 4px    |
+| `--space-2`  | 0.5rem  | 8px    |
+| `--space-3`  | 0.75rem | 12px   |
+| `--space-4`  | 1rem    | 16px   |
+| `--space-5`  | 1.25rem | 20px   |
+| `--space-6`  | 1.5rem  | 24px   |
+| `--space-8`  | 2rem    | 32px   |
+| `--space-10` | 2.5rem  | 40px   |
+| `--space-12` | 3rem    | 48px   |
 
 ---
 
@@ -127,45 +133,47 @@ Sistema baseado em 4px.
 
 ### Border Radius
 
-| Token | Valor | Uso |
-|-------|-------|-----|
-| `--radius-sm` | 4px | Chips, tags |
-| `--radius-md` | 6px | Inputs, buttons pequenos |
-| `--radius-DEFAULT` | 8px | Buttons, cards pequenos |
-| `--radius-lg` | 10px | Cards |
-| `--radius-xl` | 12px | Modais, cards grandes |
-| `--radius-2xl` | 16px | Containers |
-| `--radius-full` | 9999px | Pills, avatares |
+| Token              | Valor  | Uso                      |
+| ------------------ | ------ | ------------------------ |
+| `--radius-sm`      | 4px    | Chips, tags              |
+| `--radius-md`      | 6px    | Inputs, buttons pequenos |
+| `--radius-DEFAULT` | 8px    | Buttons, cards pequenos  |
+| `--radius-lg`      | 10px   | Cards                    |
+| `--radius-xl`      | 12px   | Modais, cards grandes    |
+| `--radius-2xl`     | 16px   | Containers               |
+| `--radius-full`    | 9999px | Pills, avatares          |
 
 ---
 
 ## 🌑 Sombras
 
-| Token | Uso |
-|-------|-----|
-| `--shadow-xs` | Elementos sutis |
-| `--shadow-sm` | Cards padrão |
+| Token         | Uso                       |
+| ------------- | ------------------------- |
+| `--shadow-xs` | Elementos sutis           |
+| `--shadow-sm` | Cards padrão              |
 | `--shadow-md` | Cards elevados, dropdowns |
-| `--shadow-lg` | Modais |
-| `--shadow-xl` | Popovers |
+| `--shadow-lg` | Modais                    |
+| `--shadow-xl` | Popovers                  |
 
 ---
 
 ## ⚡ Transições
 
 ### Durações
-| Token | Valor | Uso |
-|-------|-------|-----|
-| `--duration-fast` | 100ms | Micro-interações |
-| `--duration-normal` | 150ms | **Padrão** |
-| `--duration-moderate` | 200ms | Animações médias |
-| `--duration-slow` | 300ms | Animações complexas |
+
+| Token                 | Valor | Uso                 |
+| --------------------- | ----- | ------------------- |
+| `--duration-fast`     | 100ms | Micro-interações    |
+| `--duration-normal`   | 150ms | **Padrão**          |
+| `--duration-moderate` | 200ms | Animações médias    |
+| `--duration-slow`     | 300ms | Animações complexas |
 
 ### Easings
-| Token | Uso |
-|-------|-----|
-| `--ease-out` | Entradas |
-| `--ease-in-out` | **Padrão** |
+
+| Token           | Uso               |
+| --------------- | ----------------- |
+| `--ease-out`    | Entradas          |
+| `--ease-in-out` | **Padrão**        |
 | `--ease-bounce` | Efeitos especiais |
 
 ---
@@ -213,14 +221,14 @@ import { Input } from '@/components/ui/Input';
 <Input label="Nome" placeholder="Digite seu nome" />
 
 // Com ícones
-<Input 
-  label="Buscar" 
-  leftIcon="search" 
-  placeholder="Pesquisar..." 
+<Input
+  label="Buscar"
+  leftIcon="search"
+  placeholder="Pesquisar..."
 />
 
-<Input 
-  label="Senha" 
+<Input
+  label="Senha"
   type="password"
   rightIcon="eye"
   onRightIconClick={() => togglePassword()}
@@ -244,8 +252,8 @@ import { Card, CardHeader, CardFooter, CardSection } from '@/components/ui/Card'
 
 // Básico
 <Card>
-  <CardHeader 
-    title="Título do Card" 
+  <CardHeader
+    title="Título do Card"
     description="Descrição opcional"
     action={<Button size="sm">Ação</Button>}
   />
@@ -319,10 +327,8 @@ function MinhaPage() {
         <h1 className="page-title">Título da Página</h1>
         <p className="page-description">Descrição opcional</p>
       </div>
-      
-      <Card>
-        {/* Conteúdo */}
-      </Card>
+
+      <Card>{/* Conteúdo */}</Card>
     </div>
   );
 }
@@ -378,6 +384,7 @@ Todos os elementos interativos têm focus ring visível:
 ### ARIA
 
 Todos os componentes incluem atributos ARIA apropriados:
+
 - `role` quando necessário
 - `aria-label` para elementos sem texto
 - `aria-describedby` para hints/errors
@@ -389,11 +396,13 @@ Todos os componentes incluem atributos ARIA apropriados:
 ### De classes Tailwind hardcoded para tokens
 
 **Antes:**
+
 ```tsx
 <div className="bg-blue-600 text-white hover:bg-blue-700">
 ```
 
 **Depois:**
+
 ```tsx
 <div className="bg-[var(--color-primary-600)] text-white hover:bg-[var(--color-primary-700)]">
 ```
@@ -401,13 +410,13 @@ Todos os componentes incluem atributos ARIA apropriados:
 ### De estilos inline para componentes
 
 **Antes:**
+
 ```tsx
-<button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-  Salvar
-</button>
+<button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Salvar</button>
 ```
 
 **Depois:**
+
 ```tsx
 <Button variant="primary">Salvar</Button>
 ```
@@ -444,4 +453,4 @@ src/
 
 ---
 
-*Design System v2.0 - Recorda © 2026*
+_Design System v2.0 - Recorda © 2026_

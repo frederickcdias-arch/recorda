@@ -60,24 +60,51 @@ export class ChecklistModeloRepository {
     return row;
   }
 
-  async update(id: string, data: {
-    codigo?: string;
-    descricao?: string;
-    obrigatorio?: boolean;
-    etapa?: string;
-    ordem?: number;
-    ativo?: boolean;
-  }): Promise<ChecklistModeloRow | null> {
+  async update(
+    id: string,
+    data: {
+      codigo?: string;
+      descricao?: string;
+      obrigatorio?: boolean;
+      etapa?: string;
+      ordem?: number;
+      ativo?: boolean;
+    }
+  ): Promise<ChecklistModeloRow | null> {
     const sets: string[] = [];
     const params: unknown[] = [];
     let idx = 1;
 
-    if (data.codigo !== undefined) { sets.push(`codigo = $${idx}`); params.push(data.codigo); idx++; }
-    if (data.descricao !== undefined) { sets.push(`descricao = $${idx}`); params.push(data.descricao); idx++; }
-    if (data.obrigatorio !== undefined) { sets.push(`obrigatorio = $${idx}`); params.push(data.obrigatorio); idx++; }
-    if (data.etapa !== undefined) { sets.push(`etapa = $${idx}`); params.push(data.etapa); idx++; }
-    if (data.ordem !== undefined) { sets.push(`ordem = $${idx}`); params.push(data.ordem); idx++; }
-    if (data.ativo !== undefined) { sets.push(`ativo = $${idx}`); params.push(data.ativo); idx++; }
+    if (data.codigo !== undefined) {
+      sets.push(`codigo = $${idx}`);
+      params.push(data.codigo);
+      idx++;
+    }
+    if (data.descricao !== undefined) {
+      sets.push(`descricao = $${idx}`);
+      params.push(data.descricao);
+      idx++;
+    }
+    if (data.obrigatorio !== undefined) {
+      sets.push(`obrigatorio = $${idx}`);
+      params.push(data.obrigatorio);
+      idx++;
+    }
+    if (data.etapa !== undefined) {
+      sets.push(`etapa = $${idx}`);
+      params.push(data.etapa);
+      idx++;
+    }
+    if (data.ordem !== undefined) {
+      sets.push(`ordem = $${idx}`);
+      params.push(data.ordem);
+      idx++;
+    }
+    if (data.ativo !== undefined) {
+      sets.push(`ativo = $${idx}`);
+      params.push(data.ativo);
+      idx++;
+    }
 
     if (sets.length === 0) return this.findById(id);
 

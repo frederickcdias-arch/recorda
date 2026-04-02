@@ -1,6 +1,6 @@
 /**
  * Middleware centralizado de tratamento de erros
- * 
+ *
  * Este módulo fornece:
  * - Função helper para extrair mensagem de erro
  * - Wrapper para handlers de rotas com tratamento automático
@@ -23,7 +23,7 @@ export const ErrorCodes = {
   RATE_LIMIT: 'RATE_LIMIT_EXCEEDED',
 } as const;
 
-export type ErrorCode = typeof ErrorCodes[keyof typeof ErrorCodes];
+export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes];
 
 /**
  * Interface de resposta de erro padronizada
@@ -82,7 +82,10 @@ export class AppError extends Error {
 /**
  * Extrai mensagem de erro de forma segura
  */
-export function getErrorMessage(error: unknown, fallback: string = 'Erro interno do servidor'): string {
+export function getErrorMessage(
+  error: unknown,
+  fallback: string = 'Erro interno do servidor'
+): string {
   if (error instanceof Error) {
     return error.message;
   }
@@ -162,10 +165,7 @@ export function sendDatabaseError(
 /**
  * Tipo para handler de rota
  */
-type RouteHandler<T = unknown> = (
-  request: FastifyRequest,
-  reply: FastifyReply
-) => Promise<T>;
+type RouteHandler<T = unknown> = (request: FastifyRequest, reply: FastifyReply) => Promise<T>;
 
 /**
  * Wrapper que adiciona tratamento de erro automático a um handler
@@ -187,13 +187,21 @@ export function withErrorHandler<T>(
 /**
  * Helper para criar resposta de sucesso com dados
  */
-export function sendSuccess<T>(reply: FastifyReply, data: T, statusCode: number = 200): FastifyReply {
+export function sendSuccess<T>(
+  reply: FastifyReply,
+  data: T,
+  statusCode: number = 200
+): FastifyReply {
   return reply.status(statusCode).send(data);
 }
 
 /**
  * Helper para criar resposta de sucesso com mensagem
  */
-export function sendMessage(reply: FastifyReply, message: string, statusCode: number = 200): FastifyReply {
+export function sendMessage(
+  reply: FastifyReply,
+  message: string,
+  statusCode: number = 200
+): FastifyReply {
   return reply.status(statusCode).send({ message });
 }

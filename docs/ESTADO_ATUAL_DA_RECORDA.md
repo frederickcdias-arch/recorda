@@ -8,6 +8,7 @@
 ## VISÃO GERAL DO SISTEMA
 
 O Recorda é um sistema enterprise de gestão de processos administrativos com:
+
 - **Recebimento**: Captura de documentos físicos via OCR (câmera)
 - **Produção**: Dados consolidados vindos de planilhas ou OCR
 - **Relatórios**: Exportação em PDF/Excel compatível com Fabrivo
@@ -15,11 +16,11 @@ O Recorda é um sistema enterprise de gestão de processos administrativos com:
 
 ### Separação Conceitual Obrigatória
 
-| Módulo | Responsabilidade | O que NÃO faz |
-|--------|------------------|---------------|
+| Módulo          | Responsabilidade                   | O que NÃO faz          |
+| --------------- | ---------------------------------- | ---------------------- |
 | **Recebimento** | Documentos físicos, OCR, processos | NÃO consolida produção |
-| **Produção** | Dados consolidados, indicadores | NÃO captura documentos |
-| **Relatórios** | Exportação, visualização | NÃO edita dados |
+| **Produção**    | Dados consolidados, indicadores    | NÃO captura documentos |
+| **Relatórios**  | Exportação, visualização           | NÃO edita dados        |
 
 ---
 
@@ -27,109 +28,109 @@ O Recorda é um sistema enterprise de gestão de processos administrativos com:
 
 ### 1. Infraestrutura Base
 
-| Componente | Status | Descrição |
-|------------|--------|-----------|
-| Monorepo | ✅ Pronto | npm workspaces com backend e frontend |
-| TypeScript | ✅ Pronto | Strict mode em ambos os pacotes |
-| PostgreSQL | ✅ Pronto | 17 migrations aplicadas, 17 tabelas |
-| Docker | ✅ Pronto | docker-compose para banco de dados |
-| ESLint + Prettier | ✅ Pronto | Configuração compartilhada |
-| Husky | ✅ Pronto | Pre-commit hooks |
-| Vitest | ✅ Pronto | 33 testes unitários passando |
+| Componente        | Status    | Descrição                             |
+| ----------------- | --------- | ------------------------------------- |
+| Monorepo          | ✅ Pronto | npm workspaces com backend e frontend |
+| TypeScript        | ✅ Pronto | Strict mode em ambos os pacotes       |
+| PostgreSQL        | ✅ Pronto | 17 migrations aplicadas, 17 tabelas   |
+| Docker            | ✅ Pronto | docker-compose para banco de dados    |
+| ESLint + Prettier | ✅ Pronto | Configuração compartilhada            |
+| Husky             | ✅ Pronto | Pre-commit hooks                      |
+| Vitest            | ✅ Pronto | 33 testes unitários passando          |
 
 ### 2. Domínio (Backend)
 
-| Entidade | Status | Descrição |
-|----------|--------|-----------|
-| ProcessoPrincipal | ✅ Pronto | Agregado raiz com volumes e apensos |
-| Volume | ✅ Pronto | Subdivisão física de processo |
-| Apenso | ✅ Pronto | Vinculação de processos |
-| RegistroProducao | ✅ Pronto | Imutável, com auditoria |
-| Colaborador | ✅ Pronto | Com coordenadoria |
-| Coordenadoria | ✅ Pronto | Unidade organizacional |
-| Etapa | ✅ Pronto | Fases do fluxo |
-| FonteDeDados | ✅ Pronto | Origem dos dados |
-| DocumentoOCR | ✅ Pronto | Documentos para OCR |
-| Categoria/Tag/Artigo | ✅ Pronto | Base de conhecimento |
+| Entidade             | Status    | Descrição                           |
+| -------------------- | --------- | ----------------------------------- |
+| ProcessoPrincipal    | ✅ Pronto | Agregado raiz com volumes e apensos |
+| Volume               | ✅ Pronto | Subdivisão física de processo       |
+| Apenso               | ✅ Pronto | Vinculação de processos             |
+| RegistroProducao     | ✅ Pronto | Imutável, com auditoria             |
+| Colaborador          | ✅ Pronto | Com coordenadoria                   |
+| Coordenadoria        | ✅ Pronto | Unidade organizacional              |
+| Etapa                | ✅ Pronto | Fases do fluxo                      |
+| FonteDeDados         | ✅ Pronto | Origem dos dados                    |
+| DocumentoOCR         | ✅ Pronto | Documentos para OCR                 |
+| Categoria/Tag/Artigo | ✅ Pronto | Base de conhecimento                |
 
 ### 3. Casos de Uso
 
-| Use Case | Status | Entrada |
-|----------|--------|---------|
-| CriarProcesso | ✅ Pronto | Via código |
-| VincularApenso | ✅ Pronto | Via código |
-| ImportarPlanilha | ✅ Pronto | Planilha |
-| RegistrarRecebimentoOCR | ✅ Pronto | OCR/Câmera |
+| Use Case                    | Status    | Entrada           |
+| --------------------------- | --------- | ----------------- |
+| CriarProcesso               | ✅ Pronto | Via código        |
+| VincularApenso              | ✅ Pronto | Via código        |
+| ImportarPlanilha            | ✅ Pronto | Planilha          |
+| RegistrarRecebimentoOCR     | ✅ Pronto | OCR/Câmera        |
 | RegistrarRecebimentoOCRLote | ✅ Pronto | OCR/Câmera (lote) |
-| ConsolidarProducao | ✅ Pronto | Consulta |
-| GerarRelatorio | ✅ Pronto | Consulta |
-| GerarRelatorioCompleto | ✅ Pronto | Consulta + Export |
+| ConsolidarProducao          | ✅ Pronto | Consulta          |
+| GerarRelatorio              | ✅ Pronto | Consulta          |
+| GerarRelatorioCompleto      | ✅ Pronto | Consulta + Export |
 
 ### 4. API HTTP
 
-| Endpoint | Status | Descrição |
-|----------|--------|-----------|
-| GET /health | ✅ Pronto | Healthcheck |
-| POST /recebimento | ✅ Pronto | Lote OCR (máx 20) |
-| POST /recebimento/validar | ✅ Pronto | Validação de imagem |
-| GET /relatorios | ✅ Pronto | JSON/PDF/Excel |
-| GET /relatorios/resumo | ✅ Pronto | Resumo rápido |
-| GET /conhecimento/* | ✅ Pronto | Base de conhecimento |
+| Endpoint                  | Status    | Descrição            |
+| ------------------------- | --------- | -------------------- |
+| GET /health               | ✅ Pronto | Healthcheck          |
+| POST /recebimento         | ✅ Pronto | Lote OCR (máx 20)    |
+| POST /recebimento/validar | ✅ Pronto | Validação de imagem  |
+| GET /relatorios           | ✅ Pronto | JSON/PDF/Excel       |
+| GET /relatorios/resumo    | ✅ Pronto | Resumo rápido        |
+| GET /conhecimento/\*      | ✅ Pronto | Base de conhecimento |
 
 ### 5. Frontend (UX Enterprise)
 
-| Componente | Status | Descrição |
-|------------|--------|-----------|
-| React Router | ✅ Pronto | Navegação com rotas reais |
-| Menu Lateral | ✅ Pronto | Recolhível, responsivo |
-| Login | ✅ Pronto | Tela com branding |
-| Dashboard | ✅ Pronto | Visão geral consolidada |
-| PWA | ✅ Pronto | manifest.json + service worker |
+| Componente   | Status    | Descrição                      |
+| ------------ | --------- | ------------------------------ |
+| React Router | ✅ Pronto | Navegação com rotas reais      |
+| Menu Lateral | ✅ Pronto | Recolhível, responsivo         |
+| Login        | ✅ Pronto | Tela com branding              |
+| Dashboard    | ✅ Pronto | Visão geral consolidada        |
+| PWA          | ✅ Pronto | manifest.json + service worker |
 
 #### Módulos de Navegação
 
-| Módulo | Status | Submenus |
-|--------|--------|----------|
-| Dashboard | ✅ Pronto | Visão geral, alertas |
-| Recebimento | ✅ Pronto | Captura, Registrados, Processos |
-| Produção | ✅ Pronto | Importação, Consolidada, Indicadores |
-| Relatórios | ✅ Pronto | Gerenciais, Operacionais, Exportações |
-| Conhecimento | ✅ Pronto | Buscar, Manuais, Procedimentos |
-| Configurações | ✅ Pronto | Empresa, Colaboradores, Etapas |
-| Auditoria | ✅ Pronto | Importações, OCR, Correções |
+| Módulo        | Status    | Submenus                              |
+| ------------- | --------- | ------------------------------------- |
+| Dashboard     | ✅ Pronto | Visão geral, alertas                  |
+| Recebimento   | ✅ Pronto | Captura, Registrados, Processos       |
+| Produção      | ✅ Pronto | Importação, Consolidada, Indicadores  |
+| Relatórios    | ✅ Pronto | Gerenciais, Operacionais, Exportações |
+| Conhecimento  | ✅ Pronto | Buscar, Manuais, Procedimentos        |
+| Configurações | ✅ Pronto | Empresa, Colaboradores, Etapas        |
+| Auditoria     | ✅ Pronto | Importações, OCR, Correções           |
 
 #### Componentes UI Reutilizáveis
 
-| Componente | Arquivo | Uso |
-|------------|---------|-----|
-| Button | `ui/Button.tsx` | Botões padronizados com loading |
-| Card | `ui/Card.tsx` | Containers de conteúdo |
-| Alert | `ui/Alert.tsx` | Mensagens de feedback |
-| Input | `ui/Input.tsx` | Campos de formulário |
-| Icon | `ui/Icon.tsx` | Ícones SVG |
-| EmptyState | `ui/EmptyState.tsx` | Estados vazios |
-| LoadingSpinner | `ui/LoadingSpinner.tsx` | Indicadores de carregamento |
-| **PageState** | `ui/PageState.tsx` | Estados de página (loading/erro/vazio) |
-| **ActionFeedback** | `ui/PageState.tsx` | Feedback de ações com detalhes |
-| **ConfirmDialog** | `ui/PageState.tsx` | Diálogos de confirmação |
+| Componente         | Arquivo                 | Uso                                    |
+| ------------------ | ----------------------- | -------------------------------------- |
+| Button             | `ui/Button.tsx`         | Botões padronizados com loading        |
+| Card               | `ui/Card.tsx`           | Containers de conteúdo                 |
+| Alert              | `ui/Alert.tsx`          | Mensagens de feedback                  |
+| Input              | `ui/Input.tsx`          | Campos de formulário                   |
+| Icon               | `ui/Icon.tsx`           | Ícones SVG                             |
+| EmptyState         | `ui/EmptyState.tsx`     | Estados vazios                         |
+| LoadingSpinner     | `ui/LoadingSpinner.tsx` | Indicadores de carregamento            |
+| **PageState**      | `ui/PageState.tsx`      | Estados de página (loading/erro/vazio) |
+| **ActionFeedback** | `ui/PageState.tsx`      | Feedback de ações com detalhes         |
+| **ConfirmDialog**  | `ui/PageState.tsx`      | Diálogos de confirmação                |
 
 #### Sistema de Design
 
-| Recurso | Arquivo | Descrição |
-|---------|---------|-----------|
-| Design Tokens | `styles/design-tokens.css` | Cores, tipografia, espaçamentos |
+| Recurso          | Arquivo                    | Descrição                            |
+| ---------------- | -------------------------- | ------------------------------------ |
+| Design Tokens    | `styles/design-tokens.css` | Cores, tipografia, espaçamentos      |
 | Contexto de Auth | `contexts/AuthContext.tsx` | Estrutura para usuários e permissões |
 
 ### 6. Banco de Dados
 
-| Recurso | Status | Descrição |
-|---------|--------|-----------|
-| Constraints | ✅ Pronto | 31+ CHECK constraints |
-| Foreign Keys | ✅ Pronto | Integridade referencial |
-| Índices | ✅ Pronto | Performance + GIN para busca |
-| Auditoria | ✅ Pronto | Triggers em todas as tabelas |
-| Imutabilidade | ✅ Pronto | RULE + Trigger em registros_producao |
-| Full-text Search | ✅ Pronto | tsvector + GIN em artigos |
+| Recurso          | Status    | Descrição                            |
+| ---------------- | --------- | ------------------------------------ |
+| Constraints      | ✅ Pronto | 31+ CHECK constraints                |
+| Foreign Keys     | ✅ Pronto | Integridade referencial              |
+| Índices          | ✅ Pronto | Performance + GIN para busca         |
+| Auditoria        | ✅ Pronto | Triggers em todas as tabelas         |
+| Imutabilidade    | ✅ Pronto | RULE + Trigger em registros_producao |
+| Full-text Search | ✅ Pronto | tsvector + GIN em artigos            |
 
 ---
 
@@ -137,30 +138,30 @@ O Recorda é um sistema enterprise de gestão de processos administrativos com:
 
 ### Alta Prioridade
 
-| Item | Descrição | Impacto |
-|------|-----------|---------|
-| **Autenticação** | JWT ou sessões | Segurança |
-| **OCR Real** | Tesseract/Google Vision | Funcionalidade core |
-| **Rate Limiting** | @fastify/rate-limit | Segurança |
-| **CORS Restrito** | Origens específicas | Segurança |
+| Item              | Descrição               | Impacto             |
+| ----------------- | ----------------------- | ------------------- |
+| **Autenticação**  | JWT ou sessões          | Segurança           |
+| **OCR Real**      | Tesseract/Google Vision | Funcionalidade core |
+| **Rate Limiting** | @fastify/rate-limit     | Segurança           |
+| **CORS Restrito** | Origens específicas     | Segurança           |
 
 ### Média Prioridade
 
-| Item | Descrição | Impacto |
-|------|-----------|---------|
-| Cache | Redis ou memória | Performance |
-| Logs Estruturados | ELK Stack | Observabilidade |
-| Testes de Integração | Testcontainers | Qualidade |
-| CI/CD | GitHub Actions | DevOps |
+| Item                 | Descrição        | Impacto         |
+| -------------------- | ---------------- | --------------- |
+| Cache                | Redis ou memória | Performance     |
+| Logs Estruturados    | ELK Stack        | Observabilidade |
+| Testes de Integração | Testcontainers   | Qualidade       |
+| CI/CD                | GitHub Actions   | DevOps          |
 
 ### Baixa Prioridade
 
-| Item | Descrição | Impacto |
-|------|-----------|---------|
-| Internacionalização | i18n | Acessibilidade |
-| Offline Support | Cache de dados | UX mobile |
-| Webhooks | Notificações externas | Integração |
-| Métricas | Prometheus/Grafana | Observabilidade |
+| Item                | Descrição             | Impacto         |
+| ------------------- | --------------------- | --------------- |
+| Internacionalização | i18n                  | Acessibilidade  |
+| Offline Support     | Cache de dados        | UX mobile       |
+| Webhooks            | Notificações externas | Integração      |
+| Métricas            | Prometheus/Grafana    | Observabilidade |
 
 ---
 
@@ -277,58 +278,58 @@ O Recorda é um sistema enterprise de gestão de processos administrativos com:
 
 ### ✅ TODAS AS FUNCIONALIDADES IMPLEMENTADAS
 
-| Módulo | Funcionalidade | Backend | Frontend |
-|--------|----------------|:-------:|:--------:|
-| **Autenticação** | JWT com refresh tokens | ✅ | ✅ |
-| **Autenticação** | Gestão de Usuários (admin) | ✅ | ✅ |
-| **Recebimento** | Captura de Documentos (OCR) | ✅ | ✅ |
-| **Recebimento** | Recebimentos Registrados | ✅ | ✅ |
-| **Recebimento** | Gestão de Processos | ✅ | ✅ |
-| **Recebimento** | Gestão de Volumes | ✅ | ✅ |
-| **Recebimento** | Gestão de Apensos | ✅ | ✅ |
-| **Produção** | Importação de Planilhas | ✅ | ✅ |
-| **Produção** | Fontes de Dados | ✅ | ✅ |
-| **Produção** | Mapeamento de Colunas | ✅ | ✅ |
-| **Produção** | Histórico de Importações | ✅ | ✅ |
-| **Produção** | Dashboard Consolidado | ✅ | ✅ |
-| **Produção** | Metas de Produção | ✅ | ✅ |
-| **Produção** | Indicadores de Desempenho | ✅ | ✅ |
-| **Relatórios** | Relatórios Gerenciais | ✅ | ✅ |
-| **Relatórios** | Relatórios Operacionais | ✅ | ✅ |
-| **Relatórios** | Exportações PDF/Excel | ✅ | ✅ |
-| **Conhecimento** | Busca Full-text | ✅ | ✅ |
-| **Conhecimento** | Manuais | ✅ | ✅ |
-| **Conhecimento** | Procedimentos | ✅ | ✅ |
-| **Conhecimento** | Leis e Normas | ✅ | ✅ |
-| **Conhecimento** | Glossário | ✅ | ✅ |
-| **Configurações** | Empresa | ✅ | ✅ |
-| **Configurações** | Projetos | ✅ | ✅ |
-| **Configurações** | Colaboradores | ✅ | ✅ |
-| **Configurações** | Etapas | ✅ | ✅ |
-| **Auditoria** | Timeline de Ações | ✅ | ✅ |
-| **Segurança** | CORS, Helmet, Rate Limiting | ✅ | - |
+| Módulo            | Funcionalidade              | Backend | Frontend |
+| ----------------- | --------------------------- | :-----: | :------: |
+| **Autenticação**  | JWT com refresh tokens      |   ✅    |    ✅    |
+| **Autenticação**  | Gestão de Usuários (admin)  |   ✅    |    ✅    |
+| **Recebimento**   | Captura de Documentos (OCR) |   ✅    |    ✅    |
+| **Recebimento**   | Recebimentos Registrados    |   ✅    |    ✅    |
+| **Recebimento**   | Gestão de Processos         |   ✅    |    ✅    |
+| **Recebimento**   | Gestão de Volumes           |   ✅    |    ✅    |
+| **Recebimento**   | Gestão de Apensos           |   ✅    |    ✅    |
+| **Produção**      | Importação de Planilhas     |   ✅    |    ✅    |
+| **Produção**      | Fontes de Dados             |   ✅    |    ✅    |
+| **Produção**      | Mapeamento de Colunas       |   ✅    |    ✅    |
+| **Produção**      | Histórico de Importações    |   ✅    |    ✅    |
+| **Produção**      | Dashboard Consolidado       |   ✅    |    ✅    |
+| **Produção**      | Metas de Produção           |   ✅    |    ✅    |
+| **Produção**      | Indicadores de Desempenho   |   ✅    |    ✅    |
+| **Relatórios**    | Relatórios Gerenciais       |   ✅    |    ✅    |
+| **Relatórios**    | Relatórios Operacionais     |   ✅    |    ✅    |
+| **Relatórios**    | Exportações PDF/Excel       |   ✅    |    ✅    |
+| **Conhecimento**  | Busca Full-text             |   ✅    |    ✅    |
+| **Conhecimento**  | Manuais                     |   ✅    |    ✅    |
+| **Conhecimento**  | Procedimentos               |   ✅    |    ✅    |
+| **Conhecimento**  | Leis e Normas               |   ✅    |    ✅    |
+| **Conhecimento**  | Glossário                   |   ✅    |    ✅    |
+| **Configurações** | Empresa                     |   ✅    |    ✅    |
+| **Configurações** | Projetos                    |   ✅    |    ✅    |
+| **Configurações** | Colaboradores               |   ✅    |    ✅    |
+| **Configurações** | Etapas                      |   ✅    |    ✅    |
+| **Auditoria**     | Timeline de Ações           |   ✅    |    ✅    |
+| **Segurança**     | CORS, Helmet, Rate Limiting |   ✅    |    -     |
 
 ### 📊 MÉTRICAS DO SISTEMA
 
-| Métrica | Valor |
-|---------|-------|
-| **Rotas Backend** | 16 módulos de rotas |
-| **Páginas Frontend** | 28 páginas funcionais |
-| **Placeholders** | 0 (eliminados) |
-| **Migrations** | 19 migrations |
-| **Tabelas** | 19 tabelas |
-| **Testes** | 33+ testes unitários |
-| **Cobertura Funcional** | **100%** |
+| Métrica                 | Valor                 |
+| ----------------------- | --------------------- |
+| **Rotas Backend**       | 16 módulos de rotas   |
+| **Páginas Frontend**    | 28 páginas funcionais |
+| **Placeholders**        | 0 (eliminados)        |
+| **Migrations**          | 19 migrations         |
+| **Tabelas**             | 19 tabelas            |
+| **Testes**              | 33+ testes unitários  |
+| **Cobertura Funcional** | **100%**              |
 
 ### 🎯 MELHORIAS FUTURAS (Opcional)
 
-| Funcionalidade | Prioridade | Descrição |
-|----------------|------------|-----------|
-| **Testes E2E** | Média | Playwright/Cypress para fluxos críticos |
-| **Validação Zod** | Média | Schemas de validação no backend |
-| **Notificações** | Baixa | Sistema de notificações em tempo real |
-| **PWA** | Baixa | App instalável com offline |
-| **Monitoramento** | Baixa | Métricas e alertas (Prometheus/Grafana) |
+| Funcionalidade    | Prioridade | Descrição                               |
+| ----------------- | ---------- | --------------------------------------- |
+| **Testes E2E**    | Média      | Playwright/Cypress para fluxos críticos |
+| **Validação Zod** | Média      | Schemas de validação no backend         |
+| **Notificações**  | Baixa      | Sistema de notificações em tempo real   |
+| **PWA**           | Baixa      | App instalável com offline              |
+| **Monitoramento** | Baixa      | Métricas e alertas (Prometheus/Grafana) |
 
 ---
 
@@ -363,12 +364,12 @@ O Recorda é um sistema enterprise de gestão de processos administrativos com:
 
 ## DOCUMENTAÇÃO RELACIONADA
 
-| Documento | Descrição |
-|-----------|-----------|
-| [README.md](../README.md) | Setup e comandos |
-| [DOMINIO.md](DOMINIO.md) | Modelo de domínio |
-| [CHECKLIST_FINAL.md](CHECKLIST_FINAL.md) | Validação completa |
-| [LIMITACOES.md](LIMITACOES.md) | Limitações conhecidas |
+| Documento                                | Descrição             |
+| ---------------------------------------- | --------------------- |
+| [README.md](../README.md)                | Setup e comandos      |
+| [DOMINIO.md](DOMINIO.md)                 | Modelo de domínio     |
+| [CHECKLIST_FINAL.md](CHECKLIST_FINAL.md) | Validação completa    |
+| [LIMITACOES.md](LIMITACOES.md)           | Limitações conhecidas |
 
 ---
 

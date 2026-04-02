@@ -14,5 +14,29 @@
     }
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "src/application/services",
+    "src/domain",
+    "src/infrastructure/analytics",
+    "src/infrastructure/backup",
+    "src/infrastructure/blockchain",
+    "src/infrastructure/cache",
+    "src/infrastructure/cdn",
+    "src/infrastructure/compliance",
+    "src/infrastructure/data-governance",
+    "src/infrastructure/datalakes",
+    "src/infrastructure/edgeai",
+    "src/infrastructure/graphql",
+    "src/infrastructure/microfrontends",
+    "src/infrastructure/ml",
+    "src/infrastructure/monitoring",
+    "src/infrastructure/multi-tenant",
+    "src/infrastructure/realtime",
+    "src/infrastructure/repositories",
+    "src/infrastructure/security",
+    "src/infrastructure/serverless",
+    "src/infrastructure/servicemesh"
+  ]
 }

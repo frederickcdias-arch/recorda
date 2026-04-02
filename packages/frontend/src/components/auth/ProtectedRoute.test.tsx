@@ -13,7 +13,7 @@ const mockUseAuth = useAuth as unknown as Mock;
 
 function renderProtected(): void {
   render(
-    <MemoryRouter initialEntries={['/']}> 
+    <MemoryRouter initialEntries={['/']}>
       <Routes>
         <Route
           path="/"

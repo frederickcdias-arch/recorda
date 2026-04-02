@@ -19,7 +19,11 @@ export function getRememberMePreference(): boolean {
   return localStorage.getItem(REMEMBER_ME_KEY) === 'true';
 }
 
-export function setStoredTokens(accessToken: string, refreshToken: string, rememberMe = false): void {
+export function setStoredTokens(
+  accessToken: string,
+  refreshToken: string,
+  rememberMe = false
+): void {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
   sessionStorage.removeItem(TOKEN_KEY);

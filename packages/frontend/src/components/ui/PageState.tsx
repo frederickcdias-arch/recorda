@@ -27,12 +27,20 @@ interface PageStateProps {
   children: React.ReactNode;
 }
 
-export function PageState({ loading, loadingMessage, error, empty, children }: PageStateProps): JSX.Element {
+export function PageState({
+  loading,
+  loadingMessage,
+  error,
+  empty,
+  children,
+}: PageStateProps): JSX.Element {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[300px] py-12">
         <LoadingSpinner size="lg" className="text-[var(--color-primary-600)] mb-4" />
-        <p className="text-[var(--color-text-secondary)] font-medium">{loadingMessage ?? 'Carregando...'}</p>
+        <p className="text-[var(--color-text-secondary)] font-medium">
+          {loadingMessage ?? 'Carregando...'}
+        </p>
       </div>
     );
   }
@@ -43,7 +51,9 @@ export function PageState({ loading, loadingMessage, error, empty, children }: P
         <div className="w-16 h-16 bg-[var(--color-gray-100)] rounded-full flex items-center justify-center mx-auto mb-4">
           <Icon name="x" className="w-8 h-8 text-[var(--color-gray-500)]" />
         </div>
-        <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-2">Algo deu errado</h3>
+        <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-2">
+          Algo deu errado
+        </h3>
         <p className="text-[var(--color-text-secondary)] mb-2">{error.message}</p>
         {error.details && (
           <p className="text-sm text-[var(--color-text-tertiary)] mb-4">{error.details}</p>
@@ -63,8 +73,12 @@ export function PageState({ loading, loadingMessage, error, empty, children }: P
         <div className="w-16 h-16 bg-[var(--color-gray-100)] rounded-full flex items-center justify-center mx-auto mb-4">
           <Icon name={empty.icon} className="w-8 h-8 text-[var(--color-gray-400)]" />
         </div>
-        <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-2">{empty.title}</h3>
-        <p className="text-[var(--color-text-tertiary)] max-w-md mx-auto mb-6">{empty.description}</p>
+        <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-2">
+          {empty.title}
+        </h3>
+        <p className="text-[var(--color-text-tertiary)] max-w-md mx-auto mb-6">
+          {empty.description}
+        </p>
         {empty.action && (
           <Button variant="primary" onClick={empty.action.onClick}>
             {empty.action.label}
@@ -127,15 +141,24 @@ const feedbackStyles = {
   },
 };
 
-export function ActionFeedback({ type, title, message, onDismiss, action }: ActionFeedbackProps): JSX.Element {
+export function ActionFeedback({
+  type,
+  title,
+  message,
+  onDismiss,
+  action,
+}: ActionFeedbackProps): JSX.Element {
   const styles = feedbackStyles[type];
   const displayMessage = typeof message === 'string' ? message : JSON.stringify(message);
-  const shortMessage = displayMessage.length > 1000 ? `${displayMessage.slice(0, 1000)}...` : displayMessage;
+  const shortMessage =
+    displayMessage.length > 1000 ? `${displayMessage.slice(0, 1000)}...` : displayMessage;
 
   return (
     <div className={`${styles.bg} ${styles.border} border rounded-xl p-4`}>
       <div className="flex gap-4">
-        <div className={`${styles.iconBg} w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0`}>
+        <div
+          className={`${styles.iconBg} w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0`}
+        >
           <Icon name={styles.icon} className={`w-5 h-5 ${styles.iconColor}`} />
         </div>
         <div className="flex-1 min-w-0">
@@ -167,4 +190,3 @@ export function ActionFeedback({ type, title, message, onDismiss, action }: Acti
     </div>
   );
 }
-

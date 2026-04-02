@@ -25,7 +25,10 @@ test.describe('Fluxo Operacional — Etapas', () => {
     // Navegar para a seção operacional
     const operacionalSection = page.getByRole('button', { name: /Opera/i });
     await operacionalSection.click();
-    await page.getByRole('link', { name: /Recebimento/i }).first().click();
+    await page
+      .getByRole('link', { name: /Recebimento/i })
+      .first()
+      .click();
     await page.waitForLoadState('networkidle');
 
     // Deve exibir as sub-abas Repositórios e Avulsos
@@ -37,22 +40,32 @@ test.describe('Fluxo Operacional — Etapas', () => {
   test('exibe lista de repositórios na etapa operacional', async ({ page }) => {
     const operacionalSection = page.getByRole('button', { name: /Opera/i });
     await operacionalSection.click();
-    await page.getByRole('link', { name: /Recebimento/i }).first().click();
+    await page
+      .getByRole('link', { name: /Recebimento/i })
+      .first()
+      .click();
     await page.waitForLoadState('networkidle');
 
     // Deve exibir tabela ou lista de repositórios (ou mensagem de lista vazia)
     await expect(
-      page.getByRole('table').or(page.getByText(/Nenhum repositório/i)).or(page.getByText(/repositório/i).first())
+      page
+        .getByRole('table')
+        .or(page.getByText(/Nenhum repositório/i))
+        .or(page.getByText(/repositório/i).first())
     ).toBeVisible({ timeout: 10_000 });
   });
 
   test('botão de novo repositório está visível na etapa de Recebimento', async ({ page }) => {
     const operacionalSection = page.getByRole('button', { name: /Opera/i });
     await operacionalSection.click();
-    await page.getByRole('link', { name: /Recebimento/i }).first().click();
+    await page
+      .getByRole('link', { name: /Recebimento/i })
+      .first()
+      .click();
     await page.waitForLoadState('networkidle');
 
-    const novoBtn = page.getByRole('button', { name: /Novo Repositório/i })
+    const novoBtn = page
+      .getByRole('button', { name: /Novo Repositório/i })
       .or(page.getByRole('button', { name: /Nova Caixa/i }))
       .or(page.getByRole('button', { name: /Adicionar/i }).first());
     await expect(novoBtn).toBeVisible({ timeout: 10_000 });
@@ -67,17 +80,21 @@ test.describe('Fluxo Operacional — Avulsos', () => {
   test('navega até aba de avulsos e exibe lista', async ({ page }) => {
     const operacionalSection = page.getByRole('button', { name: /Opera/i });
     await operacionalSection.click();
-    await page.getByRole('link', { name: /Recebimento/i }).first().click();
+    await page
+      .getByRole('link', { name: /Recebimento/i })
+      .first()
+      .click();
     await page.waitForLoadState('networkidle');
 
     // Clicar na aba Avulsos
-    const avulsosTab = page.getByRole('tab', { name: /Avulsos/i })
-      .or(page.getByText(/Avulsos/i));
+    const avulsosTab = page.getByRole('tab', { name: /Avulsos/i }).or(page.getByText(/Avulsos/i));
     await avulsosTab.first().click();
 
     // Deve exibir conteúdo de avulsos
     await expect(
-      page.getByText(/avulso/i).first()
+      page
+        .getByText(/avulso/i)
+        .first()
         .or(page.getByText(/Nenhum processo/i))
         .or(page.getByRole('button', { name: /Adicionar/i }).first())
     ).toBeVisible({ timeout: 10_000 });
@@ -96,7 +113,8 @@ test.describe('Fluxo Operacional — Controle de Qualidade', () => {
     await page.waitForLoadState('networkidle');
 
     await expect(
-      page.getByRole('heading', { name: /Controle de Qualidade/i })
+      page
+        .getByRole('heading', { name: /Controle de Qualidade/i })
         .or(page.getByText(/Qualidade/i).first())
     ).toBeVisible({ timeout: 10_000 });
   });

@@ -51,7 +51,9 @@ function createDatabaseConfig(isProduction: boolean): DatabaseConfig {
     port: parseInt(getEnvOrDefault('DB_PORT', '5433'), 10),
     database: getEnvOrDefault('DB_NAME', 'recorda'),
     user: getEnvOrDefault('DB_USER', 'recorda'),
-    password: isProduction ? getEnvOrThrow('DB_PASSWORD') : getEnvOrDefault('DB_PASSWORD', 'recorda'),
+    password: isProduction
+      ? getEnvOrThrow('DB_PASSWORD')
+      : getEnvOrDefault('DB_PASSWORD', 'recorda'),
   };
 }
 

@@ -18,7 +18,6 @@ interface RelatorioQuery {
   tipo?: string;
 }
 
-
 export function createRelatorioRoutes(): FastifyPluginAsync {
   const pdfService = new PDFExportService();
   const excelService = new ExcelExportService();
@@ -46,7 +45,12 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
         const { dataInicio, dataFim, coordenadoriaId, formato = 'json', tipo } = request.query;
 
         try {
-          const relatorio = await gerarRelatorioCompleto(server, dataInicio, dataFim, coordenadoriaId);
+          const relatorio = await gerarRelatorioCompleto(
+            server,
+            dataInicio,
+            dataFim,
+            coordenadoriaId
+          );
 
           const titulosPorTipo: Record<string, string> = {
             producao: 'Relatório de Produção Consolidada',
@@ -67,24 +71,29 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
              FROM configuracao_empresa LIMIT 1`
           );
           const empresaRow = empresaResult.rows[0] as Record<string, unknown> | undefined;
-          const empresaConfig = empresaRow ? {
-            nome: (empresaRow.nome as string) || '',
-            endereco: (empresaRow.endereco as string) || '',
-            telefone: (empresaRow.telefone as string) || '',
-            email: (empresaRow.email as string) || '',
-            logoUrl: (empresaRow.logo_url as string) || '',
-            exibirLogoRelatorio: empresaRow.exibir_logo_relatorio !== false,
-            exibirEnderecoRelatorio: empresaRow.exibir_endereco_relatorio !== false,
-            exibirContatoRelatorio: empresaRow.exibir_contato_relatorio === true,
-            logoLarguraRelatorio: Number(empresaRow.logo_largura_relatorio ?? 120),
-            logoAlinhamentoRelatorio: (empresaRow.logo_alinhamento_relatorio as string) || 'CENTRO',
-            logoDeslocamentoYRelatorio: Number(empresaRow.logo_deslocamento_y_relatorio ?? 0),
-          } : null;
+          const empresaConfig = empresaRow
+            ? {
+                nome: (empresaRow.nome as string) || '',
+                endereco: (empresaRow.endereco as string) || '',
+                telefone: (empresaRow.telefone as string) || '',
+                email: (empresaRow.email as string) || '',
+                logoUrl: (empresaRow.logo_url as string) || '',
+                exibirLogoRelatorio: empresaRow.exibir_logo_relatorio !== false,
+                exibirEnderecoRelatorio: empresaRow.exibir_endereco_relatorio !== false,
+                exibirContatoRelatorio: empresaRow.exibir_contato_relatorio === true,
+                logoLarguraRelatorio: Number(empresaRow.logo_largura_relatorio ?? 120),
+                logoAlinhamentoRelatorio:
+                  (empresaRow.logo_alinhamento_relatorio as string) || 'CENTRO',
+                logoDeslocamentoYRelatorio: Number(empresaRow.logo_deslocamento_y_relatorio ?? 0),
+              }
+            : null;
 
           switch (formato) {
             case 'pdf': {
               const pdfBuffer = await pdfService.exportar(relatorio, empresaConfig);
-              const dataInicioPt = new Date(dataInicio).toLocaleDateString('pt-BR').replace(/\//g, '-');
+              const dataInicioPt = new Date(dataInicio)
+                .toLocaleDateString('pt-BR')
+                .replace(/\//g, '-');
               const dataFimPt = new Date(dataFim).toLocaleDateString('pt-BR').replace(/\//g, '-');
               const filename = `relatorio_${tipo ?? 'geral'}_${dataInicioPt}_a_${dataFimPt}.pdf`;
 
@@ -96,12 +105,17 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
 
             case 'excel': {
               const excelBuffer = await excelService.exportar(relatorio);
-              const dataInicioPt = new Date(dataInicio).toLocaleDateString('pt-BR').replace(/\//g, '-');
+              const dataInicioPt = new Date(dataInicio)
+                .toLocaleDateString('pt-BR')
+                .replace(/\//g, '-');
               const dataFimPt = new Date(dataFim).toLocaleDateString('pt-BR').replace(/\//g, '-');
               const filename = `relatorio_${tipo ?? 'geral'}_${dataInicioPt}_a_${dataFimPt}.xlsx`;
 
               return reply
-                .header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+                .header(
+                  'Content-Type',
+                  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                )
                 .header('Content-Disposition', `attachment; filename="${filename}"`)
                 .send(excelBuffer);
             }
@@ -136,7 +150,12 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
         const { dataInicio, dataFim, coordenadoriaId } = request.query;
 
         try {
-          const relatorio = await gerarRelatorioCompleto(server, dataInicio, dataFim, coordenadoriaId);
+          const relatorio = await gerarRelatorioCompleto(
+            server,
+            dataInicio,
+            dataFim,
+            coordenadoriaId
+          );
 
           return reply.status(200).send({
             periodo: relatorio.periodo,
@@ -150,19 +169,23 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
       }
     );
 
-    server.get('/relatorios/coordenadorias', {
-      preHandler: [server.authenticate, authorize('operador', 'administrador')],
-    }, async (_request, reply) => {
-      try {
-        const result = await server.database.query(
-          `SELECT id, nome, sigla FROM coordenadorias WHERE ativa = true ORDER BY sigla`
-        );
-        return reply.status(200).send(result.rows);
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'Erro ao buscar coordenadorias';
-        return reply.status(500).send({ error: message });
+    server.get(
+      '/relatorios/coordenadorias',
+      {
+        preHandler: [server.authenticate, authorize('operador', 'administrador')],
+      },
+      async (_request, reply) => {
+        try {
+          const result = await server.database.query(
+            `SELECT id, nome, sigla FROM coordenadorias WHERE ativa = true ORDER BY sigla`
+          );
+          return reply.status(200).send(result.rows);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Erro ao buscar coordenadorias';
+          return reply.status(500).send({ error: message });
+        }
       }
-    });
+    );
 
     // GET /relatorios/operacional - Relatório operacional
     server.get<{ Querystring: { dataInicio: string; dataFim: string } }>(
@@ -174,7 +197,8 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
         const { dataInicio, dataFim } = request.query;
 
         try {
-          const result = await server.database.query(`
+          const result = await server.database.query(
+            `
             SELECT 
               p.id,
               p.quantidade,
@@ -191,7 +215,9 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
               AND COALESCE(p.marcadores->>'origem', '') = 'LEGADO'
               AND p.etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')
             ORDER BY p.data_producao DESC, u.nome
-          `, [dataInicio, dataFim]);
+          `,
+            [dataInicio, dataFim]
+          );
 
           return reply.send({ registros: result.rows });
         } catch (error) {
@@ -203,7 +229,9 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
 
     // GET /relatorios/operacional/export - Export operacional data as Excel
     // Supports ?token= query param for iframe preview (copies token to Authorization header)
-    server.get<{ Querystring: { dataInicio: string; dataFim: string; formato?: string; token?: string } }>(
+    server.get<{
+      Querystring: { dataInicio: string; dataFim: string; formato?: string; token?: string };
+    }>(
       '/relatorios/operacional/export',
       {
         preHandler: [
@@ -221,7 +249,8 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
         const { dataInicio, dataFim } = request.query;
 
         try {
-          const result = await server.database.query(`
+          const result = await server.database.query(
+            `
             SELECT
               p.data_producao,
               COALESCE(NULLIF(p.marcadores->>'colaborador_nome', ''), u.nome) as colaborador,
@@ -240,7 +269,9 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
               AND COALESCE(p.marcadores->>'origem', '') = 'LEGADO'
               AND p.etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')
             ORDER BY p.data_producao DESC, colaborador
-          `, [dataInicio, dataFim]);
+          `,
+            [dataInicio, dataFim]
+          );
 
           const ExcelJS = (await import('exceljs')).default;
           const workbook = new ExcelJS.Workbook();
@@ -263,7 +294,9 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
           for (const row of result.rows) {
             const r = row as Record<string, unknown>;
             sheet.addRow({
-              data: r.data_producao ? new Date(r.data_producao as string).toLocaleDateString('pt-BR') : '',
+              data: r.data_producao
+                ? new Date(r.data_producao as string).toLocaleDateString('pt-BR')
+                : '',
               colaborador: r.colaborador ?? '',
               etapa: r.etapa ?? '',
               funcao: r.funcao ?? '',
@@ -288,7 +321,10 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
             etapa: '',
             funcao: '',
             repositorio: '',
-            quantidade: result.rows.reduce((sum, r) => sum + Number((r as Record<string, unknown>).quantidade ?? 0), 0),
+            quantidade: result.rows.reduce(
+              (sum, r) => sum + Number((r as Record<string, unknown>).quantidade ?? 0),
+              0
+            ),
             tipo: '',
             coordenadoria: '',
             origem: '',
@@ -301,87 +337,94 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
           const filename = `detalhamento_operacional_${dataInicioPt}_a_${dataFimPt}.xlsx`;
 
           return reply
-            .header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+            .header(
+              'Content-Type',
+              'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            )
             .header('Content-Disposition', `attachment; filename="${filename}"`)
             .send(Buffer.from(buffer));
         } catch (error) {
-          const message = error instanceof Error ? error.message : 'Erro ao exportar relatório operacional';
+          const message =
+            error instanceof Error ? error.message : 'Erro ao exportar relatório operacional';
           return reply.status(500).send({ error: message });
         }
       }
     );
 
     // GET /operacional/producao - Listar registros de produção com filtros
-    server.get('/operacional/producao', {
-      preHandler: [server.authenticate, authorize('operador', 'administrador')],
-    }, async (request, reply) => {
-      try {
-        const query = request.query as {
-          pagina?: string;
-          limite?: string;
-          etapa?: string;
-          colaborador?: string;
-          repositorio?: string;
-          dataInicio?: string;
-          dataFim?: string;
-          origem?: 'legado' | 'fluxo' | '';
-          busca?: string;
-        };
+    server.get(
+      '/operacional/producao',
+      {
+        preHandler: [server.authenticate, authorize('operador', 'administrador')],
+      },
+      async (request, reply) => {
+        try {
+          const query = request.query as {
+            pagina?: string;
+            limite?: string;
+            etapa?: string;
+            colaborador?: string;
+            repositorio?: string;
+            dataInicio?: string;
+            dataFim?: string;
+            origem?: 'legado' | 'fluxo' | '';
+            busca?: string;
+          };
 
-        const pagina = Math.max(Number(query.pagina ?? 1), 1);
-        const limite = Math.min(Math.max(Number(query.limite ?? 25), 1), 100);
-        const offset = (pagina - 1) * limite;
+          const pagina = Math.max(Number(query.pagina ?? 1), 1);
+          const limite = Math.min(Math.max(Number(query.limite ?? 25), 1), 100);
+          const offset = (pagina - 1) * limite;
 
-        let where = `WHERE COALESCE(p.marcadores->>'origem', '') = 'LEGADO'
+          let where = `WHERE COALESCE(p.marcadores->>'origem', '') = 'LEGADO'
           AND p.etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')`;
-        const params: (string | number)[] = [];
-        let p = 1;
+          const params: (string | number)[] = [];
+          let p = 1;
 
-        if (query.etapa) {
-          where += ` AND p.etapa::text = $${p++}`;
-          params.push(query.etapa.toUpperCase());
-        }
-        if (query.colaborador) {
-          where += ` AND LOWER(COALESCE(NULLIF(p.marcadores->>'colaborador_nome', ''), u.nome)) = LOWER($${p++})`;
-          params.push(query.colaborador);
-        }
-        if (query.dataInicio) {
-          where += ` AND (p.data_producao AT TIME ZONE 'America/Cuiaba')::date >= $${p++}::date`;
-          params.push(query.dataInicio);
-        }
-        if (query.dataFim) {
-          where += ` AND (p.data_producao AT TIME ZONE 'America/Cuiaba')::date <= $${p++}::date`;
-          params.push(query.dataFim);
-        }
-        if (query.origem === 'legado') {
-          where += ` AND COALESCE(p.marcadores->>'origem', '') = 'LEGADO'`;
-        } else if (query.origem === 'fluxo') {
-          // Produção desta tela é apenas importada; origem fluxo deve retornar vazio.
-          where += ` AND 1 = 0`;
-        }
-        if (query.repositorio) {
-          where += ` AND r.id_repositorio_ged ILIKE $${p++}`;
-          params.push(`%${query.repositorio}%`);
-        }
-        if (query.busca) {
-          where += ` AND (u.nome ILIKE $${p} OR r.id_repositorio_ged ILIKE $${p} OR COALESCE(p.marcadores->>'funcao', '') ILIKE $${p} OR COALESCE(p.marcadores->>'tipo', '') ILIKE $${p} OR COALESCE(p.marcadores->>'colaborador_nome', '') ILIKE $${p})`;
-          params.push(`%${query.busca}%`);
-          p++;
-        }
+          if (query.etapa) {
+            where += ` AND p.etapa::text = $${p++}`;
+            params.push(query.etapa.toUpperCase());
+          }
+          if (query.colaborador) {
+            where += ` AND LOWER(COALESCE(NULLIF(p.marcadores->>'colaborador_nome', ''), u.nome)) = LOWER($${p++})`;
+            params.push(query.colaborador);
+          }
+          if (query.dataInicio) {
+            where += ` AND (p.data_producao AT TIME ZONE 'America/Cuiaba')::date >= $${p++}::date`;
+            params.push(query.dataInicio);
+          }
+          if (query.dataFim) {
+            where += ` AND (p.data_producao AT TIME ZONE 'America/Cuiaba')::date <= $${p++}::date`;
+            params.push(query.dataFim);
+          }
+          if (query.origem === 'legado') {
+            where += ` AND COALESCE(p.marcadores->>'origem', '') = 'LEGADO'`;
+          } else if (query.origem === 'fluxo') {
+            // Produção desta tela é apenas importada; origem fluxo deve retornar vazio.
+            where += ` AND 1 = 0`;
+          }
+          if (query.repositorio) {
+            where += ` AND r.id_repositorio_ged ILIKE $${p++}`;
+            params.push(`%${query.repositorio}%`);
+          }
+          if (query.busca) {
+            where += ` AND (u.nome ILIKE $${p} OR r.id_repositorio_ged ILIKE $${p} OR COALESCE(p.marcadores->>'funcao', '') ILIKE $${p} OR COALESCE(p.marcadores->>'tipo', '') ILIKE $${p} OR COALESCE(p.marcadores->>'colaborador_nome', '') ILIKE $${p})`;
+            params.push(`%${query.busca}%`);
+            p++;
+          }
 
-        const countResult = await server.database.query<{ total: string }>(
-          `SELECT COUNT(*) as total
+          const countResult = await server.database.query<{ total: string }>(
+            `SELECT COUNT(*) as total
            FROM producao_repositorio p
            JOIN usuarios u ON u.id = p.usuario_id
            JOIN repositorios r ON r.id_repositorio_recorda = p.repositorio_id
            ${where}`,
-          params
-        );
-        const total = parseInt(countResult.rows[0]?.total ?? '0', 10);
+            params
+          );
+          const total = parseInt(countResult.rows[0]?.total ?? '0', 10);
 
-        const dataParams = [...params, limite, offset];
-        const result = await server.database.query(
-          `SELECT
+          const dataParams = [...params, limite, offset];
+          const result = await server.database.query(
+            `SELECT
              p.id,
              p.quantidade,
              p.data_producao,
@@ -403,12 +446,12 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
            ${where}
            ORDER BY p.data_producao DESC, u.nome
            LIMIT $${p++} OFFSET $${p++}`,
-          dataParams
-        );
+            dataParams
+          );
 
-        // Buscar lista de colaboradores (usar nome da planilha, normalizado com INITCAP para unificar maiúsculas/minúsculas)
-        const colaboradoresResult = await server.database.query<{ id: string; nome: string }>(
-          `SELECT DISTINCT
+          // Buscar lista de colaboradores (usar nome da planilha, normalizado com INITCAP para unificar maiúsculas/minúsculas)
+          const colaboradoresResult = await server.database.query<{ id: string; nome: string }>(
+            `SELECT DISTINCT
              INITCAP(LOWER(COALESCE(NULLIF(p.marcadores->>'colaborador_nome', ''), u.nome))) as nome,
              INITCAP(LOWER(COALESCE(NULLIF(p.marcadores->>'colaborador_nome', ''), u.nome))) as id
            FROM producao_repositorio p
@@ -416,88 +459,104 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
            WHERE COALESCE(p.marcadores->>'origem', '') = 'LEGADO'
              AND p.etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')
            ORDER BY nome`
-        );
+          );
 
-        const etapasResult = await server.database.query<{ etapa: string }>(
-          `SELECT DISTINCT etapa::text as etapa
+          const etapasResult = await server.database.query<{ etapa: string }>(
+            `SELECT DISTINCT etapa::text as etapa
            FROM producao_repositorio
            WHERE COALESCE(marcadores->>'origem', '') = 'LEGADO'
              AND etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')
            ORDER BY etapa`
-        );
+          );
 
-        return reply.send({
-          registros: result.rows,
-          total,
-          pagina,
-          limite,
-          totalPaginas: Math.ceil(total / limite),
-          filtros: {
-            colaboradores: colaboradoresResult.rows,
-            etapas: etapasResult.rows.map(e => e.etapa),
-          },
-        });
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'Erro ao listar produção';
-        return reply.status(500).send({ error: message });
+          return reply.send({
+            registros: result.rows,
+            total,
+            pagina,
+            limite,
+            totalPaginas: Math.ceil(total / limite),
+            filtros: {
+              colaboradores: colaboradoresResult.rows,
+              etapas: etapasResult.rows.map((e) => e.etapa),
+            },
+          });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Erro ao listar produção';
+          return reply.status(500).send({ error: message });
+        }
       }
-    });
+    );
 
     // DELETE /producao - Limpar registros de produção importada (admin-only)
-    server.delete('/producao', {
-      preHandler: [server.authenticate, authorize('administrador')],
-    }, async (_request, reply) => {
-      try {
-        const countResult = await server.database.query<{ total: string }>(
-          `SELECT COUNT(*)::text as total
+    server.delete(
+      '/producao',
+      {
+        preHandler: [server.authenticate, authorize('administrador')],
+      },
+      async (_request, reply) => {
+        try {
+          const countResult = await server.database.query<{ total: string }>(
+            `SELECT COUNT(*)::text as total
            FROM producao_repositorio
            WHERE COALESCE(marcadores->>'origem', '') = 'LEGADO'`
-        );
-        const total = Number(countResult.rows[0]?.total ?? '0');
+          );
+          const total = Number(countResult.rows[0]?.total ?? '0');
 
-        if (total === 0) {
-          return reply.send({ message: 'Nenhum registro de produção importada para excluir', removidos: 0 });
-        }
+          if (total === 0) {
+            return reply.send({
+              message: 'Nenhum registro de produção importada para excluir',
+              removidos: 0,
+            });
+          }
 
-        await server.database.query(
-          `DELETE FROM producao_repositorio
+          await server.database.query(
+            `DELETE FROM producao_repositorio
            WHERE COALESCE(marcadores->>'origem', '') = 'LEGADO'`
-        );
-        return reply.send({ message: 'Registros de produção importada foram excluídos', removidos: total });
-      } catch (error) {
-        server.log.error(error, 'Erro ao limpar registros de produção importada');
-        const message = error instanceof Error ? error.message : 'Erro ao limpar registros de produção importada';
-        return reply.status(500).send({ error: message });
+          );
+          return reply.send({
+            message: 'Registros de produção importada foram excluídos',
+            removidos: total,
+          });
+        } catch (error) {
+          server.log.error(error, 'Erro ao limpar registros de produção importada');
+          const message =
+            error instanceof Error
+              ? error.message
+              : 'Erro ao limpar registros de produção importada';
+          return reply.status(500).send({ error: message });
+        }
       }
-    });
+    );
 
     // DELETE /producao/:id - Excluir registro de produção (admin-only)
-    server.delete('/producao/:id', {
-      preHandler: [server.authenticate, authorize('administrador')],
-    }, async (request, reply) => {
-      try {
-        const { id } = request.params as { id: string };
+    server.delete(
+      '/producao/:id',
+      {
+        preHandler: [server.authenticate, authorize('administrador')],
+      },
+      async (request, reply) => {
+        try {
+          const { id } = request.params as { id: string };
 
-        const check = await server.database.query(
-          `SELECT id FROM producao_repositorio WHERE id = $1`,
-          [id]
-        );
-        if (check.rows.length === 0) {
-          return reply.status(404).send({ error: 'Registro de produção não encontrado' });
+          const check = await server.database.query(
+            `SELECT id FROM producao_repositorio WHERE id = $1`,
+            [id]
+          );
+          if (check.rows.length === 0) {
+            return reply.status(404).send({ error: 'Registro de produção não encontrado' });
+          }
+
+          await server.database.query(`DELETE FROM producao_repositorio WHERE id = $1`, [id]);
+
+          return reply.send({ message: 'Registro de produção excluído com sucesso' });
+        } catch (error) {
+          server.log.error(error, 'Erro ao excluir registro de produção');
+          const message =
+            error instanceof Error ? error.message : 'Erro ao excluir registro de produção';
+          return reply.status(500).send({ error: message });
         }
-
-        await server.database.query(
-          `DELETE FROM producao_repositorio WHERE id = $1`,
-          [id]
-        );
-
-        return reply.send({ message: 'Registro de produção excluído com sucesso' });
-      } catch (error) {
-        server.log.error(error, 'Erro ao excluir registro de produção');
-        const message = error instanceof Error ? error.message : 'Erro ao excluir registro de produção';
-        return reply.status(500).send({ error: message });
       }
-    });
+    );
   };
 }
 
@@ -519,31 +578,31 @@ async function gerarRelatorioCompleto(
   // Mapeamento de funcao para ordem de exibição
   // Ordem: Recebimento, Preparação, Digitalização P/B, Digitalização Colorida, Conferência, Montagem, Reconferência
   const funcaoOrdemMap: Record<string, number> = {
-    'RECEBIMENTO': 1,
-    'PREPARAÇÃO': 2,
-    'PREPARACAO': 2,
+    RECEBIMENTO: 1,
+    PREPARAÇÃO: 2,
+    PREPARACAO: 2,
     'DIGITALIZAÇÃO P/B': 3,
     'DIGITALIZACAO P/B': 3,
     'DIGITALIZAÇÃO COLORIDA': 4,
     'DIGITALIZACAO COLORIDA': 4,
-    'CONFERÊNCIA': 5,
-    'CONFERENCIA': 5,
-    'MONTAGEM': 6,
-    'RECONFERÊNCIA': 7,
-    'RECONFERENCIA': 7,
-    'CONTROLE_QUALIDADE': 7,
-    'ENTREGA': 8,
+    CONFERÊNCIA: 5,
+    CONFERENCIA: 5,
+    MONTAGEM: 6,
+    RECONFERÊNCIA: 7,
+    RECONFERENCIA: 7,
+    CONTROLE_QUALIDADE: 7,
+    ENTREGA: 8,
   };
 
   // Mapeamento de etapa do sistema para nome legível (fallback quando funcao não está preenchida)
   const etapaFuncaoFallback: Record<string, string> = {
-    'RECEBIMENTO': 'RECEBIMENTO',
-    'PREPARACAO': 'PREPARAÇÃO',
-    'DIGITALIZACAO': 'DIGITALIZAÇÃO P/B',
-    'CONFERENCIA': 'CONFERÊNCIA',
-    'MONTAGEM': 'MONTAGEM',
-    'CONTROLE_QUALIDADE': 'RECONFERÊNCIA',
-    'ENTREGA': 'ENTREGA',
+    RECEBIMENTO: 'RECEBIMENTO',
+    PREPARACAO: 'PREPARAÇÃO',
+    DIGITALIZACAO: 'DIGITALIZAÇÃO P/B',
+    CONFERENCIA: 'CONFERÊNCIA',
+    MONTAGEM: 'MONTAGEM',
+    CONTROLE_QUALIDADE: 'RECONFERÊNCIA',
+    ENTREGA: 'ENTREGA',
   };
 
   const registrosQuery = `
@@ -630,7 +689,10 @@ async function gerarRelatorioCompleto(
 
   // Resumo por etapa (agregar todas as chaves compostas)
   const resumoPorEtapa: ResumoEtapa[] = [];
-  const producaoPorEtapaTotal = new Map<string, { quantidade: number; colaboradores: Set<string> }>();
+  const producaoPorEtapaTotal = new Map<
+    string,
+    { quantidade: number; colaboradores: Set<string> }
+  >();
 
   for (const [chave, etapasProducao] of producaoMap) {
     const info = chaveInfo.get(chave)!;
@@ -656,7 +718,8 @@ async function gerarRelatorioCompleto(
       ordem: etapaInfo.ordem,
       totalQuantidade: dados.quantidade,
       totalColaboradores: dados.colaboradores.size,
-      mediaPorColaborador: dados.colaboradores.size > 0 ? Math.round(dados.quantidade / dados.colaboradores.size) : 0,
+      mediaPorColaborador:
+        dados.colaboradores.size > 0 ? Math.round(dados.quantidade / dados.colaboradores.size) : 0,
     });
   }
 
@@ -763,12 +826,31 @@ async function gerarRelatorioCompleto(
   producaoPorCoordenadoria.sort((a, b) => a.coordenadoriaSigla.localeCompare(b.coordenadoriaSigla));
 
   const glossario = [
-    { termo: 'Recebimento', definicao: 'entrada dos documentos e organização inicial do material.' },
-    { termo: 'Preparação', definicao: 'ordenação, higienização e estabilização dos documentos físicos.' },
-    { termo: 'Digitalização', definicao: 'conversão dos documentos físicos em arquivos digitais de alta qualidade.' },
-    { termo: 'Conferência', definicao: 'verificação do material digitalizado, incluindo indexação e validação das informações.' },
-    { termo: 'Reconferência', definicao: 'revisão final para garantir o controle de qualidade e conformidade.' },
-    { termo: 'Montagem', definicao: 'agrupamento do conteúdo validado e finalização dos volumes para entrega.' },
+    {
+      termo: 'Recebimento',
+      definicao: 'entrada dos documentos e organização inicial do material.',
+    },
+    {
+      termo: 'Preparação',
+      definicao: 'ordenação, higienização e estabilização dos documentos físicos.',
+    },
+    {
+      termo: 'Digitalização',
+      definicao: 'conversão dos documentos físicos em arquivos digitais de alta qualidade.',
+    },
+    {
+      termo: 'Conferência',
+      definicao:
+        'verificação do material digitalizado, incluindo indexação e validação das informações.',
+    },
+    {
+      termo: 'Reconferência',
+      definicao: 'revisão final para garantir o controle de qualidade e conformidade.',
+    },
+    {
+      termo: 'Montagem',
+      definicao: 'agrupamento do conteúdo validado e finalização dos volumes para entrega.',
+    },
   ];
 
   const totalGeral = resumoPorEtapa.reduce((acc, e) => acc + e.totalQuantidade, 0);

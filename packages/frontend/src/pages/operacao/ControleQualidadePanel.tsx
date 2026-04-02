@@ -63,7 +63,12 @@ export function ControleQualidadePanel({
 }: ControleQualidadePanelProps): JSX.Element {
   const [repoSelecionadoId, setRepoSelecionadoId] = useState('');
   const [docs, setDocs] = useState<CQDocItem[]>([]);
-  const [resumo, setResumo] = useState<CQResumo>({ total: 0, aprovados: 0, reprovados: 0, pendentes: 0 });
+  const [resumo, setResumo] = useState<CQResumo>({
+    total: 0,
+    aprovados: 0,
+    reprovados: 0,
+    pendentes: 0,
+  });
   const [obsPorDoc, setObsPorDoc] = useState<Record<string, string>>({});
   const [ultimoRelatorioId, setUltimoRelatorioId] = useState('');
   const [reposSelecionadosDev, setReposSelecionadosDev] = useState<Set<string>>(new Set());
@@ -85,23 +90,33 @@ export function ControleQualidadePanel({
   const termoDevolucaoMultiMut = useGerarTermoDevolucaoMulti();
   const queryClient = useQueryClient();
 
-  const repoSelecionado = repositoriosDisponiveis.find((r) => r.id_repositorio_recorda === repoSelecionadoId);
-  const isConcluido = repoSelecionado?.status_atual === 'CQ_APROVADO' || repoSelecionado?.status_atual === 'CQ_REPROVADO';
+  const repoSelecionado = repositoriosDisponiveis.find(
+    (r) => r.id_repositorio_recorda === repoSelecionadoId
+  );
+  const isConcluido =
+    repoSelecionado?.status_atual === 'CQ_APROVADO' ||
+    repoSelecionado?.status_atual === 'CQ_REPROVADO';
 
-  const carregarAvaliacoes = useCallback(async (repoId: string) => {
-    try {
-      const data = await queryClient.fetchQuery({
-        queryKey: queryKeys.cqAvaliacoes(repoId),
-        queryFn: () => api.get<{ itens: CQDocItem[]; resumo: CQResumo }>(`/operacional/repositorios/${repoId}/cq-avaliacoes`),
-        staleTime: 0,
-      });
-      setDocs(data.itens ?? []);
-      setResumo(data.resumo ?? { total: 0, aprovados: 0, reprovados: 0, pendentes: 0 });
-    } catch {
-      setDocs([]);
-      setResumo({ total: 0, aprovados: 0, reprovados: 0, pendentes: 0 });
-    }
-  }, [queryClient]);
+  const carregarAvaliacoes = useCallback(
+    async (repoId: string) => {
+      try {
+        const data = await queryClient.fetchQuery({
+          queryKey: queryKeys.cqAvaliacoes(repoId),
+          queryFn: () =>
+            api.get<{ itens: CQDocItem[]; resumo: CQResumo }>(
+              `/operacional/repositorios/${repoId}/cq-avaliacoes`
+            ),
+          staleTime: 0,
+        });
+        setDocs(data.itens ?? []);
+        setResumo(data.resumo ?? { total: 0, aprovados: 0, reprovados: 0, pendentes: 0 });
+      } catch {
+        setDocs([]);
+        setResumo({ total: 0, aprovados: 0, reprovados: 0, pendentes: 0 });
+      }
+    },
+    [queryClient]
+  );
 
   useEffect(() => {
     if (!repoSelecionadoId) {
@@ -113,7 +128,10 @@ export function ControleQualidadePanel({
     void carregarAvaliacoes(repoSelecionadoId);
   }, [repoSelecionadoId, carregarAvaliacoes]);
 
-  const handleAvaliar = async (processoId: string, resultado: 'APROVADO' | 'REPROVADO'): Promise<void> => {
+  const handleAvaliar = async (
+    processoId: string,
+    resultado: 'APROVADO' | 'REPROVADO'
+  ): Promise<void> => {
     if (!repoSelecionadoId) return;
     if (resultado === 'REPROVADO' && reprovandoId !== processoId) {
       setReprovandoId(processoId);
@@ -126,7 +144,7 @@ export function ControleQualidadePanel({
         repoId: repoSelecionadoId,
         processoId,
         resultado,
-        observacao: resultado === 'REPROVADO' ? (obsPorDoc[processoId] || undefined) : undefined,
+        observacao: resultado === 'REPROVADO' ? obsPorDoc[processoId] || undefined : undefined,
       });
       setReprovandoId(null);
       await carregarAvaliacoes(repoSelecionadoId);
@@ -158,9 +176,11 @@ export function ControleQualidadePanel({
       setBusy(true);
       const result = await concluirMut.mutateAsync(repoSelecionadoId);
       await queryClient.invalidateQueries({ queryKey: queryKeys.repositoriosAll });
-      onSuccess(result.reprovados > 0
-        ? `CQ concluido com ${result.reprovados} reprovacao(oes). Gere o Termo de Correcao.`
-        : 'CQ concluido - todos aprovados! Gere o Termo de Devolucao.');
+      onSuccess(
+        result.reprovados > 0
+          ? `CQ concluido com ${result.reprovados} reprovacao(oes). Gere o Termo de Correcao.`
+          : 'CQ concluido - todos aprovados! Gere o Termo de Devolucao.'
+      );
     } catch (error) {
       onError(error instanceof Error ? error.message : 'Erro ao concluir CQ.');
     } finally {
@@ -217,8 +237,13 @@ export function ControleQualidadePanel({
     try {
       setBusy(true);
       const rel = await termoDevolucaoMultiMut.mutateAsync(ids);
-      const token = localStorage.getItem('recorda_access_token') ?? sessionStorage.getItem('recorda_access_token') ?? '';
-      setPreviewDevolucaoUrl(`/api/operacional/relatorios/${rel.id}/download?token=${encodeURIComponent(token)}`);
+      const token =
+        localStorage.getItem('recorda_access_token') ??
+        sessionStorage.getItem('recorda_access_token') ??
+        '';
+      setPreviewDevolucaoUrl(
+        `/api/operacional/relatorios/${rel.id}/download?token=${encodeURIComponent(token)}`
+      );
     } catch (error) {
       onError(error instanceof Error ? error.message : 'Erro ao gerar Termo de Devolucao.');
     } finally {
@@ -240,7 +265,10 @@ export function ControleQualidadePanel({
     if (!ultimoRelatorioId) return;
     try {
       setBusy(true);
-      await api.download(`/api/operacional/relatorios/${ultimoRelatorioId}/download`, `termo-${ultimoRelatorioId}.pdf`);
+      await api.download(
+        `/api/operacional/relatorios/${ultimoRelatorioId}/download`,
+        `termo-${ultimoRelatorioId}.pdf`
+      );
     } catch (error) {
       onError(error instanceof Error ? error.message : 'Erro ao baixar PDF.');
     } finally {
@@ -249,30 +277,48 @@ export function ControleQualidadePanel({
   };
 
   const resultadoBadge = (resultado: string): JSX.Element => {
-    if (resultado === 'APROVADO') return <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800">OK Aprovado</span>;
-    if (resultado === 'REPROVADO') return <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">X Reprovado</span>;
-    return <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-50 text-yellow-700 border border-yellow-200">Pendente</span>;
+    if (resultado === 'APROVADO')
+      return (
+        <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800">
+          OK Aprovado
+        </span>
+      );
+    if (resultado === 'REPROVADO')
+      return (
+        <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">
+          X Reprovado
+        </span>
+      );
+    return (
+      <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-50 text-yellow-700 border border-yellow-200">
+        Pendente
+      </span>
+    );
   };
 
   const docsFiltrados = docs.filter((doc) => {
     const matchStatus = filtroStatus === 'TODOS' || doc.resultado === filtroStatus;
-    const matchBusca = busca === ''
-      || doc.protocolo.toLowerCase().includes(busca.toLowerCase())
-      || (doc.interessado ?? '').toLowerCase().includes(busca.toLowerCase());
+    const matchBusca =
+      busca === '' ||
+      doc.protocolo.toLowerCase().includes(busca.toLowerCase()) ||
+      (doc.interessado ?? '').toLowerCase().includes(busca.toLowerCase());
     return matchStatus && matchBusca;
   });
 
   const reposPorStatus = {
-    AGUARDANDO_CQ_LOTE: repositoriosDisponiveis.filter((r) => r.status_atual === 'AGUARDANDO_CQ_LOTE').length,
+    AGUARDANDO_CQ_LOTE: repositoriosDisponiveis.filter(
+      (r) => r.status_atual === 'AGUARDANDO_CQ_LOTE'
+    ).length,
     CQ_APROVADO: repositoriosDisponiveis.filter((r) => r.status_atual === 'CQ_APROVADO').length,
     CQ_REPROVADO: repositoriosDisponiveis.filter((r) => r.status_atual === 'CQ_REPROVADO').length,
   };
 
   const reposFiltrados = repositoriosDisponiveis.filter((repo) => {
     const matchStatus = filtroRepo === 'TODOS' || repo.status_atual === filtroRepo;
-    const matchBusca = buscaRepo === ''
-      || repo.id_repositorio_ged.toLowerCase().includes(buscaRepo.toLowerCase())
-      || repo.orgao.toLowerCase().includes(buscaRepo.toLowerCase());
+    const matchBusca =
+      buscaRepo === '' ||
+      repo.id_repositorio_ged.toLowerCase().includes(buscaRepo.toLowerCase()) ||
+      repo.orgao.toLowerCase().includes(buscaRepo.toLowerCase());
     return matchStatus && matchBusca;
   });
 
@@ -283,16 +329,28 @@ export function ControleQualidadePanel({
       {confirmConcluir ? (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6">
-            <h3 className="text-base font-semibold text-gray-900 mb-2">Concluir Controle de Qualidade?</h3>
+            <h3 className="text-base font-semibold text-gray-900 mb-2">
+              Concluir Controle de Qualidade?
+            </h3>
             <p className="text-sm text-gray-600 mb-1">
               {resumo.reprovados > 0
                 ? `${resumo.reprovados} documento(s) reprovado(s). O repositorio sera marcado como CQ_REPROVADO.`
                 : 'Todos os documentos foram aprovados. O repositorio sera marcado como CQ_APROVADO.'}
             </p>
-            <p className="text-xs text-gray-400 mb-5">Esta acao nao pode ser desfeita sem devolucao.</p>
+            <p className="text-xs text-gray-400 mb-5">
+              Esta acao nao pode ser desfeita sem devolucao.
+            </p>
             <div className="flex gap-2 justify-end">
-              <Button size="sm" variant="secondary" onClick={() => setConfirmConcluir(false)}>Cancelar</Button>
-              <Button size="sm" variant={resumo.reprovados > 0 ? 'danger' : 'primary'} onClick={() => void handleConcluir()}>Confirmar</Button>
+              <Button size="sm" variant="secondary" onClick={() => setConfirmConcluir(false)}>
+                Cancelar
+              </Button>
+              <Button
+                size="sm"
+                variant={resumo.reprovados > 0 ? 'danger' : 'primary'}
+                onClick={() => void handleConcluir()}
+              >
+                Confirmar
+              </Button>
             </div>
           </div>
         </div>
@@ -302,19 +360,32 @@ export function ControleQualidadePanel({
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6">
             <h3 className="text-base font-semibold text-gray-900 mb-1">Reprovar documento</h3>
-            <p className="text-sm text-gray-500 mb-3 font-mono">{docs.find((d) => d.processo_id === reprovandoId)?.protocolo}</p>
-            <label className="block text-xs font-medium text-gray-700 mb-1">Motivo da reprovacao <span className="text-red-500">*</span></label>
+            <p className="text-sm text-gray-500 mb-3 font-mono">
+              {docs.find((d) => d.processo_id === reprovandoId)?.protocolo}
+            </p>
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              Motivo da reprovacao <span className="text-red-500">*</span>
+            </label>
             <input
               ref={obsInputRef}
               type="text"
               className="w-full h-9 px-3 border rounded-lg text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-red-300"
               placeholder="Descreva o motivo..."
               value={obsPorDoc[reprovandoId] ?? ''}
-              onChange={(e) => setObsPorDoc((prev) => ({ ...prev, [reprovandoId]: e.target.value }))}
+              onChange={(e) =>
+                setObsPorDoc((prev) => ({ ...prev, [reprovandoId]: e.target.value }))
+              }
             />
             <div className="flex gap-2 justify-end">
-              <Button size="sm" variant="secondary" onClick={() => setReprovandoId(null)}>Cancelar</Button>
-              <Button size="sm" variant="danger" disabled={!obsPorDoc[reprovandoId]} onClick={() => void handleAvaliar(reprovandoId, 'REPROVADO')}>
+              <Button size="sm" variant="secondary" onClick={() => setReprovandoId(null)}>
+                Cancelar
+              </Button>
+              <Button
+                size="sm"
+                variant="danger"
+                disabled={!obsPorDoc[reprovandoId]}
+                onClick={() => void handleAvaliar(reprovandoId, 'REPROVADO')}
+              >
                 Reprovar
               </Button>
             </div>
@@ -335,12 +406,17 @@ export function ControleQualidadePanel({
             value={buscaRepo}
             onChange={(e) => setBuscaRepo(e.target.value)}
           />
-          {([
-            { key: 'TODOS', label: `Todos (${repositoriosDisponiveis.length})` },
-            { key: 'AGUARDANDO_CQ_LOTE', label: `Pendentes (${reposPorStatus.AGUARDANDO_CQ_LOTE})` },
-            { key: 'CQ_APROVADO', label: `Aprovados (${reposPorStatus.CQ_APROVADO})` },
-            { key: 'CQ_REPROVADO', label: `Reprovados (${reposPorStatus.CQ_REPROVADO})` },
-          ] as { key: string; label: string }[]).map(({ key, label }) => (
+          {(
+            [
+              { key: 'TODOS', label: `Todos (${repositoriosDisponiveis.length})` },
+              {
+                key: 'AGUARDANDO_CQ_LOTE',
+                label: `Pendentes (${reposPorStatus.AGUARDANDO_CQ_LOTE})`,
+              },
+              { key: 'CQ_APROVADO', label: `Aprovados (${reposPorStatus.CQ_APROVADO})` },
+              { key: 'CQ_REPROVADO', label: `Reprovados (${reposPorStatus.CQ_REPROVADO})` },
+            ] as { key: string; label: string }[]
+          ).map(({ key, label }) => (
             <button
               key={key}
               onClick={() => setFiltroRepo(key)}
@@ -366,7 +442,9 @@ export function ControleQualidadePanel({
                 className={`w-full text-left px-3 py-2 rounded-lg border transition-colors flex items-center justify-between gap-2 ${repoSelecionadoId === repo.id_repositorio_recorda ? 'bg-blue-50 border-blue-300 ring-1 ring-blue-300' : 'bg-white border-gray-200 hover:bg-gray-50'}`}
               >
                 <div className="min-w-0">
-                  <span className="text-sm font-medium text-gray-900">{repo.id_repositorio_ged}</span>
+                  <span className="text-sm font-medium text-gray-900">
+                    {repo.id_repositorio_ged}
+                  </span>
                   <span className="text-xs text-gray-500 ml-2">{repo.orgao}</span>
                 </div>
                 <span className="text-xs text-gray-500">{repo.status_atual}</span>
@@ -379,24 +457,64 @@ export function ControleQualidadePanel({
       {repoSelecionadoId ? (
         <Card>
           <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
-            <h3 className="text-base font-semibold text-gray-900">{repoSelecionado?.id_repositorio_ged} - {repoSelecionado?.orgao}</h3>
+            <h3 className="text-base font-semibold text-gray-900">
+              {repoSelecionado?.id_repositorio_ged} - {repoSelecionado?.orgao}
+            </h3>
             <div className="flex flex-wrap gap-2">
               {!isConcluido ? (
                 <>
-                  <Button size="sm" variant="secondary" onClick={() => void handleAprovarTodos()} disabled={busy || docs.length === 0}>Aprovar Todos</Button>
-                  <Button size="sm" onClick={() => setConfirmConcluir(true)} disabled={busy || resumo.pendentes > 0 || docs.length === 0}>Concluir CQ</Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => void handleAprovarTodos()}
+                    disabled={busy || docs.length === 0}
+                  >
+                    Aprovar Todos
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => setConfirmConcluir(true)}
+                    disabled={busy || resumo.pendentes > 0 || docs.length === 0}
+                  >
+                    Concluir CQ
+                  </Button>
                 </>
               ) : null}
               {repoSelecionado?.status_atual === 'CQ_REPROVADO' ? (
-                <Button size="sm" variant="danger" onClick={() => void handleTermoCorrecao()} disabled={busy}>Gerar Termo de Correcao</Button>
+                <Button
+                  size="sm"
+                  variant="danger"
+                  onClick={() => void handleTermoCorrecao()}
+                  disabled={busy}
+                >
+                  Gerar Termo de Correcao
+                </Button>
               ) : null}
               {repoSelecionado ? (
-                <Button size="sm" variant="secondary" onClick={() => void handleDevolver()} disabled={busy}>Retornar para Recebimento</Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => void handleDevolver()}
+                  disabled={busy}
+                >
+                  Retornar para Recebimento
+                </Button>
               ) : null}
               {repoSelecionado?.status_atual === 'CQ_APROVADO' ? (
-                <Button size="sm" onClick={() => void handleTermoDevolucao()} disabled={busy}>Gerar Termo de Devolucao</Button>
+                <Button size="sm" onClick={() => void handleTermoDevolucao()} disabled={busy}>
+                  Gerar Termo de Devolucao
+                </Button>
               ) : null}
-              {ultimoRelatorioId ? <Button size="sm" variant="outline" onClick={() => void handleDownload()} disabled={busy}>Baixar PDF</Button> : null}
+              {ultimoRelatorioId ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => void handleDownload()}
+                  disabled={busy}
+                >
+                  Baixar PDF
+                </Button>
+              ) : null}
             </div>
           </div>
 
@@ -420,28 +538,48 @@ export function ControleQualidadePanel({
           </div>
 
           {docs.length === 0 ? (
-            <p className="text-sm text-gray-500 py-4">Nenhum processo cadastrado neste repositorio.</p>
+            <p className="text-sm text-gray-500 py-4">
+              Nenhum processo cadastrado neste repositorio.
+            </p>
           ) : docsFiltrados.length === 0 ? (
-            <p className="text-sm text-gray-400 py-4 text-center">Nenhum documento corresponde ao filtro.</p>
+            <p className="text-sm text-gray-400 py-4 text-center">
+              Nenhum documento corresponde ao filtro.
+            </p>
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase">#</th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Protocolo</th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Interessado</th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Vol.</th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Status</th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Observacao</th>
-                    <th className="px-3 py-2 text-right text-xs font-semibold text-gray-500 uppercase">Acoes</th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase">
+                      #
+                    </th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase">
+                      Protocolo
+                    </th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase">
+                      Interessado
+                    </th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase">
+                      Vol.
+                    </th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase">
+                      Status
+                    </th>
+                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase">
+                      Observacao
+                    </th>
+                    <th className="px-3 py-2 text-right text-xs font-semibold text-gray-500 uppercase">
+                      Acoes
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-100">
                   {docsFiltrados.map((doc, idx) => (
                     <tr key={doc.processo_id}>
                       <td className="px-3 py-2 text-xs text-gray-400">{idx + 1}</td>
-                      <td className="px-3 py-2 text-sm font-medium text-gray-900">{doc.protocolo}</td>
+                      <td className="px-3 py-2 text-sm font-medium text-gray-900">
+                        {doc.protocolo}
+                      </td>
                       <td className="px-3 py-2 text-sm text-gray-700">{doc.interessado}</td>
                       <td className="px-3 py-2 text-sm text-gray-700">{doc.volume}</td>
                       <td className="px-3 py-2">{resultadoBadge(doc.resultado)}</td>
@@ -449,8 +587,20 @@ export function ControleQualidadePanel({
                       <td className="px-3 py-2 text-right">
                         {!isConcluido ? (
                           <div className="inline-flex gap-1">
-                            <button className="w-8 h-8 rounded-lg text-sm font-bold bg-green-50 text-green-700 border border-green-200" onClick={() => void handleAvaliar(doc.processo_id, 'APROVADO')} disabled={busy}>OK</button>
-                            <button className="w-8 h-8 rounded-lg text-sm font-bold bg-red-50 text-red-600 border border-red-200" onClick={() => void handleAvaliar(doc.processo_id, 'REPROVADO')} disabled={busy}>X</button>
+                            <button
+                              className="w-8 h-8 rounded-lg text-sm font-bold bg-green-50 text-green-700 border border-green-200"
+                              onClick={() => void handleAvaliar(doc.processo_id, 'APROVADO')}
+                              disabled={busy}
+                            >
+                              OK
+                            </button>
+                            <button
+                              className="w-8 h-8 rounded-lg text-sm font-bold bg-red-50 text-red-600 border border-red-200"
+                              onClick={() => void handleAvaliar(doc.processo_id, 'REPROVADO')}
+                              disabled={busy}
+                            >
+                              X
+                            </button>
                           </div>
                         ) : (
                           <span className="text-xs text-gray-400">{doc.avaliador_nome ?? '-'}</span>
@@ -468,32 +618,49 @@ export function ControleQualidadePanel({
       {reposAprovados.length > 0 ? (
         <Card>
           <h2 className="text-lg font-semibold text-gray-900 mb-3">Termo de Devolucao Combinado</h2>
-          <p className="text-sm text-gray-500 mb-3">Selecione repositorios aprovados para gerar um unico Termo de Devolucao.</p>
+          <p className="text-sm text-gray-500 mb-3">
+            Selecione repositorios aprovados para gerar um unico Termo de Devolucao.
+          </p>
           <div className="space-y-2 max-h-48 overflow-auto">
             {reposAprovados.map((repo) => (
-              <label key={repo.id_repositorio_recorda} className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer ${reposSelecionadosDev.has(repo.id_repositorio_recorda) ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
+              <label
+                key={repo.id_repositorio_recorda}
+                className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer ${reposSelecionadosDev.has(repo.id_repositorio_recorda) ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
+              >
                 <input
                   type="checkbox"
                   checked={reposSelecionadosDev.has(repo.id_repositorio_recorda)}
                   onChange={() => {
                     setReposSelecionadosDev((prev) => {
                       const next = new Set(prev);
-                      if (next.has(repo.id_repositorio_recorda)) next.delete(repo.id_repositorio_recorda);
+                      if (next.has(repo.id_repositorio_recorda))
+                        next.delete(repo.id_repositorio_recorda);
                       else next.add(repo.id_repositorio_recorda);
                       return next;
                     });
                   }}
                   className="rounded"
                 />
-                <span className="text-sm text-gray-900">{repo.id_repositorio_ged} - {repo.orgao}</span>
+                <span className="text-sm text-gray-900">
+                  {repo.id_repositorio_ged} - {repo.orgao}
+                </span>
               </label>
             ))}
           </div>
           <div className="mt-3 pt-3 border-t flex items-center gap-3">
-            <Button size="sm" onClick={() => void handleTermoDevolucaoMulti()} disabled={busy || reposSelecionadosDev.size === 0} loading={busy}>
+            <Button
+              size="sm"
+              onClick={() => void handleTermoDevolucaoMulti()}
+              disabled={busy || reposSelecionadosDev.size === 0}
+              loading={busy}
+            >
               Gerar Termo ({reposSelecionadosDev.size})
             </Button>
-            {reposSelecionadosDev.size > 0 ? <span className="text-xs text-gray-500">{reposSelecionadosDev.size} repositorio(s) selecionado(s)</span> : null}
+            {reposSelecionadosDev.size > 0 ? (
+              <span className="text-xs text-gray-500">
+                {reposSelecionadosDev.size} repositorio(s) selecionado(s)
+              </span>
+            ) : null}
           </div>
         </Card>
       ) : null}
@@ -504,16 +671,33 @@ export function ControleQualidadePanel({
             <div className="px-6 py-4 border-b flex items-center justify-between shrink-0">
               <h3 className="text-lg font-semibold text-gray-900">Termo de Devolucao</h3>
               <div className="flex gap-2">
-                <Button size="sm" variant="secondary" onClick={() => {
-                  const iframe = document.getElementById('devolucao-preview-iframe') as HTMLIFrameElement | null;
-                  if (iframe?.contentWindow) iframe.contentWindow.print();
-                }}>Imprimir</Button>
-                <Button size="sm" onClick={() => void handleDownloadDevolucao()}>Baixar PDF</Button>
-                <Button size="sm" variant="secondary" onClick={() => setPreviewDevolucaoUrl(null)}>Fechar</Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => {
+                    const iframe = document.getElementById(
+                      'devolucao-preview-iframe'
+                    ) as HTMLIFrameElement | null;
+                    if (iframe?.contentWindow) iframe.contentWindow.print();
+                  }}
+                >
+                  Imprimir
+                </Button>
+                <Button size="sm" onClick={() => void handleDownloadDevolucao()}>
+                  Baixar PDF
+                </Button>
+                <Button size="sm" variant="secondary" onClick={() => setPreviewDevolucaoUrl(null)}>
+                  Fechar
+                </Button>
               </div>
             </div>
             <div className="flex-1 min-h-0">
-              <iframe id="devolucao-preview-iframe" src={previewDevolucaoUrl} className="w-full h-full border-0" title="Preview do Termo de Devolucao" />
+              <iframe
+                id="devolucao-preview-iframe"
+                src={previewDevolucaoUrl}
+                className="w-full h-full border-0"
+                title="Preview do Termo de Devolucao"
+              />
             </div>
           </div>
         </div>

@@ -44,6 +44,7 @@ git push
 - `DB_SSL_REJECT_UNAUTHORIZED=false` (recomendado no Postgres Railway para evitar falha de SSL no healthcheck)
 
 Observação:
+
 - O backend já suporta `DATABASE_URL` automaticamente.
 - Se não usar `DATABASE_URL`, configure `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`.
 
@@ -64,6 +65,7 @@ Observação:
 - `VITE_API_BASE=https://<seu-backend>.up.railway.app`
 
 Observação:
+
 - O frontend foi preparado para usar `VITE_API_BASE`.
 - Em dev local, sem `VITE_API_BASE`, continua usando `/api` com proxy do Vite.
 

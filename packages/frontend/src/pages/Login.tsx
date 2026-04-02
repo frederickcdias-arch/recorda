@@ -19,7 +19,14 @@ function validatePassword(value: string): string {
 
 export function LoginPage(): JSX.Element {
   const navigate = useNavigate();
-  const { login, autenticado, carregando, erro, limparErro, rememberMe: savedRememberMe } = useAuth();
+  const {
+    login,
+    autenticado,
+    carregando,
+    erro,
+    limparErro,
+    rememberMe: savedRememberMe,
+  } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [lembrarMe, setLembrarMe] = useState(savedRememberMe);

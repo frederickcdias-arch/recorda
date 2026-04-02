@@ -102,12 +102,32 @@ export async function createServer(dependencies: ServerDependencies): Promise<Fa
     'POST /auth/forgot-password': { max: 3, timeWindow: '1 minute' },
     'POST /auth/reset-password': { max: 5, timeWindow: '1 minute' },
   };
-  const heavyPatterns: Array<{ pattern: RegExp; method: string; limit: { max: number; timeWindow: string } }> = [
-    { pattern: /^\/operacional\/fontes-importacao\/[^/]+\/importar$/, method: 'POST', limit: { max: 2, timeWindow: '1 minute' } },
-    { pattern: /^\/operacional\/importacoes-legado\//, method: 'POST', limit: { max: 3, timeWindow: '1 minute' } },
+  const heavyPatterns: Array<{
+    pattern: RegExp;
+    method: string;
+    limit: { max: number; timeWindow: string };
+  }> = [
+    {
+      pattern: /^\/operacional\/fontes-importacao\/[^/]+\/importar$/,
+      method: 'POST',
+      limit: { max: 2, timeWindow: '1 minute' },
+    },
+    {
+      pattern: /^\/operacional\/importacoes-legado\//,
+      method: 'POST',
+      limit: { max: 3, timeWindow: '1 minute' },
+    },
     { pattern: /\/ocr-preview$/, method: 'POST', limit: { max: 10, timeWindow: '1 minute' } },
-    { pattern: /^\/operacional\/relatorios/, method: 'POST', limit: { max: 5, timeWindow: '1 minute' } },
-    { pattern: /^\/operacional\/relatorio-recebimento/, method: 'POST', limit: { max: 5, timeWindow: '1 minute' } },
+    {
+      pattern: /^\/operacional\/relatorios/,
+      method: 'POST',
+      limit: { max: 5, timeWindow: '1 minute' },
+    },
+    {
+      pattern: /^\/operacional\/relatorio-recebimento/,
+      method: 'POST',
+      limit: { max: 5, timeWindow: '1 minute' },
+    },
   ];
   server.addHook('onRoute', (routeOptions) => {
     const key = `${String(routeOptions.method)} ${routeOptions.url}`;

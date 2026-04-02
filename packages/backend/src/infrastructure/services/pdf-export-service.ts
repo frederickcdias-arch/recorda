@@ -88,7 +88,7 @@ export class PDFExportService {
       const uploadsDir = path.resolve('uploads', 'logos');
       try {
         const files = await fs.readdir(uploadsDir);
-        const logoFile = files.find(f => f.startsWith('logo_empresa'));
+        const logoFile = files.find((f) => f.startsWith('logo_empresa'));
         if (logoFile) {
           return await fs.readFile(path.join(uploadsDir, logoFile));
         }
@@ -133,14 +133,12 @@ export class PDFExportService {
     if (logoBuffer) {
       const logoSpaceWidth = 4 * 28.35; // 4cm em pt
       const logoSpaceHeight = 10 * 28.35; // 10cm em pt
-      const imageWidth = Math.min(logoSpaceWidth - 10, this.normalizeLogoWidth(empresa?.logoLarguraRelatorio));
-      const imageY = doc.y + this.normalizeLogoOffsetY(empresa?.logoDeslocamentoYRelatorio);
-      const imageX = this.resolveLogoX(
-        empresa?.logoAlinhamentoRelatorio,
-        MARGIN,
-        w,
-        imageWidth,
+      const imageWidth = Math.min(
+        logoSpaceWidth - 10,
+        this.normalizeLogoWidth(empresa?.logoLarguraRelatorio)
       );
+      const imageY = doc.y + this.normalizeLogoOffsetY(empresa?.logoDeslocamentoYRelatorio);
+      const imageX = this.resolveLogoX(empresa?.logoAlinhamentoRelatorio, MARGIN, w, imageWidth);
       let imgHeight = Math.min(logoSpaceHeight - 20, 60);
       try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -149,17 +147,27 @@ export class PDFExportService {
           imgHeight = (imageWidth / img.width) * img.height;
           imgHeight = Math.min(imgHeight, logoSpaceHeight - 20);
         }
-      } catch { /* fallback */ }
+      } catch {
+        /* fallback */
+      }
       doc.image(logoBuffer, imageX, imageY, { width: imageWidth });
       doc.y = imageY + Math.max(imgHeight, 60) + 8;
     }
 
     if (empresa?.nome) {
-      doc.font('Helvetica-Bold').fontSize(11).fillColor(COLORS.grayText).text(empresa.nome, MARGIN, doc.y, { width: w, align: 'center' });
+      doc
+        .font('Helvetica-Bold')
+        .fontSize(11)
+        .fillColor(COLORS.grayText)
+        .text(empresa.nome, MARGIN, doc.y, { width: w, align: 'center' });
       doc.moveDown(0.15);
     }
 
-    doc.font('Helvetica-Bold').fontSize(16).fillColor('#111827').text(relatorio.titulo.toUpperCase(), MARGIN, doc.y, { width: w, align: 'center' });
+    doc
+      .font('Helvetica-Bold')
+      .fontSize(16)
+      .fillColor('#111827')
+      .text(relatorio.titulo.toUpperCase(), MARGIN, doc.y, { width: w, align: 'center' });
     doc.moveDown(0.5);
 
     // Info box centralizado
@@ -183,7 +191,12 @@ export class PDFExportService {
     doc.y = boxY + boxH + 6;
 
     // Linha separadora
-    doc.moveTo(MARGIN, doc.y).lineWidth(1.5).strokeColor(COLORS.primary).lineTo(MARGIN + w, doc.y).stroke();
+    doc
+      .moveTo(MARGIN, doc.y)
+      .lineWidth(1.5)
+      .strokeColor(COLORS.primary)
+      .lineTo(MARGIN + w, doc.y)
+      .stroke();
     doc.y += 10;
     doc.fillColor('#000000');
   }
@@ -196,7 +209,12 @@ export class PDFExportService {
     return Math.min(Math.max(Number(value ?? 0), -20), 40);
   }
 
-  private resolveLogoX(alinhamento: string | undefined, left: number, totalWidth: number, imageWidth: number): number {
+  private resolveLogoX(
+    alinhamento: string | undefined,
+    left: number,
+    totalWidth: number,
+    imageWidth: number
+  ): number {
     if (alinhamento === 'ESQUERDA') {
       return left;
     }
@@ -257,7 +275,11 @@ export class PDFExportService {
       }
     }
 
-    rows.sort((a, b) => (a.coordenadoria ?? '').localeCompare(b.coordenadoria ?? '') || this.ordemEtapa(a.etapa ?? '') - this.ordemEtapa(b.etapa ?? ''));
+    rows.sort(
+      (a, b) =>
+        (a.coordenadoria ?? '').localeCompare(b.coordenadoria ?? '') ||
+        this.ordemEtapa(a.etapa ?? '') - this.ordemEtapa(b.etapa ?? '')
+    );
     this.renderTable(doc, columns, rows);
   }
 
@@ -271,7 +293,10 @@ export class PDFExportService {
       { key: 'producao', label: 'PRODUÇÃO', flex: 2, align: 'right' },
     ];
 
-    const colabMap = new Map<string, { colaborador: string; etapa: string; quantidade: number; unidade: string }>();
+    const colabMap = new Map<
+      string,
+      { colaborador: string; etapa: string; quantidade: number; unidade: string }
+    >();
     for (const coordenadoria of relatorio.producaoPorCoordenadoria) {
       for (const colaborador of coordenadoria.colaboradores) {
         const nomeNorm = colaborador.colaboradorNome.trim().toLowerCase();
@@ -292,13 +317,17 @@ export class PDFExportService {
       }
     }
 
-    const rows = Array.from(colabMap.values()).map(item => ({
+    const rows = Array.from(colabMap.values()).map((item) => ({
       colaborador: item.colaborador,
       etapa: item.etapa,
       producao: this.formatQuantidade(item.quantidade, item.unidade),
     }));
 
-    rows.sort((a, b) => a.colaborador.localeCompare(b.colaborador) || this.ordemEtapa(a.etapa) - this.ordemEtapa(b.etapa));
+    rows.sort(
+      (a, b) =>
+        a.colaborador.localeCompare(b.colaborador) ||
+        this.ordemEtapa(a.etapa) - this.ordemEtapa(b.etapa)
+    );
     this.renderTable(doc, columns, rows);
   }
 
@@ -316,13 +345,20 @@ export class PDFExportService {
       const startX = MARGIN;
       const bulletY = doc.y + 4;
       doc.circle(startX + 3, bulletY, 1.5).fill(COLORS.primary);
-      doc.fillColor('#111827').font('Helvetica-Bold').fontSize(8.5).text(item.termo, startX + 10, doc.y, {
-        continued: true,
-      });
-      doc.font('Helvetica').fillColor(COLORS.grayText).text(`: ${item.definicao}`, {
-        width: this.pageContentWidth - 10,
-        align: 'left',
-      });
+      doc
+        .fillColor('#111827')
+        .font('Helvetica-Bold')
+        .fontSize(8.5)
+        .text(item.termo, startX + 10, doc.y, {
+          continued: true,
+        });
+      doc
+        .font('Helvetica')
+        .fillColor(COLORS.grayText)
+        .text(`: ${item.definicao}`, {
+          width: this.pageContentWidth - 10,
+          align: 'left',
+        });
       doc.moveDown(0.2);
     }
 
@@ -355,10 +391,18 @@ export class PDFExportService {
       doc.switchToPage(i);
       const footerY = 841.89 - MARGIN - 10;
       // Linha separadora do rodapé
-      doc.moveTo(MARGIN, footerY - 8).lineWidth(0.5).strokeColor('#D1D5DB').lineTo(MARGIN + w, footerY - 8).stroke();
+      doc
+        .moveTo(MARGIN, footerY - 8)
+        .lineWidth(0.5)
+        .strokeColor('#D1D5DB')
+        .lineTo(MARGIN + w, footerY - 8)
+        .stroke();
       doc.fontSize(7).fillColor('#9CA3AF');
       doc.text(footerText, MARGIN, footerY, { width: w, align: 'left' });
-      doc.text(`Página ${i - start + 1} de ${count}`, MARGIN, footerY, { width: w, align: 'right' });
+      doc.text(`Página ${i - start + 1} de ${count}`, MARGIN, footerY, {
+        width: w,
+        align: 'right',
+      });
     }
   }
 
@@ -384,14 +428,18 @@ export class PDFExportService {
     doc.fillColor(color).rect(MARGIN, startY, w, height).fill();
     doc.restore();
 
-    doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(10).text(title, MARGIN + 12, startY + 7, { width: w - 24 });
+    doc
+      .fillColor('#FFFFFF')
+      .font('Helvetica-Bold')
+      .fontSize(10)
+      .text(title, MARGIN + 12, startY + 7, { width: w - 24 });
     doc.y = startY + height + 2;
   }
 
   private resolveColumnWidths(columns: TableColumn[]): number[] {
     const totalFlex = columns.reduce((sum, col) => sum + col.flex, 0);
     const w = this.pageContentWidth;
-    return columns.map(col => (col.flex / totalFlex) * w);
+    return columns.map((col) => (col.flex / totalFlex) * w);
   }
 
   private renderTable(
@@ -412,12 +460,20 @@ export class PDFExportService {
     doc.font('Helvetica-Bold').fontSize(8).fillColor('#1e3a5f');
     let x = MARGIN;
     for (let c = 0; c < columns.length; c++) {
-      doc.text(columns[c]!.label, x + 6, y + 7, { width: widths[c]! - 12, align: columns[c]!.align ?? 'left' });
+      doc.text(columns[c]!.label, x + 6, y + 7, {
+        width: widths[c]! - 12,
+        align: columns[c]!.align ?? 'left',
+      });
       x += widths[c]!;
     }
 
     y += HEADER_HEIGHT;
-    doc.moveTo(MARGIN, y).lineWidth(0.5).strokeColor(COLORS.divider).lineTo(MARGIN + w, y).stroke();
+    doc
+      .moveTo(MARGIN, y)
+      .lineWidth(0.5)
+      .strokeColor(COLORS.divider)
+      .lineTo(MARGIN + w, y)
+      .stroke();
 
     // Rows
     for (let i = 0; i < rows.length; i++) {
@@ -431,11 +487,19 @@ export class PDFExportService {
         doc.font('Helvetica-Bold').fontSize(8).fillColor('#1e3a5f');
         x = MARGIN;
         for (let c = 0; c < columns.length; c++) {
-          doc.text(columns[c]!.label, x + 6, y + 7, { width: widths[c]! - 12, align: columns[c]!.align ?? 'left' });
+          doc.text(columns[c]!.label, x + 6, y + 7, {
+            width: widths[c]! - 12,
+            align: columns[c]!.align ?? 'left',
+          });
           x += widths[c]!;
         }
         y += HEADER_HEIGHT;
-        doc.moveTo(MARGIN, y).lineWidth(0.5).strokeColor(COLORS.divider).lineTo(MARGIN + w, y).stroke();
+        doc
+          .moveTo(MARGIN, y)
+          .lineWidth(0.5)
+          .strokeColor(COLORS.divider)
+          .lineTo(MARGIN + w, y)
+          .stroke();
       }
 
       const row = rows[i]!;
@@ -458,16 +522,27 @@ export class PDFExportService {
         doc.restore();
       }
 
-      doc.font(isHighlighted ? 'Helvetica-Bold' : 'Helvetica').fontSize(8.5).fillColor('#111827');
+      doc
+        .font(isHighlighted ? 'Helvetica-Bold' : 'Helvetica')
+        .fontSize(8.5)
+        .fillColor('#111827');
       x = MARGIN;
       for (let c = 0; c < columns.length; c++) {
         const value = row[columns[c]!.key] ?? '';
-        doc.text(value, x + 6, y + 6, { width: widths[c]! - 12, align: columns[c]!.align ?? 'left' });
+        doc.text(value, x + 6, y + 6, {
+          width: widths[c]! - 12,
+          align: columns[c]!.align ?? 'left',
+        });
         x += widths[c]!;
       }
 
       y += ROW_HEIGHT;
-      doc.moveTo(MARGIN, y).lineWidth(0.3).strokeColor(COLORS.divider).lineTo(MARGIN + w, y).stroke();
+      doc
+        .moveTo(MARGIN, y)
+        .lineWidth(0.3)
+        .strokeColor(COLORS.divider)
+        .lineTo(MARGIN + w, y)
+        .stroke();
     }
 
     doc.y = y + 8;

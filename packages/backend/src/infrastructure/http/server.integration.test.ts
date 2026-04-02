@@ -21,25 +21,43 @@ function makeResult<T extends QueryResultRow>(rows: T[], command = 'SELECT'): Qu
 
 function createMockDatabase(): DatabaseConnection & {
   queryMock: Mock<[string, (unknown[] | undefined)?], Promise<QueryResult<QueryResultRow>>>;
-  usuarios: Map<string, {
+  usuarios: Map<
+    string,
+    {
+      id: string;
+      nome: string;
+      email: string;
+      senha_hash: string;
+      perfil: string;
+      coordenadoria_id: string | null;
+      ativo: boolean;
+    }
+  >;
+  refreshTokens: Array<{
     id: string;
-    nome: string;
-    email: string;
-    senha_hash: string;
-    perfil: string;
-    coordenadoria_id: string | null;
-    ativo: boolean;
+    usuario_id: string;
+    token_hash: string;
+    expira_em: Date;
+    revogado: boolean;
   }>;
-  refreshTokens: Array<{ id: string; usuario_id: string; token_hash: string; expira_em: Date; revogado: boolean }>;
-  auditoria: Array<{ id: string; tabela: string; operacao: string; dados: Record<string, unknown>; criado_em: string }>;
-  colaboradores: Map<string, {
+  auditoria: Array<{
     id: string;
-    nome: string;
-    matricula: string;
-    email: string | null;
-    coordenadoria_id: string;
-    ativo: boolean;
+    tabela: string;
+    operacao: string;
+    dados: Record<string, unknown>;
+    criado_em: string;
   }>;
+  colaboradores: Map<
+    string,
+    {
+      id: string;
+      nome: string;
+      matricula: string;
+      email: string | null;
+      coordenadoria_id: string;
+      ativo: boolean;
+    }
+  >;
   configuracaoProjetos: Array<{
     id: string;
     nome: string;
@@ -48,14 +66,17 @@ function createMockDatabase(): DatabaseConnection & {
     criado_em: string;
     atualizado_em: string;
   }>;
-  repositorios: Map<string, {
-    id_repositorio_recorda: string;
-    id_repositorio_ged: string;
-    orgao: string;
-    projeto: string;
-    status_atual: string;
-    etapa_atual: string;
-  }>;
+  repositorios: Map<
+    string,
+    {
+      id_repositorio_recorda: string;
+      id_repositorio_ged: string;
+      orgao: string;
+      projeto: string;
+      status_atual: string;
+      etapa_atual: string;
+    }
+  >;
   fontesImportacao: Map<string, { id: string; nome: string; url: string; tipo: string }>;
 } {
   let configuracaoEmpresa: Record<string, unknown> | null = null;
@@ -68,40 +89,103 @@ function createMockDatabase(): DatabaseConnection & {
     atualizado_em: string;
   }> = [];
   const processos = new Map<string, { id: string; numero: string }>();
-  const etapasState = new Map<string, { id: string; nome: string; descricao: string; unidade: string; ordem: number; ativa: boolean; criado_em: string }>();
-  etapasState.set('etapa-1', { id: 'etapa-1', nome: 'Digitalização', descricao: 'Digitalizar docs', unidade: 'docs', ordem: 1, ativa: true, criado_em: '2024-01-01' });
-  etapasState.set('etapa-2', { id: 'etapa-2', nome: 'Conferência', descricao: 'Conferir docs', unidade: 'docs', ordem: 2, ativa: true, criado_em: '2024-01-01' });
-  const usuarios = new Map<string, {
+  const etapasState = new Map<
+    string,
+    {
+      id: string;
+      nome: string;
+      descricao: string;
+      unidade: string;
+      ordem: number;
+      ativa: boolean;
+      criado_em: string;
+    }
+  >();
+  etapasState.set('etapa-1', {
+    id: 'etapa-1',
+    nome: 'Digitalização',
+    descricao: 'Digitalizar docs',
+    unidade: 'docs',
+    ordem: 1,
+    ativa: true,
+    criado_em: '2024-01-01',
+  });
+  etapasState.set('etapa-2', {
+    id: 'etapa-2',
+    nome: 'Conferência',
+    descricao: 'Conferir docs',
+    unidade: 'docs',
+    ordem: 2,
+    ativa: true,
+    criado_em: '2024-01-01',
+  });
+  const usuarios = new Map<
+    string,
+    {
+      id: string;
+      nome: string;
+      email: string;
+      senha_hash: string;
+      perfil: string;
+      coordenadoria_id: string | null;
+      ativo: boolean;
+    }
+  >();
+  const refreshTokens: Array<{
     id: string;
-    nome: string;
-    email: string;
-    senha_hash: string;
-    perfil: string;
-    coordenadoria_id: string | null;
-    ativo: boolean;
-  }>();
-  const refreshTokens: Array<{ id: string; usuario_id: string; token_hash: string; expira_em: Date; revogado: boolean }> = [];
-  const auditoria: Array<{ id: string; tabela: string; operacao: string; dados: Record<string, unknown>; criado_em: string }> = [
-    { id: 'audit-1', tabela: 'colaboradores', operacao: 'INSERT', dados: { id: 'col-1' }, criado_em: '2024-01-05T10:00:00Z' },
-    { id: 'audit-2', tabela: 'processos', operacao: 'UPDATE', dados: { id: 'proc-1' }, criado_em: '2024-01-06T11:00:00Z' },
+    usuario_id: string;
+    token_hash: string;
+    expira_em: Date;
+    revogado: boolean;
+  }> = [];
+  const auditoria: Array<{
+    id: string;
+    tabela: string;
+    operacao: string;
+    dados: Record<string, unknown>;
+    criado_em: string;
+  }> = [
+    {
+      id: 'audit-1',
+      tabela: 'colaboradores',
+      operacao: 'INSERT',
+      dados: { id: 'col-1' },
+      criado_em: '2024-01-05T10:00:00Z',
+    },
+    {
+      id: 'audit-2',
+      tabela: 'processos',
+      operacao: 'UPDATE',
+      dados: { id: 'proc-1' },
+      criado_em: '2024-01-06T11:00:00Z',
+    },
   ];
-  const colaboradores = new Map<string, {
-    id: string;
-    nome: string;
-    matricula: string;
-    email: string | null;
-    coordenadoria_id: string;
-    ativo: boolean;
-  }>();
-  const repositorios = new Map<string, {
-    id_repositorio_recorda: string;
-    id_repositorio_ged: string;
-    orgao: string;
-    projeto: string;
-    status_atual: string;
-    etapa_atual: string;
-  }>();
-  const fontesImportacao = new Map<string, { id: string; nome: string; url: string; tipo: string }>();
+  const colaboradores = new Map<
+    string,
+    {
+      id: string;
+      nome: string;
+      matricula: string;
+      email: string | null;
+      coordenadoria_id: string;
+      ativo: boolean;
+    }
+  >();
+  const repositorios = new Map<
+    string,
+    {
+      id_repositorio_recorda: string;
+      id_repositorio_ged: string;
+      orgao: string;
+      projeto: string;
+      status_atual: string;
+      etapa_atual: string;
+    }
+  >();
+  const fontesImportacao = new Map<
+    string,
+    { id: string; nome: string; url: string; tipo: string }
+  >();
   const importacaoFontesLinhas = new Set<string>();
   const lowerEmail = (value: unknown): string => String(value ?? '').toLowerCase();
 
@@ -134,8 +218,10 @@ function createMockDatabase(): DatabaseConnection & {
     ativo: true,
   });
 
-  const queryMock: Mock<[string, (unknown[] | undefined)?], Promise<QueryResult<QueryResultRow>>> = vi.fn(
-    async (text: string, params?: unknown[]): Promise<QueryResult<QueryResultRow>> => {
+  const queryMock: Mock<
+    [string, (unknown[] | undefined)?],
+    Promise<QueryResult<QueryResultRow>>
+  > = vi.fn(async (text: string, params?: unknown[]): Promise<QueryResult<QueryResultRow>> => {
     if (text.includes('FROM usuarios WHERE email = $1')) {
       const email = lowerEmail(params?.[0]);
       const usuario = [...usuarios.values()].find((u) => u.email === email);
@@ -151,40 +237,53 @@ function createMockDatabase(): DatabaseConnection & {
     }
 
     if (text.includes('SELECT operacao, COUNT(*) as total FROM auditoria')) {
-      const counts = auditoria.reduce<Record<string, number>>((acc, item) => {
-        const key = item.operacao;
-        acc[key] = (acc[key] ?? 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
-      return makeResult(Object.entries(counts).map(([operacao, total]) => ({ operacao, total }))); 
+      const counts = auditoria.reduce<Record<string, number>>(
+        (acc, item) => {
+          const key = item.operacao;
+          acc[key] = (acc[key] ?? 0) + 1;
+          return acc;
+        },
+        {} as Record<string, number>
+      );
+      return makeResult(Object.entries(counts).map(([operacao, total]) => ({ operacao, total })));
     }
 
     if (text.includes('SELECT tabela, COUNT(*) as total FROM auditoria')) {
-      const counts = auditoria.reduce<Record<string, number>>((acc, item) => {
-        const key = item.tabela;
-        acc[key] = (acc[key] ?? 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
+      const counts = auditoria.reduce<Record<string, number>>(
+        (acc, item) => {
+          const key = item.tabela;
+          acc[key] = (acc[key] ?? 0) + 1;
+          return acc;
+        },
+        {} as Record<string, number>
+      );
       const entries = Object.entries(counts).map(([tabela, total]) => ({ tabela, total }));
       return makeResult(entries);
     }
 
     if (text.includes('SELECT DATE(criado_em) as data, COUNT(*) as total FROM auditoria')) {
-      const counts = auditoria.reduce<Record<string, number>>((acc, item) => {
-        const date = String(item.criado_em).split('T')[0] ?? '';
-        acc[date] = (acc[date] ?? 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
+      const counts = auditoria.reduce<Record<string, number>>(
+        (acc, item) => {
+          const date = String(item.criado_em).split('T')[0] ?? '';
+          acc[date] = (acc[date] ?? 0) + 1;
+          return acc;
+        },
+        {} as Record<string, number>
+      );
       const entries = Object.entries(counts).map(([data, total]) => ({ data, total }));
       return makeResult(entries);
     }
 
     if (text.includes('SELECT id FROM configuracao_empresa LIMIT 1')) {
-      return (configuracaoEmpresa ? makeResult([{ id: configuracaoEmpresa.id }]) : makeResult([])) as QueryResult<QueryResultRow>;
+      return (
+        configuracaoEmpresa ? makeResult([{ id: configuracaoEmpresa.id }]) : makeResult([])
+      ) as QueryResult<QueryResultRow>;
     }
 
     if (text.includes('FROM configuracao_empresa LIMIT 1')) {
-      return (configuracaoEmpresa ? makeResult([configuracaoEmpresa]) : makeResult([])) as QueryResult<QueryResultRow>;
+      return (
+        configuracaoEmpresa ? makeResult([configuracaoEmpresa]) : makeResult([])
+      ) as QueryResult<QueryResultRow>;
     }
 
     if (text.includes('INSERT INTO configuracao_empresa')) {
@@ -225,7 +324,11 @@ function createMockDatabase(): DatabaseConnection & {
       return makeResult([configuracaoEmpresa], 'UPDATE');
     }
 
-    if (text.includes('SELECT id, nome, descricao, ativo, criado_em, atualizado_em\n          FROM configuracao_projetos')) {
+    if (
+      text.includes(
+        'SELECT id, nome, descricao, ativo, criado_em, atualizado_em\n          FROM configuracao_projetos'
+      )
+    ) {
       return makeResult(configuracaoProjetos);
     }
 
@@ -245,7 +348,9 @@ function createMockDatabase(): DatabaseConnection & {
     if (text.includes('SELECT id FROM processos_principais WHERE numero = $1')) {
       const numero = String(params?.[0]);
       const processo = processos.get(numero);
-      return (processo ? makeResult([{ id: processo.id }]) : makeResult([])) as QueryResult<QueryResultRow>;
+      return (
+        processo ? makeResult([{ id: processo.id }]) : makeResult([])
+      ) as QueryResult<QueryResultRow>;
     }
 
     if (text.includes('INSERT INTO processos_principais')) {
@@ -306,7 +411,9 @@ function createMockDatabase(): DatabaseConnection & {
       return makeResult([{ id }], 'INSERT');
     }
 
-    if (text.includes('FROM producao_repositorio WHERE data_producao >= $1 AND data_producao <= $2')) {
+    if (
+      text.includes('FROM producao_repositorio WHERE data_producao >= $1 AND data_producao <= $2')
+    ) {
       return makeResult([{ total: '60' }]);
     }
 
@@ -315,15 +422,22 @@ function createMockDatabase(): DatabaseConnection & {
     }
 
     // Select collaborators for import (id + lower(nome))
-    if (text.includes('SELECT id, LOWER(nome) as nome_lower FROM colaboradores WHERE ativo = true')) {
-      const rows = [...colaboradores.values()].map((c) => ({ id: c.id, nome_lower: String(c.nome).toLowerCase() }));
+    if (
+      text.includes('SELECT id, LOWER(nome) as nome_lower FROM colaboradores WHERE ativo = true')
+    ) {
+      const rows = [...colaboradores.values()].map((c) => ({
+        id: c.id,
+        nome_lower: String(c.nome).toLowerCase(),
+      }));
       return makeResult(rows as QueryResultRow[]);
     }
 
     // Lookup collaborator by email
     if (text.includes('SELECT id FROM colaboradores WHERE email = $1')) {
       const email = String(params?.[0] ?? '').toLowerCase();
-      const found = [...colaboradores.values()].find(c => String(c.email ?? '').toLowerCase() === email);
+      const found = [...colaboradores.values()].find(
+        (c) => String(c.email ?? '').toLowerCase() === email
+      );
       return found ? makeResult([{ id: found.id }]) : makeResult([]);
     }
 
@@ -352,7 +466,7 @@ function createMockDatabase(): DatabaseConnection & {
       // Select by matricula
       if (text.includes('WHERE matricula = $1') && !text.includes('AND id != $2')) {
         const matricula = String(params?.[0]);
-        const found = [...colaboradores.values()].find(c => c.matricula === matricula);
+        const found = [...colaboradores.values()].find((c) => c.matricula === matricula);
         return found ? makeResult([{ id: found.id }]) : makeResult([]);
       }
 
@@ -360,7 +474,9 @@ function createMockDatabase(): DatabaseConnection & {
       if (text.includes('WHERE matricula = $1 AND id != $2')) {
         const matricula = String(params?.[0]);
         const id = String(params?.[1]);
-        const found = [...colaboradores.values()].find(c => c.matricula === matricula && c.id !== id);
+        const found = [...colaboradores.values()].find(
+          (c) => c.matricula === matricula && c.id !== id
+        );
         return found ? makeResult([{ id: found.id }]) : makeResult([]);
       }
 
@@ -369,10 +485,10 @@ function createMockDatabase(): DatabaseConnection & {
         const id = String(params?.[0]);
         const found = colaboradores.get(id);
         if (!found) return makeResult([]);
-        return makeResult([{ ...found, coordenadoria_nome: 'Coordenação X', coordenadoria_sigla: 'CX' }]);
+        return makeResult([
+          { ...found, coordenadoria_nome: 'Coordenação X', coordenadoria_sigla: 'CX' },
+        ]);
       }
-
-
     }
 
     if (text.includes('SELECT id, LOWER(nome) as nome_lower FROM etapas WHERE ativa = true')) {
@@ -385,8 +501,6 @@ function createMockDatabase(): DatabaseConnection & {
         { etapa: 'Qualidade', valor: '18' },
       ]);
     }
-
-
 
     if (text.includes('FROM producao_repositorio p') && text.includes('JOIN usuarios u')) {
       return makeResult([
@@ -526,7 +640,10 @@ function createMockDatabase(): DatabaseConnection & {
       return makeResult([novoUsuario], 'INSERT');
     }
 
-    if (text.includes('SELECT u.id, u.nome, u.email, u.perfil') && text.includes('FROM usuarios u')) {
+    if (
+      text.includes('SELECT u.id, u.nome, u.email, u.perfil') &&
+      text.includes('FROM usuarios u')
+    ) {
       const id = String(params?.[0]);
       const usuario = usuarios.get(id);
       if (!usuario) return makeResult([]);
@@ -547,7 +664,11 @@ function createMockDatabase(): DatabaseConnection & {
       return usuario ? makeResult([{ senha_hash: usuario.senha_hash }]) : makeResult([]);
     }
 
-    if (text.includes('SELECT id, nome, email, perfil, coordenadoria_id, ativo FROM usuarios WHERE id = $1')) {
+    if (
+      text.includes(
+        'SELECT id, nome, email, perfil, coordenadoria_id, ativo FROM usuarios WHERE id = $1'
+      )
+    ) {
       const id = String(params?.[0]);
       const usuario = usuarios.get(id);
       return usuario ? makeResult([usuario]) : makeResult([]);
@@ -555,9 +676,7 @@ function createMockDatabase(): DatabaseConnection & {
 
     if (text.includes('SELECT id, nome FROM usuarios WHERE ativo = TRUE')) {
       return makeResult(
-        [...usuarios.values()]
-          .filter((u) => u.ativo)
-          .map((u) => ({ id: u.id, nome: u.nome }))
+        [...usuarios.values()].filter((u) => u.ativo).map((u) => ({ id: u.id, nome: u.nome }))
       );
     }
 
@@ -573,19 +692,27 @@ function createMockDatabase(): DatabaseConnection & {
     if (text.includes('SELECT id, nome, email FROM usuarios WHERE email = $1 AND ativo = true')) {
       const email = lowerEmail(params?.[0]);
       const usuario = [...usuarios.values()].find((u) => u.email === email && u.ativo);
-      return usuario ? makeResult([{ id: usuario.id, nome: usuario.nome, email: usuario.email }]) : makeResult([]);
+      return usuario
+        ? makeResult([{ id: usuario.id, nome: usuario.nome, email: usuario.email }])
+        : makeResult([]);
     }
 
     if (text.includes('INSERT INTO refresh_tokens (usuario_id, token_hash, expira_em)')) {
       const id = `token-${refreshTokens.length + 1}`;
       const usuario_id = String(params?.[0]);
       const token_hash = String(params?.[1]);
-      const expira_em = params?.[2] instanceof Date ? (params?.[2] as Date) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+      const expira_em =
+        params?.[2] instanceof Date
+          ? (params?.[2] as Date)
+          : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
       refreshTokens.push({ id, usuario_id, token_hash, expira_em, revogado: false });
       return makeResult([{ id }], 'INSERT');
     }
 
-    if (text.includes('INSERT INTO refresh_tokens (usuario_id, token_hash') && text.includes("CURRENT_TIMESTAMP + INTERVAL '7 days'")) {
+    if (
+      text.includes('INSERT INTO refresh_tokens (usuario_id, token_hash') &&
+      text.includes("CURRENT_TIMESTAMP + INTERVAL '7 days'")
+    ) {
       const id = `token-${refreshTokens.length + 1}`;
       const usuario_id = String(params?.[0]);
       const token_hash = String(params?.[1]);
@@ -596,7 +723,9 @@ function createMockDatabase(): DatabaseConnection & {
 
     if (text.includes('SELECT id, token_hash FROM refresh_tokens')) {
       const usuario_id = String(params?.[0]);
-      const tokens = refreshTokens.filter((t) => t.usuario_id === usuario_id && !t.revogado && t.expira_em > new Date());
+      const tokens = refreshTokens.filter(
+        (t) => t.usuario_id === usuario_id && !t.revogado && t.expira_em > new Date()
+      );
       return makeResult(tokens.map((t) => ({ id: t.id, token_hash: t.token_hash })));
     }
 
@@ -620,8 +749,12 @@ function createMockDatabase(): DatabaseConnection & {
       if (!tokenHash.startsWith('reset:')) {
         return makeResult([]);
       }
-      const token = refreshTokens.find((t) => t.token_hash === tokenHash && !t.revogado && t.expira_em > new Date());
-      return token ? makeResult([{ usuario_id: token.usuario_id, token_id: token.id }]) : makeResult([]);
+      const token = refreshTokens.find(
+        (t) => t.token_hash === tokenHash && !t.revogado && t.expira_em > new Date()
+      );
+      return token
+        ? makeResult([{ usuario_id: token.usuario_id, token_id: token.id }])
+        : makeResult([]);
     }
 
     // ── Coordenadorias ──
@@ -636,17 +769,49 @@ function createMockDatabase(): DatabaseConnection & {
     if (text.includes('COUNT(*)') && text.includes('total') && text.includes('FROM etapas')) {
       return makeResult([{ total: '2' }]);
     }
-    if (text.includes('SELECT id, nome, descricao, unidade, ordem, ativa, criado_em') && text.includes('FROM etapas')) {
+    if (
+      text.includes('SELECT id, nome, descricao, unidade, ordem, ativa, criado_em') &&
+      text.includes('FROM etapas')
+    ) {
       return makeResult([
-        { id: 'etapa-1', nome: 'Digitalização', descricao: 'Digitalizar docs', unidade: 'docs', ordem: 1, ativa: true, criado_em: '2024-01-01' },
-        { id: 'etapa-2', nome: 'Conferência', descricao: 'Conferir docs', unidade: 'docs', ordem: 2, ativa: true, criado_em: '2024-01-01' },
+        {
+          id: 'etapa-1',
+          nome: 'Digitalização',
+          descricao: 'Digitalizar docs',
+          unidade: 'docs',
+          ordem: 1,
+          ativa: true,
+          criado_em: '2024-01-01',
+        },
+        {
+          id: 'etapa-2',
+          nome: 'Conferência',
+          descricao: 'Conferir docs',
+          unidade: 'docs',
+          ordem: 2,
+          ativa: true,
+          criado_em: '2024-01-01',
+        },
       ]);
     }
     if (text.includes('SELECT id FROM etapas WHERE LOWER(nome)')) {
       return makeResult([]);
     }
     if (text.includes('INSERT INTO etapas')) {
-      return makeResult([{ id: 'etapa-new', nome: String(params?.[0]), descricao: String(params?.[1] ?? ''), unidade: String(params?.[2] ?? 'unidade'), ordem: Number(params?.[3] ?? 1), ativa: true, criado_em: new Date().toISOString() }], 'INSERT');
+      return makeResult(
+        [
+          {
+            id: 'etapa-new',
+            nome: String(params?.[0]),
+            descricao: String(params?.[1] ?? ''),
+            unidade: String(params?.[2] ?? 'unidade'),
+            ordem: Number(params?.[3] ?? 1),
+            ativa: true,
+            criado_em: new Date().toISOString(),
+          },
+        ],
+        'INSERT'
+      );
     }
     if (text.includes('SELECT id FROM etapas WHERE id = $1')) {
       return makeResult([{ id: String(params?.[0]) }]);
@@ -656,67 +821,143 @@ function createMockDatabase(): DatabaseConnection & {
     }
     if (text.includes('UPDATE etapas SET nome =')) {
       const id = text.includes('WHERE id = $5') ? String(params?.[4]) : String(params?.[3]);
-      const updated = { id, nome: String(params?.[0]), descricao: String(params?.[1] ?? ''), unidade: String(params?.[2] ?? 'unidade'), ordem: Number(params?.[3] ?? 1), ativa: true, criado_em: '2024-01-01' };
+      const updated = {
+        id,
+        nome: String(params?.[0]),
+        descricao: String(params?.[1] ?? ''),
+        unidade: String(params?.[2] ?? 'unidade'),
+        ordem: Number(params?.[3] ?? 1),
+        ativa: true,
+        criado_em: '2024-01-01',
+      };
       etapasState.set(id, updated);
       return makeResult([updated], 'UPDATE');
     }
     if (text.includes('UPDATE etapas SET ativa = NOT ativa')) {
       const id = String(params?.[0]);
       const existing = etapasState.get(id);
-      if (existing) { existing.ativa = !existing.ativa; etapasState.set(id, existing); }
-      return makeResult([{ id, nome: existing?.nome ?? 'Digitalização', ativa: existing?.ativa ?? false }], 'UPDATE');
+      if (existing) {
+        existing.ativa = !existing.ativa;
+        etapasState.set(id, existing);
+      }
+      return makeResult(
+        [{ id, nome: existing?.nome ?? 'Digitalização', ativa: existing?.ativa ?? false }],
+        'UPDATE'
+      );
     }
     if (text.includes('SELECT * FROM etapas WHERE id = $1')) {
       const id = String(params?.[0]);
       const found = etapasState.get(id);
-      return found ? makeResult([found]) : makeResult([{ id, nome: 'Digitalização', descricao: 'Digitalizar docs', unidade: 'docs', ordem: 1, ativa: true }]);
+      return found
+        ? makeResult([found])
+        : makeResult([
+            {
+              id,
+              nome: 'Digitalização',
+              descricao: 'Digitalizar docs',
+              unidade: 'docs',
+              ordem: 1,
+              ativa: true,
+            },
+          ]);
     }
 
     // ── Metas ──
     if (text.includes('FROM metas_producao m') && text.includes('JOIN etapas e')) {
-      return makeResult([{ id: 'meta-1', etapa_id: 'etapa-1', meta_diaria: 50, meta_mensal: 1000, ativa: true, etapa_nome: 'Digitalização' }]);
+      return makeResult([
+        {
+          id: 'meta-1',
+          etapa_id: 'etapa-1',
+          meta_diaria: 50,
+          meta_mensal: 1000,
+          ativa: true,
+          etapa_nome: 'Digitalização',
+        },
+      ]);
     }
     if (text.includes('INSERT INTO metas_producao')) {
-      return makeResult([{ id: 'meta-new', etapa_id: String(params?.[0]), meta_diaria: Number(params?.[1]), meta_mensal: Number(params?.[2]), ativa: true }], 'INSERT');
+      return makeResult(
+        [
+          {
+            id: 'meta-new',
+            etapa_id: String(params?.[0]),
+            meta_diaria: Number(params?.[1]),
+            meta_mensal: Number(params?.[2]),
+            ativa: true,
+          },
+        ],
+        'INSERT'
+      );
     }
     if (text.includes('SUM(meta_mensal)') && text.includes('FROM metas_producao')) {
       return makeResult([{ total: '1000' }]);
     }
-    if (text.includes('FROM usuarios u') && text.includes('LEFT JOIN producao_repositorio rp ON rp.usuario_id = u.id')) {
+    if (
+      text.includes('FROM usuarios u') &&
+      text.includes('LEFT JOIN producao_repositorio rp ON rp.usuario_id = u.id')
+    ) {
       return makeResult([
         { colaborador_nome: 'Usuário Teste', total_producao: 42, meta: 1000, percentual: 4 },
       ]);
     }
     if (text.includes('FROM mapeamentos_importacao')) {
-      return makeResult([{ id: 'map-1', nome: 'Template A', mapeamento: { col: 'val' }, criado_em: '2024-01-01' }]);
+      return makeResult([
+        { id: 'map-1', nome: 'Template A', mapeamento: { col: 'val' }, criado_em: '2024-01-01' },
+      ]);
     }
     if (text.includes('INSERT INTO mapeamentos_importacao')) {
-      return makeResult([{ id: 'map-new', nome: String(params?.[0]), mapeamento: params?.[1], criado_em: new Date().toISOString() }], 'INSERT');
+      return makeResult(
+        [
+          {
+            id: 'map-new',
+            nome: String(params?.[0]),
+            mapeamento: params?.[1],
+            criado_em: new Date().toISOString(),
+          },
+        ],
+        'INSERT'
+      );
     }
 
     // ── Auth usuarios list ──
-    if (text.includes('SELECT id, nome, email, perfil, ativo, criado_em') && text.includes('FROM usuarios') && text.includes('ORDER BY criado_em')) {
-      return makeResult([...usuarios.values()].map(u => ({ id: u.id, nome: u.nome, email: u.email, perfil: u.perfil, ativo: u.ativo, criado_em: new Date().toISOString() })));
+    if (
+      text.includes('SELECT id, nome, email, perfil, ativo, criado_em') &&
+      text.includes('FROM usuarios') &&
+      text.includes('ORDER BY criado_em')
+    ) {
+      return makeResult(
+        [...usuarios.values()].map((u) => ({
+          id: u.id,
+          nome: u.nome,
+          email: u.email,
+          perfil: u.perfil,
+          ativo: u.ativo,
+          criado_em: new Date().toISOString(),
+        }))
+      );
     }
 
     // ── Armarios ──
     if (text.includes('FROM armarios') && text.includes('ativo = TRUE')) {
-      return makeResult([
-        { id: 'arm-1', codigo: 'ARM-001', descricao: 'Armário 1', ativo: true },
-      ]);
+      return makeResult([{ id: 'arm-1', codigo: 'ARM-001', descricao: 'Armário 1', ativo: true }]);
     }
 
     // ── Repositorios ──
-    if (text.includes('SELECT id_repositorio_recorda FROM repositorios') && text.includes('WHERE id_repositorio_ged = $1')) {
+    if (
+      text.includes('SELECT id_repositorio_recorda FROM repositorios') &&
+      text.includes('WHERE id_repositorio_ged = $1')
+    ) {
       const idGed = String(params?.[0] ?? '');
       const orgao = String(params?.[1] ?? '');
       const projeto = String(params?.[2] ?? '');
-      const rows = [...repositorios.values()].filter((r) => {
-        if (r.id_repositorio_ged !== idGed) return false;
-        if (orgao && r.orgao !== orgao) return false;
-        if (projeto && r.projeto !== projeto) return false;
-        return true;
-      }).map((r) => ({ id_repositorio_recorda: r.id_repositorio_recorda }));
+      const rows = [...repositorios.values()]
+        .filter((r) => {
+          if (r.id_repositorio_ged !== idGed) return false;
+          if (orgao && r.orgao !== orgao) return false;
+          if (projeto && r.projeto !== projeto) return false;
+          return true;
+        })
+        .map((r) => ({ id_repositorio_recorda: r.id_repositorio_recorda }));
       return makeResult(rows);
     }
     if (text.includes('INSERT INTO repositorios')) {
@@ -725,9 +966,14 @@ function createMockDatabase(): DatabaseConnection & {
       const projeto = String(params?.[2] ?? '');
       const key = `${idGed}::${orgao}::${projeto}`;
       const existing = repositorios.get(key);
-      const hasContextConflictTarget = text.includes('ON CONFLICT (id_repositorio_ged, orgao, projeto)');
+      const hasContextConflictTarget = text.includes(
+        'ON CONFLICT (id_repositorio_ged, orgao, projeto)'
+      );
       if (existing && !hasContextConflictTarget) {
-        const err = new Error('duplicate key value violates unique constraint') as Error & { code?: string; constraint?: string };
+        const err = new Error('duplicate key value violates unique constraint') as Error & {
+          code?: string;
+          constraint?: string;
+        };
         err.code = '23505';
         err.constraint = 'uk_repositorios_ged_orgao_projeto';
         throw err;
@@ -741,33 +987,42 @@ function createMockDatabase(): DatabaseConnection & {
         etapa_atual: 'RECEBIMENTO',
       };
       repositorios.set(key, row);
-      return makeResult([{
-        ...row,
-        localizacao_fisica_armario_id: String(params?.[3] ?? 'arm-1'),
-      }], 'INSERT');
+      return makeResult(
+        [
+          {
+            ...row,
+            localizacao_fisica_armario_id: String(params?.[3] ?? 'arm-1'),
+          },
+        ],
+        'INSERT'
+      );
     }
     if (text.includes('COUNT(*)') && text.includes('total') && text.includes('FROM repositorios')) {
       return makeResult([{ total: '1' }]);
     }
     if (text.includes('FROM repositorios r') && text.includes('JOIN armarios a')) {
-      return makeResult([{
-        id_repositorio_recorda: 'repo-1',
-        id_repositorio_ged: 'GED-001',
-        orgao: 'Orgao A',
-        projeto: 'Projeto X',
-        status_atual: 'RECEBIDO',
-        etapa_atual: 'RECEBIMENTO',
-        armario_codigo: 'ARM-001',
-        criado_em: '2024-01-01',
-      }]);
+      return makeResult([
+        {
+          id_repositorio_recorda: 'repo-1',
+          id_repositorio_ged: 'GED-001',
+          orgao: 'Orgao A',
+          projeto: 'Projeto X',
+          status_atual: 'RECEBIDO',
+          etapa_atual: 'RECEBIMENTO',
+          armario_codigo: 'ARM-001',
+          criado_em: '2024-01-01',
+        },
+      ]);
     }
     if (text.includes('FROM repositorios') && text.includes('WHERE id_repositorio_recorda = $1')) {
-      return makeResult([{
-        id_repositorio_recorda: String(params?.[0]),
-        localizacao_fisica_armario_id: 'arm-1',
-        etapa_atual: 'RECEBIMENTO',
-        status_atual: 'RECEBIDO',
-      }]);
+      return makeResult([
+        {
+          id_repositorio_recorda: String(params?.[0]),
+          localizacao_fisica_armario_id: 'arm-1',
+          etapa_atual: 'RECEBIMENTO',
+          status_atual: 'RECEBIDO',
+        },
+      ]);
     }
 
     // ── Documentos recebimento ──
@@ -780,32 +1035,80 @@ function createMockDatabase(): DatabaseConnection & {
 
     // ── Checklists ──
     if (text.includes('INSERT INTO checklists')) {
-      return makeResult([{ id: 'ck-1', repositorio_id: String(params?.[0]), etapa: String(params?.[1]), status: 'ABERTO' }], 'INSERT');
+      return makeResult(
+        [
+          {
+            id: 'ck-1',
+            repositorio_id: String(params?.[0]),
+            etapa: String(params?.[1]),
+            status: 'ABERTO',
+          },
+        ],
+        'INSERT'
+      );
     }
     if (text.includes('FROM checklists') && text.includes('WHERE repositorio_id = $1')) {
-      return makeResult([{ id: 'ck-1', repositorio_id: String(params?.[0]), etapa: 'RECEBIMENTO', status: 'ABERTO', criado_em: '2024-01-01' }]);
+      return makeResult([
+        {
+          id: 'ck-1',
+          repositorio_id: String(params?.[0]),
+          etapa: 'RECEBIMENTO',
+          status: 'ABERTO',
+          criado_em: '2024-01-01',
+        },
+      ]);
     }
     if (text.includes('FROM checklists') && text.includes('WHERE c.id = $1')) {
-      return makeResult([{ id: String(params?.[0]), repositorio_id: 'repo-1', etapa: 'RECEBIMENTO', status: 'ABERTO' }]);
+      return makeResult([
+        {
+          id: String(params?.[0]),
+          repositorio_id: 'repo-1',
+          etapa: 'RECEBIMENTO',
+          status: 'ABERTO',
+        },
+      ]);
     }
     if (text.includes('FROM checklist_itens') && text.includes('WHERE checklist_id = $1')) {
       return makeResult([]);
     }
     if (text.includes('INSERT INTO checklist_itens')) {
-      return makeResult([{ id: 'item-1', checklist_id: String(params?.[0]), descricao: String(params?.[1]), resultado: String(params?.[2]) }], 'INSERT');
+      return makeResult(
+        [
+          {
+            id: 'item-1',
+            checklist_id: String(params?.[0]),
+            descricao: String(params?.[1]),
+            resultado: String(params?.[2]),
+          },
+        ],
+        'INSERT'
+      );
     }
     if (text.includes('UPDATE checklists SET status')) {
-      return makeResult([{ id: String(params?.[0] ?? params?.[1]), status: 'CONCLUIDO' }], 'UPDATE');
+      return makeResult(
+        [{ id: String(params?.[0] ?? params?.[1]), status: 'CONCLUIDO' }],
+        'UPDATE'
+      );
     }
 
     // ── Producao repositorio INSERT ──
     if (text.includes('INSERT INTO producao_repositorio')) {
-      return makeResult([{ id: 'prod-1', repositorio_id: String(params?.[0]), etapa: String(params?.[1]), quantidade: Number(params?.[4]) }], 'INSERT');
+      return makeResult(
+        [
+          {
+            id: 'prod-1',
+            repositorio_id: String(params?.[0]),
+            etapa: String(params?.[1]),
+            quantidade: Number(params?.[4]),
+          },
+        ],
+        'INSERT'
+      );
     }
     if (
-      text.includes('SELECT id FROM producao_repositorio')
-      && text.includes('WHERE usuario_id = $1 AND repositorio_id = $2')
-      && text.includes("COALESCE(marcadores->>'colaborador_nome', '') = $9")
+      text.includes('SELECT id FROM producao_repositorio') &&
+      text.includes('WHERE usuario_id = $1 AND repositorio_id = $2') &&
+      text.includes("COALESCE(marcadores->>'colaborador_nome', '') = $9")
     ) {
       return makeResult([]);
     }
@@ -829,9 +1132,14 @@ function createMockDatabase(): DatabaseConnection & {
     if (text.includes('SELECT id, nome, url FROM fontes_importacao WHERE id = $1')) {
       const id = String(params?.[0] ?? '');
       const fonte = fontesImportacao.get(id);
-      return fonte ? makeResult([{ id: fonte.id, nome: fonte.nome, url: fonte.url }]) : makeResult([]);
+      return fonte
+        ? makeResult([{ id: fonte.id, nome: fonte.nome, url: fonte.url }])
+        : makeResult([]);
     }
-    if (text.includes('SELECT id, nome, url, tipo, criado_em, ultima_importacao_em') && text.includes('FROM fontes_importacao')) {
+    if (
+      text.includes('SELECT id, nome, url, tipo, criado_em, ultima_importacao_em') &&
+      text.includes('FROM fontes_importacao')
+    ) {
       return makeResult(
         [...fontesImportacao.values()].map((f) => ({
           id: f.id,
@@ -866,7 +1174,9 @@ function createMockDatabase(): DatabaseConnection & {
       const fonteId = String(params?.[0] ?? '');
       const chaveHash = String(params?.[1] ?? '');
       const key = `${fonteId}::${chaveHash}`;
-      return importacaoFontesLinhas.has(key) ? makeResult([{ id: `linha-${key}` }]) : makeResult([]);
+      return importacaoFontesLinhas.has(key)
+        ? makeResult([{ id: `linha-${key}` }])
+        : makeResult([]);
     }
     if (text.includes('INSERT INTO importacao_fontes_linhas')) {
       const fonteId = String(params?.[0] ?? '');
@@ -877,7 +1187,11 @@ function createMockDatabase(): DatabaseConnection & {
     if (text.includes('INSERT INTO importacoes_legado_operacional')) {
       return makeResult([{ id: 'imp-1', criado_em: new Date().toISOString() }], 'INSERT');
     }
-    if (text.includes('COUNT(*)') && text.includes('total') && text.includes('FROM importacoes_legado_operacional')) {
+    if (
+      text.includes('COUNT(*)') &&
+      text.includes('total') &&
+      text.includes('FROM importacoes_legado_operacional')
+    ) {
       return makeResult([{ total: '0' }]);
     }
     if (text.includes('FROM importacoes_legado_operacional')) {
@@ -886,19 +1200,35 @@ function createMockDatabase(): DatabaseConnection & {
 
     // ── CQ Lotes ──
     if (text.includes('INSERT INTO lotes_cq')) {
-      return makeResult([{ id: 'lote-1', codigo: 'LCQ-001', status: 'ABERTO', criado_em: '2024-01-01' }], 'INSERT');
+      return makeResult(
+        [{ id: 'lote-1', codigo: 'LCQ-001', status: 'ABERTO', criado_em: '2024-01-01' }],
+        'INSERT'
+      );
     }
     if (text.includes('FROM lotes_cq') && !text.includes('WHERE l.id = $1')) {
-      return makeResult([{ id: 'lote-1', codigo: 'LCQ-001', status: 'ABERTO', total_itens: 0, criado_em: '2024-01-01' }]);
+      return makeResult([
+        {
+          id: 'lote-1',
+          codigo: 'LCQ-001',
+          status: 'ABERTO',
+          total_itens: 0,
+          criado_em: '2024-01-01',
+        },
+      ]);
     }
     if (text.includes('FROM lotes_cq') && text.includes('WHERE l.id = $1')) {
-      return makeResult([{ id: String(params?.[0]), codigo: 'LCQ-001', status: 'ABERTO', criado_em: '2024-01-01' }]);
+      return makeResult([
+        { id: String(params?.[0]), codigo: 'LCQ-001', status: 'ABERTO', criado_em: '2024-01-01' },
+      ]);
     }
     if (text.includes('FROM itens_cq') && text.includes('WHERE lote_id = $1')) {
       return makeResult([]);
     }
     if (text.includes('UPDATE itens_cq SET resultado')) {
-      return makeResult([{ id: String(params?.[3] ?? 'item-cq-1'), resultado: String(params?.[0]) }], 'UPDATE');
+      return makeResult(
+        [{ id: String(params?.[3] ?? 'item-cq-1'), resultado: String(params?.[0]) }],
+        'UPDATE'
+      );
     }
     if (text.includes('UPDATE lotes_cq SET status')) {
       return makeResult([{ id: String(params?.[0] ?? params?.[1]), status: 'FECHADO' }], 'UPDATE');
@@ -906,34 +1236,86 @@ function createMockDatabase(): DatabaseConnection & {
 
     // ── Relatorios operacionais ──
     if (text.includes('INSERT INTO relatorios_operacionais')) {
-      return makeResult([{ id: 'rel-op-1', tipo: 'RECEBIMENTO', repositorio_id: null, lote_id: null, arquivo_path: 'relatorios/test.pdf', hash_arquivo: 'abc', gerado_em: '2024-01-01' }], 'INSERT');
+      return makeResult(
+        [
+          {
+            id: 'rel-op-1',
+            tipo: 'RECEBIMENTO',
+            repositorio_id: null,
+            lote_id: null,
+            arquivo_path: 'relatorios/test.pdf',
+            hash_arquivo: 'abc',
+            gerado_em: '2024-01-01',
+          },
+        ],
+        'INSERT'
+      );
     }
-    if (text.includes('FROM relatorios_operacionais') && text.includes('WHERE repositorio_id = $1')) {
+    if (
+      text.includes('FROM relatorios_operacionais') &&
+      text.includes('WHERE repositorio_id = $1')
+    ) {
       return makeResult([]);
     }
     if (text.includes('FROM relatorios_operacionais') && text.includes('WHERE id = $1')) {
-      return makeResult([{ id: String(params?.[0]), tipo: 'RECEBIMENTO', arquivo_path: 'relatorios/test.pdf' }]);
+      return makeResult([
+        { id: String(params?.[0]), tipo: 'RECEBIMENTO', arquivo_path: 'relatorios/test.pdf' },
+      ]);
     }
 
     // ── Relatorios coordenadorias ──
     if (text.includes('FROM coordenadorias') && text.includes('ORDER BY')) {
-      return makeResult([
-        { id: 'coord-1', nome: 'Coordenadoria A', sigla: 'CA' },
-      ]);
+      return makeResult([{ id: 'coord-1', nome: 'Coordenadoria A', sigla: 'CA' }]);
     }
 
     // ── Conhecimento operacional ──
     if (text.includes('FROM kb_documentos d')) {
       if (text.includes('WHERE d.id = $1')) {
-        return makeResult([{ id: String(params?.[0]), codigo: 'KB-001', titulo: 'Manual', categoria: 'MANUAIS', descricao: 'Desc', status: 'ATIVO', nivel_acesso: 'OPERADOR_ADMIN', versao_atual_id: 'v-1', criado_em: '2024-01-01', atualizado_em: '2024-01-01' }]);
+        return makeResult([
+          {
+            id: String(params?.[0]),
+            codigo: 'KB-001',
+            titulo: 'Manual',
+            categoria: 'MANUAIS',
+            descricao: 'Desc',
+            status: 'ATIVO',
+            nivel_acesso: 'OPERADOR_ADMIN',
+            versao_atual_id: 'v-1',
+            criado_em: '2024-01-01',
+            atualizado_em: '2024-01-01',
+          },
+        ]);
       }
-      return makeResult([{ id: 'kb-1', codigo: 'KB-001', titulo: 'Manual', categoria: 'MANUAIS', descricao: 'Desc', status: 'ATIVO', nivel_acesso: 'OPERADOR_ADMIN', criado_em: '2024-01-01', atualizado_em: '2024-01-01', versao_atual: 1, etapas: ['RECEBIMENTO'] }]);
+      return makeResult([
+        {
+          id: 'kb-1',
+          codigo: 'KB-001',
+          titulo: 'Manual',
+          categoria: 'MANUAIS',
+          descricao: 'Desc',
+          status: 'ATIVO',
+          nivel_acesso: 'OPERADOR_ADMIN',
+          criado_em: '2024-01-01',
+          atualizado_em: '2024-01-01',
+          versao_atual: 1,
+          etapas: ['RECEBIMENTO'],
+        },
+      ]);
     }
     if (text.includes('FROM kb_documento_etapas')) {
       return makeResult([{ etapa: 'RECEBIMENTO' }]);
     }
     if (text.includes('FROM kb_documento_versoes v')) {
-      return makeResult([{ id: 'v-1', versao: 1, conteudo: 'Conteudo', resumo_alteracao: 'Versao inicial', publicado_em: '2024-01-01', publicado_por_nome: 'Admin' }]);
+      return makeResult([
+        {
+          id: 'v-1',
+          versao: 1,
+          conteudo: 'Conteudo',
+          resumo_alteracao: 'Versao inicial',
+          publicado_em: '2024-01-01',
+          publicado_por_nome: 'Admin',
+        },
+      ]);
     }
     if (text.includes('INSERT INTO kb_documentos')) {
       return makeResult([{ id: 'kb-new' }], 'INSERT');
@@ -945,7 +1327,17 @@ function createMockDatabase(): DatabaseConnection & {
       return makeResult([], 'INSERT');
     }
     if (text.includes('UPDATE kb_documentos')) {
-      return makeResult([{ id: String(params?.[0]), codigo: 'KB-001', titulo: String(params?.[1] ?? 'Manual'), status: 'ATIVO' }], 'UPDATE');
+      return makeResult(
+        [
+          {
+            id: String(params?.[0]),
+            codigo: 'KB-001',
+            titulo: String(params?.[1] ?? 'Manual'),
+            status: 'ATIVO',
+          },
+        ],
+        'UPDATE'
+      );
     }
     if (text.includes('DELETE FROM kb_documento_etapas')) {
       return makeResult([], 'DELETE');
@@ -959,73 +1351,109 @@ function createMockDatabase(): DatabaseConnection & {
 
     // ── Checklist modelos CRUD ──
     if (text.includes('INSERT INTO checklist_modelos')) {
-      return makeResult([{
-        id: 'cm-new',
-        codigo: String(params?.[0]),
-        descricao: String(params?.[1]),
-        obrigatorio: Boolean(params?.[2]),
-        ordem: Number(params?.[3]),
-        etapa: String(params?.[4]),
-        ativo: true,
-        criado_em: new Date().toISOString(),
-      }], 'INSERT');
+      return makeResult(
+        [
+          {
+            id: 'cm-new',
+            codigo: String(params?.[0]),
+            descricao: String(params?.[1]),
+            obrigatorio: Boolean(params?.[2]),
+            ordem: Number(params?.[3]),
+            etapa: String(params?.[4]),
+            ativo: true,
+            criado_em: new Date().toISOString(),
+          },
+        ],
+        'INSERT'
+      );
     }
     if (text.includes('UPDATE checklist_modelos') && text.includes('SET codigo')) {
-      return makeResult([{
-        id: String(params?.[0]),
-        codigo: String(params?.[1]),
-        descricao: String(params?.[2]),
-        obrigatorio: Boolean(params?.[3]),
-        ordem: Number(params?.[4]),
-        etapa: String(params?.[5]),
-        ativo: true,
-      }], 'UPDATE');
+      return makeResult(
+        [
+          {
+            id: String(params?.[0]),
+            codigo: String(params?.[1]),
+            descricao: String(params?.[2]),
+            obrigatorio: Boolean(params?.[3]),
+            ordem: Number(params?.[4]),
+            etapa: String(params?.[5]),
+            ativo: true,
+          },
+        ],
+        'UPDATE'
+      );
     }
     if (text.includes('UPDATE checklist_modelos SET ativo = NOT ativo')) {
-      return makeResult([{
-        id: String(params?.[0]),
-        codigo: 'REC-001',
-        descricao: 'Teste',
-        obrigatorio: true,
-        ordem: 1,
-        etapa: 'RECEBIMENTO',
-        ativo: false,
-      }], 'UPDATE');
+      return makeResult(
+        [
+          {
+            id: String(params?.[0]),
+            codigo: 'REC-001',
+            descricao: 'Teste',
+            obrigatorio: true,
+            ordem: 1,
+            etapa: 'RECEBIMENTO',
+            ativo: false,
+          },
+        ],
+        'UPDATE'
+      );
     }
     if (text.includes('FROM checklist_modelos') && !text.includes('JOIN checklist_modelos')) {
-      return makeResult([{
-        id: 'cm-1',
-        codigo: 'REC-001',
-        descricao: 'Verificar integridade',
-        obrigatorio: true,
-        ordem: 1,
-        etapa: 'RECEBIMENTO',
-        ativo: true,
-        criado_em: '2024-01-01',
-      }]);
+      return makeResult([
+        {
+          id: 'cm-1',
+          codigo: 'REC-001',
+          descricao: 'Verificar integridade',
+          obrigatorio: true,
+          ordem: 1,
+          etapa: 'RECEBIMENTO',
+          ativo: true,
+          criado_em: '2024-01-01',
+        },
+      ]);
     }
 
     // ── Seadesk confirmar ──
     if (text.includes('SET seadesk_confirmado_em')) {
-      return makeResult([{
-        id_repositorio_recorda: String(params?.[0]),
-        seadesk_confirmado_em: new Date().toISOString(),
-        seadesk_confirmado_por: String(params?.[1]),
-      }], 'UPDATE');
+      return makeResult(
+        [
+          {
+            id_repositorio_recorda: String(params?.[0]),
+            seadesk_confirmado_em: new Date().toISOString(),
+            seadesk_confirmado_por: String(params?.[1]),
+          },
+        ],
+        'UPDATE'
+      );
     }
     if (text.includes('seadesk_confirmado_em IS NOT NULL AS confirmado')) {
       return makeResult([{ confirmado: false }]);
     }
 
     // ── Dashboard extras ──
-    if (text.includes('armario_codigo') && text.includes('FROM repositorios r') && text.includes('JOIN armarios a')) {
+    if (
+      text.includes('armario_codigo') &&
+      text.includes('FROM repositorios r') &&
+      text.includes('JOIN armarios a')
+    ) {
       return makeResult([{ armario_codigo: 'ARM-001', etapa: 'RECEBIMENTO', total: '3' }]);
     }
-    if (text.includes('etapa_origem') && text.includes('LEAD') && text.includes('historico_etapas')) {
+    if (
+      text.includes('etapa_origem') &&
+      text.includes('LEAD') &&
+      text.includes('historico_etapas')
+    ) {
       return makeResult([{ etapa: 'RECEBIMENTO', media_horas: '4.5' }]);
     }
-    if (text.includes('motivo_codigo') && text.includes('lotes_controle_qualidade_itens') && text.includes('REPROVADO')) {
-      return makeResult([{ motivo_codigo: 'NAO_CONFORME', total: '2', repositorios: 'GED-001, GED-002' }]);
+    if (
+      text.includes('motivo_codigo') &&
+      text.includes('lotes_controle_qualidade_itens') &&
+      text.includes('REPROVADO')
+    ) {
+      return makeResult([
+        { motivo_codigo: 'NAO_CONFORME', total: '2', repositorios: 'GED-001, GED-002' },
+      ]);
     }
 
     // ── Transaction control ──
@@ -1039,7 +1467,10 @@ function createMockDatabase(): DatabaseConnection & {
     return makeResult([{ total: '0' }]);
   });
 
-  const query: DatabaseConnection['query'] = async <T extends QueryResultRow>(text: string, params?: unknown[]): Promise<QueryResult<T>> => {
+  const query: DatabaseConnection['query'] = async <T extends QueryResultRow>(
+    text: string,
+    params?: unknown[]
+  ): Promise<QueryResult<T>> => {
     const result = await queryMock(text, params);
     return result as QueryResult<T>;
   };
@@ -1131,7 +1562,10 @@ describe('HTTP server integration', () => {
     });
     expect(body).toHaveProperty('accessToken');
     expect(body).toHaveProperty('refreshToken');
-    expect(database.queryMock).toHaveBeenCalledWith(expect.stringContaining('FROM usuarios WHERE email = $1'), ['user@test.com']);
+    expect(database.queryMock).toHaveBeenCalledWith(
+      expect.stringContaining('FROM usuarios WHERE email = $1'),
+      ['user@test.com']
+    );
   });
 
   async function authenticate(): Promise<string> {
@@ -1148,7 +1582,10 @@ describe('HTTP server integration', () => {
     return loginResponse.json().accessToken as string;
   }
 
-  async function authenticateWithCredentials(email: string, senha: string): Promise<{ accessToken: string; refreshToken: string }> {
+  async function authenticateWithCredentials(
+    email: string,
+    senha: string
+  ): Promise<{ accessToken: string; refreshToken: string }> {
     const loginResponse = await server.inject({
       method: 'POST',
       url: '/auth/login',
@@ -1482,7 +1919,9 @@ describe('HTTP server integration', () => {
 
     expect(listResponse.statusCode).toBe(200);
     const projetos = listResponse.json().projetos;
-    const filtered = projetos.filter((p: any) => p.nome.trim().toLowerCase() === 'projeto duplicado');
+    const filtered = projetos.filter(
+      (p: any) => p.nome.trim().toLowerCase() === 'projeto duplicado'
+    );
     expect(filtered.length).toBe(1);
   });
 
@@ -1775,7 +2214,11 @@ describe('HTTP server integration', () => {
 
     expect(updateResponse.statusCode).toBe(200);
     const updated = updateResponse.json();
-    expect(updated).toMatchObject({ nome: 'Recorda Updated', email: 'admin@recorda.com', exibirLogoRelatorio: false });
+    expect(updated).toMatchObject({
+      nome: 'Recorda Updated',
+      email: 'admin@recorda.com',
+      exibirLogoRelatorio: false,
+    });
   });
 
   it('cria processo de recebimento e bloqueia duplicidade', async () => {
@@ -1878,7 +2321,10 @@ describe('HTTP server integration', () => {
     });
 
     expect(updateResponse.statusCode).toBe(200);
-    expect(updateResponse.json()).toMatchObject({ nome: 'Colaborador Editado', email: 'editado@recorda.com' });
+    expect(updateResponse.json()).toMatchObject({
+      nome: 'Colaborador Editado',
+      email: 'editado@recorda.com',
+    });
 
     const duplicateResponse = await server.inject({
       method: 'POST',
@@ -1920,7 +2366,10 @@ describe('HTTP server integration', () => {
     });
 
     expect(detailResponse.statusCode).toBe(200);
-    expect(detailResponse.json()).toMatchObject({ id: 'col-1', coordenadoria_nome: 'Coordenação X' });
+    expect(detailResponse.json()).toMatchObject({
+      id: 'col-1',
+      coordenadoria_nome: 'Coordenação X',
+    });
   });
 
   // ═══════════════════════════════════════════════
@@ -2204,7 +2653,9 @@ describe('HTTP server integration', () => {
     });
     expect(first.statusCode).toBe(201);
     expect(second.statusCode).toBe(409);
-    expect(second.json()).toMatchObject({ error: 'repositorio ja cadastrado para esta unidade e projeto' });
+    expect(second.json()).toMatchObject({
+      error: 'repositorio ja cadastrado para esta unidade e projeto',
+    });
   });
 
   it('rejeita repositório sem campos obrigatórios', async () => {
@@ -2240,16 +2691,19 @@ describe('HTTP server integration', () => {
 
     expect(response.statusCode).toBe(200);
 
-    const countCall = database.queryMock.mock.calls.find(([sql]) =>
-      sql.includes('SELECT COUNT(*)::text as total') && sql.includes('FROM repositorios r')
+    const countCall = database.queryMock.mock.calls.find(
+      ([sql]) =>
+        sql.includes('SELECT COUNT(*)::text as total') && sql.includes('FROM repositorios r')
     );
     expect(countCall).toBeTruthy();
     expect(countCall?.[0]).toContain('LOWER(TRIM(r.orgao)) = LOWER(TRIM($');
     expect(countCall?.[0]).toContain('LOWER(TRIM(r.projeto)) = LOWER(TRIM($');
     expect(countCall?.[1]).toEqual(expect.arrayContaining(['SGPA', 'SEMA']));
 
-    const contadoresCall = database.queryMock.mock.calls.find(([sql]) =>
-      sql.includes('SELECT r.status_atual, COUNT(*)::text AS qtd') && sql.includes('FROM repositorios r')
+    const contadoresCall = database.queryMock.mock.calls.find(
+      ([sql]) =>
+        sql.includes('SELECT r.status_atual, COUNT(*)::text AS qtd') &&
+        sql.includes('FROM repositorios r')
     );
     expect(contadoresCall).toBeTruthy();
     expect(contadoresCall?.[0]).toContain('LOWER(TRIM(r.orgao)) = LOWER(TRIM($');
@@ -2268,21 +2722,26 @@ describe('HTTP server integration', () => {
 
     expect(response.statusCode).toBe(200);
 
-    const countCall = database.queryMock.mock.calls.find(([sql]) =>
-      sql.includes('SELECT COUNT(*)::text as total') && sql.includes('FROM repositorios r')
+    const countCall = database.queryMock.mock.calls.find(
+      ([sql]) =>
+        sql.includes('SELECT COUNT(*)::text as total') && sql.includes('FROM repositorios r')
     );
     expect(countCall).toBeTruthy();
     expect(countCall?.[0]).toContain('r.data_criacao >= $');
     expect(countCall?.[0]).toContain('r.data_criacao < ($');
     expect(countCall?.[1]).toEqual(expect.arrayContaining(['SGPA', '2026-01-01', '2026-01-31']));
 
-    const contadoresCall = database.queryMock.mock.calls.find(([sql]) =>
-      sql.includes('SELECT r.status_atual, COUNT(*)::text AS qtd') && sql.includes('FROM repositorios r')
+    const contadoresCall = database.queryMock.mock.calls.find(
+      ([sql]) =>
+        sql.includes('SELECT r.status_atual, COUNT(*)::text AS qtd') &&
+        sql.includes('FROM repositorios r')
     );
     expect(contadoresCall).toBeTruthy();
     expect(contadoresCall?.[0]).toContain('r.data_criacao >= $');
     expect(contadoresCall?.[0]).toContain('r.data_criacao < ($');
-    expect(contadoresCall?.[1]).toEqual(expect.arrayContaining(['SGPA', '2026-01-01', '2026-01-31']));
+    expect(contadoresCall?.[1]).toEqual(
+      expect.arrayContaining(['SGPA', '2026-01-01', '2026-01-31'])
+    );
   });
 
   it('aplica busca por processo/apenso na listagem de repositorios', async () => {
@@ -2296,8 +2755,9 @@ describe('HTTP server integration', () => {
 
     expect(response.statusCode).toBe(200);
 
-    const countCall = database.queryMock.mock.calls.find(([sql]) =>
-      sql.includes('SELECT COUNT(*)::text as total') && sql.includes('FROM repositorios r')
+    const countCall = database.queryMock.mock.calls.find(
+      ([sql]) =>
+        sql.includes('SELECT COUNT(*)::text as total') && sql.includes('FROM repositorios r')
     );
     expect(countCall).toBeTruthy();
     expect(countCall?.[0]).toContain('FROM recebimento_processos rp');
@@ -2352,15 +2812,20 @@ describe('HTTP server integration', () => {
       method: 'POST',
       url: '/operacional/fontes-importacao',
       headers: { authorization: `Bearer ${token}` },
-      payload: { nome: 'Fonte Teste', url: 'https://docs.google.com/spreadsheets/d/abc123/edit#gid=0' },
+      payload: {
+        nome: 'Fonte Teste',
+        url: 'https://docs.google.com/spreadsheets/d/abc123/edit#gid=0',
+      },
     });
     expect(fonteResp.statusCode).toBe(201);
     const fonteId = fonteResp.json().id as string;
 
-    fetchMock.mockResolvedValueOnce(new Response(
-      'data,colaborador,repositorio,coordenadoria,quantidade,tipo,funcao\n05/03/2026,Usuario Teste,000025/2026,SGPA,1,,recebimento',
-      { status: 200, headers: { 'content-type': 'text/csv' } },
-    ));
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        'data,colaborador,repositorio,coordenadoria,quantidade,tipo,funcao\n05/03/2026,Usuario Teste,000025/2026,SGPA,1,,recebimento',
+        { status: 200, headers: { 'content-type': 'text/csv' } }
+      )
+    );
 
     const response = await server.inject({
       method: 'POST',
@@ -2381,15 +2846,23 @@ describe('HTTP server integration', () => {
       method: 'POST',
       url: '/operacional/fontes-importacao',
       headers: { authorization: `Bearer ${token}` },
-      payload: { nome: 'Fonte Idempotencia', url: 'https://docs.google.com/spreadsheets/d/abc123/edit#gid=0' },
+      payload: {
+        nome: 'Fonte Idempotencia',
+        url: 'https://docs.google.com/spreadsheets/d/abc123/edit#gid=0',
+      },
     });
     expect(fonteResp.statusCode).toBe(201);
     const fonteId = fonteResp.json().id as string;
 
-    const csv = 'data,colaborador,repositorio,coordenadoria,quantidade,tipo,funcao\n05/03/2026,Usuario Teste,000027/2026,SGPA,1,,recebimento';
+    const csv =
+      'data,colaborador,repositorio,coordenadoria,quantidade,tipo,funcao\n05/03/2026,Usuario Teste,000027/2026,SGPA,1,,recebimento';
     fetchMock
-      .mockResolvedValueOnce(new Response(csv, { status: 200, headers: { 'content-type': 'text/csv' } }))
-      .mockResolvedValueOnce(new Response(csv, { status: 200, headers: { 'content-type': 'text/csv' } }));
+      .mockResolvedValueOnce(
+        new Response(csv, { status: 200, headers: { 'content-type': 'text/csv' } })
+      )
+      .mockResolvedValueOnce(
+        new Response(csv, { status: 200, headers: { 'content-type': 'text/csv' } })
+      );
 
     const primeiraImportacao = await server.inject({
       method: 'POST',

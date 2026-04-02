@@ -7,7 +7,12 @@ interface PaginationProps {
   disabled?: boolean;
 }
 
-export function Pagination({ pagina, totalPaginas, onChange, disabled }: PaginationProps): JSX.Element | null {
+export function Pagination({
+  pagina,
+  totalPaginas,
+  onChange,
+  disabled,
+}: PaginationProps): JSX.Element | null {
   if (totalPaginas <= 1) return null;
 
   return (

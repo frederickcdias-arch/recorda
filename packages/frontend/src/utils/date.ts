@@ -34,4 +34,3 @@ export function toDateInputValue(value: Date): string {
   const day = String(value.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 }
-

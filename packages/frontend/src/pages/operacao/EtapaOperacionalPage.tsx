@@ -21,21 +21,28 @@ import { ProgressIndicator } from '../../components/ui/ProgressIndicator';
 import { AgingBadge } from '../../components/ui/AgingBadge';
 import { ActionMenu } from '../../components/ui/ActionMenu';
 import {
-  useRepositorios, useCreateRepositorio, useDeleteRepositorio, useAvancarEtapa,
-  useBatchProcessos, useRegistrarProducao, useGerarRelatorioRecebimento, useGerarRelatorioProducao,
-  useCriarChecklist, useConcluirChecklist,
-  useOrgaosRecebimento, useProjetosConfiguracao, useCreateProjetoConfiguracao, useCriarOrgaoRecebimento,
-  useQueryClient, queryKeys,
+  useRepositorios,
+  useCreateRepositorio,
+  useDeleteRepositorio,
+  useAvancarEtapa,
+  useBatchProcessos,
+  useRegistrarProducao,
+  useGerarRelatorioRecebimento,
+  useGerarRelatorioProducao,
+  useCriarChecklist,
+  useConcluirChecklist,
+  useOrgaosRecebimento,
+  useProjetosConfiguracao,
+  useCreateProjetoConfiguracao,
+  useCriarOrgaoRecebimento,
+  useQueryClient,
+  queryKeys,
 } from '../../hooks/useQueries';
 import { useUltimoIdRepositorioGed } from '../../hooks/useUltimoIdRepositorioGed';
 
-type EtapaSlug =
-  | 'recebimento'
-  | 'controle-qualidade';
+type EtapaSlug = 'recebimento' | 'controle-qualidade';
 
-type EtapaApi =
-  | 'RECEBIMENTO'
-  | 'CONTROLE_QUALIDADE';
+type EtapaApi = 'RECEBIMENTO' | 'CONTROLE_QUALIDADE';
 
 type ResultadoChecklist = 'CONFORME' | 'NAO_CONFORME_COM_TRATATIVA';
 
@@ -109,8 +116,19 @@ interface EtapaConfig {
 }
 
 const ETAPA_MAP: Record<EtapaSlug, EtapaConfig> = {
-  recebimento: { label: 'Recebimento', etapaApi: 'RECEBIMENTO', nextPath: '/operacao/controle-qualidade', nextEtapaApi: 'CONTROLE_QUALIDADE', nextStatus: 'AGUARDANDO_CQ_LOTE' },
-  'controle-qualidade': { label: 'Controle de Qualidade', etapaApi: 'CONTROLE_QUALIDADE', prevEtapaApi: 'RECEBIMENTO', prevStatus: 'RECEBIDO' },
+  recebimento: {
+    label: 'Recebimento',
+    etapaApi: 'RECEBIMENTO',
+    nextPath: '/operacao/controle-qualidade',
+    nextEtapaApi: 'CONTROLE_QUALIDADE',
+    nextStatus: 'AGUARDANDO_CQ_LOTE',
+  },
+  'controle-qualidade': {
+    label: 'Controle de Qualidade',
+    etapaApi: 'CONTROLE_QUALIDADE',
+    prevEtapaApi: 'RECEBIMENTO',
+    prevStatus: 'RECEBIDO',
+  },
 };
 
 function isEtapaSlug(value: string | undefined): value is EtapaSlug {
@@ -147,7 +165,9 @@ export function EtapaOperacionalPage(): JSX.Element {
 
   const [checklistModalOpen, setChecklistModalOpen] = useState(false);
   const [checklistId, setChecklistId] = useState('');
-  const [checklistHeader, setChecklistHeader] = useState<ChecklistDetalheResponse['checklist'] | null>(null);
+  const [checklistHeader, setChecklistHeader] = useState<
+    ChecklistDetalheResponse['checklist'] | null
+  >(null);
   const [checklistItens, setChecklistItens] = useState<ChecklistItem[]>([]);
   const [avancarModalOpen, setAvancarModalOpen] = useState(false);
   const [avancarRepoId, setAvancarRepoId] = useState('');
@@ -165,15 +185,34 @@ export function EtapaOperacionalPage(): JSX.Element {
   const [avulsosBuscaItens, setAvulsosBuscaItens] = useState<AvulsoBuscaItem[]>([]);
 
   const {
-    ocrModalOpen, setOcrModalOpen, ocrRepo, setOcrImagemBase64,
-    ocrPreview, setOcrPreview, ocrProcessando, recebProcessos, recebTab, setRecebTab,
-    apensoModalOpen, setApensoModalOpen, apensoProcessoId, setApensoProcessoId,
-    setoresOptions, classificacoesOptions,
-    novoSetorInput, setNovoSetorInput,
-    docForm, setDocForm, EMPTY_DOC_FORM,
-    handleOpenOCRModal, handleUploadImagemOCR, handleProcessarOCR,
-    handleSalvarProcessoRecebimento, handleExcluirProcessoRecebimento,
-    handleAdicionarApenso, handleExcluirApenso,
+    ocrModalOpen,
+    setOcrModalOpen,
+    ocrRepo,
+    setOcrImagemBase64,
+    ocrPreview,
+    setOcrPreview,
+    ocrProcessando,
+    recebProcessos,
+    recebTab,
+    setRecebTab,
+    apensoModalOpen,
+    setApensoModalOpen,
+    apensoProcessoId,
+    setApensoProcessoId,
+    setoresOptions,
+    classificacoesOptions,
+    novoSetorInput,
+    setNovoSetorInput,
+    docForm,
+    setDocForm,
+    EMPTY_DOC_FORM,
+    handleOpenOCRModal,
+    handleUploadImagemOCR,
+    handleProcessarOCR,
+    handleSalvarProcessoRecebimento,
+    handleExcluirProcessoRecebimento,
+    handleAdicionarApenso,
+    handleExcluirApenso,
     handleCriarSetor,
     confirmDialog: recebimentoConfirmDialog,
   } = useRecebimento();
@@ -248,14 +287,19 @@ export function EtapaOperacionalPage(): JSX.Element {
 
   const itens = (repoQuery.data?.itens ?? []) as RepositorioItem[];
   const totalPaginas = repoQuery.data?.totalPaginas ?? 1;
-  const contadores = (repoQuery.data as { contadores?: Record<string, number> } | undefined)?.contadores ?? {};
+  const contadores =
+    (repoQuery.data as { contadores?: Record<string, number> } | undefined)?.contadores ?? {};
   const totalGeral = Object.values(contadores).reduce((a, b) => a + b, 0);
   const carregando = repoQuery.isLoading;
   const erro = repoQuery.error
-    ? { message: 'Erro ao carregar Fila Operacional', details: repoQuery.error instanceof Error ? repoQuery.error.message : 'Falha desconhecida' }
+    ? {
+        message: 'Erro ao carregar Fila Operacional',
+        details: repoQuery.error instanceof Error ? repoQuery.error.message : 'Falha desconhecida',
+      }
     : null;
 
-  const invalidateRepos = () => void queryClient.invalidateQueries({ queryKey: queryKeys.repositoriosAll });
+  const invalidateRepos = () =>
+    void queryClient.invalidateQueries({ queryKey: queryKeys.repositoriosAll });
 
   const createRepo = useCreateRepositorio();
   const deleteRepo = useDeleteRepositorio();
@@ -273,7 +317,10 @@ export function EtapaOperacionalPage(): JSX.Element {
   const orgaosOptions = orgaosQuery.data ?? [];
   const projetosOptions = projetosQuery.data ?? [];
 
-  const { data: ultimoIdGed, isFetching: buscandoIdGed } = useUltimoIdRepositorioGed(novoRepositorio.orgao, novoRepositorio.projeto);
+  const { data: ultimoIdGed, isFetching: buscandoIdGed } = useUltimoIdRepositorioGed(
+    novoRepositorio.orgao,
+    novoRepositorio.projeto
+  );
 
   // Sugere o proximo ID GED automaticamente ao selecionar unidade/projeto,
   // enquanto o usuario nao tiver editado o campo manualmente.
@@ -315,7 +362,9 @@ export function EtapaOperacionalPage(): JSX.Element {
     const nomeUnidade = novaUnidadeInput.trim();
     if (!nomeUnidade) return;
 
-    const existente = orgaosOptions.find((o) => o.nome.trim().toLowerCase() === nomeUnidade.toLowerCase());
+    const existente = orgaosOptions.find(
+      (o) => o.nome.trim().toLowerCase() === nomeUnidade.toLowerCase()
+    );
     if (existente) {
       setNovoRepositorio((prev) => ({ ...prev, orgao: existente.nome, idGedEditado: false }));
       setNovaUnidadeInput('');
@@ -341,7 +390,9 @@ export function EtapaOperacionalPage(): JSX.Element {
     const nomeProjeto = novoProjetoInput.trim();
     if (!nomeProjeto) return;
 
-    const existente = projetosOptions.find((p) => p.nome.trim().toLowerCase() === nomeProjeto.toLowerCase());
+    const existente = projetosOptions.find(
+      (p) => p.nome.trim().toLowerCase() === nomeProjeto.toLowerCase()
+    );
     if (existente) {
       setNovoRepositorio((prev) => ({ ...prev, projeto: existente.nome, idGedEditado: false }));
       setNovoProjetoInput('');
@@ -370,7 +421,12 @@ export function EtapaOperacionalPage(): JSX.Element {
   };
 
   const handleCriarRepositorio = async (): Promise<void> => {
-    if (!novoRepositorio.idRepositorioGed || !novoRepositorio.orgao || !novoRepositorio.projeto || !novoRepositorio.classificacaoId) {
+    if (
+      !novoRepositorio.idRepositorioGed ||
+      !novoRepositorio.orgao ||
+      !novoRepositorio.projeto ||
+      !novoRepositorio.classificacaoId
+    ) {
       showError('Preencha todos os campos obrigatórios para criar o repositório.');
       return;
     }
@@ -384,7 +440,14 @@ export function EtapaOperacionalPage(): JSX.Element {
         classificacaoId: novoRepositorio.classificacaoId,
       });
       showSuccess('Repositório criado com sucesso.');
-      setNovoRepositorio((prev) => ({ ...prev, idRepositorioGed: '', orgao: '', projeto: '', classificacaoId: '', idGedEditado: false }));
+      setNovoRepositorio((prev) => ({
+        ...prev,
+        idRepositorioGed: '',
+        orgao: '',
+        projeto: '',
+        classificacaoId: '',
+        idGedEditado: false,
+      }));
     } catch (error) {
       showError(extractErrorMessage(error, 'Erro ao Criar Repositório'));
     } finally {
@@ -403,7 +466,10 @@ export function EtapaOperacionalPage(): JSX.Element {
     try {
       const data = await queryClient.fetchQuery({
         queryKey: queryKeys.documentosRecebimento(repositorioId),
-        queryFn: () => api.get<{ itens: DocumentoRecebimentoItem[] }>(`/operacional/repositorios/${repositorioId}/documentos-recebimento`),
+        queryFn: () =>
+          api.get<{ itens: DocumentoRecebimentoItem[] }>(
+            `/operacional/repositorios/${repositorioId}/documentos-recebimento`
+          ),
         staleTime: 0,
       });
       setAvancarDocs(data.itens ?? []);
@@ -467,21 +533,25 @@ export function EtapaOperacionalPage(): JSX.Element {
     try {
       setProcessando(true);
       const lines = batchText.split('\n').filter((l) => l.trim());
-      const processos = lines.map((line) => {
-        const parts = line.split('\t').map((p) => p.trim());
-        return {
-          protocolo: parts[0] || '',
-          interessado: parts[1] || '',
-          setorId: null,
-          volumeAtual: 1,
-          volumeTotal: 0,
-          origem: 'MANUAL' as const,
-          ocrConfianca: null,
-        };
-      }).filter((p) => p.protocolo && p.interessado);
+      const processos = lines
+        .map((line) => {
+          const parts = line.split('\t').map((p) => p.trim());
+          return {
+            protocolo: parts[0] || '',
+            interessado: parts[1] || '',
+            setorId: null,
+            volumeAtual: 1,
+            volumeTotal: 0,
+            origem: 'MANUAL' as const,
+            ocrConfianca: null,
+          };
+        })
+        .filter((p) => p.protocolo && p.interessado);
 
       if (processos.length === 0) {
-        showError('Nenhum processo válido. Formato esperado: protocolo (TAB) interessado, um por linha.');
+        showError(
+          'Nenhum processo válido. Formato esperado: protocolo (TAB) interessado, um por linha.'
+        );
         return;
       }
 
@@ -502,10 +572,15 @@ export function EtapaOperacionalPage(): JSX.Element {
       setProcessando(true);
       // Buscar checklist concluido mais recente da etapa atual para vincular
       // Force fresh fetch — cached data may still show checklist as ABERTO
-      await queryClient.invalidateQueries({ queryKey: queryKeys.checklistsRepo(repositorioId, etapaConfig.etapaApi) });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.checklistsRepo(repositorioId, etapaConfig.etapaApi),
+      });
       const checklistsData = await queryClient.fetchQuery({
         queryKey: queryKeys.checklistsRepo(repositorioId, etapaConfig.etapaApi),
-        queryFn: () => api.get<{ itens: ChecklistResumo[] }>(`/operacional/repositorios/${repositorioId}/checklists?etapa=${etapaConfig.etapaApi}`),
+        queryFn: () =>
+          api.get<{ itens: ChecklistResumo[] }>(
+            `/operacional/repositorios/${repositorioId}/checklists?etapa=${etapaConfig.etapaApi}`
+          ),
         staleTime: 0,
       });
       const checklistConcluido = checklistsData.itens?.find((c) => c.status === 'CONCLUIDO');
@@ -550,7 +625,10 @@ export function EtapaOperacionalPage(): JSX.Element {
     try {
       setProcessandoCsv(true);
       const report = await gerarRelRecebimento.mutateAsync(repositorioIds);
-      await api.download(`/api/operacional/relatorios/${report.id}/download?formato=csv`, `termo-recebimento-${report.id}.csv`);
+      await api.download(
+        `/api/operacional/relatorios/${report.id}/download?formato=csv`,
+        `termo-recebimento-${report.id}.csv`
+      );
     } catch (error) {
       showError(extractErrorMessage(error, 'Erro ao gerar CSV de Recebimento'));
     } finally {
@@ -561,7 +639,10 @@ export function EtapaOperacionalPage(): JSX.Element {
   const handleDownloadTermo = async (): Promise<void> => {
     if (!previewTermoReportId) return;
     try {
-      await api.download(`/api/operacional/relatorios/${previewTermoReportId}/download`, `termo-recebimento-${previewTermoReportId}.pdf`);
+      await api.download(
+        `/api/operacional/relatorios/${previewTermoReportId}/download`,
+        `termo-recebimento-${previewTermoReportId}.pdf`
+      );
     } catch (error) {
       showError(extractErrorMessage(error, 'Erro ao baixar Termo'));
     }
@@ -614,17 +695,26 @@ export function EtapaOperacionalPage(): JSX.Element {
   const handleAbrirChecklist = async (repositorioId: string): Promise<void> => {
     try {
       setProcessando(true);
-      const created = await criarChecklist.mutateAsync({ repoId: repositorioId, etapa: etapaConfig.etapaApi });
+      const created = await criarChecklist.mutateAsync({
+        repoId: repositorioId,
+        etapa: etapaConfig.etapaApi,
+      });
       await loadChecklist(created.id);
       showSuccess('Checklist aberto.');
     } catch (error) {
       const message = extractErrorMessage(error, 'Erro ao Abrir Checklist');
-      const status = error && typeof error === 'object' && 'status' in error ? (error as { status: number }).status : 0;
+      const status =
+        error && typeof error === 'object' && 'status' in error
+          ? (error as { status: number }).status
+          : 0;
       if (status === 409 || message.toLowerCase().includes('existe checklist ativo')) {
         try {
           const list = await queryClient.fetchQuery({
             queryKey: queryKeys.checklistsRepo(repositorioId, etapaConfig.etapaApi, true),
-            queryFn: () => api.get<{ itens: ChecklistResumo[] }>(`/operacional/repositorios/${repositorioId}/checklists?etapa=${etapaConfig.etapaApi}&ativo=true`),
+            queryFn: () =>
+              api.get<{ itens: ChecklistResumo[] }>(
+                `/operacional/repositorios/${repositorioId}/checklists?etapa=${etapaConfig.etapaApi}&ativo=true`
+              ),
             staleTime: 5_000,
           });
           const checklistAtivo = list.itens?.[0];
@@ -649,12 +739,16 @@ export function EtapaOperacionalPage(): JSX.Element {
     // Validate: all obligatory items must have a resultado
     const obrigatoriosSemResultado = checklistItens.filter((it) => it.obrigatorio && !it.resultado);
     if (obrigatoriosSemResultado.length > 0) {
-      showError(`Preencha todos os itens obrigatórios antes de concluir. (${obrigatoriosSemResultado.length} pendente${obrigatoriosSemResultado.length > 1 ? 's' : ''})`);
+      showError(
+        `Preencha todos os itens obrigatórios antes de concluir. (${obrigatoriosSemResultado.length} pendente${obrigatoriosSemResultado.length > 1 ? 's' : ''})`
+      );
       return;
     }
 
     // Validate: non-conforme items must have observação
-    const naoConformeSemObs = checklistItens.filter((it) => it.resultado === 'NAO_CONFORME_COM_TRATATIVA' && !(it.observacao?.trim()));
+    const naoConformeSemObs = checklistItens.filter(
+      (it) => it.resultado === 'NAO_CONFORME_COM_TRATATIVA' && !it.observacao?.trim()
+    );
     if (naoConformeSemObs.length > 0) {
       showError('Itens "Não conforme" precisam de observação.');
       return;
@@ -697,7 +791,11 @@ export function EtapaOperacionalPage(): JSX.Element {
     : null;
 
   return (
-    <PageState loading={carregando} loadingMessage="Carregando Fila Operacional..." error={erroComAcao}>
+    <PageState
+      loading={carregando}
+      loadingMessage="Carregando Fila Operacional..."
+      error={erroComAcao}
+    >
       <div className="space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
@@ -705,7 +803,9 @@ export function EtapaOperacionalPage(): JSX.Element {
             <p className="text-sm text-gray-500 mt-1">Gestão operacional por etapa.</p>
           </div>
           {etapaConfig.nextPath ? (
-            <Button variant="secondary" size="sm" onClick={irProximaEtapa}>Ir para próxima etapa</Button>
+            <Button variant="secondary" size="sm" onClick={irProximaEtapa}>
+              Ir para próxima etapa
+            </Button>
           ) : null}
         </div>
 
@@ -718,7 +818,9 @@ export function EtapaOperacionalPage(): JSX.Element {
             </div>
             {Object.entries(contadores).map(([status, qtd]) => (
               <div key={status} className="bg-white border border-gray-200 rounded-xl px-4 py-3">
-                <p className="text-xs text-gray-500 uppercase font-medium truncate"><StatusBadge status={status} /></p>
+                <p className="text-xs text-gray-500 uppercase font-medium truncate">
+                  <StatusBadge status={status} />
+                </p>
                 <p className="text-2xl font-bold text-blue-700 mt-1">{qtd}</p>
               </div>
             ))}
@@ -759,19 +861,43 @@ export function EtapaOperacionalPage(): JSX.Element {
                     <Input
                       label="ID GED"
                       value={novoRepositorio.idRepositorioGed}
-                      onChange={(e) => setNovoRepositorio((p) => ({ ...p, idRepositorioGed: e.target.value, idGedEditado: true }))}
-                      helperText={buscandoIdGed ? 'Buscando sugestão...' : (!novoRepositorio.idGedEditado && novoRepositorio.orgao && novoRepositorio.projeto ? 'Sugerido automaticamente. Você pode editar.' : undefined)}
+                      onChange={(e) =>
+                        setNovoRepositorio((p) => ({
+                          ...p,
+                          idRepositorioGed: e.target.value,
+                          idGedEditado: true,
+                        }))
+                      }
+                      helperText={
+                        buscandoIdGed
+                          ? 'Buscando sugestão...'
+                          : !novoRepositorio.idGedEditado &&
+                              novoRepositorio.orgao &&
+                              novoRepositorio.projeto
+                            ? 'Sugerido automaticamente. Você pode editar.'
+                            : undefined
+                      }
                     />
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Unidade</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Unidade
+                      </label>
                       <select
                         className="w-full h-11 px-3 border rounded-lg text-sm"
                         value={novoRepositorio.orgao}
-                        onChange={(e) => setNovoRepositorio((p) => ({ ...p, orgao: e.target.value, idGedEditado: false }))}
+                        onChange={(e) =>
+                          setNovoRepositorio((p) => ({
+                            ...p,
+                            orgao: e.target.value,
+                            idGedEditado: false,
+                          }))
+                        }
                       >
                         <option value="">— Selecione —</option>
                         {orgaosOptions.map((o) => (
-                          <option key={o.id} value={o.nome}>{o.nome}</option>
+                          <option key={o.id} value={o.nome}>
+                            {o.nome}
+                          </option>
                         ))}
                       </select>
                       <div className="flex gap-1 mt-1">
@@ -780,7 +906,12 @@ export function EtapaOperacionalPage(): JSX.Element {
                           placeholder="Nova unidade..."
                           value={novaUnidadeInput}
                           onChange={(e) => setNovaUnidadeInput(e.target.value)}
-                          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void handleCriarUnidadeRapida(); } }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              void handleCriarUnidadeRapida();
+                            }
+                          }}
                         />
                         <button
                           type="button"
@@ -794,15 +925,25 @@ export function EtapaOperacionalPage(): JSX.Element {
                       </div>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Projeto</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Projeto
+                      </label>
                       <select
                         className="w-full h-11 px-3 border rounded-lg text-sm"
                         value={novoRepositorio.projeto}
-                        onChange={(e) => setNovoRepositorio((p) => ({ ...p, projeto: e.target.value, idGedEditado: false }))}
+                        onChange={(e) =>
+                          setNovoRepositorio((p) => ({
+                            ...p,
+                            projeto: e.target.value,
+                            idGedEditado: false,
+                          }))
+                        }
                       >
                         <option value="">— Selecione —</option>
                         {projetosOptions.map((o) => (
-                          <option key={o.id} value={o.nome}>{o.nome}</option>
+                          <option key={o.id} value={o.nome}>
+                            {o.nome}
+                          </option>
                         ))}
                       </select>
                       <div className="flex gap-1 mt-1">
@@ -811,32 +952,49 @@ export function EtapaOperacionalPage(): JSX.Element {
                           placeholder="Novo projeto..."
                           value={novoProjetoInput}
                           onChange={(e) => setNovoProjetoInput(e.target.value)}
-                          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void handleCriarProjetoRapido(); } }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              void handleCriarProjetoRapido();
+                            }
+                          }}
                         />
                         <button
                           type="button"
                           className="h-10 px-3 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
                           onClick={() => void handleCriarProjetoRapido()}
                           disabled={!novoProjetoInput.trim() || processando}
-                          title={isAdmin ? 'Cadastrar e selecionar projeto' : 'Apenas administrador pode cadastrar projeto'}
+                          title={
+                            isAdmin
+                              ? 'Cadastrar e selecionar projeto'
+                              : 'Apenas administrador pode cadastrar projeto'
+                          }
                         >
                           Adicionar
                         </button>
                       </div>
                       {!isAdmin ? (
-                        <p className="mt-1 text-[11px] text-gray-500">Cadastro rápido disponível para administrador.</p>
+                        <p className="mt-1 text-[11px] text-gray-500">
+                          Cadastro rápido disponível para administrador.
+                        </p>
                       ) : null}
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Classificação</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Classificação
+                      </label>
                       <select
                         className="w-full h-11 px-3 border rounded-lg text-sm"
                         value={novoRepositorio.classificacaoId}
-                        onChange={(e) => setNovoRepositorio((p) => ({ ...p, classificacaoId: e.target.value }))}
+                        onChange={(e) =>
+                          setNovoRepositorio((p) => ({ ...p, classificacaoId: e.target.value }))
+                        }
                       >
                         <option value="">— Selecione —</option>
                         {classificacoesOptions.map((c) => (
-                          <option key={c.id} value={c.id}>{c.nome}</option>
+                          <option key={c.id} value={c.id}>
+                            {c.nome}
+                          </option>
                         ))}
                       </select>
                     </div>
@@ -844,7 +1002,9 @@ export function EtapaOperacionalPage(): JSX.Element {
                   <div className="mt-4">
                     <div style={{ position: 'relative', display: 'inline-block' }}>
                       <Button
-                        onClick={() => { void handleCriarRepositorio(); }}
+                        onClick={() => {
+                          void handleCriarRepositorio();
+                        }}
                         loading={processando}
                         disabled={
                           !novoRepositorio.idRepositorioGed ||
@@ -854,11 +1014,17 @@ export function EtapaOperacionalPage(): JSX.Element {
                           processando
                         }
                         title={
-                          !novoRepositorio.idRepositorioGed ? 'Preencha o ID GED.' :
-                          !novoRepositorio.orgao ? 'Selecione a Unidade.' :
-                          !novoRepositorio.projeto ? 'Selecione o Projeto.' :
-                          !novoRepositorio.classificacaoId ? 'Selecione a Classificação.' :
-                          processando ? 'Processando...' : ''
+                          !novoRepositorio.idRepositorioGed
+                            ? 'Preencha o ID GED.'
+                            : !novoRepositorio.orgao
+                              ? 'Selecione a Unidade.'
+                              : !novoRepositorio.projeto
+                                ? 'Selecione o Projeto.'
+                                : !novoRepositorio.classificacaoId
+                                  ? 'Selecione a Classificação.'
+                                  : processando
+                                    ? 'Processando...'
+                                    : ''
                         }
                       >
                         Criar repositório
@@ -873,20 +1039,30 @@ export function EtapaOperacionalPage(): JSX.Element {
                       <Input
                         label="Buscar"
                         value={filtroBusca}
-                        onChange={(e) => { setFiltroBusca(e.target.value); setPagina(1); }}
+                        onChange={(e) => {
+                          setFiltroBusca(e.target.value);
+                          setPagina(1);
+                        }}
                         placeholder="ID GED, unidade, projeto ou processo"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Unidade</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Unidade
+                      </label>
                       <select
                         className="w-full h-11 px-3 border rounded-lg text-sm"
                         value={filtroUnidade}
-                        onChange={(e) => { setFiltroUnidade(e.target.value); setPagina(1); }}
+                        onChange={(e) => {
+                          setFiltroUnidade(e.target.value);
+                          setPagina(1);
+                        }}
                       >
                         <option value="">— Todas —</option>
                         {orgaosOptions.map((o) => (
-                          <option key={o.id} value={o.nome}>{o.nome}</option>
+                          <option key={o.id} value={o.nome}>
+                            {o.nome}
+                          </option>
                         ))}
                       </select>
                     </div>
@@ -895,7 +1071,10 @@ export function EtapaOperacionalPage(): JSX.Element {
                         label="Data Início"
                         type="date"
                         value={filtroDataInicio}
-                        onChange={(e) => { setFiltroDataInicio(e.target.value); setPagina(1); }}
+                        onChange={(e) => {
+                          setFiltroDataInicio(e.target.value);
+                          setPagina(1);
+                        }}
                       />
                     </div>
                     <div>
@@ -903,13 +1082,31 @@ export function EtapaOperacionalPage(): JSX.Element {
                         label="Data Fim"
                         type="date"
                         value={filtroDataFim}
-                        onChange={(e) => { setFiltroDataFim(e.target.value); setPagina(1); }}
+                        onChange={(e) => {
+                          setFiltroDataFim(e.target.value);
+                          setPagina(1);
+                        }}
                       />
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2 items-center mb-4">
-                    <Button className="w-full md:w-auto" variant="secondary" onClick={() => invalidateRepos()} loading={processando}>Atualizar</Button>
-                    <Button className="w-full md:w-auto" variant="outline" onClick={() => { setBatchRepoId(''); setBatchText(''); setBatchAddModalOpen(true); }}>
+                    <Button
+                      className="w-full md:w-auto"
+                      variant="secondary"
+                      onClick={() => invalidateRepos()}
+                      loading={processando}
+                    >
+                      Atualizar
+                    </Button>
+                    <Button
+                      className="w-full md:w-auto"
+                      variant="outline"
+                      onClick={() => {
+                        setBatchRepoId('');
+                        setBatchText('');
+                        setBatchAddModalOpen(true);
+                      }}
+                    >
                       Adicionar em Lote
                     </Button>
                     {reposSelecionadosTermo.size > 0 && (
@@ -917,7 +1114,9 @@ export function EtapaOperacionalPage(): JSX.Element {
                         <Button
                           className="w-full md:w-auto"
                           variant="outline"
-                          onClick={() => void handleGerarRelatorioRecebimento(Array.from(reposSelecionadosTermo))}
+                          onClick={() =>
+                            void handleGerarRelatorioRecebimento(Array.from(reposSelecionadosTermo))
+                          }
                           loading={processando}
                         >
                           Gerar Termo ({reposSelecionadosTermo.size})
@@ -925,7 +1124,11 @@ export function EtapaOperacionalPage(): JSX.Element {
                         <Button
                           className="w-full md:w-auto"
                           variant="secondary"
-                          onClick={() => void handleGerarRelatorioRecebimentoCsv(Array.from(reposSelecionadosTermo))}
+                          onClick={() =>
+                            void handleGerarRelatorioRecebimentoCsv(
+                              Array.from(reposSelecionadosTermo)
+                            )
+                          }
                           loading={processandoCsv}
                         >
                           Gerar CSV ({reposSelecionadosTermo.size})
@@ -945,7 +1148,11 @@ export function EtapaOperacionalPage(): JSX.Element {
                               : 'Nenhum avulso encontrado para este termo'}
                         </p>
                         {avulsosBuscaItens.length > 0 ? (
-                          <Button size="xs" variant="outline" onClick={() => setRecebSubTab('avulsos')}>
+                          <Button
+                            size="xs"
+                            variant="outline"
+                            onClick={() => setRecebSubTab('avulsos')}
+                          >
                             Ver avulsos
                           </Button>
                         ) : null}
@@ -964,7 +1171,9 @@ export function EtapaOperacionalPage(): JSX.Element {
 
                   <div className="md:hidden space-y-3">
                     {itens.length === 0 ? (
-                      <div className="px-4 py-8 text-center text-gray-500 border rounded-lg">Nenhum Repositório na Fila desta Etapa.</div>
+                      <div className="px-4 py-8 text-center text-gray-500 border rounded-lg">
+                        Nenhum Repositório na Fila desta Etapa.
+                      </div>
                     ) : (
                       itens.map((item) => (
                         <div
@@ -973,7 +1182,9 @@ export function EtapaOperacionalPage(): JSX.Element {
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div>
-                              <p className="text-sm font-semibold text-gray-900">{item.id_repositorio_ged}</p>
+                              <p className="text-sm font-semibold text-gray-900">
+                                {item.id_repositorio_ged}
+                              </p>
                               <p className="text-xs text-gray-500 mt-0.5">{item.orgao}</p>
                               <p className="text-xs text-gray-500">{item.projeto}</p>
                             </div>
@@ -983,7 +1194,8 @@ export function EtapaOperacionalPage(): JSX.Element {
                               onChange={() => {
                                 setReposSelecionadosTermo((prev) => {
                                   const next = new Set(prev);
-                                  if (next.has(item.id_repositorio_recorda)) next.delete(item.id_repositorio_recorda);
+                                  if (next.has(item.id_repositorio_recorda))
+                                    next.delete(item.id_repositorio_recorda);
                                   else next.add(item.id_repositorio_recorda);
                                   return next;
                                 });
@@ -993,25 +1205,69 @@ export function EtapaOperacionalPage(): JSX.Element {
                           </div>
                           <div className="mt-3 flex items-center justify-between gap-2">
                             <StatusBadge status={item.status_atual} />
-                            <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold ${(item.total_processos ?? 0) > 0 ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-400'}`}>
+                            <span
+                              className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold ${(item.total_processos ?? 0) > 0 ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-400'}`}
+                            >
                               {item.total_processos ?? 0}
                             </span>
                           </div>
-                          <div className="mt-3"><ProgressIndicator steps={[
-                            { label: 'CK', done: !!item.checklist_concluido, active: !!item.checklist_aberto },
-                            { label: 'Prod', done: !!item.producao_registrada },
-                            { label: 'Rel', done: (item.total_relatorios ?? 0) > 0 },
-                          ]} /></div>
+                          <div className="mt-3">
+                            <ProgressIndicator
+                              steps={[
+                                {
+                                  label: 'CK',
+                                  done: !!item.checklist_concluido,
+                                  active: !!item.checklist_aberto,
+                                },
+                                { label: 'Prod', done: !!item.producao_registrada },
+                                { label: 'Rel', done: (item.total_relatorios ?? 0) > 0 },
+                              ]}
+                            />
+                          </div>
                           <div className="mt-3 flex items-center justify-between">
-                            <div>{item.segundos_na_etapa != null ? <AgingBadge segundos={item.segundos_na_etapa} /> : null}</div>
-                            <ActionMenu disabled={processando} items={[
-                              { label: 'Checklist', onClick: () => void handleAbrirChecklist(item.id_repositorio_recorda) },
-                              { label: 'OCR / Docs', onClick: () => void handleOpenOCRModal(item) },
-                              { label: 'Gerar Termo', onClick: () => void handleGerarRelatorioRecebimento([item.id_repositorio_recorda]) },
-                              { label: 'Registrar Produção', onClick: () => void handleRegistrarProducao(item.id_repositorio_recorda) },
-                              { label: 'Avançar Etapa', onClick: () => void handleOpenAvancar(item.id_repositorio_recorda), hidden: !etapaConfig.nextEtapaApi },
-                              { label: 'Excluir', onClick: () => handleOpenExcluir(item.id_repositorio_recorda), variant: 'danger', hidden: !isAdmin },
-                            ]} />
+                            <div>
+                              {item.segundos_na_etapa != null ? (
+                                <AgingBadge segundos={item.segundos_na_etapa} />
+                              ) : null}
+                            </div>
+                            <ActionMenu
+                              disabled={processando}
+                              items={[
+                                {
+                                  label: 'Checklist',
+                                  onClick: () =>
+                                    void handleAbrirChecklist(item.id_repositorio_recorda),
+                                },
+                                {
+                                  label: 'OCR / Docs',
+                                  onClick: () => void handleOpenOCRModal(item),
+                                },
+                                {
+                                  label: 'Gerar Termo',
+                                  onClick: () =>
+                                    void handleGerarRelatorioRecebimento([
+                                      item.id_repositorio_recorda,
+                                    ]),
+                                },
+                                {
+                                  label: 'Registrar Produção',
+                                  onClick: () =>
+                                    void handleRegistrarProducao(item.id_repositorio_recorda),
+                                },
+                                {
+                                  label: 'Avançar Etapa',
+                                  onClick: () =>
+                                    void handleOpenAvancar(item.id_repositorio_recorda),
+                                  hidden: !etapaConfig.nextEtapaApi,
+                                },
+                                {
+                                  label: 'Excluir',
+                                  onClick: () => handleOpenExcluir(item.id_repositorio_recorda),
+                                  variant: 'danger',
+                                  hidden: !isAdmin,
+                                },
+                              ]}
+                            />
                           </div>
                         </div>
                       ))
@@ -1025,35 +1281,60 @@ export function EtapaOperacionalPage(): JSX.Element {
                           <th className="px-3 py-3 text-left w-10">
                             <input
                               type="checkbox"
-                              checked={reposSelecionadosTermo.size === itens.length && itens.length > 0}
+                              checked={
+                                reposSelecionadosTermo.size === itens.length && itens.length > 0
+                              }
                               onChange={() => {
                                 if (reposSelecionadosTermo.size === itens.length) {
                                   setReposSelecionadosTermo(new Set());
                                 } else {
-                                  setReposSelecionadosTermo(new Set(itens.map((i) => i.id_repositorio_recorda)));
+                                  setReposSelecionadosTermo(
+                                    new Set(itens.map((i) => i.id_repositorio_recorda))
+                                  );
                                 }
                               }}
                               className="rounded"
                             />
                           </th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">ID GED</th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Unidade</th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Projeto</th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Status</th>
-                          <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase">Proc.</th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Progresso</th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Tempo</th>
-                          <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Ações</th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                            ID GED
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                            Unidade
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                            Projeto
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                            Status
+                          </th>
+                          <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase">
+                            Proc.
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                            Progresso
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                            Tempo
+                          </th>
+                          <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">
+                            Ações
+                          </th>
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-100">
                         {itens.length === 0 ? (
                           <tr>
-                            <td colSpan={9} className="px-4 py-8 text-center text-gray-500">Nenhum Repositório na Fila desta Etapa.</td>
+                            <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
+                              Nenhum Repositório na Fila desta Etapa.
+                            </td>
                           </tr>
                         ) : (
                           itens.map((item) => (
-                            <tr key={item.id_repositorio_recorda} className={`hover:bg-gray-50 transition-colors ${reposSelecionadosTermo.has(item.id_repositorio_recorda) ? 'bg-blue-50' : ''}`}>
+                            <tr
+                              key={item.id_repositorio_recorda}
+                              className={`hover:bg-gray-50 transition-colors ${reposSelecionadosTermo.has(item.id_repositorio_recorda) ? 'bg-blue-50' : ''}`}
+                            >
                               <td className="px-3 py-3">
                                 <input
                                   type="checkbox"
@@ -1061,7 +1342,8 @@ export function EtapaOperacionalPage(): JSX.Element {
                                   onChange={() => {
                                     setReposSelecionadosTermo((prev) => {
                                       const next = new Set(prev);
-                                      if (next.has(item.id_repositorio_recorda)) next.delete(item.id_repositorio_recorda);
+                                      if (next.has(item.id_repositorio_recorda))
+                                        next.delete(item.id_repositorio_recorda);
                                       else next.add(item.id_repositorio_recorda);
                                       return next;
                                     });
@@ -1069,34 +1351,78 @@ export function EtapaOperacionalPage(): JSX.Element {
                                   className="rounded"
                                 />
                               </td>
-                              <td className="px-4 py-3 text-sm font-medium text-gray-900">{item.id_repositorio_ged}</td>
+                              <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                                {item.id_repositorio_ged}
+                              </td>
                               <td className="px-4 py-3 text-sm text-gray-700">{item.orgao}</td>
                               <td className="px-4 py-3 text-sm text-gray-700">{item.projeto}</td>
-                              <td className="px-4 py-3"><StatusBadge status={item.status_atual} /></td>
+                              <td className="px-4 py-3">
+                                <StatusBadge status={item.status_atual} />
+                              </td>
                               <td className="px-4 py-3 text-center">
-                                <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold ${(item.total_processos ?? 0) > 0 ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-400'}`}>
+                                <span
+                                  className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold ${(item.total_processos ?? 0) > 0 ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-400'}`}
+                                >
                                   {item.total_processos ?? 0}
                                 </span>
                               </td>
                               <td className="px-4 py-3">
-                                <ProgressIndicator steps={[
-                                  { label: 'CK', done: !!item.checklist_concluido, active: !!item.checklist_aberto },
-                                  { label: 'Prod', done: !!item.producao_registrada },
-                                  { label: 'Rel', done: (item.total_relatorios ?? 0) > 0 },
-                                ]} />
+                                <ProgressIndicator
+                                  steps={[
+                                    {
+                                      label: 'CK',
+                                      done: !!item.checklist_concluido,
+                                      active: !!item.checklist_aberto,
+                                    },
+                                    { label: 'Prod', done: !!item.producao_registrada },
+                                    { label: 'Rel', done: (item.total_relatorios ?? 0) > 0 },
+                                  ]}
+                                />
                               </td>
                               <td className="px-4 py-3">
-                                {item.segundos_na_etapa != null ? <AgingBadge segundos={item.segundos_na_etapa} /> : null}
+                                {item.segundos_na_etapa != null ? (
+                                  <AgingBadge segundos={item.segundos_na_etapa} />
+                                ) : null}
                               </td>
                               <td className="px-4 py-3 text-right">
-                                <ActionMenu disabled={processando} items={[
-                                  { label: 'Checklist', onClick: () => void handleAbrirChecklist(item.id_repositorio_recorda) },
-                                  { label: 'OCR / Docs', onClick: () => void handleOpenOCRModal(item) },
-                                  { label: 'Gerar Termo', onClick: () => void handleGerarRelatorioRecebimento([item.id_repositorio_recorda]) },
-                                  { label: 'Registrar Produção', onClick: () => void handleRegistrarProducao(item.id_repositorio_recorda) },
-                                  { label: 'Avançar Etapa', onClick: () => void handleOpenAvancar(item.id_repositorio_recorda), hidden: !etapaConfig.nextEtapaApi },
-                                  { label: 'Excluir', onClick: () => handleOpenExcluir(item.id_repositorio_recorda), variant: 'danger', hidden: !isAdmin },
-                                ]} />
+                                <ActionMenu
+                                  disabled={processando}
+                                  items={[
+                                    {
+                                      label: 'Checklist',
+                                      onClick: () =>
+                                        void handleAbrirChecklist(item.id_repositorio_recorda),
+                                    },
+                                    {
+                                      label: 'OCR / Docs',
+                                      onClick: () => void handleOpenOCRModal(item),
+                                    },
+                                    {
+                                      label: 'Gerar Termo',
+                                      onClick: () =>
+                                        void handleGerarRelatorioRecebimento([
+                                          item.id_repositorio_recorda,
+                                        ]),
+                                    },
+                                    {
+                                      label: 'Registrar Produção',
+                                      onClick: () =>
+                                        void handleRegistrarProducao(item.id_repositorio_recorda),
+                                    },
+                                    {
+                                      label: 'Avançar Etapa',
+                                      onClick: () =>
+                                        void handleOpenAvancar(item.id_repositorio_recorda),
+                                      hidden: !etapaConfig.nextEtapaApi,
+                                    },
+                                    {
+                                      label: 'Excluir',
+                                      onClick: () => handleOpenExcluir(item.id_repositorio_recorda),
+                                      variant: 'danger',
+                                      hidden: !isAdmin,
+                                    },
+                                  ]}
+                                />
                               </td>
                             </tr>
                           ))
@@ -1104,7 +1430,12 @@ export function EtapaOperacionalPage(): JSX.Element {
                       </tbody>
                     </table>
                   </div>
-                  <Pagination pagina={pagina} totalPaginas={totalPaginas} onChange={setPagina} disabled={carregando} />
+                  <Pagination
+                    pagina={pagina}
+                    totalPaginas={totalPaginas}
+                    onChange={setPagina}
+                    disabled={carregando}
+                  />
                 </Card>
               </div>
             ) : (
@@ -1128,63 +1459,132 @@ export function EtapaOperacionalPage(): JSX.Element {
                 <Input
                   label="Buscar"
                   value={filtroBusca}
-                  onChange={(e) => { setFiltroBusca(e.target.value); setPagina(1); }}
+                  onChange={(e) => {
+                    setFiltroBusca(e.target.value);
+                    setPagina(1);
+                  }}
                   placeholder="ID GED, unidade ou projeto"
                 />
               </div>
-              <Button variant="secondary" onClick={() => invalidateRepos()} loading={processando}>Atualizar</Button>
+              <Button variant="secondary" onClick={() => invalidateRepos()} loading={processando}>
+                Atualizar
+              </Button>
             </div>
 
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">ID GED</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Unidade</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Projeto</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Status</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase">Proc.</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Progresso</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Tempo</th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Ações</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                      ID GED
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                      Unidade
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                      Projeto
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                      Status
+                    </th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase">
+                      Proc.
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                      Progresso
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                      Tempo
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">
+                      Ações
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-100">
                   {itens.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="px-4 py-8 text-center text-gray-500">Nenhum Repositório na Fila desta Etapa.</td>
+                      <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
+                        Nenhum Repositório na Fila desta Etapa.
+                      </td>
                     </tr>
                   ) : (
                     itens.map((item) => (
-                      <tr key={item.id_repositorio_recorda} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-4 py-3 text-sm font-medium text-gray-900">{item.id_repositorio_ged}</td>
+                      <tr
+                        key={item.id_repositorio_recorda}
+                        className="hover:bg-gray-50 transition-colors"
+                      >
+                        <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                          {item.id_repositorio_ged}
+                        </td>
                         <td className="px-4 py-3 text-sm text-gray-700">{item.orgao}</td>
                         <td className="px-4 py-3 text-sm text-gray-700">{item.projeto}</td>
-                        <td className="px-4 py-3"><StatusBadge status={item.status_atual} /></td>
+                        <td className="px-4 py-3">
+                          <StatusBadge status={item.status_atual} />
+                        </td>
                         <td className="px-4 py-3 text-center">
-                          <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold ${(item.total_processos ?? 0) > 0 ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-400'}`}>
+                          <span
+                            className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold ${(item.total_processos ?? 0) > 0 ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-400'}`}
+                          >
                             {item.total_processos ?? 0}
                           </span>
                         </td>
                         <td className="px-4 py-3">
-                          <ProgressIndicator steps={[
-                            { label: 'CK', done: !!item.checklist_concluido, active: !!item.checklist_aberto },
-                            { label: 'Prod', done: !!item.producao_registrada },
-                            { label: 'Rel', done: (item.total_relatorios ?? 0) > 0 },
-                          ]} />
+                          <ProgressIndicator
+                            steps={[
+                              {
+                                label: 'CK',
+                                done: !!item.checklist_concluido,
+                                active: !!item.checklist_aberto,
+                              },
+                              { label: 'Prod', done: !!item.producao_registrada },
+                              { label: 'Rel', done: (item.total_relatorios ?? 0) > 0 },
+                            ]}
+                          />
                         </td>
                         <td className="px-4 py-3">
-                          {item.segundos_na_etapa != null ? <AgingBadge segundos={item.segundos_na_etapa} /> : null}
+                          {item.segundos_na_etapa != null ? (
+                            <AgingBadge segundos={item.segundos_na_etapa} />
+                          ) : null}
                         </td>
                         <td className="px-4 py-3 text-right">
-                          <ActionMenu disabled={processando} items={[
-                            { label: 'Checklist', onClick: () => void handleAbrirChecklist(item.id_repositorio_recorda) },
-                            { label: 'Rel. Produção', onClick: () => void handleGerarRelatorioProducao(item.id_repositorio_recorda) },
-                            { label: 'Registrar Produção', onClick: () => void handleRegistrarProducao(item.id_repositorio_recorda) },
-                            { label: 'Avançar Etapa', onClick: () => void handleOpenAvancar(item.id_repositorio_recorda), hidden: !etapaConfig.nextEtapaApi },
-                            { label: 'Devolver', onClick: () => void handleDevolverEtapaAnterior(item.id_repositorio_recorda), hidden: !etapaConfig.prevEtapaApi },
-                            { label: 'Excluir', onClick: () => handleOpenExcluir(item.id_repositorio_recorda), variant: 'danger', hidden: !isAdmin },
-                          ]} />
+                          <ActionMenu
+                            disabled={processando}
+                            items={[
+                              {
+                                label: 'Checklist',
+                                onClick: () =>
+                                  void handleAbrirChecklist(item.id_repositorio_recorda),
+                              },
+                              {
+                                label: 'Rel. Produção',
+                                onClick: () =>
+                                  void handleGerarRelatorioProducao(item.id_repositorio_recorda),
+                              },
+                              {
+                                label: 'Registrar Produção',
+                                onClick: () =>
+                                  void handleRegistrarProducao(item.id_repositorio_recorda),
+                              },
+                              {
+                                label: 'Avançar Etapa',
+                                onClick: () => void handleOpenAvancar(item.id_repositorio_recorda),
+                                hidden: !etapaConfig.nextEtapaApi,
+                              },
+                              {
+                                label: 'Devolver',
+                                onClick: () =>
+                                  void handleDevolverEtapaAnterior(item.id_repositorio_recorda),
+                                hidden: !etapaConfig.prevEtapaApi,
+                              },
+                              {
+                                label: 'Excluir',
+                                onClick: () => handleOpenExcluir(item.id_repositorio_recorda),
+                                variant: 'danger',
+                                hidden: !isAdmin,
+                              },
+                            ]}
+                          />
                         </td>
                       </tr>
                     ))
@@ -1192,113 +1592,182 @@ export function EtapaOperacionalPage(): JSX.Element {
                 </tbody>
               </table>
             </div>
-            <Pagination pagina={pagina} totalPaginas={totalPaginas} onChange={setPagina} disabled={carregando} />
+            <Pagination
+              pagina={pagina}
+              totalPaginas={totalPaginas}
+              onChange={setPagina}
+              disabled={carregando}
+            />
           </Card>
         ) : null}
 
-        {checklistModalOpen && checklistHeader ? (() => {
-          const preenchidos = checklistItens.filter((it) => it.resultado).length;
-          const totalItens = checklistItens.length;
-          const obrigatorios = checklistItens.filter((it) => it.obrigatorio).length;
-          const obrigatoriosPreenchidos = checklistItens.filter((it) => it.obrigatorio && it.resultado).length;
-          const todosObrigatoriosOk = obrigatoriosPreenchidos === obrigatorios;
+        {checklistModalOpen && checklistHeader
+          ? (() => {
+              const preenchidos = checklistItens.filter((it) => it.resultado).length;
+              const totalItens = checklistItens.length;
+              const obrigatorios = checklistItens.filter((it) => it.obrigatorio).length;
+              const obrigatoriosPreenchidos = checklistItens.filter(
+                (it) => it.obrigatorio && it.resultado
+              ).length;
+              const todosObrigatoriosOk = obrigatoriosPreenchidos === obrigatorios;
 
-          return (
-            <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 animate-fade-in">
-              <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[88vh] overflow-hidden flex flex-col animate-scale-in">
-                <div className="px-5 py-3 sm:px-6 sm:py-4 border-b flex items-center justify-between shrink-0">
-                  <div>
-                    <h3 className="text-base sm:text-lg font-semibold text-gray-900">Checklist — {checklistHeader.etapa}</h3>
-                    <p className="text-sm text-gray-500 mt-0.5">
-                      {preenchidos}/{totalItens} preenchidos
-                      {obrigatorios > 0 ? ` · ${obrigatoriosPreenchidos}/${obrigatorios} obrigatórios` : ''}
-                    </p>
-                  </div>
-                  <Button variant="ghost" icon="x" iconOnly onClick={() => setChecklistModalOpen(false)} />
-                </div>
+              return (
+                <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 animate-fade-in">
+                  <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[88vh] overflow-hidden flex flex-col animate-scale-in">
+                    <div className="px-5 py-3 sm:px-6 sm:py-4 border-b flex items-center justify-between shrink-0">
+                      <div>
+                        <h3 className="text-base sm:text-lg font-semibold text-gray-900">
+                          Checklist — {checklistHeader.etapa}
+                        </h3>
+                        <p className="text-sm text-gray-500 mt-0.5">
+                          {preenchidos}/{totalItens} preenchidos
+                          {obrigatorios > 0
+                            ? ` · ${obrigatoriosPreenchidos}/${obrigatorios} obrigatórios`
+                            : ''}
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        icon="x"
+                        iconOnly
+                        onClick={() => setChecklistModalOpen(false)}
+                      />
+                    </div>
 
-                <div className="flex-1 overflow-auto p-5 sm:p-6 space-y-2">
-                  {checklistItens.map((item, idx) => {
-                    const preenchido = !!item.resultado;
-                    const naoConforme = item.resultado === 'NAO_CONFORME_COM_TRATATIVA';
-                    return (
-                      <div key={item.id} className={`border rounded-lg px-4 py-3 transition-colors ${preenchido ? 'border-blue-200 bg-blue-50/30' : 'border-gray-200'}`}>
-                        <div className="flex items-start gap-3">
-                          <span className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold mt-0.5 ${preenchido ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'}`}>
-                            {idx + 1}
-                          </span>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-2">
-                              <span className="text-sm font-medium text-gray-900">{item.descricao}</span>
-                              {item.obrigatorio ? <span className="text-[10px] font-semibold text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded">Obrigatório</span> : null}
-                            </div>
-                            <div className="flex flex-col sm:flex-row gap-2">
-                              <select
-                                className={`h-9 px-3 border rounded-lg text-sm flex-shrink-0 sm:w-56 ${!preenchido && item.obrigatorio ? 'border-blue-300' : 'border-gray-300'}`}
-                                value={item.resultado ?? ''}
-                                onChange={(e) => {
-                                  const value = e.target.value as ResultadoChecklist;
-                                  setChecklistItens((prev) => prev.map((it) => it.id === item.id ? { ...it, resultado: value || null } : it));
-                                }}
+                    <div className="flex-1 overflow-auto p-5 sm:p-6 space-y-2">
+                      {checklistItens.map((item, idx) => {
+                        const preenchido = !!item.resultado;
+                        const naoConforme = item.resultado === 'NAO_CONFORME_COM_TRATATIVA';
+                        return (
+                          <div
+                            key={item.id}
+                            className={`border rounded-lg px-4 py-3 transition-colors ${preenchido ? 'border-blue-200 bg-blue-50/30' : 'border-gray-200'}`}
+                          >
+                            <div className="flex items-start gap-3">
+                              <span
+                                className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold mt-0.5 ${preenchido ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'}`}
                               >
-                                <option value="">— Selecione —</option>
-                                <option value="CONFORME">Conforme</option>
-                                <option value="NAO_CONFORME_COM_TRATATIVA">Não conforme c/ tratativa</option>
-                              </select>
-                              {naoConforme ? (
-                                <input
-                                  type="text"
-                                  className="h-9 px-3 border border-gray-300 rounded-lg text-sm flex-1"
-                                  placeholder="Observação (obrigatória para não conforme)"
-                                  value={item.observacao ?? ''}
-                                  onChange={(e) => setChecklistItens((prev) => prev.map((it) => it.id === item.id ? { ...it, observacao: e.target.value } : it))}
-                                />
-                              ) : null}
+                                {idx + 1}
+                              </span>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <span className="text-sm font-medium text-gray-900">
+                                    {item.descricao}
+                                  </span>
+                                  {item.obrigatorio ? (
+                                    <span className="text-[10px] font-semibold text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded">
+                                      Obrigatório
+                                    </span>
+                                  ) : null}
+                                </div>
+                                <div className="flex flex-col sm:flex-row gap-2">
+                                  <select
+                                    className={`h-9 px-3 border rounded-lg text-sm flex-shrink-0 sm:w-56 ${!preenchido && item.obrigatorio ? 'border-blue-300' : 'border-gray-300'}`}
+                                    value={item.resultado ?? ''}
+                                    onChange={(e) => {
+                                      const value = e.target.value as ResultadoChecklist;
+                                      setChecklistItens((prev) =>
+                                        prev.map((it) =>
+                                          it.id === item.id
+                                            ? { ...it, resultado: value || null }
+                                            : it
+                                        )
+                                      );
+                                    }}
+                                  >
+                                    <option value="">— Selecione —</option>
+                                    <option value="CONFORME">Conforme</option>
+                                    <option value="NAO_CONFORME_COM_TRATATIVA">
+                                      Não conforme c/ tratativa
+                                    </option>
+                                  </select>
+                                  {naoConforme ? (
+                                    <input
+                                      type="text"
+                                      className="h-9 px-3 border border-gray-300 rounded-lg text-sm flex-1"
+                                      placeholder="Observação (obrigatória para não conforme)"
+                                      value={item.observacao ?? ''}
+                                      onChange={(e) =>
+                                        setChecklistItens((prev) =>
+                                          prev.map((it) =>
+                                            it.id === item.id
+                                              ? { ...it, observacao: e.target.value }
+                                              : it
+                                          )
+                                        )
+                                      }
+                                    />
+                                  ) : null}
+                                </div>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                        );
+                      })}
+                    </div>
 
-                <div className="px-5 py-3 sm:px-6 sm:py-4 border-t flex items-center justify-between shrink-0">
-                  <p className="text-xs text-gray-500">
-                    {todosObrigatoriosOk ? 'Todos os itens obrigatórios preenchidos.' : `Faltam ${obrigatorios - obrigatoriosPreenchidos} item(ns) obrigatório(s).`}
-                  </p>
-                  <div className="flex gap-2">
-                    <Button variant="secondary" onClick={() => setChecklistModalOpen(false)}>Cancelar</Button>
-                    <Button onClick={() => void handleConcluirChecklist()} loading={processando} disabled={!todosObrigatoriosOk}>
-                      Concluir Checklist
-                    </Button>
+                    <div className="px-5 py-3 sm:px-6 sm:py-4 border-t flex items-center justify-between shrink-0">
+                      <p className="text-xs text-gray-500">
+                        {todosObrigatoriosOk
+                          ? 'Todos os itens obrigatórios preenchidos.'
+                          : `Faltam ${obrigatorios - obrigatoriosPreenchidos} item(ns) obrigatório(s).`}
+                      </p>
+                      <div className="flex gap-2">
+                        <Button variant="secondary" onClick={() => setChecklistModalOpen(false)}>
+                          Cancelar
+                        </Button>
+                        <Button
+                          onClick={() => void handleConcluirChecklist()}
+                          loading={processando}
+                          disabled={!todosObrigatoriosOk}
+                        >
+                          Concluir Checklist
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
-          );
-        })() : null}
+              );
+            })()
+          : null}
 
         {avancarModalOpen ? (
           <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 animate-fade-in">
             <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[88vh] overflow-hidden flex flex-col animate-scale-in">
               <div className="px-6 py-4 border-b shrink-0">
-                <h3 className="text-lg font-semibold text-gray-900">Avançar para {etapaConfig.nextEtapaApi}</h3>
-                <p className="text-sm text-gray-500 mt-1">Verifique os documentos e confirme o avanço.</p>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Avançar para {etapaConfig.nextEtapaApi}
+                </h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  Verifique os documentos e confirme o avanço.
+                </p>
               </div>
 
               <div className="flex-1 overflow-auto px-6 py-4">
-                <h4 className="text-sm font-semibold text-gray-900 mb-2">Processos no repositório ({avancarDocs.length})</h4>
+                <h4 className="text-sm font-semibold text-gray-900 mb-2">
+                  Processos no repositório ({avancarDocs.length})
+                </h4>
                 {avancarDocs.length === 0 ? (
-                  <p className="text-sm text-gray-500 bg-gray-50 rounded-lg p-3">Nenhum Processo cadastrado neste Repositório.</p>
+                  <p className="text-sm text-gray-500 bg-gray-50 rounded-lg p-3">
+                    Nenhum Processo cadastrado neste Repositório.
+                  </p>
                 ) : (
                   <div className="overflow-x-auto max-h-56 overflow-y-auto border rounded-lg">
                     <table className="min-w-full divide-y divide-gray-200">
                       <thead className="bg-gray-50 sticky top-0">
                         <tr>
-                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">#</th>
-                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Protocolo</th>
-                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Interessado</th>
-                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Vol.</th>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">
+                            #
+                          </th>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">
+                            Protocolo
+                          </th>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">
+                            Interessado
+                          </th>
+                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">
+                            Vol.
+                          </th>
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-100">
@@ -1324,7 +1793,9 @@ export function EtapaOperacionalPage(): JSX.Element {
                       onChange={(e) => setAvancarConfirmado(e.target.checked)}
                     />
                     <span className="text-sm text-gray-700">
-                      Confirmo que todos os <strong>{avancarDocs.length} documento(s)</strong> listados acima estão presentes no <strong>físico</strong> e no <strong>GED</strong>.
+                      Confirmo que todos os <strong>{avancarDocs.length} documento(s)</strong>{' '}
+                      listados acima estão presentes no <strong>físico</strong> e no{' '}
+                      <strong>GED</strong>.
                     </span>
                   </label>
                 ) : null}
@@ -1332,11 +1803,21 @@ export function EtapaOperacionalPage(): JSX.Element {
 
               <div className="px-6 py-4 border-t flex items-center justify-between shrink-0">
                 <p className="text-xs text-gray-500">
-                  {avancarDocs.length === 0 ? 'Sem processos cadastrados.' : !avancarConfirmado ? 'Marque a confirmação para prosseguir.' : 'Pronto para avançar.'}
+                  {avancarDocs.length === 0
+                    ? 'Sem processos cadastrados.'
+                    : !avancarConfirmado
+                      ? 'Marque a confirmação para prosseguir.'
+                      : 'Pronto para avançar.'}
                 </p>
                 <div className="flex gap-2">
-                  <Button variant="secondary" onClick={() => setAvancarModalOpen(false)}>Cancelar</Button>
-                  <Button onClick={() => void handleConfirmarAvancar()} loading={processando} disabled={avancarDocs.length > 0 && !avancarConfirmado}>
+                  <Button variant="secondary" onClick={() => setAvancarModalOpen(false)}>
+                    Cancelar
+                  </Button>
+                  <Button
+                    onClick={() => void handleConfirmarAvancar()}
+                    loading={processando}
+                    disabled={avancarDocs.length > 0 && !avancarConfirmado}
+                  >
                     Confirmar Avanço
                   </Button>
                 </div>
@@ -1364,7 +1845,9 @@ export function EtapaOperacionalPage(): JSX.Element {
             <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[80vh] overflow-hidden flex flex-col animate-scale-in">
               <div className="px-6 py-4 border-b">
                 <h3 className="text-lg font-semibold text-gray-900">Importação em Lote</h3>
-                <p className="text-sm text-gray-500 mt-1">Formato: protocolo (TAB) interessado — um por linha.</p>
+                <p className="text-sm text-gray-500 mt-1">
+                  Formato: protocolo (TAB) interessado — um por linha.
+                </p>
               </div>
 
               <div className="px-6 py-3">
@@ -1391,11 +1874,15 @@ export function EtapaOperacionalPage(): JSX.Element {
                   value={batchText}
                   onChange={(e) => setBatchText(e.target.value)}
                 />
-                <p className="text-xs text-gray-500 mt-1">Separe protocolo e interessado com TAB.</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Separe protocolo e interessado com TAB.
+                </p>
               </div>
 
               <div className="px-6 py-4 border-t flex justify-end gap-2">
-                <Button variant="secondary" onClick={() => setBatchAddModalOpen(false)}>Cancelar</Button>
+                <Button variant="secondary" onClick={() => setBatchAddModalOpen(false)}>
+                  Cancelar
+                </Button>
                 <Button
                   onClick={() => void handleAdicionarEmLote()}
                   loading={processando}
@@ -1414,7 +1901,9 @@ export function EtapaOperacionalPage(): JSX.Element {
               <div className="px-6 py-4 border-b flex items-center justify-between shrink-0">
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900">Recebimento — Processos</h3>
-                  <p className="text-sm text-gray-500">ID GED: {ocrRepo.id_repositorio_ged} · {ocrRepo.orgao}</p>
+                  <p className="text-sm text-gray-500">
+                    ID GED: {ocrRepo.id_repositorio_ged} · {ocrRepo.orgao}
+                  </p>
                 </div>
                 <Button variant="ghost" icon="x" iconOnly onClick={() => setOcrModalOpen(false)} />
               </div>
@@ -1440,7 +1929,9 @@ export function EtapaOperacionalPage(): JSX.Element {
                   <>
                     {/* OCR Upload */}
                     <Card>
-                      <h4 className="text-sm font-semibold text-gray-900 mb-3">Imagem do Protocolo</h4>
+                      <h4 className="text-sm font-semibold text-gray-900 mb-3">
+                        Imagem do Protocolo
+                      </h4>
                       <div className="flex flex-wrap items-center gap-2">
                         <input
                           type="file"
@@ -1449,10 +1940,22 @@ export function EtapaOperacionalPage(): JSX.Element {
                           className="block w-full sm:flex-1 text-sm text-gray-700"
                         />
                         <div className="flex gap-2">
-                          <Button size="sm" onClick={() => void handleProcessarOCR()} loading={ocrProcessando}>
+                          <Button
+                            size="sm"
+                            onClick={() => void handleProcessarOCR()}
+                            loading={ocrProcessando}
+                          >
                             Processar OCR
                           </Button>
-                          <Button size="sm" variant="secondary" onClick={() => { setOcrImagemBase64(''); setOcrPreview(null); }} disabled={ocrProcessando}>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => {
+                              setOcrImagemBase64('');
+                              setOcrPreview(null);
+                            }}
+                            disabled={ocrProcessando}
+                          >
                             Limpar
                           </Button>
                         </div>
@@ -1466,10 +1969,14 @@ export function EtapaOperacionalPage(): JSX.Element {
 
                     {/* Formulário simplificado */}
                     <Card>
-                      <h4 className="text-sm font-semibold text-gray-900 mb-3">Cadastro de Documento</h4>
+                      <h4 className="text-sm font-semibold text-gray-900 mb-3">
+                        Cadastro de Documento
+                      </h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de cadastro</label>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Tipo de cadastro
+                          </label>
                           <select
                             className="w-full h-9 px-3 border rounded-lg text-sm"
                             value={apensoModalOpen ? 'APENSO' : 'PROCESSO'}
@@ -1485,7 +1992,9 @@ export function EtapaOperacionalPage(): JSX.Element {
                         </div>
                         {apensoModalOpen ? (
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Processo Principal</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Processo Principal
+                            </label>
                             <select
                               className="w-full h-9 px-3 border rounded-lg text-sm"
                               value={apensoProcessoId}
@@ -1509,23 +2018,31 @@ export function EtapaOperacionalPage(): JSX.Element {
                         <Input
                           label="Interessado *"
                           value={docForm.interessado}
-                          onChange={(e) => setDocForm((p) => ({ ...p, interessado: e.target.value }))}
+                          onChange={(e) =>
+                            setDocForm((p) => ({ ...p, interessado: e.target.value }))
+                          }
                           placeholder="Ex: JBS S/A"
                         />
 
                         {/* Setor - creatable selector */}
                         {!apensoModalOpen ? (
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Setor (quem enviou)</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Setor (quem enviou)
+                            </label>
                             <div className="flex gap-1">
                               <select
                                 className="flex-1 h-9 px-3 border rounded-lg text-sm"
                                 value={docForm.setorId}
-                                onChange={(e) => setDocForm((p) => ({ ...p, setorId: e.target.value }))}
+                                onChange={(e) =>
+                                  setDocForm((p) => ({ ...p, setorId: e.target.value }))
+                                }
                               >
                                 <option value="">— Selecione —</option>
                                 {setoresOptions.map((s) => (
-                                  <option key={s.id} value={s.id}>{s.nome}</option>
+                                  <option key={s.id} value={s.id}>
+                                    {s.nome}
+                                  </option>
                                 ))}
                               </select>
                             </div>
@@ -1536,7 +2053,12 @@ export function EtapaOperacionalPage(): JSX.Element {
                                 placeholder="Novo setor..."
                                 value={novoSetorInput}
                                 onChange={(e) => setNovoSetorInput(e.target.value)}
-                                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void handleCriarSetor(); } }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    void handleCriarSetor();
+                                  }
+                                }}
                               />
                               <button
                                 type="button"
@@ -1557,7 +2079,12 @@ export function EtapaOperacionalPage(): JSX.Element {
                               type="number"
                               min={1}
                               value={String(docForm.volumeAtual)}
-                              onChange={(e) => setDocForm((p) => ({ ...p, volumeAtual: Math.max(Number(e.target.value || 1), 1) }))}
+                              onChange={(e) =>
+                                setDocForm((p) => ({
+                                  ...p,
+                                  volumeAtual: Math.max(Number(e.target.value || 1), 1),
+                                }))
+                              }
                             />
                           </div>
                           <span className="self-end pb-2 text-gray-500 text-sm">de</span>
@@ -1567,27 +2094,52 @@ export function EtapaOperacionalPage(): JSX.Element {
                               type="number"
                               min={0}
                               value={String(docForm.volumeTotal)}
-                              onChange={(e) => setDocForm((p) => ({ ...p, volumeTotal: Math.max(Number(e.target.value || 0), 0) }))}
+                              onChange={(e) =>
+                                setDocForm((p) => ({
+                                  ...p,
+                                  volumeTotal: Math.max(Number(e.target.value || 0), 0),
+                                }))
+                              }
                             />
                           </div>
                         </div>
                       </div>
                       <div className="mt-4 flex gap-2">
                         {apensoModalOpen ? (
-                          <Button onClick={() => void handleAdicionarApenso()} loading={ocrProcessando}>
+                          <Button
+                            onClick={() => void handleAdicionarApenso()}
+                            loading={ocrProcessando}
+                          >
                             Salvar Apenso
                           </Button>
                         ) : (
-                          <Button onClick={() => void handleSalvarProcessoRecebimento()} loading={ocrProcessando}>
+                          <Button
+                            onClick={() => void handleSalvarProcessoRecebimento()}
+                            loading={ocrProcessando}
+                          >
                             Salvar Processo
                           </Button>
                         )}
                         {apensoModalOpen ? (
-                          <Button variant="secondary" onClick={() => { setApensoModalOpen(false); setApensoProcessoId(''); setDocForm({ ...EMPTY_DOC_FORM }); }}>
+                          <Button
+                            variant="secondary"
+                            onClick={() => {
+                              setApensoModalOpen(false);
+                              setApensoProcessoId('');
+                              setDocForm({ ...EMPTY_DOC_FORM });
+                            }}
+                          >
                             Cancelar Apenso
                           </Button>
                         ) : (
-                          <Button variant="secondary" onClick={() => { setDocForm({ ...EMPTY_DOC_FORM }); setOcrPreview(null); setOcrImagemBase64(''); }}>
+                          <Button
+                            variant="secondary"
+                            onClick={() => {
+                              setDocForm({ ...EMPTY_DOC_FORM });
+                              setOcrPreview(null);
+                              setOcrImagemBase64('');
+                            }}
+                          >
                             Limpar Formulário
                           </Button>
                         )}
@@ -1598,14 +2150,26 @@ export function EtapaOperacionalPage(): JSX.Element {
                   /* Tab Processos */
                   <Card>
                     <div className="flex items-center justify-between mb-3">
-                      <h4 className="text-sm font-semibold text-gray-900">Processos registrados ({recebProcessos.length})</h4>
-                      <Button size="sm" onClick={() => { setDocForm({ ...EMPTY_DOC_FORM }); setApensoModalOpen(false); setApensoProcessoId(''); setRecebTab('ocr'); }}>
+                      <h4 className="text-sm font-semibold text-gray-900">
+                        Processos registrados ({recebProcessos.length})
+                      </h4>
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          setDocForm({ ...EMPTY_DOC_FORM });
+                          setApensoModalOpen(false);
+                          setApensoProcessoId('');
+                          setRecebTab('ocr');
+                        }}
+                      >
                         + Novo Processo
                       </Button>
                     </div>
 
                     {recebProcessos.length === 0 ? (
-                      <p className="text-sm text-gray-500 text-center py-8">Nenhum Processo registrado.</p>
+                      <p className="text-sm text-gray-500 text-center py-8">
+                        Nenhum Processo registrado.
+                      </p>
                     ) : (
                       <div className="space-y-3">
                         {recebProcessos.map((proc) => (
@@ -1614,14 +2178,19 @@ export function EtapaOperacionalPage(): JSX.Element {
                             <div className="bg-blue-50 px-3 py-3">
                               {/* Protocolo + Volume */}
                               <div className="flex items-center gap-2 mb-1">
-                                <span className="font-bold text-base text-blue-900">{proc.protocolo}</span>
+                                <span className="font-bold text-base text-blue-900">
+                                  {proc.protocolo}
+                                </span>
                                 <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded whitespace-nowrap">
-                                  Vol. {proc.volume_atual}{proc.volume_total > 0 ? `/${proc.volume_total}` : ''}
+                                  Vol. {proc.volume_atual}
+                                  {proc.volume_total > 0 ? `/${proc.volume_total}` : ''}
                                 </span>
                               </div>
                               {/* Origem + Interessado */}
                               <div className="flex items-center gap-2 mb-1">
-                                <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">{proc.origem}</span>
+                                <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">
+                                  {proc.origem}
+                                </span>
                                 <span className="text-sm text-gray-800">{proc.interessado}</span>
                               </div>
                               {/* Setor e Classificação */}
@@ -1629,20 +2198,31 @@ export function EtapaOperacionalPage(): JSX.Element {
                                 <p className="text-xs text-gray-500">
                                   {proc.setor_nome && <>Setor: {proc.setor_nome}</>}
                                   {proc.setor_nome && proc.classificacao_nome && ' · '}
-                                  {proc.classificacao_nome && <>Classif: {proc.classificacao_nome}</>}
+                                  {proc.classificacao_nome && (
+                                    <>Classif: {proc.classificacao_nome}</>
+                                  )}
                                 </p>
                               )}
                               {/* Botões em linha separada */}
                               <div className="flex gap-2 mt-2 pt-2 border-t border-blue-100">
-                                <Button size="xs" variant="outline" onClick={() => {
-                                  setApensoProcessoId(proc.id);
-                                  setApensoModalOpen(true);
-                                  setDocForm({ ...EMPTY_DOC_FORM });
-                                  setRecebTab('ocr');
-                                }}>
+                                <Button
+                                  size="xs"
+                                  variant="outline"
+                                  onClick={() => {
+                                    setApensoProcessoId(proc.id);
+                                    setApensoModalOpen(true);
+                                    setDocForm({ ...EMPTY_DOC_FORM });
+                                    setRecebTab('ocr');
+                                  }}
+                                >
                                   + Apenso
                                 </Button>
-                                <Button size="xs" variant="danger" onClick={() => handleExcluirProcessoRecebimento(proc.id)} disabled={ocrProcessando}>
+                                <Button
+                                  size="xs"
+                                  variant="danger"
+                                  onClick={() => handleExcluirProcessoRecebimento(proc.id)}
+                                  disabled={ocrProcessando}
+                                >
                                   Excluir
                                 </Button>
                               </div>
@@ -1655,14 +2235,26 @@ export function EtapaOperacionalPage(): JSX.Element {
                                   <div key={ap.id} className="px-3 py-2 border-b last:border-b-0">
                                     <div className="flex items-center gap-2 mb-0.5">
                                       <span className="text-xs text-gray-400">↳</span>
-                                      <span className="font-semibold text-sm text-gray-800">{ap.protocolo}</span>
+                                      <span className="font-semibold text-sm text-gray-800">
+                                        {ap.protocolo}
+                                      </span>
                                       <span className="text-xs bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded whitespace-nowrap">
-                                        Vol. {ap.volume_atual}{ap.volume_total > 0 ? `/${ap.volume_total}` : ''}
+                                        Vol. {ap.volume_atual}
+                                        {ap.volume_total > 0 ? `/${ap.volume_total}` : ''}
                                       </span>
                                     </div>
-                                    {ap.interessado && <p className="text-xs text-gray-600 ml-4 mb-1">{ap.interessado}</p>}
+                                    {ap.interessado && (
+                                      <p className="text-xs text-gray-600 ml-4 mb-1">
+                                        {ap.interessado}
+                                      </p>
+                                    )}
                                     <div className="ml-4">
-                                      <Button size="xs" variant="danger" onClick={() => handleExcluirApenso(ap.id)} disabled={ocrProcessando}>
+                                      <Button
+                                        size="xs"
+                                        variant="danger"
+                                        onClick={() => handleExcluirApenso(ap.id)}
+                                        disabled={ocrProcessando}
+                                      >
                                         Excluir
                                       </Button>
                                     </div>
@@ -1679,7 +2271,9 @@ export function EtapaOperacionalPage(): JSX.Element {
               </div>
 
               <div className="px-6 py-3 border-t flex justify-end shrink-0">
-                <Button variant="secondary" onClick={() => setOcrModalOpen(false)}>Fechar</Button>
+                <Button variant="secondary" onClick={() => setOcrModalOpen(false)}>
+                  Fechar
+                </Button>
               </div>
             </div>
           </div>
@@ -1696,7 +2290,9 @@ export function EtapaOperacionalPage(): JSX.Element {
                     size="sm"
                     variant="secondary"
                     onClick={() => {
-                      const iframe = document.getElementById('termo-preview-iframe') as HTMLIFrameElement | null;
+                      const iframe = document.getElementById(
+                        'termo-preview-iframe'
+                      ) as HTMLIFrameElement | null;
                       if (iframe?.contentWindow) iframe.contentWindow.print();
                     }}
                   >
@@ -1705,7 +2301,15 @@ export function EtapaOperacionalPage(): JSX.Element {
                   <Button size="sm" onClick={() => void handleDownloadTermo()}>
                     Baixar PDF
                   </Button>
-                  <Button size="sm" variant="secondary" onClick={() => { if (previewTermoUrl) URL.revokeObjectURL(previewTermoUrl); setPreviewTermoUrl(null); setPreviewTermoReportId(null); }}>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => {
+                      if (previewTermoUrl) URL.revokeObjectURL(previewTermoUrl);
+                      setPreviewTermoUrl(null);
+                      setPreviewTermoReportId(null);
+                    }}
+                  >
                     Fechar
                   </Button>
                 </div>

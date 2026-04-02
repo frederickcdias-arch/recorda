@@ -73,7 +73,10 @@ describe('queryKeys', () => {
   });
 
   it('generates parameterized keys', () => {
-    expect(queryKeys.repositorios({ pagina: 1, limite: 50 })).toEqual(['repositorios', { pagina: 1, limite: 50 }]);
+    expect(queryKeys.repositorios({ pagina: 1, limite: 50 })).toEqual([
+      'repositorios',
+      { pagina: 1, limite: 50 },
+    ]);
     expect(queryKeys.auditoria({ pagina: 1 })).toEqual(['auditoria', { pagina: 1 }]);
     expect(queryKeys.producao({ pagina: 1 })).toEqual(['producao', { pagina: 1 }]);
     expect(queryKeys.conhecimentoDetalhe('abc')).toEqual(['conhecimento-detalhe', 'abc']);
@@ -100,8 +103,16 @@ describe('useRepositorios', () => {
     mockGet.mockResolvedValueOnce({ itens: [], total: 0, pagina: 1, totalPaginas: 1 });
 
     const { result } = renderHook(
-      () => useRepositorios({ etapa: 'RECEBIMENTO', orgao: 'SGPA', dataInicio: '2026-01-01', dataFim: '2026-12-31', pagina: 1, limite: 50 }),
-      { wrapper },
+      () =>
+        useRepositorios({
+          etapa: 'RECEBIMENTO',
+          orgao: 'SGPA',
+          dataInicio: '2026-01-01',
+          dataFim: '2026-12-31',
+          pagina: 1,
+          limite: 50,
+        }),
+      { wrapper }
     );
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -218,9 +229,19 @@ describe('useRegisterUsuario', () => {
     mockPost.mockResolvedValueOnce({});
 
     const { result } = renderHook(() => useRegisterUsuario(), { wrapper });
-    await result.current.mutateAsync({ email: 'a@b.com', nome: 'A', senha: '123', perfil: 'operador' });
+    await result.current.mutateAsync({
+      email: 'a@b.com',
+      nome: 'A',
+      senha: '123',
+      perfil: 'operador',
+    });
 
-    expect(mockPost).toHaveBeenCalledWith('/auth/register', { email: 'a@b.com', nome: 'A', senha: '123', perfil: 'operador' });
+    expect(mockPost).toHaveBeenCalledWith('/auth/register', {
+      email: 'a@b.com',
+      nome: 'A',
+      senha: '123',
+      perfil: 'operador',
+    });
   });
 });
 
@@ -255,23 +276,29 @@ describe('useCriarClassificacaoRecebimento', () => {
     const { result } = renderHook(() => useCriarClassificacaoRecebimento(), { wrapper });
     const created = await result.current.mutateAsync('Classif Y');
 
-    expect(mockPost).toHaveBeenCalledWith('/operacional/classificacoes-recebimento', { nome: 'Classif Y' });
+    expect(mockPost).toHaveBeenCalledWith('/operacional/classificacoes-recebimento', {
+      nome: 'Classif Y',
+    });
     expect(created).toEqual({ id: 'c1', nome: 'Classif Y' });
   });
 });
 
 describe('useOcrPreview', () => {
   it('posts OCR preview request', async () => {
-    const preview = { protocolo: '123', interessado: 'João', textoExtraido: 'text', confianca: 0.95 };
+    const preview = {
+      protocolo: '123',
+      interessado: 'João',
+      textoExtraido: 'text',
+      confianca: 0.95,
+    };
     mockPost.mockResolvedValueOnce(preview);
 
     const { result } = renderHook(() => useOcrPreview(), { wrapper });
     const data = await result.current.mutateAsync({ repoId: 'repo-1', imagemBase64: 'base64data' });
 
-    expect(mockPost).toHaveBeenCalledWith(
-      '/operacional/repositorios/repo-1/ocr-preview',
-      { imagemBase64: 'base64data' },
-    );
+    expect(mockPost).toHaveBeenCalledWith('/operacional/repositorios/repo-1/ocr-preview', {
+      imagemBase64: 'base64data',
+    });
     expect(data.protocolo).toBe('123');
   });
 });
@@ -292,7 +319,7 @@ describe('useCriarProcessoRecebimento', () => {
 
     expect(mockPost).toHaveBeenCalledWith(
       '/operacional/repositorios/repo-1/recebimento-processos',
-      expect.objectContaining({ protocolo: 'PROT-1', interessado: 'Maria' }),
+      expect.objectContaining({ protocolo: 'PROT-1', interessado: 'Maria' })
     );
   });
 });
@@ -323,7 +350,7 @@ describe('useCriarApenso', () => {
 
     expect(mockPost).toHaveBeenCalledWith(
       '/operacional/recebimento-processos/proc-1/apensos',
-      expect.objectContaining({ protocolo: 'AP-1' }),
+      expect.objectContaining({ protocolo: 'AP-1' })
     );
   });
 });
@@ -344,7 +371,10 @@ describe('useVincularProcessos', () => {
     mockPatch.mockResolvedValueOnce({ vinculados: 3 });
 
     const { result } = renderHook(() => useVincularProcessos(), { wrapper });
-    const data = await result.current.mutateAsync({ processoIds: ['a', 'b', 'c'], repositorioId: 'repo-1' });
+    const data = await result.current.mutateAsync({
+      processoIds: ['a', 'b', 'c'],
+      repositorioId: 'repo-1',
+    });
 
     expect(mockPatch).toHaveBeenCalledWith('/operacional/recebimento-processos/vincular', {
       processoIds: ['a', 'b', 'c'],
@@ -385,7 +415,12 @@ describe('useAvaliarItemCQ', () => {
     mockPatch.mockResolvedValueOnce({});
 
     const { result } = renderHook(() => useAvaliarItemCQ(), { wrapper });
-    await result.current.mutateAsync({ loteId: 'l1', itemId: 'i1', resultado: 'REPROVADO', motivoCodigo: 'NAO_CONFORME' });
+    await result.current.mutateAsync({
+      loteId: 'l1',
+      itemId: 'i1',
+      resultado: 'REPROVADO',
+      motivoCodigo: 'NAO_CONFORME',
+    });
 
     expect(mockPatch).toHaveBeenCalledWith('/operacional/lotes-cq/l1/itens/i1', {
       resultado: 'REPROVADO',
@@ -408,8 +443,18 @@ describe('useFecharLoteCQ', () => {
 // ─── New Query Keys ─────────────────────────────────────────
 describe('queryKeys (new)', () => {
   it('generates checklist keys', () => {
-    expect(queryKeys.checklistsRepo('r1', 'RECEBIMENTO')).toEqual(['checklists-repo', 'r1', 'RECEBIMENTO', 'all']);
-    expect(queryKeys.checklistsRepo('r1', 'RECEBIMENTO', true)).toEqual(['checklists-repo', 'r1', 'RECEBIMENTO', true]);
+    expect(queryKeys.checklistsRepo('r1', 'RECEBIMENTO')).toEqual([
+      'checklists-repo',
+      'r1',
+      'RECEBIMENTO',
+      'all',
+    ]);
+    expect(queryKeys.checklistsRepo('r1', 'RECEBIMENTO', true)).toEqual([
+      'checklists-repo',
+      'r1',
+      'RECEBIMENTO',
+      true,
+    ]);
     expect(queryKeys.checklistDetalhe('ck1')).toEqual(['checklist-detalhe', 'ck1']);
   });
 

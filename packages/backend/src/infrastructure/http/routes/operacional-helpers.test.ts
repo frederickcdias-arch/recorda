@@ -83,13 +83,19 @@ Assunto: Requerimento`;
   });
 
   it('extracts protocolo with "n.:" format (government standard)', () => {
-    const result = extractOCRPreview('Protocolo n.: 13142/2024 Data:09/08/2024\nInteressado(a): MARIA CECILIA BOTINI HANEL', 85);
+    const result = extractOCRPreview(
+      'Protocolo n.: 13142/2024 Data:09/08/2024\nInteressado(a): MARIA CECILIA BOTINI HANEL',
+      85
+    );
     expect(result.protocolo).toBe('13142/2024');
     expect(result.interessado).toBe('MARIA CECILIA BOTINI HANEL');
   });
 
   it('extracts protocolo with OCR artifacts (extra hyphen)', () => {
-    const result = extractOCRPreview('Protocolo n.:-13142/2024 Data:09/08/2024 15:19\nInteressado(a): MARIA CECILIA BOTINI HANEL', 85);
+    const result = extractOCRPreview(
+      'Protocolo n.:-13142/2024 Data:09/08/2024 15:19\nInteressado(a): MARIA CECILIA BOTINI HANEL',
+      85
+    );
     expect(result.protocolo).toBe('13142/2024');
     expect(result.interessado).toBe('MARIA CECILIA BOTINI HANEL');
   });

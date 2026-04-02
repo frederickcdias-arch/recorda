@@ -11,11 +11,14 @@ interface AuditoriaPageProps {
   categoria?: AuditoriaCategoria;
 }
 
-const CATEGORIA_CONFIG: Record<AuditoriaCategoria, {
-  titulo: string;
-  descricao: string;
-  tabelasFiltro: string[];
-}> = {
+const CATEGORIA_CONFIG: Record<
+  AuditoriaCategoria,
+  {
+    titulo: string;
+    descricao: string;
+    tabelasFiltro: string[];
+  }
+> = {
   importacoes: {
     titulo: 'Auditoria de Importações',
     descricao: 'Histórico de importações e registros importados',
@@ -41,7 +44,7 @@ const CATEGORIA_CONFIG: Record<AuditoriaCategoria, {
 export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
   const config = categoria ? CATEGORIA_CONFIG[categoria] : null;
   const queryClient = useQueryClient();
-  
+
   // Filtros
   const [filtroTabela, setFiltroTabela] = useState('');
   const [filtroOperacao, setFiltroOperacao] = useState('');
@@ -51,12 +54,18 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
     return d.toISOString().split('T')[0];
   });
   const [dataFim, setDataFim] = useState(() => new Date().toISOString().split('T')[0]);
-  
+
   const [pagina, setPagina] = useState(1);
   const [expandido, setExpandido] = useState<string | null>(null);
 
-  const tabelaEfetiva = filtroTabela || (config && config.tabelasFiltro.length > 0 ? config.tabelasFiltro.join(',') : '') || undefined;
-  const operacaoEfetiva = filtroOperacao || (config && config.tabelasFiltro.length === 0 && !filtroTabela ? 'UPDATE' : '') || undefined;
+  const tabelaEfetiva =
+    filtroTabela ||
+    (config && config.tabelasFiltro.length > 0 ? config.tabelasFiltro.join(',') : '') ||
+    undefined;
+  const operacaoEfetiva =
+    filtroOperacao ||
+    (config && config.tabelasFiltro.length === 0 && !filtroTabela ? 'UPDATE' : '') ||
+    undefined;
 
   const auditoriaQuery = useAuditoria({
     pagina,
@@ -70,7 +79,13 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
   const totalPaginas = auditoriaQuery.data?.totalPaginas ?? 1;
   const carregando = auditoriaQuery.isLoading;
   const erro = auditoriaQuery.error
-    ? { message: 'Erro ao Carregar Logs de Auditoria', details: auditoriaQuery.error instanceof Error ? auditoriaQuery.error.message : 'Verifique sua conexão' }
+    ? {
+        message: 'Erro ao Carregar Logs de Auditoria',
+        details:
+          auditoriaQuery.error instanceof Error
+            ? auditoriaQuery.error.message
+            : 'Verifique sua conexão',
+      }
     : null;
 
   const invalidate = () => void queryClient.invalidateQueries({ queryKey: ['auditoria'] });
@@ -112,16 +127,24 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
     return nomes[tabela] || tabela;
   };
 
-  const erroComAcao = erro ? { ...erro, action: { label: 'Tentar novamente', onClick: invalidate } } : null;
+  const erroComAcao = erro
+    ? { ...erro, action: { label: 'Tentar novamente', onClick: invalidate } }
+    : null;
 
   return (
-    <PageState loading={carregando} loadingMessage="Carregando Logs de Auditoria..." error={erroComAcao}>
+    <PageState
+      loading={carregando}
+      loadingMessage="Carregando Logs de Auditoria..."
+      error={erroComAcao}
+    >
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">{config?.titulo ?? 'Auditoria'}</h1>
-            <p className="text-gray-500 mt-1">{config?.descricao ?? 'Histórico de Alterações no sistema'}</p>
+            <p className="text-gray-500 mt-1">
+              {config?.descricao ?? 'Histórico de Alterações no sistema'}
+            </p>
           </div>
           <Button variant="secondary" icon="refresh-cw" onClick={invalidate}>
             Atualizar
@@ -180,7 +203,14 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
                 </select>
               </div>
               <div className="flex items-end">
-                <Button variant="primary" icon="search" onClick={() => { setPagina(1); invalidate(); }}>
+                <Button
+                  variant="primary"
+                  icon="search"
+                  onClick={() => {
+                    setPagina(1);
+                    invalidate();
+                  }}
+                >
                   Filtrar
                 </Button>
               </div>
@@ -200,8 +230,8 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
             ) : (
               <div className="space-y-4">
                 {logs.map((log) => (
-                  <div 
-                    key={log.id} 
+                  <div
+                    key={log.id}
                     className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
                   >
                     <div className="flex items-start gap-4">
@@ -211,9 +241,7 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-4">
                           <div>
-                            <p className="font-medium text-gray-900">
-                              {getTabelaNome(log.tabela)}
-                            </p>
+                            <p className="font-medium text-gray-900">{getTabelaNome(log.tabela)}</p>
                             <p className="text-sm text-gray-500">
                               {log.operacao === 'INSERT' && 'Registro criado'}
                               {log.operacao === 'UPDATE' && 'Registro atualizado'}
@@ -232,16 +260,22 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
                             </button>
                           </div>
                         </div>
-                        
+
                         {expandido === log.id && (
                           <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                             {log.dados_antigos && Object.keys(log.dados_antigos).length > 0 && (
                               <div>
                                 <div className="flex items-center justify-between mb-2">
-                                  <p className="text-xs font-medium text-gray-500">Dados Anteriores</p>
+                                  <p className="text-xs font-medium text-gray-500">
+                                    Dados Anteriores
+                                  </p>
                                   <button
                                     className="text-xs text-blue-600 hover:text-blue-800 font-medium"
-                                    onClick={() => void navigator.clipboard.writeText(JSON.stringify(log.dados_antigos, null, 2))}
+                                    onClick={() =>
+                                      void navigator.clipboard.writeText(
+                                        JSON.stringify(log.dados_antigos, null, 2)
+                                      )
+                                    }
                                   >
                                     Copiar
                                   </button>
@@ -257,7 +291,11 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
                                   <p className="text-xs font-medium text-gray-500">Dados Novos</p>
                                   <button
                                     className="text-xs text-blue-600 hover:text-blue-800 font-medium"
-                                    onClick={() => void navigator.clipboard.writeText(JSON.stringify(log.dados_novos, null, 2))}
+                                    onClick={() =>
+                                      void navigator.clipboard.writeText(
+                                        JSON.stringify(log.dados_novos, null, 2)
+                                      )
+                                    }
                                   >
                                     Copiar
                                   </button>
@@ -288,7 +326,7 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
                   variant="secondary"
                   size="sm"
                   disabled={pagina === 1}
-                  onClick={() => setPagina(p => p - 1)}
+                  onClick={() => setPagina((p) => p - 1)}
                 >
                   Anterior
                 </Button>
@@ -296,7 +334,7 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
                   variant="secondary"
                   size="sm"
                   disabled={pagina === totalPaginas}
-                  onClick={() => setPagina(p => p + 1)}
+                  onClick={() => setPagina((p) => p + 1)}
                 >
                   Próxima
                 </Button>

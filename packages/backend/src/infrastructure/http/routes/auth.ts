@@ -40,27 +40,33 @@ function perfilToPapel(perfil: string): 'ADMIN' | 'OPERADOR' {
 }
 
 export const authRoutes = fp(async (server: FastifyInstance): Promise<void> => {
-    // Validar JWT_SECRET obrigatório e forte em produção
-    const jwtSecret = process.env.JWT_SECRET;
-    if (!jwtSecret) {
-      throw new Error('JWT_SECRET environment variable is required. Please set it in your .env file.');
-    }
-    if (process.env.NODE_ENV === 'production' && jwtSecret.length < 32) {
-      throw new Error('JWT_SECRET must be at least 32 characters in production. Generate with: openssl rand -base64 48');
-    }
+  // Validar JWT_SECRET obrigatório e forte em produção
+  const jwtSecret = process.env.JWT_SECRET;
+  if (!jwtSecret) {
+    throw new Error(
+      'JWT_SECRET environment variable is required. Please set it in your .env file.'
+    );
+  }
+  if (process.env.NODE_ENV === 'production' && jwtSecret.length < 32) {
+    throw new Error(
+      'JWT_SECRET must be at least 32 characters in production. Generate with: openssl rand -base64 48'
+    );
+  }
 
-    // Registrar plugin JWT
-    await server.register(jwt, {
-      secret: jwtSecret,
-      sign: {
-        expiresIn: '8h',
-      },
-    });
+  // Registrar plugin JWT
+  await server.register(jwt, {
+    secret: jwtSecret,
+    sign: {
+      expiresIn: '8h',
+    },
+  });
 
-    server.decorate('authenticate', authenticate);
+  server.decorate('authenticate', authenticate);
 
-    // POST /auth/login
-    server.post<{ Body: LoginBody }>('/auth/login', {
+  // POST /auth/login
+  server.post<{ Body: LoginBody }>(
+    '/auth/login',
+    {
       schema: {
         tags: ['auth'],
         summary: 'Login de usuário',
@@ -94,7 +100,8 @@ export const authRoutes = fp(async (server: FastifyInstance): Promise<void> => {
           401: { type: 'object', properties: { error: { type: 'string' } } },
         },
       },
-    }, async (request, reply) => {
+    },
+    async (request, reply) => {
       const { email, senha } = request.body;
 
       if (!email || !senha) {
@@ -115,7 +122,9 @@ export const authRoutes = fp(async (server: FastifyInstance): Promise<void> => {
         }
 
         if (!usuario.ativo) {
-          return reply.status(401).send({ error: 'Usuário desativado. Entre em contato com o administrador.' });
+          return reply
+            .status(401)
+            .send({ error: 'Usuário desativado. Entre em contato com o administrador.' });
         }
 
         const senhaValida = await bcrypt.compare(senha, usuario.senha_hash);
@@ -139,11 +148,11 @@ export const authRoutes = fp(async (server: FastifyInstance): Promise<void> => {
         };
 
         const accessToken = server.jwt.sign(payload);
-        
+
         // Gerar refresh token
         const refreshToken = server.jwt.sign(payload, { expiresIn: '7d' });
         const refreshTokenHash = await bcrypt.hash(refreshToken, 10);
-        
+
         await server.database.query(
           `INSERT INTO refresh_tokens (usuario_id, token_hash, expira_em) 
            VALUES ($1, $2, CURRENT_TIMESTAMP + INTERVAL '7 days')`,
@@ -165,10 +174,13 @@ export const authRoutes = fp(async (server: FastifyInstance): Promise<void> => {
         request.log.error(error);
         return reply.status(500).send({ error: 'Erro interno ao processar login' });
       }
-    });
+    }
+  );
 
-    // POST /auth/refresh
-    server.post<{ Body: { refreshToken: string } }>('/auth/refresh', {
+  // POST /auth/refresh
+  server.post<{ Body: { refreshToken: string } }>(
+    '/auth/refresh',
+    {
       schema: {
         tags: ['auth'],
         summary: 'Renovar token de acesso',
@@ -192,7 +204,8 @@ export const authRoutes = fp(async (server: FastifyInstance): Promise<void> => {
           401: { type: 'object', properties: { error: { type: 'string' } } },
         },
       },
-    }, async (request, reply) => {
+    },
+    async (request, reply) => {
       const { refreshToken } = request.body;
 
       if (!refreshToken) {
@@ -239,10 +252,9 @@ export const authRoutes = fp(async (server: FastifyInstance): Promise<void> => {
         }
 
         // Revogar token antigo
-        await server.database.query(
-          `UPDATE refresh_tokens SET revogado = true WHERE id = $1`,
-          [tokenId]
-        );
+        await server.database.query(`UPDATE refresh_tokens SET revogado = true WHERE id = $1`, [
+          tokenId,
+        ]);
 
         const payload: JWTPayload = {
           id: usuario.id,
@@ -270,31 +282,35 @@ export const authRoutes = fp(async (server: FastifyInstance): Promise<void> => {
         request.log.error(error);
         return reply.status(401).send({ error: 'Refresh token inválido' });
       }
-    });
+    }
+  );
 
-    // POST /auth/logout
-    server.post('/auth/logout', async (request, reply) => {
-      try {
-        await request.jwtVerify();
-        const user = request.user;
+  // POST /auth/logout
+  server.post('/auth/logout', async (request, reply) => {
+    try {
+      await request.jwtVerify();
+      const user = request.user;
 
-        // Revogar todos os refresh tokens do usuário
-        await server.database.query(
-          `UPDATE refresh_tokens SET revogado = true WHERE usuario_id = $1`,
-          [user.id]
-        );
+      // Revogar todos os refresh tokens do usuário
+      await server.database.query(
+        `UPDATE refresh_tokens SET revogado = true WHERE usuario_id = $1`,
+        [user.id]
+      );
 
-        return reply.send({ message: 'Logout realizado com sucesso' });
-      } catch {
-        // Mesmo sem token válido, retorna sucesso
-        return reply.send({ message: 'Logout realizado' });
-      }
-    });
+      return reply.send({ message: 'Logout realizado com sucesso' });
+    } catch {
+      // Mesmo sem token válido, retorna sucesso
+      return reply.send({ message: 'Logout realizado' });
+    }
+  });
 
-    // GET /auth/me - Retorna dados do usuário autenticado
-    server.get('/auth/me', {
+  // GET /auth/me - Retorna dados do usuário autenticado
+  server.get(
+    '/auth/me',
+    {
       preHandler: [server.authenticate],
-    }, async (request, reply) => {
+    },
+    async (request, reply) => {
       try {
         const user = request.user;
 
@@ -320,22 +336,28 @@ export const authRoutes = fp(async (server: FastifyInstance): Promise<void> => {
           perfil: usuario.perfil,
           ativo: usuario.ativo,
           ultimoAcesso: usuario.ultimo_acesso,
-          coordenadoria: usuario.coordenadoria_id ? {
-            id: usuario.coordenadoria_id,
-            nome: usuario.coordenadoria_nome,
-            sigla: usuario.coordenadoria_sigla,
-          } : null,
+          coordenadoria: usuario.coordenadoria_id
+            ? {
+                id: usuario.coordenadoria_id,
+                nome: usuario.coordenadoria_nome,
+                sigla: usuario.coordenadoria_sigla,
+              }
+            : null,
         });
       } catch (error) {
         request.log.error(error);
         return reply.status(500).send({ error: 'Erro ao buscar dados do usuário' });
       }
-    });
+    }
+  );
 
-    // POST /auth/register (apenas para administradores)
-    server.post<{ Body: RegisterBody }>('/auth/register', {
+  // POST /auth/register (apenas para administradores)
+  server.post<{ Body: RegisterBody }>(
+    '/auth/register',
+    {
       preHandler: [server.authenticate],
-    }, async (request, reply) => {
+    },
+    async (request, reply) => {
       const user = request.user;
 
       if (user.perfil !== 'administrador') {
@@ -376,7 +398,15 @@ export const authRoutes = fp(async (server: FastifyInstance): Promise<void> => {
           [nome, email.toLowerCase(), senhaHash, perfil, coordenadoriaId || null]
         );
 
-        const novoUsuario = result.rows[0] as { id: string; nome: string; email: string; perfil: string; coordenadoria_id: string | null } | undefined;
+        const novoUsuario = result.rows[0] as
+          | {
+              id: string;
+              nome: string;
+              email: string;
+              perfil: string;
+              coordenadoria_id: string | null;
+            }
+          | undefined;
 
         if (!novoUsuario) {
           return reply.status(500).send({ error: 'Erro ao criar usuário' });
@@ -393,12 +423,16 @@ export const authRoutes = fp(async (server: FastifyInstance): Promise<void> => {
         request.log.error(error);
         return reply.status(500).send({ error: 'Erro ao criar usuário' });
       }
-    });
+    }
+  );
 
-    // GET /auth/usuarios - Listar usuários (apenas administrador)
-    server.get('/auth/usuarios', {
+  // GET /auth/usuarios - Listar usuários (apenas administrador)
+  server.get(
+    '/auth/usuarios',
+    {
       preHandler: [server.authenticate],
-    }, async (request, reply) => {
+    },
+    async (request, reply) => {
       const user = request.user;
 
       if (user.perfil !== 'administrador') {
@@ -427,12 +461,16 @@ export const authRoutes = fp(async (server: FastifyInstance): Promise<void> => {
         request.log.error(error);
         return reply.status(500).send({ error: 'Erro ao listar usuários' });
       }
-    });
+    }
+  );
 
-    // PATCH /auth/usuarios/:id/toggle-ativo - Ativar/desativar usuário (apenas administrador)
-    server.patch<{ Params: { id: string } }>('/auth/usuarios/:id/toggle-ativo', {
+  // PATCH /auth/usuarios/:id/toggle-ativo - Ativar/desativar usuário (apenas administrador)
+  server.patch<{ Params: { id: string } }>(
+    '/auth/usuarios/:id/toggle-ativo',
+    {
       preHandler: [server.authenticate],
-    }, async (request, reply) => {
+    },
+    async (request, reply) => {
       const user = request.user;
 
       if (user.perfil !== 'administrador') {
@@ -471,12 +509,16 @@ export const authRoutes = fp(async (server: FastifyInstance): Promise<void> => {
         request.log.error(error);
         return reply.status(500).send({ error: 'Erro ao alterar status do usuário' });
       }
-    });
+    }
+  );
 
-    // PUT /auth/change-password
-    server.put<{ Body: { senhaAtual: string; novaSenha: string } }>('/auth/change-password', {
+  // PUT /auth/change-password
+  server.put<{ Body: { senhaAtual: string; novaSenha: string } }>(
+    '/auth/change-password',
+    {
       preHandler: [server.authenticate],
-    }, async (request, reply) => {
+    },
+    async (request, reply) => {
       const user = request.user;
       const { senhaAtual, novaSenha } = request.body;
 
@@ -508,10 +550,10 @@ export const authRoutes = fp(async (server: FastifyInstance): Promise<void> => {
 
         const novaSenhaHash = await bcrypt.hash(novaSenha, 10);
 
-        await server.database.query(
-          `UPDATE usuarios SET senha_hash = $1 WHERE id = $2`,
-          [novaSenhaHash, user.id]
-        );
+        await server.database.query(`UPDATE usuarios SET senha_hash = $1 WHERE id = $2`, [
+          novaSenhaHash,
+          user.id,
+        ]);
 
         // Revogar todos os refresh tokens
         await server.database.query(
@@ -524,94 +566,105 @@ export const authRoutes = fp(async (server: FastifyInstance): Promise<void> => {
         request.log.error(error);
         return reply.status(500).send({ error: 'Erro ao alterar senha' });
       }
-    });
+    }
+  );
 
-    // POST /auth/forgot-password - Solicitar redefinição de senha
-    server.post<{ Body: { email: string } }>('/auth/forgot-password', async (request, reply) => {
-      const { email } = request.body;
+  // POST /auth/forgot-password - Solicitar redefinição de senha
+  server.post<{ Body: { email: string } }>('/auth/forgot-password', async (request, reply) => {
+    const { email } = request.body;
 
-      if (!email) {
-        return reply.status(400).send({ error: 'E-mail é obrigatório' });
+    if (!email) {
+      return reply.status(400).send({ error: 'E-mail é obrigatório' });
+    }
+
+    try {
+      // Verificar se usuário existe
+      const result = await server.database.query(
+        `SELECT id, nome, email FROM usuarios WHERE email = $1 AND ativo = true`,
+        [email.toLowerCase()]
+      );
+
+      // Sempre retornar sucesso para não revelar se o e-mail existe
+      if (result.rows.length === 0) {
+        return reply.send({
+          message:
+            'Se o e-mail estiver cadastrado, você receberá instruções para redefinir sua senha.',
+        });
       }
+
+      const usuario = result.rows[0] as { id: string; nome: string; email: string };
+
+      // Gerar token de reset (válido por 1 hora)
+      const resetToken = crypto.randomUUID();
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hora
+
+      // Hash do token antes de salvar no banco
+      const tokenHash = createHash('sha256').update(resetToken).digest('hex');
+      await server.database.query(
+        `INSERT INTO refresh_tokens (usuario_id, token_hash, expira_em) 
+           VALUES ($1, $2, $3)`,
+        [usuario.id, `reset:${tokenHash}`, expiresAt]
+      );
+
+      // Enviar e-mail com link de reset
+      const configuredAppUrl = process.env.APP_URL?.trim();
+      if (process.env.NODE_ENV === 'production' && !configuredAppUrl) {
+        request.log.error('APP_URL is required in production for password reset links');
+        return reply
+          .status(500)
+          .send({ error: 'Configuração de ambiente incompleta para recuperação de senha' });
+      }
+
+      const originHeader =
+        typeof request.headers.origin === 'string' ? request.headers.origin.trim() : '';
+      const hostHeader =
+        typeof request.headers.host === 'string' ? request.headers.host.trim() : '';
+      const inferredAppUrl = hostHeader ? `${request.protocol}://${hostHeader}` : '';
+      const appUrl = configuredAppUrl || originHeader || inferredAppUrl;
+
+      if (!appUrl) {
+        request.log.error('Unable to resolve app URL for password reset link');
+        return reply
+          .status(500)
+          .send({ error: 'Não foi possível gerar link de recuperação de senha' });
+      }
+
+      const resetLink = `${appUrl}/reset-password?token=${resetToken}`;
 
       try {
-        // Verificar se usuário existe
-        const result = await server.database.query(
-          `SELECT id, nome, email FROM usuarios WHERE email = $1 AND ativo = true`,
-          [email.toLowerCase()]
-        );
-
-        // Sempre retornar sucesso para não revelar se o e-mail existe
-        if (result.rows.length === 0) {
-          return reply.send({ 
-            message: 'Se o e-mail estiver cadastrado, você receberá instruções para redefinir sua senha.' 
-          });
-        }
-
-        const usuario = result.rows[0] as { id: string; nome: string; email: string };
-
-        // Gerar token de reset (válido por 1 hora)
-        const resetToken = crypto.randomUUID();
-        const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hora
-
-        // Hash do token antes de salvar no banco
-        const tokenHash = createHash('sha256').update(resetToken).digest('hex');
-        await server.database.query(
-          `INSERT INTO refresh_tokens (usuario_id, token_hash, expira_em) 
-           VALUES ($1, $2, $3)`,
-          [usuario.id, `reset:${tokenHash}`, expiresAt]
-        );
-
-        // Enviar e-mail com link de reset
-        const configuredAppUrl = process.env.APP_URL?.trim();
-        if (process.env.NODE_ENV === 'production' && !configuredAppUrl) {
-          request.log.error('APP_URL is required in production for password reset links');
-          return reply.status(500).send({ error: 'Configuração de ambiente incompleta para recuperação de senha' });
-        }
-
-        const originHeader = typeof request.headers.origin === 'string' ? request.headers.origin.trim() : '';
-        const hostHeader = typeof request.headers.host === 'string' ? request.headers.host.trim() : '';
-        const inferredAppUrl = hostHeader ? `${request.protocol}://${hostHeader}` : '';
-        const appUrl = configuredAppUrl || originHeader || inferredAppUrl;
-
-        if (!appUrl) {
-          request.log.error('Unable to resolve app URL for password reset link');
-          return reply.status(500).send({ error: 'Não foi possível gerar link de recuperação de senha' });
-        }
-
-        const resetLink = `${appUrl}/reset-password?token=${resetToken}`;
-
-        try {
-          await server.emailService.send({
-            to: usuario.email,
-            subject: 'Recorda - Redefinição de Senha',
-            html: [
-              `<p>Olá ${usuario.nome},</p>`,
-              `<p>Recebemos uma solicitação para redefinir sua senha.</p>`,
-              `<p><a href="${resetLink}">Clique aqui para redefinir sua senha</a></p>`,
-              `<p>Ou copie e cole o link: ${resetLink}</p>`,
-              `<p>Este link expira em 1 hora.</p>`,
-              `<p>Se você não solicitou esta alteração, ignore este e-mail.</p>`,
-            ].join('\n'),
-            text: `Olá ${usuario.nome},\n\nAcesse o link para redefinir sua senha: ${resetLink}\n\nEste link expira em 1 hora.`,
-          });
-        } catch (emailError) {
-          request.log.error(emailError, 'Failed to send password reset email');
-        }
-
-        return reply.send({ 
-          message: 'Se o e-mail estiver cadastrado, você receberá instruções para redefinir sua senha.',
-          // Em desenvolvimento, retornar o token para facilitar testes
-          ...(process.env.NODE_ENV !== 'production' && { resetToken })
+        await server.emailService.send({
+          to: usuario.email,
+          subject: 'Recorda - Redefinição de Senha',
+          html: [
+            `<p>Olá ${usuario.nome},</p>`,
+            `<p>Recebemos uma solicitação para redefinir sua senha.</p>`,
+            `<p><a href="${resetLink}">Clique aqui para redefinir sua senha</a></p>`,
+            `<p>Ou copie e cole o link: ${resetLink}</p>`,
+            `<p>Este link expira em 1 hora.</p>`,
+            `<p>Se você não solicitou esta alteração, ignore este e-mail.</p>`,
+          ].join('\n'),
+          text: `Olá ${usuario.nome},\n\nAcesse o link para redefinir sua senha: ${resetLink}\n\nEste link expira em 1 hora.`,
         });
-      } catch (error) {
-        request.log.error(error);
-        return reply.status(500).send({ error: 'Erro ao processar solicitação' });
+      } catch (emailError) {
+        request.log.error(emailError, 'Failed to send password reset email');
       }
-    });
 
-    // POST /auth/reset-password - Redefinir senha com token
-    server.post<{ Body: { token: string; novaSenha: string } }>('/auth/reset-password', async (request, reply) => {
+      return reply.send({
+        message:
+          'Se o e-mail estiver cadastrado, você receberá instruções para redefinir sua senha.',
+        // Em desenvolvimento, retornar o token para facilitar testes
+        ...(process.env.NODE_ENV !== 'production' && { resetToken }),
+      });
+    } catch (error) {
+      request.log.error(error);
+      return reply.status(500).send({ error: 'Erro ao processar solicitação' });
+    }
+  });
+
+  // POST /auth/reset-password - Redefinir senha com token
+  server.post<{ Body: { token: string; novaSenha: string } }>(
+    '/auth/reset-password',
+    async (request, reply) => {
       const { token, novaSenha } = request.body;
 
       if (!token || !novaSenha) {
@@ -638,20 +691,22 @@ export const authRoutes = fp(async (server: FastifyInstance): Promise<void> => {
           return reply.status(400).send({ error: 'Token inválido ou expirado' });
         }
 
-        const { usuario_id, token_id } = tokenResult.rows[0] as { usuario_id: string; token_id: string };
+        const { usuario_id, token_id } = tokenResult.rows[0] as {
+          usuario_id: string;
+          token_id: string;
+        };
 
         // Atualizar senha
         const novaSenhaHash = await bcrypt.hash(novaSenha, 10);
-        await server.database.query(
-          `UPDATE usuarios SET senha_hash = $1 WHERE id = $2`,
-          [novaSenhaHash, usuario_id]
-        );
+        await server.database.query(`UPDATE usuarios SET senha_hash = $1 WHERE id = $2`, [
+          novaSenhaHash,
+          usuario_id,
+        ]);
 
         // Revogar token de reset
-        await server.database.query(
-          `UPDATE refresh_tokens SET revogado = true WHERE id = $1`,
-          [token_id]
-        );
+        await server.database.query(`UPDATE refresh_tokens SET revogado = true WHERE id = $1`, [
+          token_id,
+        ]);
 
         // Revogar todos os outros refresh tokens do usuário
         await server.database.query(
@@ -659,12 +714,15 @@ export const authRoutes = fp(async (server: FastifyInstance): Promise<void> => {
           [usuario_id]
         );
 
-        return reply.send({ message: 'Senha redefinida com sucesso. Faça login com sua nova senha.' });
+        return reply.send({
+          message: 'Senha redefinida com sucesso. Faça login com sua nova senha.',
+        });
       } catch (error) {
         request.log.error(error);
         return reply.status(500).send({ error: 'Erro ao redefinir senha' });
       }
-    });
+    }
+  );
 });
 
 // Exportar decorator type
