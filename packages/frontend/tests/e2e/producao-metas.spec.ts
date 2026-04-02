@@ -36,7 +36,9 @@ test.describe('Produção', () => {
     await page.getByRole('link', { name: /Importar Produção/i }).click();
     await page.waitForLoadState('networkidle');
     await expect(page).toHaveURL(/\/producao\/importar$/);
-    await expect(page.getByRole('heading', { name: /Importar Produção/i })).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole('heading', { name: /Importar Produção/i })).toBeVisible({
+      timeout: 10_000,
+    });
   });
 
   test('dashboard exibe card de produção total', async ({ page }) => {

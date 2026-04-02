@@ -55,19 +55,33 @@ async function runMigrations() {
     const appliedResult = await client.query<{ version: string }>(
       'SELECT version FROM schema_migrations'
     );
-    const appliedVersions = new Set(appliedResult.rows.map(row => row.version));
+    const appliedVersions = new Set(appliedResult.rows.map((row) => row.version));
 
     // Apply baseline if no migrations have been applied and baseline exists
     if (appliedVersions.size === 0 && fs.existsSync(baselineDir)) {
       const baselineFiles = fs
         .readdirSync(baselineDir)
-        .filter(file => file.endsWith('.sql'))
+        .filter((file) => file.endsWith('.sql'))
         .sort();
 
       if (baselineFiles.length > 0) {
         logger.info('No migrations applied — applying baseline...', { component: 'migrate' });
         for (const file of baselineFiles) {
-          const sql = fs.readFileSync(path.join(baselineDir, file), 'utf-8');
+          let sql = fs.readFileSync(path.join(baselineDir, file), 'utf-8');
+
+          // Remover comandos PostgreSQL específicos que causam erro
+          sql = sql.replace(/\\restrict\s+\w+/g, '');
+          sql = sql.replace(/SET\s+statement_timeout\s*=\s*[^;]+;/g, '');
+          sql = sql.replace(/SET\s+lock_timeout\s*=\s*[^;]+;/g, '');
+          sql = sql.replace(/SET\s+idle_in_transaction_session_timeout\s*=\s*[^;]+;/g, '');
+          sql = sql.replace(/SET\s+client_encoding\s*=\s*[^;]+;/g, '');
+          sql = sql.replace(/SET\s+standard_conforming_strings\s*=\s*[^;]+;/g, '');
+          sql = sql.replace(/SELECT\s+pg_catalog\.set_config\([^)]+\);/g, '');
+          sql = sql.replace(/SET\s+check_function_bodies\s*=\s*[^;]+;/g, '');
+          sql = sql.replace(/SET\s+xmloption\s*=\s*[^;]+;/g, '');
+          sql = sql.replace(/SET\s+client_min_messages\s*=\s*[^;]+;/g, '');
+          sql = sql.replace(/SET\s+row_security\s*=\s*[^;]+;/g, '');
+
           logger.info(`Applying baseline ${file}`, { component: 'migrate' });
           try {
             await client.query('BEGIN');
@@ -87,13 +101,15 @@ async function runMigrations() {
         for (const row of refreshed.rows) {
           appliedVersions.add(row.version);
         }
-        logger.info(`Baseline applied (${appliedVersions.size} versions registered)`, { component: 'migrate' });
+        logger.info(`Baseline applied (${appliedVersions.size} versions registered)`, {
+          component: 'migrate',
+        });
       }
     }
 
     const files = fs
       .readdirSync(migrationsDir)
-      .filter(file => file.endsWith('.sql'))
+      .filter((file) => file.endsWith('.sql'))
       .sort();
 
     for (const file of files) {
@@ -123,7 +139,10 @@ async function runMigrations() {
 
     logger.info('All migrations processed', { component: 'migrate' });
   } catch (error) {
-    logger.error('Migration failed', { component: 'migrate', error: error instanceof Error ? error.message : String(error) });
+    logger.error('Migration failed', {
+      component: 'migrate',
+      error: error instanceof Error ? error.message : String(error),
+    });
     process.exitCode = 1;
   } finally {
     await client.end();

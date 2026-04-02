@@ -9,27 +9,27 @@
 
 ### ✅ Pode Fazer Livremente
 
-| Tipo de Mudança | Condição |
-|-----------------|----------|
-| **Novos endpoints de consulta** | Desde que não alterem dados de produção |
-| **Melhorias de UI/UX** | Sem alterar fluxos de entrada de dados |
-| **Novos relatórios** | Usando dados existentes, sem criar novas fontes |
-| **Expansão da base de conhecimento** | Artigos, categorias, tags |
-| **Correção de bugs** | Sem alterar invariantes de domínio |
-| **Melhorias de performance** | Cache, índices, otimizações de query |
-| **Adição de logs e métricas** | Observabilidade |
-| **Testes adicionais** | Unitários, integração, E2E |
-| **Documentação** | README, comentários, ADRs |
+| Tipo de Mudança                      | Condição                                        |
+| ------------------------------------ | ----------------------------------------------- |
+| **Novos endpoints de consulta**      | Desde que não alterem dados de produção         |
+| **Melhorias de UI/UX**               | Sem alterar fluxos de entrada de dados          |
+| **Novos relatórios**                 | Usando dados existentes, sem criar novas fontes |
+| **Expansão da base de conhecimento** | Artigos, categorias, tags                       |
+| **Correção de bugs**                 | Sem alterar invariantes de domínio              |
+| **Melhorias de performance**         | Cache, índices, otimizações de query            |
+| **Adição de logs e métricas**        | Observabilidade                                 |
+| **Testes adicionais**                | Unitários, integração, E2E                      |
+| **Documentação**                     | README, comentários, ADRs                       |
 
 ### ✅ Pode Fazer com Cuidado
 
-| Tipo de Mudança | Requisito |
-|-----------------|-----------|
-| **Novos campos em entidades** | Não quebrar imutabilidade de RegistroProducao |
-| **Novas migrations** | Nunca alterar migrations existentes |
-| **Novos use cases** | Seguir padrão Result<T, E> |
-| **Novos componentes frontend** | Manter limite de 20 fotos no OCR |
-| **Refatoração de código** | Manter comportamento idêntico |
+| Tipo de Mudança                | Requisito                                     |
+| ------------------------------ | --------------------------------------------- |
+| **Novos campos em entidades**  | Não quebrar imutabilidade de RegistroProducao |
+| **Novas migrations**           | Nunca alterar migrations existentes           |
+| **Novos use cases**            | Seguir padrão Result<T, E>                    |
+| **Novos componentes frontend** | Manter limite de 20 fotos no OCR              |
+| **Refatoração de código**      | Manter comportamento idêntico                 |
 
 ---
 
@@ -39,16 +39,16 @@
 
 Antes de implementar, documente a proposta e valide com a equipe:
 
-| Mudança | Motivo da Revisão |
-|---------|-------------------|
-| **Autenticação/Autorização** | Afeta todos os endpoints e fluxos |
-| **Integração com OCR real** | Substitui serviço placeholder |
-| **Novo tipo de entrada de produção** | Pode quebrar regra "apenas planilha/OCR" |
-| **Alteração em agregados** | Pode afetar consistência transacional |
-| **Mudança em estrutura de relatórios** | Deve manter compatibilidade Fabrivo |
-| **Alteração de limites** | Ex: mudar de 20 para N fotos |
-| **Nova fonte de dados** | Deve ser auditável |
-| **Integração com sistemas externos** | Webhooks, APIs terceiras |
+| Mudança                                | Motivo da Revisão                        |
+| -------------------------------------- | ---------------------------------------- |
+| **Autenticação/Autorização**           | Afeta todos os endpoints e fluxos        |
+| **Integração com OCR real**            | Substitui serviço placeholder            |
+| **Novo tipo de entrada de produção**   | Pode quebrar regra "apenas planilha/OCR" |
+| **Alteração em agregados**             | Pode afetar consistência transacional    |
+| **Mudança em estrutura de relatórios** | Deve manter compatibilidade Fabrivo      |
+| **Alteração de limites**               | Ex: mudar de 20 para N fotos             |
+| **Nova fonte de dados**                | Deve ser auditável                       |
+| **Integração com sistemas externos**   | Webhooks, APIs terceiras                 |
 
 ### 📋 Template de Proposta
 
@@ -60,12 +60,15 @@ Antes de implementar, documente a proposta e valide com a equipe:
 **Autor:** [Nome]
 
 ### Descrição
+
 [O que será alterado]
 
 ### Motivação
+
 [Por que é necessário]
 
 ### Impacto
+
 - [ ] Afeta entrada de produção?
 - [ ] Afeta imutabilidade de registros?
 - [ ] Afeta agregados de domínio?
@@ -73,9 +76,11 @@ Antes de implementar, documente a proposta e valide com a equipe:
 - [ ] Requer nova migration?
 
 ### Riscos
+
 [O que pode dar errado]
 
 ### Plano de Rollback
+
 [Como reverter se necessário]
 ```
 
@@ -85,18 +90,18 @@ Antes de implementar, documente a proposta e valide com a equipe:
 
 ### 🔴 NUNCA FAZER
 
-| Proibição | Justificativa |
-|-----------|---------------|
-| **Criar endpoint HTTP para inserir RegistroProducao diretamente** | Produção entra APENAS via planilha ou OCR |
-| **Remover ou desabilitar RULE de imutabilidade** | Registros de produção são imutáveis |
-| **Remover ou desabilitar triggers de auditoria** | Rastreabilidade é obrigatória |
-| **Permitir UPDATE em registros_producao** | Correções são via cancelamento + novo registro |
-| **Permitir DELETE físico em registros_producao** | Apenas soft delete (cancelamento) |
-| **Criar Volume sem Processo** | Volume SEMPRE pertence a um Processo |
-| **Criar Apenso sem Processo Principal** | Apenso SEMPRE referencia um Principal |
-| **Alterar migrations já aplicadas** | Criar nova migration para alterações |
-| **Remover validações de domínio** | Invariantes garantem consistência |
-| **Permitir datas futuras em produção** | DataPassada valida isso |
+| Proibição                                                         | Justificativa                                  |
+| ----------------------------------------------------------------- | ---------------------------------------------- |
+| **Criar endpoint HTTP para inserir RegistroProducao diretamente** | Produção entra APENAS via planilha ou OCR      |
+| **Remover ou desabilitar RULE de imutabilidade**                  | Registros de produção são imutáveis            |
+| **Remover ou desabilitar triggers de auditoria**                  | Rastreabilidade é obrigatória                  |
+| **Permitir UPDATE em registros_producao**                         | Correções são via cancelamento + novo registro |
+| **Permitir DELETE físico em registros_producao**                  | Apenas soft delete (cancelamento)              |
+| **Criar Volume sem Processo**                                     | Volume SEMPRE pertence a um Processo           |
+| **Criar Apenso sem Processo Principal**                           | Apenso SEMPRE referencia um Principal          |
+| **Alterar migrations já aplicadas**                               | Criar nova migration para alterações           |
+| **Remover validações de domínio**                                 | Invariantes garantem consistência              |
+| **Permitir datas futuras em produção**                            | DataPassada valida isso                        |
 
 ### 🔴 Código que Viola o Contrato
 
@@ -138,25 +143,25 @@ npm run lint
 
 ### Validação Manual de Invariantes
 
-| Invariante | Como Testar |
-|------------|-------------|
-| **Imutabilidade de produção** | Tentar UPDATE via SQL - deve falhar |
-| **Proteção contra DELETE** | Tentar DELETE via SQL - deve falhar |
-| **Volume pertence a Processo** | Verificar FK no banco |
-| **Apenso referencia Principal** | Verificar FK no banco |
-| **Auditoria funcionando** | Inserir registro e verificar tabela `auditoria` |
+| Invariante                      | Como Testar                                     |
+| ------------------------------- | ----------------------------------------------- |
+| **Imutabilidade de produção**   | Tentar UPDATE via SQL - deve falhar             |
+| **Proteção contra DELETE**      | Tentar DELETE via SQL - deve falhar             |
+| **Volume pertence a Processo**  | Verificar FK no banco                           |
+| **Apenso referencia Principal** | Verificar FK no banco                           |
+| **Auditoria funcionando**       | Inserir registro e verificar tabela `auditoria` |
 
 ### Comandos de Verificação no Banco
 
 ```sql
 -- Verificar RULE de imutabilidade
-SELECT rulename FROM pg_rules 
+SELECT rulename FROM pg_rules
 WHERE tablename = 'registros_producao';
 -- Esperado: prevent_delete_registros_producao
 
 -- Verificar triggers
-SELECT tgname FROM pg_trigger 
-WHERE tgrelid = 'registros_producao'::regclass 
+SELECT tgname FROM pg_trigger
+WHERE tgrelid = 'registros_producao'::regclass
 AND tgname LIKE '%immutable%' OR tgname LIKE '%audit%';
 -- Esperado: trigger_registros_producao_immutable, audit_registros_producao
 
@@ -171,13 +176,13 @@ DELETE FROM registros_producao WHERE id = '...';
 
 ### Sinais de Quebra de Domínio
 
-| Sinal | Ação |
-|-------|------|
-| Typecheck falha | Corrigir tipos antes de continuar |
-| Testes falham | Investigar causa, não ignorar |
-| Produção sendo alterada | REVERTER IMEDIATAMENTE |
-| Registros órfãos no banco | Investigar integridade referencial |
-| Auditoria vazia após operações | Verificar triggers |
+| Sinal                          | Ação                               |
+| ------------------------------ | ---------------------------------- |
+| Typecheck falha                | Corrigir tipos antes de continuar  |
+| Testes falham                  | Investigar causa, não ignorar      |
+| Produção sendo alterada        | REVERTER IMEDIATAMENTE             |
+| Registros órfãos no banco      | Investigar integridade referencial |
+| Auditoria vazia após operações | Verificar triggers                 |
 
 ---
 
@@ -256,17 +261,17 @@ DELETE FROM registros_producao WHERE id = '...';
 
 ## HISTÓRICO DE REVISÕES
 
-| Data | Versão | Descrição |
-|------|--------|-----------|
-| Jan 2026 | 1.0 | Documento inicial |
+| Data     | Versão | Descrição         |
+| -------- | ------ | ----------------- |
+| Jan 2026 | 1.0    | Documento inicial |
 
 ---
 
 ## DOCUMENTAÇÃO RELACIONADA
 
-| Documento | Descrição |
-|-----------|-----------|
+| Documento                                                | Descrição               |
+| -------------------------------------------------------- | ----------------------- |
 | [ESTADO_ATUAL_DA_RECORDA.md](ESTADO_ATUAL_DA_RECORDA.md) | Estado atual do sistema |
-| [DOMINIO.md](DOMINIO.md) | Modelo de domínio |
-| [LIMITACOES.md](LIMITACOES.md) | Limitações conhecidas |
-| [CHECKLIST_FINAL.md](CHECKLIST_FINAL.md) | Validação completa |
+| [DOMINIO.md](DOMINIO.md)                                 | Modelo de domínio       |
+| [LIMITACOES.md](LIMITACOES.md)                           | Limitações conhecidas   |
+| [CHECKLIST_FINAL.md](CHECKLIST_FINAL.md)                 | Validação completa      |

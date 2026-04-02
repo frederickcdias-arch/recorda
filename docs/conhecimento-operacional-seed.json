@@ -76,7 +76,15 @@
       "categoria": "CHECKLISTS_EXPLICADOS",
       "descricao": "Quando aprovar, devolver, abrir excecao ou escalar.",
       "nivelAcesso": "OPERADOR_ADMIN",
-      "etapas": ["RECEBIMENTO", "PREPARACAO", "DIGITALIZACAO", "CONFERENCIA", "MONTAGEM", "CONTROLE_QUALIDADE", "ENTREGA"],
+      "etapas": [
+        "RECEBIMENTO",
+        "PREPARACAO",
+        "DIGITALIZACAO",
+        "CONFERENCIA",
+        "MONTAGEM",
+        "CONTROLE_QUALIDADE",
+        "ENTREGA"
+      ],
       "resumoAlteracao": "Versao inicial",
       "conteudo": "# Objetivo\nReduzir ambiguidade nas decisoes operacionais.\n\n## Matriz\n- Falha leve: corrigir na etapa atual.\n- Falha media: abrir retrabalho.\n- Falha critica: escalar para lideranca."
     },
@@ -86,7 +94,15 @@
       "categoria": "ATUALIZACOES_PROCESSO",
       "descricao": "Fluxo padrao para excecoes, retrabalho e reincidencia.",
       "nivelAcesso": "OPERADOR_ADMIN",
-      "etapas": ["RECEBIMENTO", "PREPARACAO", "DIGITALIZACAO", "CONFERENCIA", "MONTAGEM", "CONTROLE_QUALIDADE", "ENTREGA"],
+      "etapas": [
+        "RECEBIMENTO",
+        "PREPARACAO",
+        "DIGITALIZACAO",
+        "CONFERENCIA",
+        "MONTAGEM",
+        "CONTROLE_QUALIDADE",
+        "ENTREGA"
+      ],
       "resumoAlteracao": "Versao inicial",
       "conteudo": "# Objetivo\nTratar excecoes sem perda de rastreabilidade.\n\n## Passos\n1. Classificar tipo de excecao.\n2. Registrar causa raiz.\n3. Definir acao corretiva e prazo."
     },
@@ -104,18 +120,39 @@
   "glossario": [
     { "termo": "Repositorio", "definicao": "Unidade logica de controle no fluxo operacional." },
     { "termo": "ID GED", "definicao": "Identificador principal do repositorio no padrao GED." },
-    { "termo": "Processo principal", "definicao": "Processo base ao qual documentos e apensos sao vinculados." },
+    {
+      "termo": "Processo principal",
+      "definicao": "Processo base ao qual documentos e apensos sao vinculados."
+    },
     { "termo": "Apenso", "definicao": "Documento/processo vinculado a um processo principal." },
     { "termo": "Avulso", "definicao": "Documento sem vinculo inicial, tratado em fluxo dedicado." },
     { "termo": "Lote CQ", "definicao": "Conjunto de itens submetidos a controle de qualidade." },
-    { "termo": "Marcador", "definicao": "Metadado complementar registrado na producao/importacao." },
+    {
+      "termo": "Marcador",
+      "definicao": "Metadado complementar registrado na producao/importacao."
+    },
     { "termo": "Etapa atual", "definicao": "Posicao atual do repositorio no fluxo operacional." },
-    { "termo": "Excecao", "definicao": "Ocorrencia fora do fluxo padrao que exige tratativa registrada." },
-    { "termo": "Retrabalho", "definicao": "Reexecucao de atividade por falha de qualidade ou consistencia." },
-    { "termo": "Idempotencia", "definicao": "Garantia de nao duplicar efeito em reprocessamentos equivalentes." },
-    { "termo": "Fonte de importacao", "definicao": "Origem de dados externa usada para importar producao/legado." },
+    {
+      "termo": "Excecao",
+      "definicao": "Ocorrencia fora do fluxo padrao que exige tratativa registrada."
+    },
+    {
+      "termo": "Retrabalho",
+      "definicao": "Reexecucao de atividade por falha de qualidade ou consistencia."
+    },
+    {
+      "termo": "Idempotencia",
+      "definicao": "Garantia de nao duplicar efeito em reprocessamentos equivalentes."
+    },
+    {
+      "termo": "Fonte de importacao",
+      "definicao": "Origem de dados externa usada para importar producao/legado."
+    },
     { "termo": "Checklist", "definicao": "Lista de validacoes obrigatorias por etapa." },
-    { "termo": "Protocolo de entrega", "definicao": "Registro formal de conclusao e envio de lote/repositorio." },
+    {
+      "termo": "Protocolo de entrega",
+      "definicao": "Registro formal de conclusao e envio de lote/repositorio."
+    },
     { "termo": "Evidencia", "definicao": "Prova objetiva da execucao correta de uma atividade." }
   ],
   "leisNormas": [

@@ -32,7 +32,7 @@ export const USER_PROFILES = {
   ADMINISTRADOR: 'administrador',
 } as const;
 
-export type UserProfile = typeof USER_PROFILES[keyof typeof USER_PROFILES];
+export type UserProfile = (typeof USER_PROFILES)[keyof typeof USER_PROFILES];
 
 // Status de processo
 export const PROCESS_STATUS = {
@@ -42,7 +42,7 @@ export const PROCESS_STATUS = {
   CANCELADO: 'CANCELADO',
 } as const;
 
-export type ProcessStatus = typeof PROCESS_STATUS[keyof typeof PROCESS_STATUS];
+export type ProcessStatus = (typeof PROCESS_STATUS)[keyof typeof PROCESS_STATUS];
 
 // Status de importação
 export const IMPORT_STATUS = {
@@ -53,7 +53,7 @@ export const IMPORT_STATUS = {
   CANCELADA: 'CANCELADA',
 } as const;
 
-export type ImportStatus = typeof IMPORT_STATUS[keyof typeof IMPORT_STATUS];
+export type ImportStatus = (typeof IMPORT_STATUS)[keyof typeof IMPORT_STATUS];
 
 // Tipos de fonte de dados
 export const DATA_SOURCE_TYPES = {
@@ -63,7 +63,7 @@ export const DATA_SOURCE_TYPES = {
   OCR: 'OCR',
 } as const;
 
-export type DataSourceType = typeof DATA_SOURCE_TYPES[keyof typeof DATA_SOURCE_TYPES];
+export type DataSourceType = (typeof DATA_SOURCE_TYPES)[keyof typeof DATA_SOURCE_TYPES];
 
 // Unidades de medida
 export const MEASUREMENT_UNITS = {
@@ -73,7 +73,7 @@ export const MEASUREMENT_UNITS = {
   DOCUMENTO: 'DOCUMENTO',
 } as const;
 
-export type MeasurementUnit = typeof MEASUREMENT_UNITS[keyof typeof MEASUREMENT_UNITS];
+export type MeasurementUnit = (typeof MEASUREMENT_UNITS)[keyof typeof MEASUREMENT_UNITS];
 
 // Códigos de erro HTTP
 export const HTTP_STATUS = {
@@ -100,4 +100,4 @@ export const ERROR_CODES = {
   RATE_LIMIT: 'RATE_LIMIT_EXCEEDED',
 } as const;
 
-export type ErrorCode = typeof ERROR_CODES[keyof typeof ERROR_CODES];
+export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];

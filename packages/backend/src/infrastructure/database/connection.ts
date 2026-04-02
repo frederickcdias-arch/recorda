@@ -5,7 +5,10 @@ const { Pool } = pg;
 
 export interface DatabaseConnection {
   pool: pg.Pool;
-  query: <T extends pg.QueryResultRow>(text: string, params?: unknown[]) => Promise<pg.QueryResult<T>>;
+  query: <T extends pg.QueryResultRow>(
+    text: string,
+    params?: unknown[]
+  ) => Promise<pg.QueryResult<T>>;
   healthCheck: () => Promise<boolean>;
   close: () => Promise<void>;
 }
@@ -28,9 +31,10 @@ export async function createDatabaseConnection(
     max: 20,
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 10000,
-    ...(isProduction && process.env.DB_SSL !== 'false' && {
-      ssl: { rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED !== 'false' },
-    }),
+    ...(isProduction &&
+      process.env.DB_SSL !== 'false' && {
+        ssl: { rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED !== 'false' },
+      }),
   });
 
   pool.on('error', (err: Error) => {
@@ -39,7 +43,10 @@ export async function createDatabaseConnection(
 
   const connection: DatabaseConnection = {
     pool,
-    query: async <T extends pg.QueryResultRow>(text: string, params?: unknown[]): Promise<pg.QueryResult<T>> => {
+    query: async <T extends pg.QueryResultRow>(
+      text: string,
+      params?: unknown[]
+    ): Promise<pg.QueryResult<T>> => {
       return pool.query<T>(text, params);
     },
     healthCheck: async (): Promise<boolean> => {

@@ -9,8 +9,22 @@ import { formatDateBR, toDateInputValue } from '../../utils/date';
 interface PreviewData {
   titulo: string;
   resumoPorEtapa: { etapaNome: string; totalQuantidade: number; unidade: string }[];
-  producaoPorCoordenadoria: { coordenadoriaNome: string; coordenadoriaSigla: string; colaboradores: { colaboradorNome: string; total: number }[]; totalGeral: number; totalCaixas: number; totalImagens: number }[];
-  totais: { totalGeral: number; totalCaixas: number; totalImagens: number; totalColaboradores: number; totalCoordenadorias: number; totalEtapas: number };
+  producaoPorCoordenadoria: {
+    coordenadoriaNome: string;
+    coordenadoriaSigla: string;
+    colaboradores: { colaboradorNome: string; total: number }[];
+    totalGeral: number;
+    totalCaixas: number;
+    totalImagens: number;
+  }[];
+  totais: {
+    totalGeral: number;
+    totalCaixas: number;
+    totalImagens: number;
+    totalColaboradores: number;
+    totalCoordenadorias: number;
+    totalEtapas: number;
+  };
 }
 
 interface OperacionalRow {
@@ -69,7 +83,9 @@ const toSafeNumber = (value: unknown): number => {
 };
 
 export function ExportacoesPage(): JSX.Element {
-  const [mensagem, setMensagem] = useState<{ tipo: 'success' | 'error'; texto: string } | null>(null);
+  const [mensagem, setMensagem] = useState<{ tipo: 'success' | 'error'; texto: string } | null>(
+    null
+  );
   const [exportando, setExportando] = useState<string | null>(null);
   const [previewData, setPreviewData] = useState<PreviewData | null>(null);
   const [previewOperacional, setPreviewOperacional] = useState<OperacionalRow[] | null>(null);
@@ -102,7 +118,10 @@ export function ExportacoesPage(): JSX.Element {
 
       if (tipo === 'operacional') {
         const endpoint = `/api/relatorios/operacional/export?dataInicio=${dataInicio}&dataFim=${dataFim}&formato=${formato}`;
-        await api.download(endpoint, `detalhamento_operacional_${dataInicio}_${dataFim}.${extension}`);
+        await api.download(
+          endpoint,
+          `detalhamento_operacional_${dataInicio}_${dataFim}.${extension}`
+        );
       } else {
         const endpoint = `/api/relatorios?formato=${formato}&dataInicio=${dataInicio}&dataFim=${dataFim}`;
         await api.download(endpoint, `relatorio_gerencial_${dataInicio}_${dataFim}.${extension}`);
@@ -125,10 +144,22 @@ export function ExportacoesPage(): JSX.Element {
     setMensagem(null);
     try {
       if (tipo === 'gerencial') {
-        const data = await api.get<PreviewData>(`/relatorios?formato=json&dataInicio=${dataInicio}&dataFim=${dataFim}`);
+        const data = await api.get<PreviewData>(
+          `/relatorios?formato=json&dataInicio=${dataInicio}&dataFim=${dataFim}`
+        );
         setPreviewData(data);
       } else {
-        const data = await api.get<{ registros: { id: string; data_producao: string; colaborador: string; etapa: string; funcao: string; repositorio: string; quantidade: number }[] }>(`/relatorios/operacional?dataInicio=${dataInicio}&dataFim=${dataFim}`);
+        const data = await api.get<{
+          registros: {
+            id: string;
+            data_producao: string;
+            colaborador: string;
+            etapa: string;
+            funcao: string;
+            repositorio: string;
+            quantidade: number;
+          }[];
+        }>(`/relatorios/operacional?dataInicio=${dataInicio}&dataFim=${dataFim}`);
         setPreviewOperacional(
           (data.registros ?? []).map((r) => ({
             id: r.id,
@@ -142,7 +173,10 @@ export function ExportacoesPage(): JSX.Element {
         );
       }
     } catch (error) {
-      setMensagem({ tipo: 'error', texto: error instanceof Error ? error.message : 'Erro ao carregar preview' });
+      setMensagem({
+        tipo: 'error',
+        texto: error instanceof Error ? error.message : 'Erro ao carregar preview',
+      });
     } finally {
       setExportando(null);
     }
@@ -159,7 +193,14 @@ export function ExportacoesPage(): JSX.Element {
         <p className="text-gray-500 mt-1">Exporte Relatórios em PDF e Excel</p>
       </div>
 
-      {mensagem && <ActionFeedback type={mensagem.tipo} title="" message={mensagem.texto} onDismiss={() => setMensagem(null)} />}
+      {mensagem && (
+        <ActionFeedback
+          type={mensagem.tipo}
+          title=""
+          message={mensagem.texto}
+          onDismiss={() => setMensagem(null)}
+        />
+      )}
 
       {/* Filtro de período */}
       <Card>
@@ -193,7 +234,10 @@ export function ExportacoesPage(): JSX.Element {
         {EXPORTACOES.map((item) => {
           const colors = colorClasses[item.color] ?? colorClasses.blue!;
           return (
-            <div key={item.id} className={`bg-white rounded-xl border ${colors.border} shadow-sm overflow-hidden`}>
+            <div
+              key={item.id}
+              className={`bg-white rounded-xl border ${colors.border} shadow-sm overflow-hidden`}
+            >
               <div className="p-5">
                 <div className="flex items-start gap-4">
                   <div className={`p-3 ${colors.bg} rounded-xl shrink-0`}>
@@ -205,7 +249,10 @@ export function ExportacoesPage(): JSX.Element {
                     <ul className="mt-3 space-y-1">
                       {item.detalhes.map((d, i) => (
                         <li key={i} className="flex items-start gap-2 text-xs text-gray-600">
-                          <Icon name="check" className={`w-3.5 h-3.5 ${colors.icon} shrink-0 mt-0.5`} />
+                          <Icon
+                            name="check"
+                            className={`w-3.5 h-3.5 ${colors.icon} shrink-0 mt-0.5`}
+                          />
                           <span>{d}</span>
                         </li>
                       ))}
@@ -249,7 +296,7 @@ export function ExportacoesPage(): JSX.Element {
                   </Button>
                 )}
                 <span className="text-xs text-gray-400 ml-auto">
-                  {item.formatos.map(f => f.toUpperCase()).join(' / ')}
+                  {item.formatos.map((f) => f.toUpperCase()).join(' / ')}
                 </span>
               </div>
             </div>
@@ -263,9 +310,28 @@ export function ExportacoesPage(): JSX.Element {
             <div className="px-6 py-4 border-b flex items-center justify-between shrink-0">
               <h3 className="text-lg font-semibold text-gray-900">Preview — Relatório Gerencial</h3>
               <div className="flex gap-2">
-                <Button size="sm" onClick={() => { setPreviewData(null); void handleExportar('gerencial', 'pdf'); }}>Exportar PDF</Button>
-                <Button size="sm" variant="secondary" onClick={() => { setPreviewData(null); void handleExportar('gerencial', 'excel'); }}>Exportar Excel</Button>
-                <Button size="sm" variant="secondary" onClick={() => setPreviewData(null)}>Fechar</Button>
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setPreviewData(null);
+                    void handleExportar('gerencial', 'pdf');
+                  }}
+                >
+                  Exportar PDF
+                </Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => {
+                    setPreviewData(null);
+                    void handleExportar('gerencial', 'excel');
+                  }}
+                >
+                  Exportar Excel
+                </Button>
+                <Button size="sm" variant="secondary" onClick={() => setPreviewData(null)}>
+                  Fechar
+                </Button>
               </div>
             </div>
             <div className="flex-1 overflow-auto p-6 space-y-4">
@@ -273,19 +339,27 @@ export function ExportacoesPage(): JSX.Element {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div className="bg-gray-50 rounded-lg p-3 text-center">
                   <p className="text-xs text-gray-500">Total Caixas</p>
-                  <p className="text-lg font-bold text-gray-900">{toSafeNumber(previewData.totais.totalCaixas).toLocaleString('pt-BR')}</p>
+                  <p className="text-lg font-bold text-gray-900">
+                    {toSafeNumber(previewData.totais.totalCaixas).toLocaleString('pt-BR')}
+                  </p>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-3 text-center">
                   <p className="text-xs text-gray-500">Total Imagens</p>
-                  <p className="text-lg font-bold text-gray-900">{toSafeNumber(previewData.totais.totalImagens).toLocaleString('pt-BR')}</p>
+                  <p className="text-lg font-bold text-gray-900">
+                    {toSafeNumber(previewData.totais.totalImagens).toLocaleString('pt-BR')}
+                  </p>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-3 text-center">
                   <p className="text-xs text-gray-500">Colaboradores</p>
-                  <p className="text-lg font-bold text-gray-900">{previewData.totais.totalColaboradores}</p>
+                  <p className="text-lg font-bold text-gray-900">
+                    {previewData.totais.totalColaboradores}
+                  </p>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-3 text-center">
                   <p className="text-xs text-gray-500">Coordenadorias</p>
-                  <p className="text-lg font-bold text-gray-900">{previewData.totais.totalCoordenadorias}</p>
+                  <p className="text-lg font-bold text-gray-900">
+                    {previewData.totais.totalCoordenadorias}
+                  </p>
                 </div>
               </div>
               {/* Resumo por Etapa */}
@@ -295,17 +369,27 @@ export function ExportacoesPage(): JSX.Element {
                   <table className="min-w-full divide-y divide-gray-200 text-sm">
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Etapa</th>
-                        <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">Total</th>
-                        <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">Unidade</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">
+                          Etapa
+                        </th>
+                        <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">
+                          Total
+                        </th>
+                        <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">
+                          Unidade
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
                       {previewData.resumoPorEtapa.map((r) => (
                         <tr key={r.etapaNome} className="hover:bg-gray-50">
                           <td className="px-3 py-2 text-gray-700">{r.etapaNome}</td>
-                          <td className="px-3 py-2 text-right text-gray-900 font-medium">{toSafeNumber(r.totalQuantidade).toLocaleString('pt-BR')}</td>
-                          <td className="px-3 py-2 text-right text-gray-500 text-xs">{r.unidade}</td>
+                          <td className="px-3 py-2 text-right text-gray-900 font-medium">
+                            {toSafeNumber(r.totalQuantidade).toLocaleString('pt-BR')}
+                          </td>
+                          <td className="px-3 py-2 text-right text-gray-500 text-xs">
+                            {r.unidade}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -315,13 +399,21 @@ export function ExportacoesPage(): JSX.Element {
               {/* Por Coordenadoria */}
               {previewData.producaoPorCoordenadoria.length > 0 && (
                 <div>
-                  <h4 className="text-sm font-semibold text-gray-800 mb-2">Por Coordenadoria ({previewData.producaoPorCoordenadoria.length})</h4>
+                  <h4 className="text-sm font-semibold text-gray-800 mb-2">
+                    Por Coordenadoria ({previewData.producaoPorCoordenadoria.length})
+                  </h4>
                   <div className="space-y-1">
                     {previewData.producaoPorCoordenadoria.map((c) => (
-                      <div key={c.coordenadoriaSigla} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                        <span className="text-sm text-gray-700">{c.coordenadoriaNome} ({c.coordenadoriaSigla})</span>
+                      <div
+                        key={c.coordenadoriaSigla}
+                        className="flex items-center justify-between p-2 bg-gray-50 rounded"
+                      >
+                        <span className="text-sm text-gray-700">
+                          {c.coordenadoriaNome} ({c.coordenadoriaSigla})
+                        </span>
                         <span className="text-sm font-medium text-gray-900">
-                          {toSafeNumber(c.totalCaixas).toLocaleString('pt-BR')} caixas | {toSafeNumber(c.totalImagens).toLocaleString('pt-BR')} imagens
+                          {toSafeNumber(c.totalCaixas).toLocaleString('pt-BR')} caixas |{' '}
+                          {toSafeNumber(c.totalImagens).toLocaleString('pt-BR')} imagens
                         </span>
                       </div>
                     ))}
@@ -338,24 +430,48 @@ export function ExportacoesPage(): JSX.Element {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden animate-scale-in">
             <div className="px-6 py-4 border-b flex items-center justify-between shrink-0">
-              <h3 className="text-lg font-semibold text-gray-900">Preview — Detalhamento Operacional ({previewOperacional.length} registros)</h3>
+              <h3 className="text-lg font-semibold text-gray-900">
+                Preview — Detalhamento Operacional ({previewOperacional.length} registros)
+              </h3>
               <div className="flex gap-2">
-                <Button size="sm" onClick={() => { setPreviewOperacional(null); void handleExportar('operacional', 'excel'); }}>Exportar Excel</Button>
-                <Button size="sm" variant="secondary" onClick={() => setPreviewOperacional(null)}>Fechar</Button>
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setPreviewOperacional(null);
+                    void handleExportar('operacional', 'excel');
+                  }}
+                >
+                  Exportar Excel
+                </Button>
+                <Button size="sm" variant="secondary" onClick={() => setPreviewOperacional(null)}>
+                  Fechar
+                </Button>
               </div>
             </div>
             <div className="flex-1 overflow-auto p-4">
               {previewOperacional.length === 0 ? (
-                <p className="text-sm text-gray-500 py-8 text-center">Nenhum registro encontrado no período.</p>
+                <p className="text-sm text-gray-500 py-8 text-center">
+                  Nenhum registro encontrado no período.
+                </p>
               ) : (
                 <table className="min-w-full divide-y divide-gray-200 text-sm">
                   <thead className="bg-gray-50 sticky top-0">
                     <tr>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Data</th>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Colaborador</th>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Etapa</th>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Repositório</th>
-                      <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">Qtd</th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">
+                        Data
+                      </th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">
+                        Colaborador
+                      </th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">
+                        Etapa
+                      </th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">
+                        Repositório
+                      </th>
+                      <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">
+                        Qtd
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
@@ -364,15 +480,21 @@ export function ExportacoesPage(): JSX.Element {
                         <td className="px-3 py-1.5 text-gray-700">{row.data}</td>
                         <td className="px-3 py-1.5 text-gray-700">{row.colaborador}</td>
                         <td className="px-3 py-1.5 text-gray-700">{row.etapa}</td>
-                        <td className="px-3 py-1.5 text-gray-700 font-mono text-xs">{row.repositorio}</td>
-                        <td className="px-3 py-1.5 text-right text-gray-900 font-medium">{row.quantidade}</td>
+                        <td className="px-3 py-1.5 text-gray-700 font-mono text-xs">
+                          {row.repositorio}
+                        </td>
+                        <td className="px-3 py-1.5 text-right text-gray-900 font-medium">
+                          {row.quantidade}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               )}
               {previewOperacional.length > 100 && (
-                <p className="text-xs text-gray-400 mt-2 text-center">Mostrando 100 de {previewOperacional.length} registros. Exporte para ver todos.</p>
+                <p className="text-xs text-gray-400 mt-2 text-center">
+                  Mostrando 100 de {previewOperacional.length} registros. Exporte para ver todos.
+                </p>
               )}
             </div>
           </div>

@@ -130,47 +130,57 @@ Fonte: `packages/backend/src/infrastructure/http/routes`
 Fonte: `db/migrations` (sem `archive`)
 
 Domínio operacional:
+
 - `repositorios`, `movimentacoes_armario`, `checklists`, `checklist_itens`, `checklist_modelos`
 - `producao_repositorio`, `historico_etapas`, `relatorios_operacionais`, `excecoes_repositorio`
 - `lotes_controle_qualidade`, `lotes_controle_qualidade_itens`, `cq_avaliacoes`
 
 Domínio recebimento:
+
 - `recebimento_documentos`
 - `recebimento_processos`, `recebimento_volumes`, `recebimento_apensos`, `recebimento_apenso_volumes`
 - `setores_recebimento`, `classificacoes_recebimento`, `unidades_recebimento`
 
 Domínio importação:
+
 - `importacoes_legado_operacional`
 - `fontes_importacao`
 - `importacao_fontes_linhas` (idempotência)
 
 Domínio configuração/conhecimento:
+
 - `configuracao_empresa`, `configuracao_projetos`
 - `kb_documentos`, `kb_documento_versoes`, `kb_documento_etapas`
 - `kb_glossario`, `kb_leis_normas`
 
 Domínio base:
+
 - `usuarios`, `coordenadorias`, `schema_migrations`, `metas_producao`, `mapeamentos_importacao`
 
 ## 6) Achados de risco/falhas potenciais
 
 1. Regra de duplicidade de repositório aplicada de forma inconsistente na validação de duplicatas da importação.
+
 - Em `operacional-importacao-legado.ts` há trecho de validação (`/fontes-importacao/:id/validar-duplicatas`) ainda consultando apenas `id_repositorio_ged`.
 - Já a criação/importação principal foi ajustada para contexto (`id_repositorio_ged + orgao + projeto`).
 - Risco: falso positivo de duplicidade na pré-validação.
 
 2. Texto com encoding corrompido (mojibake) em mensagens/comentários.
+
 - Ex.: `Importacao`, `Repositorio`, `nao`.
 - Risco: UX ruim, documentação OpenAPI poluída e manutenção difícil.
 
 3. Duplicação de lógica de parse CSV/importação.
+
 - Parsing e normalizações aparecem em múltiplos blocos no mesmo arquivo de importação legado.
 - Risco: correções parciais e divergência de comportamento entre validar/importar.
 
 4. Cobertura de testes focada em hooks e menos em integração de rotas críticas.
+
 - Risco maior em fluxos com regras de negócio complexas: importação, CQ e recebimento.
 
 5. Crescimento de arquivo monolítico de importação legado.
+
 - `operacional-importacao-legado.ts` concentra validação, fetch, parsing, import, idempotência e logging.
 - Risco: maior chance de regressão e resolução de conflito difícil.
 
@@ -180,6 +190,7 @@ Domínio base:
 2. Consolidar parser/normalização de planilha em util compartilhado.
 3. Corrigir encoding dos arquivos de rota para UTF-8 consistente.
 4. Adicionar testes de integração para:
+
 - criação de repositório com mesma GED em unidade/projeto diferentes;
 - fluxo `validar-duplicatas` vs `importar` de fonte;
 - idempotência por linha com reimportação da mesma planilha.
@@ -190,6 +201,7 @@ Domínio base:
 2. Concluido: fetch/parse CSV da importacao por fonte foi consolidado em helpers compartilhados (`buildCsvUrlFromSourceUrl`, `fetchCsvFromSourceUrl`, `parseImportRowsFromCsv`) para reduzir divergencia entre rotas.
 3. Parcial: mensagens principais do fluxo de importacao por fonte foram normalizadas para texto legivel; ainda existem trechos antigos com encoding corrompido no mesmo arquivo e em outros modulos.
 4. Concluido: adicionados testes de integracao cobrindo:
+
 - GED igual permitido em contexto diferente (unidade/projeto);
 - bloqueio de GED duplicado no mesmo contexto;
 - validacao de duplicatas por fonte respeitando contexto do repositorio.

@@ -15,12 +15,14 @@ export class FileStorageService {
 
   constructor(options: FileStorageOptions = {}) {
     this.maxSize = options.maxSize ?? 10 * 1024 * 1024; // 10MB
-    this.allowedTypes = new Set(options.allowedTypes ?? [
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // xlsx
-      'application/vnd.ms-excel', // xls
-      'text/csv', // csv
-      'application/pdf', // pdf
-    ]);
+    this.allowedTypes = new Set(
+      options.allowedTypes ?? [
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // xlsx
+        'application/vnd.ms-excel', // xls
+        'text/csv', // csv
+        'application/pdf', // pdf
+      ]
+    );
   }
 
   async ensureDirs(): Promise<void> {

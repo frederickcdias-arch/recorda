@@ -36,7 +36,12 @@ export type StatusTratativa = 'ABERTA' | 'EM_TRATATIVA' | 'RESOLVIDA';
 
 export type ResultadoCQ = 'PENDENTE' | 'APROVADO' | 'REPROVADO';
 
-export type TipoRelatorioOperacional = 'RECEBIMENTO' | 'PRODUCAO' | 'ENTREGA' | 'CORRECAO' | 'DEVOLUCAO';
+export type TipoRelatorioOperacional =
+  | 'RECEBIMENTO'
+  | 'PRODUCAO'
+  | 'ENTREGA'
+  | 'CORRECAO'
+  | 'DEVOLUCAO';
 
 export type OrigemDocumentoRecebimento = 'MANUAL' | 'OCR' | 'LEGADO';
 

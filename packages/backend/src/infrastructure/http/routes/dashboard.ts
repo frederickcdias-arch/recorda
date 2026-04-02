@@ -20,98 +20,155 @@ interface Alerta {
 
 export function createDashboardRoutes(): FastifyPluginAsync {
   return async (server: FastifyInstance): Promise<void> => {
-    server.get('/dashboard', {
-      schema: {
-        tags: ['dashboard'],
-        summary: 'Dados do dashboard operacional',
-        description: 'Retorna estatísticas de produção, status de recebimento, alertas, backlog por etapa, tempo médio e retrabalho CQ.',
-        security: [{ bearerAuth: [] }],
-        response: {
-          200: {
-            type: 'object',
-            properties: {
-              stats: {
-                type: 'object',
-                properties: {
-                  producaoTotal: { type: 'number' },
-                  producaoTrend: { type: 'string' },
-                  processosAtivos: { type: 'number' },
-                  processosNovosHoje: { type: 'number' },
-                  colaboradoresAtivos: { type: 'number' },
+    server.get(
+      '/dashboard',
+      {
+        schema: {
+          tags: ['dashboard'],
+          summary: 'Dados do dashboard operacional',
+          description:
+            'Retorna estatísticas de produção, status de recebimento, alertas, backlog por etapa, tempo médio e retrabalho CQ.',
+          security: [{ bearerAuth: [] }],
+          response: {
+            200: {
+              type: 'object',
+              properties: {
+                stats: {
+                  type: 'object',
+                  properties: {
+                    producaoTotal: { type: 'number' },
+                    producaoTrend: { type: 'string' },
+                    processosAtivos: { type: 'number' },
+                    processosNovosHoje: { type: 'number' },
+                    colaboradoresAtivos: { type: 'number' },
+                  },
+                },
+                producaoPorEtapa: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      etapa: { type: 'string' },
+                      valor: { type: 'number' },
+                      cor: { type: 'string' },
+                    },
+                  },
+                },
+                statusRecebimento: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      status: { type: 'string' },
+                      valor: { type: 'number' },
+                      icon: { type: 'string' },
+                      cor: { type: 'string' },
+                    },
+                  },
+                },
+                alertas: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      tipo: { type: 'string' },
+                      titulo: { type: 'string' },
+                      descricao: { type: 'string' },
+                    },
+                  },
+                },
+                backlogPorEtapa: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: { etapa: { type: 'string' }, total: { type: 'number' } },
+                  },
+                },
+                tempoMedioPorEtapa: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: { etapa: { type: 'string' }, mediaHoras: { type: 'number' } },
+                  },
+                },
+                retrabalhoCQ: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      motivo: { type: 'string' },
+                      total: { type: 'number' },
+                      repositorios: { type: 'string' },
+                    },
+                  },
                 },
               },
-              producaoPorEtapa: { type: 'array', items: { type: 'object', properties: { etapa: { type: 'string' }, valor: { type: 'number' }, cor: { type: 'string' } } } },
-              statusRecebimento: { type: 'array', items: { type: 'object', properties: { status: { type: 'string' }, valor: { type: 'number' }, icon: { type: 'string' }, cor: { type: 'string' } } } },
-              alertas: { type: 'array', items: { type: 'object', properties: { tipo: { type: 'string' }, titulo: { type: 'string' }, descricao: { type: 'string' } } } },
-              backlogPorEtapa: { type: 'array', items: { type: 'object', properties: { etapa: { type: 'string' }, total: { type: 'number' } } } },
-              tempoMedioPorEtapa: { type: 'array', items: { type: 'object', properties: { etapa: { type: 'string' }, mediaHoras: { type: 'number' } } } },
-              retrabalhoCQ: { type: 'array', items: { type: 'object', properties: { motivo: { type: 'string' }, total: { type: 'number' }, repositorios: { type: 'string' } } } },
             },
+            500: { type: 'object', properties: { error: { type: 'string' } } },
           },
-          500: { type: 'object', properties: { error: { type: 'string' } } },
         },
+        preHandler: [server.authenticate, authorize('operador', 'administrador')],
       },
-      preHandler: [server.authenticate, authorize('operador', 'administrador')],
-    }, async (_request, reply) => {
-      try {
-        const agora = new Date();
-        const inicioMes = new Date(agora.getFullYear(), agora.getMonth(), 1);
-        const inicioMesAnterior = new Date(agora.getFullYear(), agora.getMonth() - 1, 1);
-        const inicioHoje = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate());
+      async (_request, reply) => {
+        try {
+          const agora = new Date();
+          const inicioMes = new Date(agora.getFullYear(), agora.getMonth(), 1);
+          const inicioMesAnterior = new Date(agora.getFullYear(), agora.getMonth() - 1, 1);
+          const inicioHoje = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate());
 
-        const [
-          producaoMesAtualResult,
-          producaoMesAnteriorResult,
-          processosAtivosResult,
-          processosHojeResult,
-          colaboradoresAtivosResult,
-          producaoPorEtapaResult,
-          paradosResult,
-          divergenciasResult,
-          checklistPendenteResult,
-          importacoesLegadoComErroResult,
-          backlogPorEtapaResult,
-          tempoMedioPorEtapaResult,
-          retrabalhoCQResult,
-        ] = await Promise.all([
-          server.database.query<{ total: string }>(
-            `SELECT COALESCE(SUM(quantidade), 0)::text AS total
+          const [
+            producaoMesAtualResult,
+            producaoMesAnteriorResult,
+            processosAtivosResult,
+            processosHojeResult,
+            colaboradoresAtivosResult,
+            producaoPorEtapaResult,
+            paradosResult,
+            divergenciasResult,
+            checklistPendenteResult,
+            importacoesLegadoComErroResult,
+            backlogPorEtapaResult,
+            tempoMedioPorEtapaResult,
+            retrabalhoCQResult,
+          ] = await Promise.all([
+            server.database.query<{ total: string }>(
+              `SELECT COALESCE(SUM(quantidade), 0)::text AS total
              FROM producao_repositorio
              WHERE data_producao >= $1
                AND COALESCE(marcadores->>'origem', '') = 'LEGADO'
                AND etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')`,
-            [inicioMes.toISOString()]
-          ),
-          server.database.query<{ total: string }>(
-            `SELECT COALESCE(SUM(quantidade), 0)::text AS total
+              [inicioMes.toISOString()]
+            ),
+            server.database.query<{ total: string }>(
+              `SELECT COALESCE(SUM(quantidade), 0)::text AS total
              FROM producao_repositorio
              WHERE data_producao >= $1
                AND data_producao < $2
                AND COALESCE(marcadores->>'origem', '') = 'LEGADO'
                AND etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')`,
-            [inicioMesAnterior.toISOString(), inicioMes.toISOString()]
-          ),
-          server.database.query<{ total: string }>(
-            `SELECT COUNT(DISTINCT p.repositorio_id)::text AS total
+              [inicioMesAnterior.toISOString(), inicioMes.toISOString()]
+            ),
+            server.database.query<{ total: string }>(
+              `SELECT COUNT(DISTINCT p.repositorio_id)::text AS total
              FROM producao_repositorio p
              WHERE COALESCE(p.marcadores->>'origem', '') = 'LEGADO'
                AND p.etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')`
-          ),
-          server.database.query<{ total: string }>(
-            `SELECT COUNT(DISTINCT p.repositorio_id)::text AS total
+            ),
+            server.database.query<{ total: string }>(
+              `SELECT COUNT(DISTINCT p.repositorio_id)::text AS total
              FROM producao_repositorio p
              WHERE p.data_producao >= $1
                AND COALESCE(p.marcadores->>'origem', '') = 'LEGADO'
                AND p.etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')`,
-            [inicioHoje.toISOString()]
-          ),
-          server.database.query<{ total: string }>(
-            `SELECT COUNT(*)::text AS total
+              [inicioHoje.toISOString()]
+            ),
+            server.database.query<{ total: string }>(
+              `SELECT COUNT(*)::text AS total
              FROM usuarios
              WHERE ativo = TRUE`
-          ),
-          server.database.query<{ etapa: string; valor: string }>(
-            `SELECT
+            ),
+            server.database.query<{ etapa: string; valor: string }>(
+              `SELECT
                COALESCE(NULLIF(TRIM(p.marcadores->>'funcao'), ''),
                  CASE p.etapa::text
                    WHEN 'RECEBIMENTO' THEN 'Recebimento'
@@ -157,21 +214,21 @@ export function createDashboardRoutes(): FastifyPluginAsync {
                  WHEN 'ENTREGA' THEN 8
                  ELSE 99
                END`,
-            [inicioMes.toISOString()]
-          ),
-          server.database.query<{ total: string }>(
-            `SELECT COUNT(*)::text AS total
+              [inicioMes.toISOString()]
+            ),
+            server.database.query<{ total: string }>(
+              `SELECT COUNT(*)::text AS total
              FROM repositorios
              WHERE status_atual <> 'ENTREGUE'
                AND atualizado_em < (CURRENT_TIMESTAMP - INTERVAL '48 hours')`
-          ),
-          server.database.query<{ total: string }>(
-            `SELECT COUNT(*)::text AS total
+            ),
+            server.database.query<{ total: string }>(
+              `SELECT COUNT(*)::text AS total
              FROM excecoes_repositorio
              WHERE status_tratativa IN ('ABERTA', 'EM_TRATATIVA')`
-          ),
-          server.database.query<{ total: string }>(
-            `SELECT COUNT(*)::text AS total
+            ),
+            server.database.query<{ total: string }>(
+              `SELECT COUNT(*)::text AS total
              FROM repositorios r
              WHERE r.status_atual <> 'ENTREGUE'
                AND NOT EXISTS (
@@ -181,24 +238,24 @@ export function createDashboardRoutes(): FastifyPluginAsync {
                    AND c.etapa = r.etapa_atual
                    AND c.ativo = TRUE
                )`
-          ),
-          server.database.query<{ total: string }>(
-            `SELECT COUNT(*)::text AS total
+            ),
+            server.database.query<{ total: string }>(
+              `SELECT COUNT(*)::text AS total
              FROM importacoes_legado_operacional
              WHERE criado_em >= (CURRENT_TIMESTAMP - INTERVAL '24 hours')
                AND registros_erro > 0`
-          ),
-          // Backlog por etapa
-          server.database.query<{ etapa: string; total: string }>(
-            `SELECT r.etapa_atual AS etapa, COUNT(*)::text AS total
+            ),
+            // Backlog por etapa
+            server.database.query<{ etapa: string; total: string }>(
+              `SELECT r.etapa_atual AS etapa, COUNT(*)::text AS total
              FROM repositorios r
              WHERE r.status_atual NOT IN ('ENTREGUE', 'CQ_REPROVADO')
              GROUP BY r.etapa_atual
              ORDER BY r.etapa_atual`
-          ),
-          // Tempo médio por etapa (horas entre entrada e saída de cada etapa)
-          server.database.query<{ etapa: string; media_horas: string }>(
-            `SELECT etapa_origem AS etapa,
+            ),
+            // Tempo médio por etapa (horas entre entrada e saída de cada etapa)
+            server.database.query<{ etapa: string; media_horas: string }>(
+              `SELECT etapa_origem AS etapa,
                     ROUND(AVG(EXTRACT(EPOCH FROM (prox_evento - data_evento)) / 3600.0), 1)::text AS media_horas
              FROM (
                SELECT h.etapa_origem,
@@ -212,10 +269,10 @@ export function createDashboardRoutes(): FastifyPluginAsync {
              WHERE prox_evento IS NOT NULL
              GROUP BY etapa_origem
              ORDER BY etapa_origem`
-          ),
-          // Retrabalho CQ detalhado
-          server.database.query<{ motivo_codigo: string; total: string; repositorios: string }>(
-            `SELECT i.motivo_codigo,
+            ),
+            // Retrabalho CQ detalhado
+            server.database.query<{ motivo_codigo: string; total: string; repositorios: string }>(
+              `SELECT i.motivo_codigo,
                     COUNT(*)::text AS total,
                     STRING_AGG(DISTINCT r.id_repositorio_ged, ', ' ORDER BY r.id_repositorio_ged) AS repositorios
              FROM lotes_controle_qualidade_itens i
@@ -223,111 +280,119 @@ export function createDashboardRoutes(): FastifyPluginAsync {
              WHERE i.resultado = 'REPROVADO'
              GROUP BY i.motivo_codigo
              ORDER BY COUNT(*) DESC`
-          ),
-        ]);
+            ),
+          ]);
 
-        const producaoMesAtual = parseInt(producaoMesAtualResult.rows[0]?.total ?? '0', 10);
-        const producaoMesAnterior = parseInt(producaoMesAnteriorResult.rows[0]?.total ?? '0', 10);
-        const processosAtivos = parseInt(processosAtivosResult.rows[0]?.total ?? '0', 10);
-        const processosNovosHoje = parseInt(processosHojeResult.rows[0]?.total ?? '0', 10);
-        const colaboradoresAtivos = parseInt(colaboradoresAtivosResult.rows[0]?.total ?? '0', 10);
+          const producaoMesAtual = parseInt(producaoMesAtualResult.rows[0]?.total ?? '0', 10);
+          const producaoMesAnterior = parseInt(producaoMesAnteriorResult.rows[0]?.total ?? '0', 10);
+          const processosAtivos = parseInt(processosAtivosResult.rows[0]?.total ?? '0', 10);
+          const processosNovosHoje = parseInt(processosHojeResult.rows[0]?.total ?? '0', 10);
+          const colaboradoresAtivos = parseInt(colaboradoresAtivosResult.rows[0]?.total ?? '0', 10);
 
-        let producaoTrend = '0%';
-        if (producaoMesAnterior > 0) {
-          const diff = ((producaoMesAtual - producaoMesAnterior) / producaoMesAnterior) * 100;
-          producaoTrend = `${diff >= 0 ? '+' : ''}${diff.toFixed(0)}% vs mes anterior`;
-        }
+          let producaoTrend = '0%';
+          if (producaoMesAnterior > 0) {
+            const diff = ((producaoMesAtual - producaoMesAnterior) / producaoMesAnterior) * 100;
+            producaoTrend = `${diff >= 0 ? '+' : ''}${diff.toFixed(0)}% vs mes anterior`;
+          }
 
-        const producaoPorEtapa: ProducaoPorEtapa[] = producaoPorEtapaResult.rows.map((row) => ({
-          etapa: row.etapa,
-          valor: parseInt(row.valor ?? '0', 10),
-        }));
-
-        const recebidosHoje = processosNovosHoje;
-        const importacoesComErro = parseInt(importacoesLegadoComErroResult.rows[0]?.total ?? '0', 10);
-
-        const statusRecebimento: StatusRecebimento[] = [
-          { status: 'Importados hoje', valor: recebidosHoje, icon: 'inbox' },
-          { status: 'Registros no mes', valor: producaoMesAtual, icon: 'bar-chart' },
-          { status: 'Importacoes com erro (24h)', valor: importacoesComErro, icon: 'alert-triangle' },
-        ];
-
-        const alertas: Alerta[] = [];
-
-        const parados = parseInt(paradosResult.rows[0]?.total ?? '0', 10);
-        if (parados > 0) {
-          alertas.push({
-            tipo: 'warning',
-            titulo: 'Repositorios parados',
-            descricao: `${parados} repositorio(s) sem movimentacao ha mais de 48h.`,
-          });
-        }
-
-        const divergencias = parseInt(divergenciasResult.rows[0]?.total ?? '0', 10);
-        if (divergencias > 0) {
-          alertas.push({
-            tipo: 'error',
-            titulo: 'Divergencias operacionais',
-            descricao: `${divergencias} excecao(oes) em aberto ou em tratativa.`,
-          });
-        }
-
-        const checklistPendentes = parseInt(checklistPendenteResult.rows[0]?.total ?? '0', 10);
-        if (checklistPendentes > 0) {
-          alertas.push({
-            tipo: 'info',
-            titulo: 'Checklist ausente',
-            descricao: `${checklistPendentes} repositorio(s) sem checklist ativo da etapa atual.`,
-          });
-        }
-
-        if (importacoesComErro > 0) {
-          alertas.push({
-            tipo: 'warning',
-            titulo: 'Importacao legada com erro',
-            descricao: `${importacoesComErro} importacao(oes) legadas com erro nas ultimas 24h.`,
-          });
-        }
-
-        const backlogPorEtapa = backlogPorEtapaResult.rows.map((row) => ({
-          etapa: row.etapa,
-          total: parseInt(row.total ?? '0', 10),
-        }));
-
-        const tempoMedioPorEtapa = tempoMedioPorEtapaResult.rows
-          .filter((row) => row.media_horas !== null)
-          .map((row) => ({
+          const producaoPorEtapa: ProducaoPorEtapa[] = producaoPorEtapaResult.rows.map((row) => ({
             etapa: row.etapa,
-            mediaHoras: parseFloat(row.media_horas ?? '0'),
+            valor: parseInt(row.valor ?? '0', 10),
           }));
 
-        const retrabalhoCQ = retrabalhoCQResult.rows.map((row) => ({
-          motivo: row.motivo_codigo ?? 'SEM_MOTIVO',
-          total: parseInt(row.total ?? '0', 10),
-          repositorios: row.repositorios ?? '',
-        }));
+          const recebidosHoje = processosNovosHoje;
+          const importacoesComErro = parseInt(
+            importacoesLegadoComErroResult.rows[0]?.total ?? '0',
+            10
+          );
 
-        const responseData = {
-          stats: {
-            producaoTotal: producaoMesAtual,
-            producaoTrend,
-            processosAtivos,
-            processosNovosHoje,
-            colaboradoresAtivos,
-          },
-          producaoPorEtapa,
-          statusRecebimento,
-          alertas,
-          backlogPorEtapa,
-          tempoMedioPorEtapa,
-          retrabalhoCQ,
-        };
+          const statusRecebimento: StatusRecebimento[] = [
+            { status: 'Importados hoje', valor: recebidosHoje, icon: 'inbox' },
+            { status: 'Registros no mes', valor: producaoMesAtual, icon: 'bar-chart' },
+            {
+              status: 'Importacoes com erro (24h)',
+              valor: importacoesComErro,
+              icon: 'alert-triangle',
+            },
+          ];
 
-        return reply.status(200).send(responseData);
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'Erro ao carregar dashboard';
-        return reply.status(500).send({ error: message });
+          const alertas: Alerta[] = [];
+
+          const parados = parseInt(paradosResult.rows[0]?.total ?? '0', 10);
+          if (parados > 0) {
+            alertas.push({
+              tipo: 'warning',
+              titulo: 'Repositorios parados',
+              descricao: `${parados} repositorio(s) sem movimentacao ha mais de 48h.`,
+            });
+          }
+
+          const divergencias = parseInt(divergenciasResult.rows[0]?.total ?? '0', 10);
+          if (divergencias > 0) {
+            alertas.push({
+              tipo: 'error',
+              titulo: 'Divergencias operacionais',
+              descricao: `${divergencias} excecao(oes) em aberto ou em tratativa.`,
+            });
+          }
+
+          const checklistPendentes = parseInt(checklistPendenteResult.rows[0]?.total ?? '0', 10);
+          if (checklistPendentes > 0) {
+            alertas.push({
+              tipo: 'info',
+              titulo: 'Checklist ausente',
+              descricao: `${checklistPendentes} repositorio(s) sem checklist ativo da etapa atual.`,
+            });
+          }
+
+          if (importacoesComErro > 0) {
+            alertas.push({
+              tipo: 'warning',
+              titulo: 'Importacao legada com erro',
+              descricao: `${importacoesComErro} importacao(oes) legadas com erro nas ultimas 24h.`,
+            });
+          }
+
+          const backlogPorEtapa = backlogPorEtapaResult.rows.map((row) => ({
+            etapa: row.etapa,
+            total: parseInt(row.total ?? '0', 10),
+          }));
+
+          const tempoMedioPorEtapa = tempoMedioPorEtapaResult.rows
+            .filter((row) => row.media_horas !== null)
+            .map((row) => ({
+              etapa: row.etapa,
+              mediaHoras: parseFloat(row.media_horas ?? '0'),
+            }));
+
+          const retrabalhoCQ = retrabalhoCQResult.rows.map((row) => ({
+            motivo: row.motivo_codigo ?? 'SEM_MOTIVO',
+            total: parseInt(row.total ?? '0', 10),
+            repositorios: row.repositorios ?? '',
+          }));
+
+          const responseData = {
+            stats: {
+              producaoTotal: producaoMesAtual,
+              producaoTrend,
+              processosAtivos,
+              processosNovosHoje,
+              colaboradoresAtivos,
+            },
+            producaoPorEtapa,
+            statusRecebimento,
+            alertas,
+            backlogPorEtapa,
+            tempoMedioPorEtapa,
+            retrabalhoCQ,
+          };
+
+          return reply.status(200).send(responseData);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Erro ao carregar dashboard';
+          return reply.status(500).send({ error: message });
+        }
       }
-    });
+    );
   };
 }

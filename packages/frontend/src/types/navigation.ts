@@ -17,5 +17,3 @@ export interface MenuSection {
   items: MenuItem[];
   allowedProfiles?: PerfilUsuario[];
 }
-
-

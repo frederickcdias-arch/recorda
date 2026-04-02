@@ -26,18 +26,18 @@ const paddingClasses: Record<CardPadding, string> = {
   xl: 'p-8',
 };
 
-export function Card({ 
-  children, 
-  className = '', 
+export function Card({
+  children,
+  className = '',
   variant = 'default',
   padding = 'md',
   hover = false,
   onClick,
 }: CardProps): JSX.Element {
   const isClickable = !!onClick;
-  
+
   return (
-    <div 
+    <div
       className={`
         rounded-xl transition-all duration-150
         ${variantClasses[variant]}
@@ -63,12 +63,22 @@ interface CardHeaderProps {
   className?: string;
 }
 
-export function CardHeader({ title, description, action, badge, className = '' }: CardHeaderProps): JSX.Element {
+export function CardHeader({
+  title,
+  description,
+  action,
+  badge,
+  className = '',
+}: CardHeaderProps): JSX.Element {
   return (
-    <div className={`flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-5 ${className}`}>
+    <div
+      className={`flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-5 ${className}`}
+    >
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <h3 className="text-base font-semibold text-[var(--color-text-primary)] truncate">{title}</h3>
+          <h3 className="text-base font-semibold text-[var(--color-text-primary)] truncate">
+            {title}
+          </h3>
           {badge}
         </div>
         {description && (
@@ -86,13 +96,19 @@ interface CardFooterProps {
   border?: boolean;
 }
 
-export function CardFooter({ children, className = '', border = true }: CardFooterProps): JSX.Element {
+export function CardFooter({
+  children,
+  className = '',
+  border = true,
+}: CardFooterProps): JSX.Element {
   return (
-    <div className={`
+    <div
+      className={`
       mt-5 pt-4 
       ${border ? 'border-t border-[var(--color-border-secondary)]' : ''}
       ${className}
-    `}>
+    `}
+    >
       {children}
     </div>
   );
@@ -105,13 +121,22 @@ interface CardSectionProps {
   className?: string;
 }
 
-export function CardSection({ children, title, description, className = '' }: CardSectionProps): JSX.Element {
+export function CardSection({
+  children,
+  title,
+  description,
+  className = '',
+}: CardSectionProps): JSX.Element {
   return (
     <div className={`${className}`}>
       {(title || description) && (
         <div className="mb-3">
-          {title && <h4 className="text-sm font-medium text-[var(--color-text-primary)]">{title}</h4>}
-          {description && <p className="text-sm text-[var(--color-text-tertiary)] mt-0.5">{description}</p>}
+          {title && (
+            <h4 className="text-sm font-medium text-[var(--color-text-primary)]">{title}</h4>
+          )}
+          {description && (
+            <p className="text-sm text-[var(--color-text-tertiary)] mt-0.5">{description}</p>
+          )}
         </div>
       )}
       {children}

@@ -91,7 +91,14 @@ export class ProducaoRepository {
       `INSERT INTO producao_repositorio (repositorio_id, etapa, checklist_id, quantidade, usuario_id, marcadores)
        VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING id, repositorio_id, etapa, checklist_id, quantidade, usuario_id, data_producao, marcadores`,
-      [data.repositorioId, data.etapa, data.checklistId ?? null, data.quantidade, data.usuarioId, JSON.stringify(data.marcadores ?? {})]
+      [
+        data.repositorioId,
+        data.etapa,
+        data.checklistId ?? null,
+        data.quantidade,
+        data.usuarioId,
+        JSON.stringify(data.marcadores ?? {}),
+      ]
     );
     const row = result.rows[0];
     if (!row) throw new Error('Falha ao registrar produção');
@@ -99,10 +106,7 @@ export class ProducaoRepository {
   }
 
   async delete(id: string): Promise<boolean> {
-    const result = await this.db.query(
-      `DELETE FROM producao_repositorio WHERE id = $1`,
-      [id]
-    );
+    const result = await this.db.query(`DELETE FROM producao_repositorio WHERE id = $1`, [id]);
     return result.rowCount > 0;
   }
 }

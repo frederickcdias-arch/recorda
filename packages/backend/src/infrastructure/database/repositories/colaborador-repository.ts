@@ -107,12 +107,15 @@ export class ColaboradorRepository {
     return row;
   }
 
-  async update(id: string, data: {
-    nome: string;
-    matricula: string;
-    email?: string;
-    coordenadoriaId: string;
-  }): Promise<ColaboradorRow | null> {
+  async update(
+    id: string,
+    data: {
+      nome: string;
+      matricula: string;
+      email?: string;
+      coordenadoriaId: string;
+    }
+  ): Promise<ColaboradorRow | null> {
     const result = await this.db.query<ColaboradorRow>(
       `UPDATE colaboradores SET nome = $1, matricula = $2, email = $3, coordenadoria_id = $4
        WHERE id = $5

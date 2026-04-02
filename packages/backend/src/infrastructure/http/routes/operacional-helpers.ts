@@ -61,12 +61,16 @@ export function normalizeText(value: string): string {
 
 export function extractOCRPreview(texto: string, confianca: number): OCRPreview {
   const normalized = normalizeText(texto);
-  const lines = texto.split(/\n/).map(l => l.trim()).filter(Boolean);
+  const lines = texto
+    .split(/\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
 
   // --- Protocolo ---
   // Fix common OCR errors: O→0, l→1, I→1, S→5, B→8
-  const fixOcrDigits = (s: string) => s.replace(/[Oo]/g, '0').replace(/[lIi]/g, '1').replace(/S/g, '5').replace(/B/g, '8');
-  
+  const fixOcrDigits = (s: string) =>
+    s.replace(/[Oo]/g, '0').replace(/[lIi]/g, '1').replace(/S/g, '5').replace(/B/g, '8');
+
   // Try multiple patterns in order of specificity
   // Note: OCR may introduce artifacts like extra hyphens, pipes, etc.
   const protocoloPatterns = [
@@ -87,7 +91,7 @@ export function extractOCRPreview(texto: string, confianca: number): OCRPreview 
     // Standalone pattern: 5+ digits followed by /2-digit year
     /\b([0-9OoIl]{4,}[\/][0-9OoIl]{2})\b/,
   ];
-  
+
   let protocolo = '';
   for (const pattern of protocoloPatterns) {
     const match = normalized.match(pattern);
@@ -98,11 +102,15 @@ export function extractOCRPreview(texto: string, confianca: number): OCRPreview 
   }
 
   // --- Interessado ---
-  const interessadoMatch = normalized.match(/interessad[oa()\s]*:?\s*(.+?)(?=\s*assunto|\s*resumo|$)/i);
+  const interessadoMatch = normalized.match(
+    /interessad[oa()\s]*:?\s*(.+?)(?=\s*assunto|\s*resumo|$)/i
+  );
   let interessado = interessadoMatch?.[1]?.trim() ?? '';
-  interessado = interessado.replace(/\s*(assunto|resumo|setor|volume|data|protocolo).*/i, '').trim();
+  interessado = interessado
+    .replace(/\s*(assunto|resumo|setor|volume|data|protocolo).*/i, '')
+    .trim();
   if (!interessado) {
-    const intLine = lines.find(l => /interessad/i.test(l));
+    const intLine = lines.find((l) => /interessad/i.test(l));
     if (intLine) {
       interessado = intLine.replace(/^.*interessad[oa()\s]*:?\s*/i, '').trim();
     }
@@ -116,7 +124,10 @@ export function extractOCRPreview(texto: string, confianca: number): OCRPreview 
   };
 }
 
-export async function saveOCRImageBase64(imagemBase64: string, prefix: string): Promise<string | null> {
+export async function saveOCRImageBase64(
+  imagemBase64: string,
+  prefix: string
+): Promise<string | null> {
   if (!imagemBase64?.startsWith('data:image/')) {
     return null;
   }
@@ -136,7 +147,10 @@ export async function saveOCRImageBase64(imagemBase64: string, prefix: string): 
   return relativePath;
 }
 
-export async function loadRepositorio(server: FastifyInstance, repositorioId: string): Promise<{
+export async function loadRepositorio(
+  server: FastifyInstance,
+  repositorioId: string
+): Promise<{
   id_repositorio_recorda: string;
   etapa_atual: EtapaFluxo;
   status_atual: StatusRepositorio;

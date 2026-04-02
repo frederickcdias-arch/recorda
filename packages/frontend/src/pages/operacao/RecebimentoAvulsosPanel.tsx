@@ -25,24 +25,49 @@ interface RecebimentoAvulsosPanelProps {
   onError: (msg: string) => void;
 }
 
-export function RecebimentoAvulsosPanel({ onSuccess, onError }: RecebimentoAvulsosPanelProps): JSX.Element {
+export function RecebimentoAvulsosPanel({
+  onSuccess,
+  onError,
+}: RecebimentoAvulsosPanelProps): JSX.Element {
   const {
-    avulsos, carregando, processando, pagina, setPagina, totalPaginas, selecionados,
-    form, setForm, formAberto, setFormAberto,
-    vincularModalOpen, setVincularModalOpen,
-    setoresOptions, classificacoesOptions,
-    novoSetorInput, setNovoSetorInput, novaClassifInput, setNovaClassifInput,
+    avulsos,
+    carregando,
+    processando,
+    pagina,
+    setPagina,
+    totalPaginas,
+    selecionados,
+    form,
+    setForm,
+    formAberto,
+    setFormAberto,
+    vincularModalOpen,
+    setVincularModalOpen,
+    setoresOptions,
+    classificacoesOptions,
+    novoSetorInput,
+    setNovoSetorInput,
+    novaClassifInput,
+    setNovaClassifInput,
     EMPTY_FORM,
-    apensoProcessoId, setApensoProcessoId,
-    apensoFormAberto, setApensoFormAberto,
-    apensoForm, setApensoForm,
+    apensoProcessoId,
+    setApensoProcessoId,
+    apensoFormAberto,
+    setApensoFormAberto,
+    apensoForm,
+    setApensoForm,
     invalidateAvulsos,
-    busca, setBusca,
-    handleCriarAvulso, handleExcluirAvulso,
-    handleAdicionarApenso, handleExcluirApenso,
+    busca,
+    setBusca,
+    handleCriarAvulso,
+    handleExcluirAvulso,
+    handleAdicionarApenso,
+    handleExcluirApenso,
     handleVincular,
-    handleCriarSetor, handleCriarClassificacao,
-    toggleSelecionado, toggleTodos,
+    handleCriarSetor,
+    handleCriarClassificacao,
+    toggleSelecionado,
+    toggleTodos,
     confirmDialog,
   } = useRecebimentoAvulsos();
 
@@ -122,11 +147,21 @@ export function RecebimentoAvulsosPanel({ onSuccess, onError }: RecebimentoAvuls
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
               placeholder="Protocolo ou interessado"
-              onKeyDown={(e) => { if (e.key === 'Enter') handleBuscar(); }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleBuscar();
+              }}
             />
           </div>
-          <Button size="sm" variant="secondary" onClick={handleBuscar} loading={carregando}>Buscar</Button>
-          <Button size="sm" onClick={() => { setForm({ ...EMPTY_FORM }); setFormAberto(true); }}>
+          <Button size="sm" variant="secondary" onClick={handleBuscar} loading={carregando}>
+            Buscar
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => {
+              setForm({ ...EMPTY_FORM });
+              setFormAberto(true);
+            }}
+          >
             + Novo Avulso
           </Button>
           <Button size="sm" variant="outline" onClick={() => setLoteModalOpen(true)}>
@@ -148,13 +183,37 @@ export function RecebimentoAvulsosPanel({ onSuccess, onError }: RecebimentoAvuls
           {/* OCR photo upload */}
           <div className="mb-4 p-3 bg-blue-50 rounded-lg">
             <p className="text-xs font-medium text-blue-800 mb-2">Preencher via Foto (OCR)</p>
-            <input ref={cameraRef} type="file" accept="image/*" capture="environment" onChange={(e) => void handleOcrFile(e.target.files?.[0] ?? null)} className="hidden" />
-            <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/jpg,image/webp" onChange={(e) => void handleOcrFile(e.target.files?.[0] ?? null)} className="hidden" />
+            <input
+              ref={cameraRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={(e) => void handleOcrFile(e.target.files?.[0] ?? null)}
+              className="hidden"
+            />
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/png,image/jpeg,image/jpg,image/webp"
+              onChange={(e) => void handleOcrFile(e.target.files?.[0] ?? null)}
+              className="hidden"
+            />
             <div className="flex gap-2">
-              <Button size="sm" onClick={() => cameraRef.current?.click()} loading={ocrProcessando} disabled={ocrProcessando}>
+              <Button
+                size="sm"
+                onClick={() => cameraRef.current?.click()}
+                loading={ocrProcessando}
+                disabled={ocrProcessando}
+              >
                 Capturar Foto
               </Button>
-              <Button size="sm" variant="outline" onClick={() => fileRef.current?.click()} loading={ocrProcessando} disabled={ocrProcessando}>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => fileRef.current?.click()}
+                loading={ocrProcessando}
+                disabled={ocrProcessando}
+              >
                 Selecionar Imagem
               </Button>
             </div>
@@ -184,7 +243,9 @@ export function RecebimentoAvulsosPanel({ onSuccess, onError }: RecebimentoAvuls
               >
                 <option value="">— Selecione —</option>
                 {setoresOptions.map((s) => (
-                  <option key={s.id} value={s.id}>{s.nome}</option>
+                  <option key={s.id} value={s.id}>
+                    {s.nome}
+                  </option>
                 ))}
               </select>
               <div className="flex gap-1 mt-1">
@@ -194,14 +255,21 @@ export function RecebimentoAvulsosPanel({ onSuccess, onError }: RecebimentoAvuls
                   placeholder="Novo setor..."
                   value={novoSetorInput}
                   onChange={(e) => setNovoSetorInput(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void handleCriarSetor(); } }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      void handleCriarSetor();
+                    }
+                  }}
                 />
                 <button
                   type="button"
                   className="h-8 px-2 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
                   onClick={() => void handleCriarSetor()}
                   disabled={!novoSetorInput.trim()}
-                >+</button>
+                >
+                  +
+                </button>
               </div>
             </div>
 
@@ -215,7 +283,9 @@ export function RecebimentoAvulsosPanel({ onSuccess, onError }: RecebimentoAvuls
               >
                 <option value="">— Selecione —</option>
                 {classificacoesOptions.map((c) => (
-                  <option key={c.id} value={c.id}>{c.nome}</option>
+                  <option key={c.id} value={c.id}>
+                    {c.nome}
+                  </option>
                 ))}
               </select>
               <div className="flex gap-1 mt-1">
@@ -225,14 +295,21 @@ export function RecebimentoAvulsosPanel({ onSuccess, onError }: RecebimentoAvuls
                   placeholder="Nova classificação..."
                   value={novaClassifInput}
                   onChange={(e) => setNovaClassifInput(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); void handleCriarClassificacao(); } }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      void handleCriarClassificacao();
+                    }
+                  }}
                 />
                 <button
                   type="button"
                   className="h-8 px-2 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
                   onClick={() => void handleCriarClassificacao()}
                   disabled={!novaClassifInput.trim()}
-                >+</button>
+                >
+                  +
+                </button>
               </div>
             </div>
 
@@ -243,7 +320,12 @@ export function RecebimentoAvulsosPanel({ onSuccess, onError }: RecebimentoAvuls
                   type="number"
                   min={1}
                   value={String(form.volumeAtual)}
-                  onChange={(e) => setForm((p) => ({ ...p, volumeAtual: Math.max(Number(e.target.value || 1), 1) }))}
+                  onChange={(e) =>
+                    setForm((p) => ({
+                      ...p,
+                      volumeAtual: Math.max(Number(e.target.value || 1), 1),
+                    }))
+                  }
                 />
               </div>
               <span className="self-end pb-2 text-gray-500 text-sm">de</span>
@@ -253,7 +335,12 @@ export function RecebimentoAvulsosPanel({ onSuccess, onError }: RecebimentoAvuls
                   type="number"
                   min={0}
                   value={String(form.volumeTotal)}
-                  onChange={(e) => setForm((p) => ({ ...p, volumeTotal: Math.max(Number(e.target.value || 0), 0) }))}
+                  onChange={(e) =>
+                    setForm((p) => ({
+                      ...p,
+                      volumeTotal: Math.max(Number(e.target.value || 0), 0),
+                    }))
+                  }
                 />
               </div>
             </div>
@@ -263,7 +350,9 @@ export function RecebimentoAvulsosPanel({ onSuccess, onError }: RecebimentoAvuls
               type="number"
               min={1}
               value={String(form.numeroCaixas)}
-              onChange={(e) => setForm((p) => ({ ...p, numeroCaixas: Math.max(Number(e.target.value || 1), 1) }))}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, numeroCaixas: Math.max(Number(e.target.value || 1), 1) }))
+              }
             />
           </div>
 
@@ -277,8 +366,12 @@ export function RecebimentoAvulsosPanel({ onSuccess, onError }: RecebimentoAvuls
           </div>
 
           <div className="mt-4 flex gap-2">
-            <Button onClick={() => void handleCriarAvulso()} loading={processando}>Salvar Avulso</Button>
-            <Button variant="secondary" onClick={() => setFormAberto(false)}>Cancelar</Button>
+            <Button onClick={() => void handleCriarAvulso()} loading={processando}>
+              Salvar Avulso
+            </Button>
+            <Button variant="secondary" onClick={() => setFormAberto(false)}>
+              Cancelar
+            </Button>
           </div>
         </Card>
       )}
@@ -309,7 +402,10 @@ export function RecebimentoAvulsosPanel({ onSuccess, onError }: RecebimentoAvuls
         ) : (
           <div className="space-y-3">
             {avulsos.map((proc) => (
-              <div key={proc.id} className={`border rounded-lg overflow-hidden ${selecionados.has(proc.id) ? 'ring-2 ring-blue-400' : ''}`}>
+              <div
+                key={proc.id}
+                className={`border rounded-lg overflow-hidden ${selecionados.has(proc.id) ? 'ring-2 ring-blue-400' : ''}`}
+              >
                 {/* Processo principal */}
                 <div className="bg-blue-50 px-4 py-3">
                   <div className="flex items-start justify-between">
@@ -322,26 +418,53 @@ export function RecebimentoAvulsosPanel({ onSuccess, onError }: RecebimentoAvuls
                       />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-semibold text-sm text-blue-900">{proc.protocolo}</span>
-                          <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">
-                            Vol. {proc.volume_atual}{proc.volume_total > 0 ? ` de ${proc.volume_total}` : ' (único)'}
+                          <span className="font-semibold text-sm text-blue-900">
+                            {proc.protocolo}
                           </span>
-                          {proc.setor_nome ? <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">{proc.setor_nome}</span> : null}
-                          {proc.classificacao_nome ? <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">{proc.classificacao_nome}</span> : null}
+                          <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">
+                            Vol. {proc.volume_atual}
+                            {proc.volume_total > 0 ? ` de ${proc.volume_total}` : ' (único)'}
+                          </span>
+                          {proc.setor_nome ? (
+                            <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">
+                              {proc.setor_nome}
+                            </span>
+                          ) : null}
+                          {proc.classificacao_nome ? (
+                            <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">
+                              {proc.classificacao_nome}
+                            </span>
+                          ) : null}
                         </div>
                         <p className="text-sm text-gray-700 mt-0.5">{proc.interessado}</p>
-                        {proc.observacao ? <p className="text-xs text-gray-500 mt-0.5">{proc.observacao}</p> : null}
+                        {proc.observacao ? (
+                          <p className="text-xs text-gray-500 mt-0.5">{proc.observacao}</p>
+                        ) : null}
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-1 ml-2 shrink-0">
-                      <Button size="xs" variant="outline" onClick={() => {
-                        setApensoProcessoId(proc.id);
-                        setApensoFormAberto(true);
-                        setApensoForm({ protocolo: '', interessado: '', volumeAtual: 1, volumeTotal: 0 });
-                      }}>
+                      <Button
+                        size="xs"
+                        variant="outline"
+                        onClick={() => {
+                          setApensoProcessoId(proc.id);
+                          setApensoFormAberto(true);
+                          setApensoForm({
+                            protocolo: '',
+                            interessado: '',
+                            volumeAtual: 1,
+                            volumeTotal: 0,
+                          });
+                        }}
+                      >
                         + Apenso
                       </Button>
-                      <Button size="xs" variant="danger" onClick={() => void handleExcluirAvulso(proc.id)} disabled={processando}>
+                      <Button
+                        size="xs"
+                        variant="danger"
+                        onClick={() => void handleExcluirAvulso(proc.id)}
+                        disabled={processando}
+                      >
                         Excluir
                       </Button>
                     </div>
@@ -351,18 +474,24 @@ export function RecebimentoAvulsosPanel({ onSuccess, onError }: RecebimentoAvuls
                 {/* Inline apenso form */}
                 {apensoFormAberto && apensoProcessoId === proc.id ? (
                   <div className="border-t bg-blue-50 px-4 py-3">
-                    <h5 className="text-xs font-semibold text-blue-800 mb-2">Novo Apenso para {proc.protocolo}</h5>
+                    <h5 className="text-xs font-semibold text-blue-800 mb-2">
+                      Novo Apenso para {proc.protocolo}
+                    </h5>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       <Input
                         label="Protocolo *"
                         value={apensoForm.protocolo}
-                        onChange={(e) => setApensoForm((p) => ({ ...p, protocolo: e.target.value }))}
+                        onChange={(e) =>
+                          setApensoForm((p) => ({ ...p, protocolo: e.target.value }))
+                        }
                         placeholder="Ex: 502825/2021"
                       />
                       <Input
                         label="Interessado"
                         value={apensoForm.interessado}
-                        onChange={(e) => setApensoForm((p) => ({ ...p, interessado: e.target.value }))}
+                        onChange={(e) =>
+                          setApensoForm((p) => ({ ...p, interessado: e.target.value }))
+                        }
                       />
                       <div className="flex gap-2">
                         <div className="flex-1">
@@ -371,7 +500,12 @@ export function RecebimentoAvulsosPanel({ onSuccess, onError }: RecebimentoAvuls
                             type="number"
                             min={1}
                             value={String(apensoForm.volumeAtual)}
-                            onChange={(e) => setApensoForm((p) => ({ ...p, volumeAtual: Math.max(Number(e.target.value || 1), 1) }))}
+                            onChange={(e) =>
+                              setApensoForm((p) => ({
+                                ...p,
+                                volumeAtual: Math.max(Number(e.target.value || 1), 1),
+                              }))
+                            }
                           />
                         </div>
                         <span className="self-end pb-2 text-gray-500 text-xs">de</span>
@@ -381,13 +515,33 @@ export function RecebimentoAvulsosPanel({ onSuccess, onError }: RecebimentoAvuls
                             type="number"
                             min={0}
                             value={String(apensoForm.volumeTotal)}
-                            onChange={(e) => setApensoForm((p) => ({ ...p, volumeTotal: Math.max(Number(e.target.value || 0), 0) }))}
+                            onChange={(e) =>
+                              setApensoForm((p) => ({
+                                ...p,
+                                volumeTotal: Math.max(Number(e.target.value || 0), 0),
+                              }))
+                            }
                           />
                         </div>
                       </div>
                       <div className="flex items-end gap-2">
-                        <Button size="sm" onClick={() => void handleAdicionarApenso()} loading={processando}>Salvar Apenso</Button>
-                        <Button size="sm" variant="secondary" onClick={() => { setApensoFormAberto(false); setApensoProcessoId(''); }}>Cancelar</Button>
+                        <Button
+                          size="sm"
+                          onClick={() => void handleAdicionarApenso()}
+                          loading={processando}
+                        >
+                          Salvar Apenso
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => {
+                            setApensoFormAberto(false);
+                            setApensoProcessoId('');
+                          }}
+                        >
+                          Cancelar
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -397,16 +551,27 @@ export function RecebimentoAvulsosPanel({ onSuccess, onError }: RecebimentoAvuls
                 {proc.apensos.length > 0 ? (
                   <div className="border-t">
                     {proc.apensos.map((ap) => (
-                      <div key={ap.id} className="px-4 py-2 bg-gray-50 border-b last:border-b-0 flex items-center justify-between">
+                      <div
+                        key={ap.id}
+                        className="px-4 py-2 bg-gray-50 border-b last:border-b-0 flex items-center justify-between"
+                      >
                         <div className="flex items-center gap-2 min-w-0">
                           <span className="text-xs text-gray-400">↳ Apenso</span>
                           <span className="text-sm font-medium text-gray-800">{ap.protocolo}</span>
-                          {ap.interessado ? <span className="text-xs text-gray-500">— {ap.interessado}</span> : null}
+                          {ap.interessado ? (
+                            <span className="text-xs text-gray-500">— {ap.interessado}</span>
+                          ) : null}
                           <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">
-                            Vol. {ap.volume_atual}{ap.volume_total > 0 ? ` de ${ap.volume_total}` : ''}
+                            Vol. {ap.volume_atual}
+                            {ap.volume_total > 0 ? ` de ${ap.volume_total}` : ''}
                           </span>
                         </div>
-                        <Button size="xs" variant="danger" onClick={() => void handleExcluirApenso(ap.id)} disabled={processando}>
+                        <Button
+                          size="xs"
+                          variant="danger"
+                          onClick={() => void handleExcluirApenso(ap.id)}
+                          disabled={processando}
+                        >
                           Excluir
                         </Button>
                       </div>
@@ -417,7 +582,12 @@ export function RecebimentoAvulsosPanel({ onSuccess, onError }: RecebimentoAvuls
             ))}
           </div>
         )}
-        <Pagination pagina={pagina} totalPaginas={totalPaginas} onChange={(p) => setPagina(p)} disabled={carregando} />
+        <Pagination
+          pagina={pagina}
+          totalPaginas={totalPaginas}
+          onChange={(p) => setPagina(p)}
+          disabled={carregando}
+        />
       </Card>
 
       {/* Modal vincular a repositório */}
@@ -466,7 +636,9 @@ export function RecebimentoAvulsosPanel({ onSuccess, onError }: RecebimentoAvuls
                         className="text-blue-600"
                       />
                       <div className="min-w-0">
-                        <span className="text-sm font-medium text-gray-900">{repo.id_repositorio_ged}</span>
+                        <span className="text-sm font-medium text-gray-900">
+                          {repo.id_repositorio_ged}
+                        </span>
                         <span className="text-xs text-gray-500 ml-2">{repo.orgao}</span>
                         <p className="text-xs text-gray-500">{repo.projeto}</p>
                       </div>
@@ -477,7 +649,9 @@ export function RecebimentoAvulsosPanel({ onSuccess, onError }: RecebimentoAvuls
             </div>
 
             <div className="px-6 py-4 border-t flex justify-end gap-2">
-              <Button variant="secondary" onClick={() => setVincularModalOpen(false)}>Cancelar</Button>
+              <Button variant="secondary" onClick={() => setVincularModalOpen(false)}>
+                Cancelar
+              </Button>
               <Button
                 onClick={() => void handleConfirmarVincular()}
                 loading={processando}

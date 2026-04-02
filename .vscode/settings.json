@@ -1,8 +1,8 @@
 {
-    "chat.tools.terminal.autoApprove": {
-        "/^npm run test --workspace=@recorda/backend$/": {
-            "approve": true,
-            "matchCommandLine": true
-        }
+  "chat.tools.terminal.autoApprove": {
+    "/^npm run test --workspace=@recorda/backend$/": {
+      "approve": true,
+      "matchCommandLine": true
     }
+  }
 }

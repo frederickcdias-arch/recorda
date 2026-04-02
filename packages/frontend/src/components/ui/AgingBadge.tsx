@@ -14,7 +14,11 @@ interface AgingBadgeProps {
   className?: string;
 }
 
-export function AgingBadge({ segundos, thresholds = [172800, 432000], className = '' }: AgingBadgeProps): JSX.Element {
+export function AgingBadge({
+  segundos,
+  thresholds = [172800, 432000],
+  className = '',
+}: AgingBadgeProps): JSX.Element {
   const [warn, crit] = thresholds;
   let style: string;
   if (segundos >= crit) {
@@ -26,8 +30,17 @@ export function AgingBadge({ segundos, thresholds = [172800, 432000], className 
   }
 
   return (
-    <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] ${style} ${className}`} title={`${Math.floor(segundos / 3600)}h na etapa`}>
-      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <span
+      className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] ${style} ${className}`}
+      title={`${Math.floor(segundos / 3600)}h na etapa`}
+    >
+      <svg
+        className="w-3 h-3"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth={2}
+      >
         <circle cx="12" cy="12" r="10" />
         <path d="M12 6v6l4 2" />
       </svg>

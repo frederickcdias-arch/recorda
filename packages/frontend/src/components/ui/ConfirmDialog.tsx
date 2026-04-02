@@ -8,7 +8,12 @@ interface ConfirmDialogProps {
   onCancel: () => void;
 }
 
-export function ConfirmDialog({ state, loading, onConfirm, onCancel }: ConfirmDialogProps): JSX.Element | null {
+export function ConfirmDialog({
+  state,
+  loading,
+  onConfirm,
+  onCancel,
+}: ConfirmDialogProps): JSX.Element | null {
   if (!state.open) return null;
 
   const variantStyles = {

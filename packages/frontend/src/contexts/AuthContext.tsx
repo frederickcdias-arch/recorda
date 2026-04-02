@@ -7,7 +7,7 @@ import {
   setStoredTokens,
   clearStoredTokens,
 } from '../services/tokenStorage.js';
-import { buildApiUrl } from '../services/api.js';
+import { api } from '../services/api';
 
 // Re-exportar tipos para compatibilidade
 export type { Usuario, PerfilUsuario, PermissaoTipo } from '@recorda/shared';
@@ -49,21 +49,17 @@ const PERMISSOES_POR_PERFIL: Record<PerfilUsuario, PermissaoTipo[]> = {
   ],
 };
 
-
 async function tryRefreshToken(): Promise<boolean> {
   const refreshToken = getRefreshToken();
   if (!refreshToken) return false;
 
   try {
-    const response = await fetch(buildApiUrl('/auth/refresh'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refreshToken }),
-    });
+    const data = await api.post<{ accessToken: string; refreshToken: string }>(
+      '/auth/refresh',
+      { refreshToken },
+      { skipAuth: true }
+    );
 
-    if (!response.ok) return false;
-
-    const data = await response.json();
     const rememberMe = getRememberMePreference();
     setStoredTokens(data.accessToken, data.refreshToken, rememberMe);
     return true;
@@ -88,58 +84,43 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
   useEffect(() => {
     async function verificarToken() {
       const token = getToken();
+
       if (!token) {
         setCarregando(false);
         return;
       }
 
       try {
-        const response = await fetch(buildApiUrl('/auth/me'), {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
+        const data = await api.get<Usuario>('/auth/me');
 
-        if (response.ok) {
-          const data = await response.json();
-          setUsuario({
-            id: data.id,
-            nome: data.nome,
-            email: data.email,
-            perfil: data.perfil as PerfilUsuario,
-            coordenadoriaId: data.coordenadoria?.id,
-            coordenadoria: data.coordenadoria,
-          });
-        } else if (response.status === 401) {
-          // Tentar refresh do token
-          const refreshed = await tryRefreshToken();
-          if (refreshed) {
-            // Refazer a requisição original com o novo token
-            const newToken = getToken();
-            if (newToken) {
-              const retryResponse = await fetch(buildApiUrl('/auth/me'), {
-                headers: { 'Authorization': `Bearer ${newToken}` },
-              });
-              if (retryResponse.ok) {
-                const data = await retryResponse.json();
-                setUsuario({
-                  id: data.id,
-                  nome: data.nome,
-                  email: data.email,
-                  perfil: data.perfil as PerfilUsuario,
-                  coordenadoriaId: data.coordenadoria?.id,
-                  coordenadoria: data.coordenadoria,
-                });
-                return;
-              }
-            }
+        setUsuario({
+          id: data.id,
+          nome: data.nome,
+          email: data.email,
+          perfil: data.perfil as PerfilUsuario,
+          coordenadoriaId: data.coordenadoria?.id,
+          coordenadoria: data.coordenadoria,
+        });
+      } catch (error) {
+        // Token inválido, tentar refresh
+        const refreshed = await tryRefreshToken();
+        if (refreshed) {
+          try {
+            const data = await api.get<Usuario>('/auth/me');
+            setUsuario({
+              id: data.id,
+              nome: data.nome,
+              email: data.email,
+              perfil: data.perfil as PerfilUsuario,
+              coordenadoriaId: data.coordenadoria?.id,
+              coordenadoria: data.coordenadoria,
+            });
+          } catch {
+            clearStoredTokens();
           }
-          clearStoredTokens();
         } else {
           clearStoredTokens();
         }
-      } catch {
-        clearStoredTokens();
       } finally {
         setCarregando(false);
       }
@@ -148,60 +129,56 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
     verificarToken();
   }, []);
 
-  const temPermissao = useCallback((permissao: PermissaoTipo): boolean => {
-    if (!usuario) return false;
-    const permissoesDoPerfil = PERMISSOES_POR_PERFIL[usuario.perfil];
-    return permissoesDoPerfil.includes(permissao);
-  }, [usuario]);
+  const temPermissao = useCallback(
+    (permissao: PermissaoTipo): boolean => {
+      if (!usuario) return false;
+      const permissoesDoPerfil = PERMISSOES_POR_PERFIL[usuario.perfil];
+      return permissoesDoPerfil.includes(permissao);
+    },
+    [usuario]
+  );
 
-  const login = useCallback(async (email: string, senha: string, lembrarMe = false): Promise<boolean> => {
-    setCarregando(true);
-    setErro(null);
+  const login = useCallback(
+    async (email: string, password: string, lembrarMe = false): Promise<boolean> => {
+      setCarregando(true);
+      setErro(null);
 
-    try {
-      const response = await fetch(buildApiUrl('/auth/login'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, senha }),
-      });
+      try {
+        const data = await api.post<LoginResponse>(
+          '/auth/login',
+          { email, senha: password },
+          { skipAuth: true }
+        );
 
-      const data = await response.json();
+        if (!data.accessToken || !data.refreshToken || !data.usuario) {
+          throw new Error('Resposta de login inválida');
+        }
 
-      if (!response.ok) {
-        setErro(data.error || 'Erro ao fazer login');
+        setStoredTokens(data.accessToken, data.refreshToken, lembrarMe);
+        setRememberMe(lembrarMe);
+        setUsuario({
+          ...data.usuario,
+          perfil: data.usuario.perfil as PerfilUsuario,
+        });
+
+        return true;
+      } catch (error: any) {
+        const errorMessage = error?.error || error?.message || 'Credenciais inválidas';
+        setErro(errorMessage);
         return false;
+      } finally {
+        setCarregando(false);
       }
-
-      const loginData = data as LoginResponse;
-      setStoredTokens(loginData.accessToken, loginData.refreshToken, lembrarMe);
-      setRememberMe(lembrarMe);
-      setUsuario({
-        ...loginData.usuario,
-        perfil: loginData.usuario.perfil as PerfilUsuario,
-      });
-
-      return true;
-    } catch {
-      setErro('Erro de conexão. Verifique sua internet.');
-      return false;
-    } finally {
-      setCarregando(false);
-    }
-  }, []);
+    },
+    []
+  );
 
   const logout = useCallback(async (): Promise<void> => {
     const token = getToken();
-    
+
     try {
       if (token) {
-        await fetch(buildApiUrl('/auth/logout'), {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
+        await api.post('/auth/logout', {}, {});
       }
     } catch {
       // Ignora erros no logout
@@ -215,23 +192,22 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
     setErro(null);
   }, []);
 
-  const value = useMemo(() => ({
-    usuario,
-    carregando,
-    autenticado,
-    erro,
-    rememberMe,
-    temPermissao,
-    login,
-    logout,
-    limparErro,
-  }), [usuario, carregando, autenticado, erro, rememberMe, temPermissao, login, logout, limparErro]);
-
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
+  const value = useMemo(
+    () => ({
+      usuario,
+      carregando,
+      autenticado,
+      erro,
+      rememberMe,
+      temPermissao,
+      login,
+      logout,
+      limparErro,
+    }),
+    [usuario, carregando, autenticado, erro, rememberMe, temPermissao, login, logout, limparErro]
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth(): AuthContextData {
@@ -249,15 +225,5 @@ export function usePermissao(permissao: PermissaoTipo): boolean {
 
 // Função utilitária para fazer requisições autenticadas
 export async function fetchAutenticado(url: string, options: RequestInit = {}): Promise<Response> {
-  const token = getToken();
-  
-  const headers = new Headers(options.headers);
-  if (token) {
-    headers.set('Authorization', `Bearer ${token}`);
-  }
-
-  return fetch(buildApiUrl(url), {
-    ...options,
-    headers,
-  });
+  return api.fetchWithAuth(url, options);
 }

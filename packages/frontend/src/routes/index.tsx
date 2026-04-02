@@ -7,28 +7,69 @@ import { RouteErrorFallback } from '../components/ui/RouteErrorFallback';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 
 const LoginPage = lazy(() => import('../pages/Login').then((m) => ({ default: m.LoginPage })));
-const ForgotPasswordPage = lazy(() => import('../pages/ForgotPassword').then((m) => ({ default: m.ForgotPasswordPage })));
-const ResetPasswordPage = lazy(() => import('../pages/ResetPassword').then((m) => ({ default: m.ResetPasswordPage })));
-const DashboardPage = lazy(() => import('../pages/Dashboard').then((m) => ({ default: m.DashboardPage })));
-const ProducaoPage = lazy(() => import('../pages/operacao/ProducaoPage').then((m) => ({ default: m.ProducaoPage })));
-const ImportarProducaoPage = lazy(() => import('../pages/producao/ImportarProducaoPage').then((m) => ({ default: m.ImportarProducaoPage })));
-const EtapaOperacionalPage = lazy(() => import('../pages/operacao/EtapaOperacionalPage').then((m) => ({ default: m.EtapaOperacionalPage })));
-const ConhecimentoOperacionalPage = lazy(() => import('../pages/operacao/ConhecimentoOperacionalPage').then((m) => ({ default: m.ConhecimentoOperacionalPage })));
-const RelatoriosGerenciaisPage = lazy(() => import('../pages/relatorios/RelatoriosGerenciaisPage').then((m) => ({ default: m.RelatoriosGerenciaisPage })));
-const ExportacoesPage = lazy(() => import('../pages/relatorios/ExportacoesPage').then((m) => ({ default: m.ExportacoesPage })));
-const EmpresaPage = lazy(() => import('../pages/configuracoes/EmpresaPage').then((m) => ({ default: m.EmpresaPage })));
-const UsuariosPage = lazy(() => import('../pages/configuracoes/UsuariosPage').then((m) => ({ default: m.UsuariosPage })));
-const AdminPage = lazy(() => import('../pages/configuracoes/AdminPage').then((m) => ({ default: m.AdminPage })));
-const AuditoriaPage = lazy(() => import('../pages/auditoria/AuditoriaPage').then((m) => ({ default: m.AuditoriaPage })));
-const NotFoundPage = lazy(() => import('../pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage })));
+const ForgotPasswordPage = lazy(() =>
+  import('../pages/ForgotPassword').then((m) => ({ default: m.ForgotPasswordPage }))
+);
+const ResetPasswordPage = lazy(() =>
+  import('../pages/ResetPassword').then((m) => ({ default: m.ResetPasswordPage }))
+);
+const DashboardPage = lazy(() =>
+  import('../pages/Dashboard').then((m) => ({ default: m.DashboardPage }))
+);
+const ProducaoPage = lazy(() =>
+  import('../pages/operacao/ProducaoPage').then((m) => ({ default: m.ProducaoPage }))
+);
+const ImportarProducaoPage = lazy(() =>
+  import('../pages/producao/ImportarProducaoPage').then((m) => ({
+    default: m.ImportarProducaoPage,
+  }))
+);
+const EtapaOperacionalPage = lazy(() =>
+  import('../pages/operacao/EtapaOperacionalPage').then((m) => ({
+    default: m.EtapaOperacionalPage,
+  }))
+);
+const ConhecimentoOperacionalPage = lazy(() =>
+  import('../pages/operacao/ConhecimentoOperacionalPage').then((m) => ({
+    default: m.ConhecimentoOperacionalPage,
+  }))
+);
+const RelatoriosGerenciaisPage = lazy(() =>
+  import('../pages/relatorios/RelatoriosGerenciaisPage').then((m) => ({
+    default: m.RelatoriosGerenciaisPage,
+  }))
+);
+const ExportacoesPage = lazy(() =>
+  import('../pages/relatorios/ExportacoesPage').then((m) => ({ default: m.ExportacoesPage }))
+);
+const EmpresaPage = lazy(() =>
+  import('../pages/configuracoes/EmpresaPage').then((m) => ({ default: m.EmpresaPage }))
+);
+const ProjetosPage = lazy(() =>
+  import('../pages/configuracoes/ProjetosPage').then((m) => ({ default: m.ProjetosPage }))
+);
+const UsuariosPage = lazy(() =>
+  import('../pages/configuracoes/UsuariosPage').then((m) => ({ default: m.UsuariosPage }))
+);
+const AdminPage = lazy(() =>
+  import('../pages/configuracoes/AdminPage').then((m) => ({ default: m.AdminPage }))
+);
+const AuditoriaPage = lazy(() =>
+  import('../pages/auditoria/AuditoriaPage').then((m) => ({ default: m.AuditoriaPage }))
+);
+const NotFoundPage = lazy(() =>
+  import('../pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage }))
+);
 
 function PageSuspense({ children }: { children: React.ReactNode }): JSX.Element {
   return (
-    <Suspense fallback={
-      <div className="flex items-center justify-center min-h-[300px]">
-        <LoadingSpinner size="lg" className="text-[var(--color-primary-600)]" />
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-[300px]">
+          <LoadingSpinner size="lg" className="text-[var(--color-primary-600)]" />
+        </div>
+      }
+    >
       {children}
     </Suspense>
   );
@@ -37,15 +78,27 @@ function PageSuspense({ children }: { children: React.ReactNode }): JSX.Element 
 export const router = createBrowserRouter([
   {
     path: '/login',
-    element: <PageSuspense><LoginPage /></PageSuspense>,
+    element: (
+      <PageSuspense>
+        <LoginPage />
+      </PageSuspense>
+    ),
   },
   {
     path: '/forgot-password',
-    element: <PageSuspense><ForgotPasswordPage /></PageSuspense>,
+    element: (
+      <PageSuspense>
+        <ForgotPasswordPage />
+      </PageSuspense>
+    ),
   },
   {
     path: '/reset-password',
-    element: <PageSuspense><ResetPasswordPage /></PageSuspense>,
+    element: (
+      <PageSuspense>
+        <ResetPasswordPage />
+      </PageSuspense>
+    ),
   },
   {
     path: '/',
@@ -62,15 +115,27 @@ export const router = createBrowserRouter([
       },
       {
         path: 'dashboard',
-        element: <PageSuspense><DashboardPage /></PageSuspense>,
+        element: (
+          <PageSuspense>
+            <DashboardPage />
+          </PageSuspense>
+        ),
       },
       {
         path: 'producao',
-        element: <PageSuspense><ProducaoPage /></PageSuspense>,
+        element: (
+          <PageSuspense>
+            <ProducaoPage />
+          </PageSuspense>
+        ),
       },
       {
         path: 'producao/importar',
-        element: <PageSuspense><ImportarProducaoPage /></PageSuspense>,
+        element: (
+          <PageSuspense>
+            <ImportarProducaoPage />
+          </PageSuspense>
+        ),
       },
       {
         path: 'operacao',
@@ -78,11 +143,19 @@ export const router = createBrowserRouter([
       },
       {
         path: 'operacao/:etapa',
-        element: <PageSuspense><EtapaOperacionalPage /></PageSuspense>,
+        element: (
+          <PageSuspense>
+            <EtapaOperacionalPage />
+          </PageSuspense>
+        ),
       },
       {
         path: 'operacao/conhecimento',
-        element: <PageSuspense><ConhecimentoOperacionalPage /></PageSuspense>,
+        element: (
+          <PageSuspense>
+            <ConhecimentoOperacionalPage />
+          </PageSuspense>
+        ),
       },
       {
         path: 'relatorios',
@@ -90,11 +163,19 @@ export const router = createBrowserRouter([
       },
       {
         path: 'relatorios/gerenciais',
-        element: <PageSuspense><RelatoriosGerenciaisPage /></PageSuspense>,
+        element: (
+          <PageSuspense>
+            <RelatoriosGerenciaisPage />
+          </PageSuspense>
+        ),
       },
       {
         path: 'relatorios/exportacoes',
-        element: <PageSuspense><ExportacoesPage /></PageSuspense>,
+        element: (
+          <PageSuspense>
+            <ExportacoesPage />
+          </PageSuspense>
+        ),
       },
       {
         path: 'configuracoes',
@@ -104,7 +185,19 @@ export const router = createBrowserRouter([
         path: 'configuracoes/empresa',
         element: (
           <RoleRoute allowedProfiles={['administrador']}>
-            <PageSuspense><EmpresaPage /></PageSuspense>
+            <PageSuspense>
+              <EmpresaPage />
+            </PageSuspense>
+          </RoleRoute>
+        ),
+      },
+      {
+        path: 'configuracoes/projetos',
+        element: (
+          <RoleRoute allowedProfiles={['administrador']}>
+            <PageSuspense>
+              <ProjetosPage />
+            </PageSuspense>
           </RoleRoute>
         ),
       },
@@ -112,7 +205,9 @@ export const router = createBrowserRouter([
         path: 'configuracoes/usuarios',
         element: (
           <RoleRoute allowedProfiles={['administrador']}>
-            <PageSuspense><UsuariosPage /></PageSuspense>
+            <PageSuspense>
+              <UsuariosPage />
+            </PageSuspense>
           </RoleRoute>
         ),
       },
@@ -120,7 +215,9 @@ export const router = createBrowserRouter([
         path: 'configuracoes/admin',
         element: (
           <RoleRoute allowedProfiles={['administrador']}>
-            <PageSuspense><AdminPage /></PageSuspense>
+            <PageSuspense>
+              <AdminPage />
+            </PageSuspense>
           </RoleRoute>
         ),
       },
@@ -132,7 +229,9 @@ export const router = createBrowserRouter([
         path: 'auditoria/importacoes',
         element: (
           <RoleRoute allowedProfiles={['administrador']}>
-            <PageSuspense><AuditoriaPage categoria="importacoes" /></PageSuspense>
+            <PageSuspense>
+              <AuditoriaPage categoria="importacoes" />
+            </PageSuspense>
           </RoleRoute>
         ),
       },
@@ -140,7 +239,9 @@ export const router = createBrowserRouter([
         path: 'auditoria/ocr',
         element: (
           <RoleRoute allowedProfiles={['administrador']}>
-            <PageSuspense><AuditoriaPage categoria="ocr" /></PageSuspense>
+            <PageSuspense>
+              <AuditoriaPage categoria="ocr" />
+            </PageSuspense>
           </RoleRoute>
         ),
       },
@@ -148,7 +249,9 @@ export const router = createBrowserRouter([
         path: 'auditoria/correcoes',
         element: (
           <RoleRoute allowedProfiles={['administrador']}>
-            <PageSuspense><AuditoriaPage categoria="correcoes" /></PageSuspense>
+            <PageSuspense>
+              <AuditoriaPage categoria="correcoes" />
+            </PageSuspense>
           </RoleRoute>
         ),
       },
@@ -156,18 +259,28 @@ export const router = createBrowserRouter([
         path: 'auditoria/acoes',
         element: (
           <RoleRoute allowedProfiles={['administrador']}>
-            <PageSuspense><AuditoriaPage categoria="acoes" /></PageSuspense>
+            <PageSuspense>
+              <AuditoriaPage categoria="acoes" />
+            </PageSuspense>
           </RoleRoute>
         ),
       },
       {
         path: '*',
-        element: <PageSuspense><NotFoundPage /></PageSuspense>,
+        element: (
+          <PageSuspense>
+            <NotFoundPage />
+          </PageSuspense>
+        ),
       },
     ],
   },
   {
     path: '*',
-    element: <PageSuspense><NotFoundPage /></PageSuspense>,
+    element: (
+      <PageSuspense>
+        <NotFoundPage />
+      </PageSuspense>
+    ),
   },
 ]);

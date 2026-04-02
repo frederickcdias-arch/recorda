@@ -26,9 +26,15 @@ interface StatusBadgeProps {
 }
 
 export function StatusBadge({ status, className = '' }: StatusBadgeProps): JSX.Element {
-  const style = STATUS_STYLES[status] ?? { bg: 'bg-gray-100', text: 'text-gray-600', label: status };
+  const style = STATUS_STYLES[status] ?? {
+    bg: 'bg-gray-100',
+    text: 'text-gray-600',
+    label: status,
+  };
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${style.bg} ${style.text} ${className}`}>
+    <span
+      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${style.bg} ${style.text} ${className}`}
+    >
       {style.label}
     </span>
   );

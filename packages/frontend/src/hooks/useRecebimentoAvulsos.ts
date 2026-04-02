@@ -90,7 +90,8 @@ export function useRecebimentoAvulsos() {
   const criarClassifMut = useCriarClassificacaoRecebimento();
   const queryClient = useQueryClient();
 
-  const invalidateAvulsos = () => void queryClient.invalidateQueries({ queryKey: queryKeys.avulsosAll });
+  const invalidateAvulsos = () =>
+    void queryClient.invalidateQueries({ queryKey: queryKeys.avulsosAll });
 
   const [processando, setProcessando] = useState(false);
   const [pagina, setPagina] = useState(1);
@@ -104,7 +105,12 @@ export function useRecebimentoAvulsos() {
   const [novaClassifInput, setNovaClassifInput] = useState('');
   const [apensoProcessoId, setApensoProcessoId] = useState('');
   const [apensoFormAberto, setApensoFormAberto] = useState(false);
-  const [apensoForm, setApensoForm] = useState({ protocolo: '', interessado: '', volumeAtual: 1, volumeTotal: 0 });
+  const [apensoForm, setApensoForm] = useState({
+    protocolo: '',
+    interessado: '',
+    volumeAtual: 1,
+    volumeTotal: 0,
+  });
 
   // React Query for data fetching
   const avulsosQuery = useAvulsos({ busca, pagina, limite: 50 });

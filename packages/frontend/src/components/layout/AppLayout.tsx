@@ -50,10 +50,7 @@ export function AppLayout(): JSX.Element {
       {/* Sidebar - Mobile Overlay */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-50 md:hidden">
-          <div
-            className="absolute inset-0 bg-black/50"
-            onClick={() => setMobileMenuOpen(false)}
-          />
+          <div className="absolute inset-0 bg-black/50" onClick={() => setMobileMenuOpen(false)} />
           <div className="absolute left-0 top-0 h-full">
             <Sidebar
               collapsed={false}
@@ -66,10 +63,7 @@ export function AppLayout(): JSX.Element {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
-        <Header
-          onMenuToggle={() => setMobileMenuOpen(true)}
-          title={pageTitle}
-        />
+        <Header onMenuToggle={() => setMobileMenuOpen(true)} title={pageTitle} />
         <main className="flex-1 overflow-auto p-4 pb-24 md:p-6 md:pb-6">
           <div key={location.pathname} className="animate-fade-in-up">
             <Outlet />

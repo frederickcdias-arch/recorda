@@ -27,7 +27,9 @@ test.describe('Configurações', () => {
     await page.getByRole('link', { name: /Empresa/i }).click();
     await expect(page).toHaveURL(/\/configuracoes\/empresa$/);
     await page.waitForLoadState('networkidle');
-    await expect(page.getByLabel(/Nome da Empresa/i).or(page.getByText(/Empresa/i).first())).toBeVisible();
+    await expect(
+      page.getByLabel(/Nome da Empresa/i).or(page.getByText(/Empresa/i).first())
+    ).toBeVisible();
   });
 
   test('navega até a página de usuários e exibe listagem', async ({ page }) => {

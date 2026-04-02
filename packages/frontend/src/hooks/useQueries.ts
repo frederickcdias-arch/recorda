@@ -49,47 +49,36 @@ export interface SelectOption {
 
 export const queryKeys = {
   dashboard: ['dashboard'] as const,
-  repositorios: (params: Record<string, string | number>) =>
-    ['repositorios', params] as const,
+  repositorios: (params: Record<string, string | number>) => ['repositorios', params] as const,
   repositoriosAll: ['repositorios'] as const,
   setoresRecebimento: ['setores-recebimento'] as const,
   orgaosRecebimento: ['orgaos-recebimento'] as const,
   projetosConfiguracao: ['configuracao-projetos'] as const,
   classificacoesRecebimento: ['classificacoes-recebimento'] as const,
-  avulsos: (params: Record<string, string | number>) =>
-    ['avulsos', params] as const,
+  avulsos: (params: Record<string, string | number>) => ['avulsos', params] as const,
   avulsosAll: ['avulsos'] as const,
   empresa: ['empresa'] as const,
   usuarios: ['usuarios'] as const,
   coordenadorias: ['coordenadorias'] as const,
-  auditoria: (params: Record<string, string | number>) =>
-    ['auditoria', params] as const,
-  producao: (params: Record<string, string | number>) =>
-    ['producao', params] as const,
+  auditoria: (params: Record<string, string | number>) => ['auditoria', params] as const,
+  producao: (params: Record<string, string | number>) => ['producao', params] as const,
   producaoAll: ['producao'] as const,
-  conhecimentoDocs: (params: Record<string, string>) =>
-    ['conhecimento-docs', params] as const,
+  conhecimentoDocs: (params: Record<string, string>) => ['conhecimento-docs', params] as const,
   conhecimentoDocsAll: ['conhecimento-docs'] as const,
-  conhecimentoDetalhe: (id: string) =>
-    ['conhecimento-detalhe', id] as const,
+  conhecimentoDetalhe: (id: string) => ['conhecimento-detalhe', id] as const,
   glossario: ['glossario'] as const,
   leisNormas: ['leis-normas'] as const,
   importacoesHistorico: ['importacoes-historico'] as const,
   fontesImportacao: ['fontes-importacao'] as const,
-  recebimentoProcessos: (repoId: string) =>
-    ['recebimento-processos', repoId] as const,
+  recebimentoProcessos: (repoId: string) => ['recebimento-processos', repoId] as const,
   recebimentoProcessosAll: ['recebimento-processos'] as const,
   checklistsRepo: (repoId: string, etapa: string, ativo?: boolean) =>
     ['checklists-repo', repoId, etapa, ativo ?? 'all'] as const,
-  checklistDetalhe: (id: string) =>
-    ['checklist-detalhe', id] as const,
-  documentosRecebimento: (repoId: string) =>
-    ['documentos-recebimento', repoId] as const,
+  checklistDetalhe: (id: string) => ['checklist-detalhe', id] as const,
+  documentosRecebimento: (repoId: string) => ['documentos-recebimento', repoId] as const,
   lotesCQ: ['lotes-cq'] as const,
-  loteCQDetalhe: (id: string) =>
-    ['lote-cq-detalhe', id] as const,
-  cqAvaliacoes: (repoId: string) =>
-    ['cq-avaliacoes', repoId] as const,
+  loteCQDetalhe: (id: string) => ['lote-cq-detalhe', id] as const,
+  cqAvaliacoes: (repoId: string) => ['cq-avaliacoes', repoId] as const,
 };
 
 // ─── Hooks ───────────────────────────────────────────────────
@@ -106,9 +95,14 @@ export function useRepositoriosRecebimento() {
   return useQuery({
     queryKey: [...queryKeys.repositoriosAll, 'recebimento-options'] as const,
     queryFn: () =>
-      api.get<{ itens: { id_repositorio_recorda: string; id_repositorio_ged: string; orgao: string; projeto: string }[] }>(
-        '/operacional/repositorios?etapa=RECEBIMENTO&limite=100&pagina=1',
-      ),
+      api.get<{
+        itens: {
+          id_repositorio_recorda: string;
+          id_repositorio_ged: string;
+          orgao: string;
+          projeto: string;
+        }[];
+      }>('/operacional/repositorios?etapa=RECEBIMENTO&limite=100&pagina=1'),
     select: (data) => data.itens ?? [],
     staleTime: 30_000,
   });
@@ -150,8 +144,7 @@ export function useRepositorios(params: {
 export function useSetoresRecebimento() {
   return useQuery({
     queryKey: queryKeys.setoresRecebimento,
-    queryFn: () =>
-      api.get<{ itens: SelectOption[] }>('/operacional/setores-recebimento'),
+    queryFn: () => api.get<{ itens: SelectOption[] }>('/operacional/setores-recebimento'),
     staleTime: 5 * 60_000,
     select: (data) => data.itens ?? [],
   });
@@ -160,8 +153,7 @@ export function useSetoresRecebimento() {
 export function useClassificacoesRecebimento() {
   return useQuery({
     queryKey: queryKeys.classificacoesRecebimento,
-    queryFn: () =>
-      api.get<{ itens: SelectOption[] }>('/operacional/classificacoes-recebimento'),
+    queryFn: () => api.get<{ itens: SelectOption[] }>('/operacional/classificacoes-recebimento'),
     staleTime: 5 * 60_000,
     select: (data) => data.itens ?? [],
   });
@@ -170,8 +162,7 @@ export function useClassificacoesRecebimento() {
 export function useOrgaosRecebimento() {
   return useQuery({
     queryKey: queryKeys.orgaosRecebimento,
-    queryFn: () =>
-      api.get<{ itens: SelectOption[] }>('/operacional/orgaos-recebimento'),
+    queryFn: () => api.get<{ itens: SelectOption[] }>('/operacional/orgaos-recebimento'),
     staleTime: 5 * 60_000,
     select: (data) => data.itens ?? [],
   });
@@ -181,7 +172,9 @@ export function useProjetosConfiguracao() {
   return useQuery({
     queryKey: queryKeys.projetosConfiguracao,
     queryFn: () =>
-      api.get<{ projetos: Array<{ id: string; nome: string; ativo: boolean }> }>('/configuracao/projetos'),
+      api.get<{ projetos: Array<{ id: string; nome: string; ativo: boolean }> }>(
+        '/configuracao/projetos'
+      ),
     staleTime: 5 * 60_000,
     select: (data) => {
       const uniqueByName = new Map<string, { id: string; nome: string }>();
@@ -215,8 +208,12 @@ export function useCreateProjetoConfiguracao() {
 export function useCreateRepositorio() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (body: { idRepositorioGed: string; orgao: string; projeto: string; classificacaoId: string }) =>
-      api.post('/operacional/repositorios', body),
+    mutationFn: (body: {
+      idRepositorioGed: string;
+      orgao: string;
+      projeto: string;
+      classificacaoId: string;
+    }) => api.post('/operacional/repositorios', body),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: queryKeys.repositoriosAll });
     },
@@ -236,8 +233,15 @@ export function useDeleteRepositorio() {
 export function useAvancarEtapa() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, etapaDestino, statusDestino }: { id: string; etapaDestino: string; statusDestino: string }) =>
-      api.patch(`/operacional/repositorios/${id}/avancar`, { etapaDestino, statusDestino }),
+    mutationFn: ({
+      id,
+      etapaDestino,
+      statusDestino,
+    }: {
+      id: string;
+      etapaDestino: string;
+      statusDestino: string;
+    }) => api.patch(`/operacional/repositorios/${id}/avancar`, { etapaDestino, statusDestino }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: queryKeys.repositoriosAll });
       void qc.invalidateQueries({ queryKey: queryKeys.dashboard });
@@ -258,7 +262,8 @@ export function useSaveEmpresa() {
 export function useUploadLogo() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (formData: FormData) => api.post<{ logoUrl: string }>('/configuracao/empresa/logo', formData),
+    mutationFn: (formData: FormData) =>
+      api.post<{ logoUrl: string }>('/configuracao/empresa/logo', formData),
     onSuccess: () => void qc.invalidateQueries({ queryKey: queryKeys.empresa }),
   });
 }
@@ -321,7 +326,17 @@ export function useBatchProcessos() {
 export function useRegistrarProducao() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ repoId, etapa, checklistId, quantidade }: { repoId: string; etapa: string; checklistId: string; quantidade: number }) =>
+    mutationFn: ({
+      repoId,
+      etapa,
+      checklistId,
+      quantidade,
+    }: {
+      repoId: string;
+      etapa: string;
+      checklistId: string;
+      quantidade: number;
+    }) =>
       api.post(`/operacional/repositorios/${repoId}/producao`, { etapa, checklistId, quantidade }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: queryKeys.repositoriosAll });
@@ -333,7 +348,9 @@ export function useRegistrarProducao() {
 export function useGerarRelatorioRecebimento() {
   return useMutation({
     mutationFn: async (repositorioIds: string[]) => {
-      const report = await api.post<{ id: string }>('/operacional/relatorio-recebimento', { repositorioIds });
+      const report = await api.post<{ id: string }>('/operacional/relatorio-recebimento', {
+        repositorioIds,
+      });
       return report;
     },
   });
@@ -342,8 +359,13 @@ export function useGerarRelatorioRecebimento() {
 export function useGerarRelatorioProducao() {
   return useMutation({
     mutationFn: async (repositorioId: string) => {
-      const report = await api.post<{ id: string }>(`/operacional/repositorios/${repositorioId}/relatorio-producao`);
-      await api.download(`/api/operacional/relatorios/${report.id}/download`, `relatorio-producao-${repositorioId}.pdf`);
+      const report = await api.post<{ id: string }>(
+        `/operacional/repositorios/${repositorioId}/relatorio-producao`
+      );
+      await api.download(
+        `/api/operacional/relatorios/${report.id}/download`,
+        `relatorio-producao-${repositorioId}.pdf`
+      );
     },
   });
 }
@@ -357,7 +379,17 @@ export function useCriarChecklist() {
 
 export function useSalvarItemChecklist() {
   return useMutation({
-    mutationFn: ({ checklistId, modeloId, resultado, observacao }: { checklistId: string; modeloId: string; resultado: string; observacao: string }) =>
+    mutationFn: ({
+      checklistId,
+      modeloId,
+      resultado,
+      observacao,
+    }: {
+      checklistId: string;
+      modeloId: string;
+      resultado: string;
+      observacao: string;
+    }) =>
       api.post(`/operacional/checklists/${checklistId}/itens`, { modeloId, resultado, observacao }),
   });
 }
@@ -365,12 +397,19 @@ export function useSalvarItemChecklist() {
 export function useConcluirChecklist() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ checklistId, observacao, itens }: {
+    mutationFn: ({
+      checklistId,
+      observacao,
+      itens,
+    }: {
       checklistId: string;
       observacao?: string;
       itens?: Array<{ modeloId: string; resultado: string; observacao?: string }>;
     }) =>
-      api.post(`/operacional/checklists/${checklistId}/concluir`, { observacao: observacao ?? '', itens }),
+      api.post(`/operacional/checklists/${checklistId}/concluir`, {
+        observacao: observacao ?? '',
+        itens,
+      }),
     onSuccess: () => void qc.invalidateQueries({ queryKey: queryKeys.repositoriosAll }),
   });
 }
@@ -384,10 +423,20 @@ export function useCriarLoteCQ() {
 
 export function useAvaliarItemCQ() {
   return useMutation({
-    mutationFn: ({ loteId, itemId, resultado, motivoCodigo }: { loteId: string; itemId: string; resultado: string; motivoCodigo?: string }) =>
+    mutationFn: ({
+      loteId,
+      itemId,
+      resultado,
+      motivoCodigo,
+    }: {
+      loteId: string;
+      itemId: string;
+      resultado: string;
+      motivoCodigo?: string;
+    }) =>
       api.patch(`/operacional/lotes-cq/${loteId}/itens/${itemId}`, {
         resultado,
-        motivoCodigo: resultado === 'REPROVADO' ? (motivoCodigo || 'NAO_CONFORME') : undefined,
+        motivoCodigo: resultado === 'REPROVADO' ? motivoCodigo || 'NAO_CONFORME' : undefined,
       }),
   });
 }
@@ -401,14 +450,29 @@ export function useFecharLoteCQ() {
 export function useGerarRelatorioEntregaCQ() {
   return useMutation({
     mutationFn: (loteId: string) =>
-      api.post<{ id: string; arquivo_path: string; hash_arquivo: string }>(`/operacional/lotes-cq/${loteId}/relatorio-entrega`),
+      api.post<{ id: string; arquivo_path: string; hash_arquivo: string }>(
+        `/operacional/lotes-cq/${loteId}/relatorio-entrega`
+      ),
   });
 }
 
 export function useAvaliarDocumentoCQ() {
   return useMutation({
-    mutationFn: ({ repoId, processoId, resultado, observacao }: { repoId: string; processoId: string; resultado: string; observacao?: string }) =>
-      api.put(`/operacional/repositorios/${repoId}/cq-avaliacoes/${processoId}`, { resultado, observacao }),
+    mutationFn: ({
+      repoId,
+      processoId,
+      resultado,
+      observacao,
+    }: {
+      repoId: string;
+      processoId: string;
+      resultado: string;
+      observacao?: string;
+    }) =>
+      api.put(`/operacional/repositorios/${repoId}/cq-avaliacoes/${processoId}`, {
+        resultado,
+        observacao,
+      }),
   });
 }
 
@@ -422,7 +486,9 @@ export function useAprovarTodosCQ() {
 export function useConcluirCQ() {
   return useMutation({
     mutationFn: (repoId: string) =>
-      api.post<{ status: string; total: number; reprovados: number }>(`/operacional/repositorios/${repoId}/cq-concluir`),
+      api.post<{ status: string; total: number; reprovados: number }>(
+        `/operacional/repositorios/${repoId}/cq-concluir`
+      ),
   });
 }
 
@@ -436,14 +502,18 @@ export function useDevolverCQ() {
 export function useGerarTermoCorrecao() {
   return useMutation({
     mutationFn: (repoId: string) =>
-      api.post<{ id: string; arquivo_path: string }>(`/operacional/repositorios/${repoId}/termo-correcao`),
+      api.post<{ id: string; arquivo_path: string }>(
+        `/operacional/repositorios/${repoId}/termo-correcao`
+      ),
   });
 }
 
 export function useGerarTermoDevolucao() {
   return useMutation({
     mutationFn: (repoId: string) =>
-      api.post<{ id: string; arquivo_path: string }>(`/operacional/repositorios/${repoId}/termo-devolucao`),
+      api.post<{ id: string; arquivo_path: string }>(
+        `/operacional/repositorios/${repoId}/termo-devolucao`
+      ),
   });
 }
 
@@ -457,8 +527,16 @@ export function useGerarTermoDevolucaoMulti() {
 export function useCriarDocConhecimento() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (body: { codigo: string; titulo: string; categoria: string; descricao: string; nivelAcesso: string; conteudo: string; resumoAlteracao: string; etapas: string[] }) =>
-      api.post('/operacional/conhecimento/documentos', body),
+    mutationFn: (body: {
+      codigo: string;
+      titulo: string;
+      categoria: string;
+      descricao: string;
+      nivelAcesso: string;
+      conteudo: string;
+      resumoAlteracao: string;
+      etapas: string[];
+    }) => api.post('/operacional/conhecimento/documentos', body),
     onSuccess: () => void qc.invalidateQueries({ queryKey: queryKeys.conhecimentoDocsAll }),
   });
 }
@@ -466,8 +544,19 @@ export function useCriarDocConhecimento() {
 export function useCriarVersaoConhecimento() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ docId, conteudo, resumoAlteracao }: { docId: string; conteudo: string; resumoAlteracao: string }) =>
-      api.post(`/operacional/conhecimento/documentos/${docId}/versoes`, { conteudo, resumoAlteracao }),
+    mutationFn: ({
+      docId,
+      conteudo,
+      resumoAlteracao,
+    }: {
+      docId: string;
+      conteudo: string;
+      resumoAlteracao: string;
+    }) =>
+      api.post(`/operacional/conhecimento/documentos/${docId}/versoes`, {
+        conteudo,
+        resumoAlteracao,
+      }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: queryKeys.conhecimentoDocsAll });
     },
@@ -478,8 +567,13 @@ export function useImportarRecebimentoLegado() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (payload: { usuarioId: string; registros: object[] }) =>
-      api.post<{ importacaoId: string; totalRegistros: number; registrosSucesso: number; registrosErro: number; erros: { linha: number; idRepositorioGed: string; erro: string }[] }>(
-        '/operacional/importacoes-legado/recebimento', payload),
+      api.post<{
+        importacaoId: string;
+        totalRegistros: number;
+        registrosSucesso: number;
+        registrosErro: number;
+        erros: { linha: number; idRepositorioGed: string; erro: string }[];
+      }>('/operacional/importacoes-legado/recebimento', payload),
     onSuccess: () => void qc.invalidateQueries({ queryKey: queryKeys.importacoesHistorico }),
   });
 }
@@ -488,8 +582,17 @@ export function useImportarProducaoLegado() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (payload: { usuarioId?: string; etapa?: string; registros: object[] }) =>
-      api.post<{ importacaoId: string; totalRegistros: number; registrosSucesso: number; registrosErro: number; inseridos?: number; atualizados?: number; ignorados?: number; duplicados?: number; erros: { linha: number; idRepositorioGed: string; erro: string }[] }>(
-        '/operacional/importacoes-legado/producao', payload),
+      api.post<{
+        importacaoId: string;
+        totalRegistros: number;
+        registrosSucesso: number;
+        registrosErro: number;
+        inseridos?: number;
+        atualizados?: number;
+        ignorados?: number;
+        duplicados?: number;
+        erros: { linha: number; idRepositorioGed: string; erro: string }[];
+      }>('/operacional/importacoes-legado/producao', payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: queryKeys.importacoesHistorico });
       void qc.invalidateQueries({ queryKey: queryKeys.producaoAll });
@@ -507,7 +610,12 @@ export function usePreviewImportacaoProducaoLegado() {
         duplicadasPlanilha: number[];
         duplicadasBanco: number[];
         linhasInvalidas: { linha: number; erro: string }[];
-        impacto: { inseridosPrevistos: number; atualizadosPrevistos: number; ignoradosPrevistos: number; invalidos: number };
+        impacto: {
+          inseridosPrevistos: number;
+          atualizadosPrevistos: number;
+          ignoradosPrevistos: number;
+          invalidos: number;
+        };
       }>('/operacional/importacoes-legado/producao/preview', payload),
   });
 }
@@ -516,7 +624,12 @@ export function useRollbackImportacaoLegado() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) =>
-      api.post<{ message: string; removidos: number; restaurados: number; hashesRemovidos: number }>(`/operacional/importacoes-legado/${id}/rollback`),
+      api.post<{
+        message: string;
+        removidos: number;
+        restaurados: number;
+        hashesRemovidos: number;
+      }>(`/operacional/importacoes-legado/${id}/rollback`),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: queryKeys.importacoesHistorico });
       void qc.invalidateQueries({ queryKey: queryKeys.producaoAll });
@@ -528,26 +641,41 @@ export function useRollbackImportacaoLegado() {
 export function useValidarDuplicidadesLegado() {
   return useMutation({
     mutationFn: (payload: { tipo: string; registros: object[]; etapa?: string }) =>
-      api.post<{ totalRegistros: number; duplicadasPlanilha: number[]; duplicadasBanco: number[]; todasDuplicadas: number[]; registrosValidos: number }>(
-        '/operacional/importacoes-legado/validar', payload),
+      api.post<{
+        totalRegistros: number;
+        duplicadasPlanilha: number[];
+        duplicadasBanco: number[];
+        todasDuplicadas: number[];
+        registrosValidos: number;
+      }>('/operacional/importacoes-legado/validar', payload),
   });
 }
 
 export function useFetchSheets() {
   return useMutation({
     mutationFn: (url: string) =>
-      api.post<{ csv: string; url: string }>('/operacional/importacoes-legado/fetch-sheets', { url }),
+      api.post<{ csv: string; url: string }>('/operacional/importacoes-legado/fetch-sheets', {
+        url,
+      }),
   });
 }
 
 // ─── Fontes de Importação ─────────────────────────────────────
 interface FonteImportacao {
-  id: string; nome: string; url: string; tipo: string;
-  criado_em: string; ultima_importacao_em: string | null;
+  id: string;
+  nome: string;
+  url: string;
+  tipo: string;
+  criado_em: string;
+  ultima_importacao_em: string | null;
 }
 interface ImportarFonteResult {
-  fonte: string; totalPlanilha: number; importados: number;
-  duplicados: number; erros: number; detalhesErros: { linha: number; erro: string }[];
+  fonte: string;
+  totalPlanilha: number;
+  importados: number;
+  duplicados: number;
+  erros: number;
+  detalhesErros: { linha: number; erro: string }[];
 }
 
 export function useFontesImportacao() {
@@ -591,11 +719,18 @@ export function useImportarFonte() {
 export function useImportarTodasFontes() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: () => api.post<{
-      total: number;
-      resultados: Array<{ fonte: string; importados: number; duplicados: number; erros: number; sucesso: boolean }>;
-      resumo: { importados: number; duplicados: number; erros: number };
-    }>('/operacional/fontes-importacao/importar-todas'),
+    mutationFn: () =>
+      api.post<{
+        total: number;
+        resultados: Array<{
+          fonte: string;
+          importados: number;
+          duplicados: number;
+          erros: number;
+          sucesso: boolean;
+        }>;
+        resumo: { importados: number; duplicados: number; erros: number };
+      }>('/operacional/fontes-importacao/importar-todas'),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: queryKeys.fontesImportacao });
       void qc.invalidateQueries({ queryKey: queryKeys.importacoesHistorico });
@@ -607,7 +742,10 @@ export function useImportarTodasFontes() {
 export function useLimparImportacoesLegado() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: () => api.delete<{ mensagem: string; removidos: Record<string, number> }>('/operacional/importacoes-legado/limpar'),
+    mutationFn: () =>
+      api.delete<{ mensagem: string; removidos: Record<string, number> }>(
+        '/operacional/importacoes-legado/limpar'
+      ),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: queryKeys.importacoesHistorico });
       void qc.invalidateQueries({ queryKey: queryKeys.repositoriosAll });
@@ -620,7 +758,8 @@ export function useLimparImportacoesLegado() {
 export function useCriarSetorRecebimento() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (nome: string) => api.post<{ id: string; nome: string }>('/operacional/setores-recebimento', { nome }),
+    mutationFn: (nome: string) =>
+      api.post<{ id: string; nome: string }>('/operacional/setores-recebimento', { nome }),
     onSuccess: () => void qc.invalidateQueries({ queryKey: queryKeys.setoresRecebimento }),
   });
 }
@@ -628,7 +767,8 @@ export function useCriarSetorRecebimento() {
 export function useCriarOrgaoRecebimento() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (nome: string) => api.post<{ id: string; nome: string }>('/operacional/orgaos-recebimento', { nome }),
+    mutationFn: (nome: string) =>
+      api.post<{ id: string; nome: string }>('/operacional/orgaos-recebimento', { nome }),
     onSuccess: () => void qc.invalidateQueries({ queryKey: queryKeys.orgaosRecebimento }),
   });
 }
@@ -636,7 +776,8 @@ export function useCriarOrgaoRecebimento() {
 export function useCriarClassificacaoRecebimento() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (nome: string) => api.post<{ id: string; nome: string }>('/operacional/classificacoes-recebimento', { nome }),
+    mutationFn: (nome: string) =>
+      api.post<{ id: string; nome: string }>('/operacional/classificacoes-recebimento', { nome }),
     onSuccess: () => void qc.invalidateQueries({ queryKey: queryKeys.classificacoesRecebimento }),
   });
 }
@@ -644,14 +785,22 @@ export function useCriarClassificacaoRecebimento() {
 export function useOcrPreview() {
   return useMutation({
     mutationFn: ({ repoId, imagemBase64 }: { repoId: string; imagemBase64: string }) =>
-      api.post<{ protocolo: string; interessado: string; textoExtraido: string; confianca: number }>(`/operacional/repositorios/${repoId}/ocr-preview`, { imagemBase64 }),
+      api.post<{
+        protocolo: string;
+        interessado: string;
+        textoExtraido: string;
+        confianca: number;
+      }>(`/operacional/repositorios/${repoId}/ocr-preview`, { imagemBase64 }),
   });
 }
 
 export function useOcrPreviewAvulso() {
   return useMutation({
     mutationFn: (imagemBase64: string) =>
-      api.post<{ protocolo: string; interessado: string; confianca: number }>('/operacional/recebimento-avulsos/ocr-preview', { imagemBase64 }),
+      api.post<{ protocolo: string; interessado: string; confianca: number }>(
+        '/operacional/recebimento-avulsos/ocr-preview',
+        { imagemBase64 }
+      ),
   });
 }
 
@@ -666,8 +815,21 @@ export function useCriarProcessoAvulso() {
 export function useCriarProcessoRecebimento() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ repoId, ...body }: { repoId: string; protocolo: string; interessado: string; setorId?: string; volumeAtual: number; volumeTotal: number; origem: string; ocrConfianca?: number | null; textoExtraido?: string; imagemBase64?: string }) =>
-      api.post(`/operacional/repositorios/${repoId}/recebimento-processos`, body),
+    mutationFn: ({
+      repoId,
+      ...body
+    }: {
+      repoId: string;
+      protocolo: string;
+      interessado: string;
+      setorId?: string;
+      volumeAtual: number;
+      volumeTotal: number;
+      origem: string;
+      ocrConfianca?: number | null;
+      textoExtraido?: string;
+      imagemBase64?: string;
+    }) => api.post(`/operacional/repositorios/${repoId}/recebimento-processos`, body),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: queryKeys.repositoriosAll });
       void qc.invalidateQueries({ queryKey: queryKeys.recebimentoProcessosAll });
@@ -678,7 +840,8 @@ export function useCriarProcessoRecebimento() {
 export function useExcluirProcessoRecebimento() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (processoId: string) => api.delete(`/operacional/recebimento-processos/${processoId}`),
+    mutationFn: (processoId: string) =>
+      api.delete(`/operacional/recebimento-processos/${processoId}`),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: queryKeys.repositoriosAll });
       void qc.invalidateQueries({ queryKey: queryKeys.recebimentoProcessosAll });
@@ -689,8 +852,20 @@ export function useExcluirProcessoRecebimento() {
 export function useCriarApenso() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ processoId, ...body }: { processoId: string; protocolo: string; interessado?: string; volumeAtual: number; volumeTotal: number; origem: string; ocrConfianca?: number | null; textoExtraido?: string; imagemBase64?: string }) =>
-      api.post(`/operacional/recebimento-processos/${processoId}/apensos`, body),
+    mutationFn: ({
+      processoId,
+      ...body
+    }: {
+      processoId: string;
+      protocolo: string;
+      interessado?: string;
+      volumeAtual: number;
+      volumeTotal: number;
+      origem: string;
+      ocrConfianca?: number | null;
+      textoExtraido?: string;
+      imagemBase64?: string;
+    }) => api.post(`/operacional/recebimento-processos/${processoId}/apensos`, body),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: queryKeys.repositoriosAll });
       void qc.invalidateQueries({ queryKey: queryKeys.recebimentoProcessosAll });
@@ -726,20 +901,21 @@ export function useVincularProcessos() {
 export function useEmpresa() {
   return useQuery({
     queryKey: queryKeys.empresa,
-    queryFn: () => api.get<{
-      nome?: string;
-      cnpj?: string;
-      endereco?: string;
-      telefone?: string;
-      email?: string;
-      logoUrl?: string;
-      exibirLogoRelatorio?: boolean;
-      exibirEnderecoRelatorio?: boolean;
-      exibirContatoRelatorio?: boolean;
-      logoLarguraRelatorio?: number;
-      logoAlinhamentoRelatorio?: 'ESQUERDA' | 'CENTRO' | 'DIREITA';
-      logoDeslocamentoYRelatorio?: number;
-    }>('/configuracao/empresa'),
+    queryFn: () =>
+      api.get<{
+        nome?: string;
+        cnpj?: string;
+        endereco?: string;
+        telefone?: string;
+        email?: string;
+        logoUrl?: string;
+        exibirLogoRelatorio?: boolean;
+        exibirEnderecoRelatorio?: boolean;
+        exibirContatoRelatorio?: boolean;
+        logoLarguraRelatorio?: number;
+        logoAlinhamentoRelatorio?: 'ESQUERDA' | 'CENTRO' | 'DIREITA';
+        logoDeslocamentoYRelatorio?: number;
+      }>('/configuracao/empresa'),
     staleTime: 5 * 60_000,
   });
 }
@@ -747,7 +923,17 @@ export function useEmpresa() {
 export function useUsuarios() {
   return useQuery({
     queryKey: queryKeys.usuarios,
-    queryFn: () => api.get<{ usuarios: { id: string; email: string; nome: string; papel: string; ativo: boolean; criado_em: string }[] }>('/auth/usuarios'),
+    queryFn: () =>
+      api.get<{
+        usuarios: {
+          id: string;
+          email: string;
+          nome: string;
+          papel: string;
+          ativo: boolean;
+          criado_em: string;
+        }[];
+      }>('/auth/usuarios'),
     staleTime: 60_000,
   });
 }
@@ -764,9 +950,33 @@ export function useRecebimentoProcessos(repoId: string | null) {
   return useQuery({
     queryKey: queryKeys.recebimentoProcessos(repoId ?? ''),
     queryFn: () =>
-      api.get<{ processos: { id: string; protocolo: string; interessado: string; setor_id: string | null; setor_nome: string | null; classificacao_id: string | null; classificacao_nome: string | null; volume_atual: number; volume_total: number; numero_caixas: number; caixa_nova: boolean; origem: string; ocr_confianca?: number | null; criado_em: string; apensos: { id: string; protocolo: string; interessado: string | null; volume_atual: number; volume_total: number; origem: string; criado_em: string }[] }[] }>(
-        `/operacional/repositorios/${repoId}/recebimento-processos`,
-      ),
+      api.get<{
+        processos: {
+          id: string;
+          protocolo: string;
+          interessado: string;
+          setor_id: string | null;
+          setor_nome: string | null;
+          classificacao_id: string | null;
+          classificacao_nome: string | null;
+          volume_atual: number;
+          volume_total: number;
+          numero_caixas: number;
+          caixa_nova: boolean;
+          origem: string;
+          ocr_confianca?: number | null;
+          criado_em: string;
+          apensos: {
+            id: string;
+            protocolo: string;
+            interessado: string | null;
+            volume_atual: number;
+            volume_total: number;
+            origem: string;
+            criado_em: string;
+          }[];
+        }[];
+      }>(`/operacional/repositorios/${repoId}/recebimento-processos`),
     enabled: !!repoId,
     select: (data) => data.processos ?? [],
   });
@@ -782,9 +992,35 @@ export function useAvulsos(params: { busca?: string; pagina?: number; limite?: n
     queryFn: () => {
       const qs = new URLSearchParams();
       for (const [k, v] of Object.entries(queryParams)) qs.set(k, String(v));
-      return api.get<{ processos: { id: string; protocolo: string; interessado: string; setor_id: string | null; setor_nome: string | null; classificacao_id: string | null; classificacao_nome: string | null; volume_atual: number; volume_total: number; numero_caixas: number; caixa_nova: boolean; origem: string; ocr_confianca?: number | null; observacao: string; criado_em: string; apensos: { id: string; protocolo: string; interessado: string | null; volume_atual: number; volume_total: number; origem: string; criado_em: string }[] }[]; totalPaginas?: number }>(
-        `/operacional/recebimento-avulsos?${qs.toString()}`,
-      );
+      return api.get<{
+        processos: {
+          id: string;
+          protocolo: string;
+          interessado: string;
+          setor_id: string | null;
+          setor_nome: string | null;
+          classificacao_id: string | null;
+          classificacao_nome: string | null;
+          volume_atual: number;
+          volume_total: number;
+          numero_caixas: number;
+          caixa_nova: boolean;
+          origem: string;
+          ocr_confianca?: number | null;
+          observacao: string;
+          criado_em: string;
+          apensos: {
+            id: string;
+            protocolo: string;
+            interessado: string | null;
+            volume_atual: number;
+            volume_total: number;
+            origem: string;
+            criado_em: string;
+          }[];
+        }[];
+        totalPaginas?: number;
+      }>(`/operacional/recebimento-avulsos?${qs.toString()}`);
     },
   });
 }
@@ -792,8 +1028,12 @@ export function useAvulsos(params: { busca?: string; pagina?: number; limite?: n
 // ─── Auditoria ──────────────────────────────────────────────
 
 export function useAuditoria(params: {
-  pagina?: number; limite?: number; tabela?: string; operacao?: string;
-  dataInicio?: string; dataFim?: string;
+  pagina?: number;
+  limite?: number;
+  tabela?: string;
+  operacao?: string;
+  dataInicio?: string;
+  dataFim?: string;
 }) {
   const { pagina = 1, limite = 50, tabela, operacao, dataInicio, dataFim } = params;
   const queryParams: Record<string, string | number> = { pagina, limite };
@@ -808,7 +1048,16 @@ export function useAuditoria(params: {
       const qs = new URLSearchParams();
       for (const [k, v] of Object.entries(queryParams)) qs.set(k, String(v));
       return api.get<{
-        logs: { id: string; tabela: string; operacao: string; registro_id: string; dados_antigos?: Record<string, unknown>; dados_novos?: Record<string, unknown>; usuario_id?: string; criado_em: string }[];
+        logs: {
+          id: string;
+          tabela: string;
+          operacao: string;
+          registro_id: string;
+          dados_antigos?: Record<string, unknown>;
+          dados_novos?: Record<string, unknown>;
+          usuario_id?: string;
+          criado_em: string;
+        }[];
         totalPaginas: number;
       }>(`/auditoria?${qs.toString()}`);
     },
@@ -818,10 +1067,25 @@ export function useAuditoria(params: {
 // ─── Produção ───────────────────────────────────────────────
 
 export function useProducao(params: {
-  pagina?: number; limite?: number; etapa?: string; colaborador?: string;
-  origem?: string; dataInicio?: string; dataFim?: string; busca?: string;
+  pagina?: number;
+  limite?: number;
+  etapa?: string;
+  colaborador?: string;
+  origem?: string;
+  dataInicio?: string;
+  dataFim?: string;
+  busca?: string;
 }) {
-  const { pagina = 1, limite = 25, etapa, colaborador, origem, dataInicio, dataFim, busca } = params;
+  const {
+    pagina = 1,
+    limite = 25,
+    etapa,
+    colaborador,
+    origem,
+    dataInicio,
+    dataFim,
+    busca,
+  } = params;
   const queryParams: Record<string, string | number> = { pagina, limite };
   if (etapa) queryParams.etapa = etapa;
   if (colaborador) queryParams.colaborador = colaborador;
@@ -836,8 +1100,26 @@ export function useProducao(params: {
       const qs = new URLSearchParams();
       for (const [k, v] of Object.entries(queryParams)) qs.set(k, String(v));
       return api.get<{
-        registros: { id: string; quantidade: number; data_producao: string; etapa: string; tipo: string; origem_marcador: string; coordenadoria_marcador: string; funcao: string; colaborador_id: string; colaborador_nome: string; repositorio_ged: string; projeto: string; origem: 'LEGADO' | 'FLUXO'; coordenadoria_sigla: string }[];
-        total: number; pagina: number; limite: number; totalPaginas: number;
+        registros: {
+          id: string;
+          quantidade: number;
+          data_producao: string;
+          etapa: string;
+          tipo: string;
+          origem_marcador: string;
+          coordenadoria_marcador: string;
+          funcao: string;
+          colaborador_id: string;
+          colaborador_nome: string;
+          repositorio_ged: string;
+          projeto: string;
+          origem: 'LEGADO' | 'FLUXO';
+          coordenadoria_sigla: string;
+        }[];
+        total: number;
+        pagina: number;
+        limite: number;
+        totalPaginas: number;
         filtros: { colaboradores: { id: string; nome: string }[]; etapas: string[] };
       }>(`/operacional/producao?${qs.toString()}`);
     },
@@ -846,7 +1128,11 @@ export function useProducao(params: {
 
 // ─── Conhecimento Operacional ───────────────────────────────
 
-export function useConhecimentoDocs(params: { busca?: string; categoria?: string; etapa?: string }) {
+export function useConhecimentoDocs(params: {
+  busca?: string;
+  categoria?: string;
+  etapa?: string;
+}) {
   const { busca, categoria, etapa } = params;
   const queryParams: Record<string, string> = {};
   if (busca?.trim()) queryParams.busca = busca.trim();
@@ -858,15 +1144,33 @@ export function useConhecimentoDocs(params: { busca?: string; categoria?: string
     queryFn: () => {
       const qs = new URLSearchParams(queryParams);
       const suffix = qs.toString() ? `?${qs.toString()}` : '';
-      return api.get<{
-        itens: { id: string; codigo: string; titulo: string; categoria: 'MANUAIS' | 'PROCEDIMENTOS_ETAPA' | 'CHECKLISTS_EXPLICADOS' | 'GLOSSARIO' | 'NORMAS_LEIS' | 'ATUALIZACOES_PROCESSO'; descricao: string; status: 'ATIVO' | 'INATIVO'; nivel_acesso: 'OPERADOR_ADMIN' | 'ADMIN'; versao_atual: number; etapas: EtapaFluxo[] }[];
-      }>(`/operacional/conhecimento/documentos${suffix}`).then((data) => ({
-        ...data,
-        itens: (data.itens ?? []).map((item) => ({
-          ...item,
-          etapas: normalizeEtapas(item.etapas),
-        })),
-      }));
+      return api
+        .get<{
+          itens: {
+            id: string;
+            codigo: string;
+            titulo: string;
+            categoria:
+              | 'MANUAIS'
+              | 'PROCEDIMENTOS_ETAPA'
+              | 'CHECKLISTS_EXPLICADOS'
+              | 'GLOSSARIO'
+              | 'NORMAS_LEIS'
+              | 'ATUALIZACOES_PROCESSO';
+            descricao: string;
+            status: 'ATIVO' | 'INATIVO';
+            nivel_acesso: 'OPERADOR_ADMIN' | 'ADMIN';
+            versao_atual: number;
+            etapas: EtapaFluxo[];
+          }[];
+        }>(`/operacional/conhecimento/documentos${suffix}`)
+        .then((data) => ({
+          ...data,
+          itens: (data.itens ?? []).map((item) => ({
+            ...item,
+            etapas: normalizeEtapas(item.etapas),
+          })),
+        }));
     },
   });
 }
@@ -874,19 +1178,52 @@ export function useConhecimentoDocs(params: { busca?: string; categoria?: string
 export function useConhecimentoDetalhe(id: string | null) {
   return useQuery({
     queryKey: queryKeys.conhecimentoDetalhe(id ?? ''),
-    queryFn: () => api.get<{
-      documento: { id: string; codigo: string; titulo: string; categoria: 'MANUAIS' | 'PROCEDIMENTOS_ETAPA' | 'CHECKLISTS_EXPLICADOS' | 'GLOSSARIO' | 'NORMAS_LEIS' | 'ATUALIZACOES_PROCESSO'; descricao: string; status: 'ATIVO' | 'INATIVO'; nivel_acesso: 'OPERADOR_ADMIN' | 'ADMIN'; versao_atual: number; etapas: EtapaFluxo[]; versao_atual_id?: string | null };
-      etapas: EtapaFluxo[];
-      versaoAtual: { id: string; versao: number; conteudo: string; resumo_alteracao: string; publicado_em: string; publicado_por_nome: string } | null;
-      versoes: { id: string; versao: number; resumo_alteracao: string; publicado_em: string; publicado_por_nome: string }[];
-    }>(`/operacional/conhecimento/documentos/${id}`).then((data) => ({
-      ...data,
-      etapas: normalizeEtapas(data.etapas),
-      documento: {
-        ...data.documento,
-        etapas: normalizeEtapas(data.documento?.etapas),
-      },
-    })),
+    queryFn: () =>
+      api
+        .get<{
+          documento: {
+            id: string;
+            codigo: string;
+            titulo: string;
+            categoria:
+              | 'MANUAIS'
+              | 'PROCEDIMENTOS_ETAPA'
+              | 'CHECKLISTS_EXPLICADOS'
+              | 'GLOSSARIO'
+              | 'NORMAS_LEIS'
+              | 'ATUALIZACOES_PROCESSO';
+            descricao: string;
+            status: 'ATIVO' | 'INATIVO';
+            nivel_acesso: 'OPERADOR_ADMIN' | 'ADMIN';
+            versao_atual: number;
+            etapas: EtapaFluxo[];
+            versao_atual_id?: string | null;
+          };
+          etapas: EtapaFluxo[];
+          versaoAtual: {
+            id: string;
+            versao: number;
+            conteudo: string;
+            resumo_alteracao: string;
+            publicado_em: string;
+            publicado_por_nome: string;
+          } | null;
+          versoes: {
+            id: string;
+            versao: number;
+            resumo_alteracao: string;
+            publicado_em: string;
+            publicado_por_nome: string;
+          }[];
+        }>(`/operacional/conhecimento/documentos/${id}`)
+        .then((data) => ({
+          ...data,
+          etapas: normalizeEtapas(data.etapas),
+          documento: {
+            ...data.documento,
+            etapas: normalizeEtapas(data.documento?.etapas),
+          },
+        })),
     enabled: !!id,
   });
 }
@@ -901,9 +1238,15 @@ function normalizeEtapas(value: unknown): EtapaFluxo[] {
     if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
       const inner = trimmed.slice(1, -1);
       if (!inner) return [];
-      return inner.split(',').map((v) => v.trim().replace(/^"|"$/g, '')).filter((v): v is EtapaFluxo => v.length > 0);
+      return inner
+        .split(',')
+        .map((v) => v.trim().replace(/^"|"$/g, ''))
+        .filter((v): v is EtapaFluxo => v.length > 0);
     }
-    return trimmed.split(',').map((v) => v.trim()).filter((v): v is EtapaFluxo => v.length > 0);
+    return trimmed
+      .split(',')
+      .map((v) => v.trim())
+      .filter((v): v is EtapaFluxo => v.length > 0);
   }
   return [];
 }
@@ -938,8 +1281,16 @@ export function useCriarGlossario() {
 export function useAtualizarGlossario() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, ...body }: { id: string; termo?: string; definicao?: string; ativo?: boolean; ordem?: number }) =>
-      api.patch(`/operacional/conhecimento/glossario/${id}`, body),
+    mutationFn: ({
+      id,
+      ...body
+    }: {
+      id: string;
+      termo?: string;
+      definicao?: string;
+      ativo?: boolean;
+      ordem?: number;
+    }) => api.patch(`/operacional/conhecimento/glossario/${id}`, body),
     onSuccess: () => void qc.invalidateQueries({ queryKey: queryKeys.glossario }),
   });
 }
@@ -957,12 +1308,16 @@ export function useExcluirGlossario() {
 export function useValidarDuplicatasImportacao(fonteId: string) {
   return useQuery({
     queryKey: ['importacao-duplicatas', fonteId],
-    queryFn: () => api.post<{
-      fonte: { id: string; nome: string };
-      total: number;
-      novos: { quantidade: number; itens: Array<{ linha: number; dados: any; motivo: string }> };
-      duplicados: { quantidade: number; itens: Array<{ linha: number; dados: any; motivo: string }> };
-    }>(`/operacional/fontes-importacao/${fonteId}/validar-duplicatas`),
+    queryFn: () =>
+      api.post<{
+        fonte: { id: string; nome: string };
+        total: number;
+        novos: { quantidade: number; itens: Array<{ linha: number; dados: any; motivo: string }> };
+        duplicados: {
+          quantidade: number;
+          itens: Array<{ linha: number; dados: any; motivo: string }>;
+        };
+      }>(`/operacional/fontes-importacao/${fonteId}/validar-duplicatas`),
     enabled: !!fonteId,
   });
 }
@@ -990,8 +1345,13 @@ export function useLeisNormas() {
 export function useCriarLeiNorma() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (body: { nome: string; descricao: string; referencia?: string; url?: string; ordem?: number }) =>
-      api.post<{ id: string }>('/operacional/conhecimento/leis-normas', body),
+    mutationFn: (body: {
+      nome: string;
+      descricao: string;
+      referencia?: string;
+      url?: string;
+      ordem?: number;
+    }) => api.post<{ id: string }>('/operacional/conhecimento/leis-normas', body),
     onSuccess: () => void qc.invalidateQueries({ queryKey: queryKeys.leisNormas }),
   });
 }
@@ -999,8 +1359,18 @@ export function useCriarLeiNorma() {
 export function useAtualizarLeiNorma() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, ...body }: { id: string; nome?: string; descricao?: string; referencia?: string; url?: string; ativo?: boolean; ordem?: number }) =>
-      api.patch(`/operacional/conhecimento/leis-normas/${id}`, body),
+    mutationFn: ({
+      id,
+      ...body
+    }: {
+      id: string;
+      nome?: string;
+      descricao?: string;
+      referencia?: string;
+      url?: string;
+      ativo?: boolean;
+      ordem?: number;
+    }) => api.patch(`/operacional/conhecimento/leis-normas/${id}`, body),
     onSuccess: () => void qc.invalidateQueries({ queryKey: queryKeys.leisNormas }),
   });
 }
@@ -1018,8 +1388,21 @@ export function useExcluirLeiNorma() {
 export function useImportacoesHistorico() {
   return useQuery({
     queryKey: queryKeys.importacoesHistorico,
-    queryFn: () => api.get<{
-      itens: { id: string; tipo: string; total_registros: number; registros_sucesso: number; registros_erro: number; detalhes_erros: unknown; criado_em: string; usuario_destino_id: string; usuario_destino_nome: string; executado_por: string; executado_por_nome: string }[];
-    }>('/operacional/importacoes-legado?pagina=1&limite=20'),
+    queryFn: () =>
+      api.get<{
+        itens: {
+          id: string;
+          tipo: string;
+          total_registros: number;
+          registros_sucesso: number;
+          registros_erro: number;
+          detalhes_erros: unknown;
+          criado_em: string;
+          usuario_destino_id: string;
+          usuario_destino_nome: string;
+          executado_por: string;
+          executado_por_nome: string;
+        }[];
+      }>('/operacional/importacoes-legado?pagina=1&limite=20'),
   });
 }

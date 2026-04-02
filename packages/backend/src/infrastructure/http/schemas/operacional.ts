@@ -29,7 +29,10 @@ export const ocrPreviewSchema = z.object({
 
 // --- Setores / Classificações ---
 export const nomeObrigatorioSchema = z.object({
-  nome: z.string().min(1, 'Nome é obrigatório').transform((v) => v.trim()),
+  nome: z
+    .string()
+    .min(1, 'Nome é obrigatório')
+    .transform((v) => v.trim()),
 });
 
 // --- Recebimento Processos ---
@@ -79,10 +82,18 @@ export const atualizarModeloChecklistSchema = z.object({
 });
 
 export const abrirChecklistSchema = z.object({
-  etapa: z.enum([
-    'RECEBIMENTO', 'PREPARACAO', 'DIGITALIZACAO',
-    'CONFERENCIA', 'MONTAGEM', 'CONTROLE_QUALIDADE', 'ENTREGA',
-  ], { message: 'Etapa é obrigatória' }),
+  etapa: z.enum(
+    [
+      'RECEBIMENTO',
+      'PREPARACAO',
+      'DIGITALIZACAO',
+      'CONFERENCIA',
+      'MONTAGEM',
+      'CONTROLE_QUALIDADE',
+      'ENTREGA',
+    ],
+    { message: 'Etapa é obrigatória' }
+  ),
 });
 
 export const registrarItemChecklistSchema = z.object({
@@ -95,18 +106,30 @@ export const registrarItemChecklistSchema = z.object({
 
 export const concluirChecklistSchema = z.object({
   observacao: z.string().optional().default(''),
-  itens: z.array(z.object({
-    modeloId: z.string().uuid('ID do modelo inválido'),
-    resultado: z.enum(['CONFORME', 'NAO_CONFORME_COM_TRATATIVA']),
-    observacao: z.string().optional().default(''),
-  })).optional(),
+  itens: z
+    .array(
+      z.object({
+        modeloId: z.string().uuid('ID do modelo inválido'),
+        resultado: z.enum(['CONFORME', 'NAO_CONFORME_COM_TRATATIVA']),
+        observacao: z.string().optional().default(''),
+      })
+    )
+    .optional(),
 });
 
 export const registrarProducaoSchema = z.object({
-  etapa: z.enum([
-    'RECEBIMENTO', 'PREPARACAO', 'DIGITALIZACAO',
-    'CONFERENCIA', 'MONTAGEM', 'CONTROLE_QUALIDADE', 'ENTREGA',
-  ], { message: 'Etapa é obrigatória' }),
+  etapa: z.enum(
+    [
+      'RECEBIMENTO',
+      'PREPARACAO',
+      'DIGITALIZACAO',
+      'CONFERENCIA',
+      'MONTAGEM',
+      'CONTROLE_QUALIDADE',
+      'ENTREGA',
+    ],
+    { message: 'Etapa é obrigatória' }
+  ),
   checklistId: z.string().uuid('ID do checklist inválido'),
   quantidade: z.number().int().min(1).default(1),
   marcadores: z.record(z.string(), z.unknown()).optional().default({}),
@@ -119,10 +142,18 @@ export const relatorioRecebimentoSchema = z.object({
 
 // --- Exceções ---
 export const registrarExcecaoSchema = z.object({
-  etapa: z.enum([
-    'RECEBIMENTO', 'PREPARACAO', 'DIGITALIZACAO',
-    'CONFERENCIA', 'MONTAGEM', 'CONTROLE_QUALIDADE', 'ENTREGA',
-  ], { message: 'Etapa é obrigatória' }),
+  etapa: z.enum(
+    [
+      'RECEBIMENTO',
+      'PREPARACAO',
+      'DIGITALIZACAO',
+      'CONFERENCIA',
+      'MONTAGEM',
+      'CONTROLE_QUALIDADE',
+      'ENTREGA',
+    ],
+    { message: 'Etapa é obrigatória' }
+  ),
   tipoExcecao: z.enum(['MIDIA', 'COLORIDO', 'MAPA', 'FRAGILIDADE'], {
     message: 'Tipo de exceção é obrigatório',
   }),
@@ -135,10 +166,18 @@ export const resolverExcecaoSchema = z.object({
 });
 
 export const avancarEtapaSchema = z.object({
-  etapaDestino: z.enum([
-    'RECEBIMENTO', 'PREPARACAO', 'DIGITALIZACAO',
-    'CONFERENCIA', 'MONTAGEM', 'CONTROLE_QUALIDADE', 'ENTREGA',
-  ], { message: 'Etapa destino é obrigatória' }),
+  etapaDestino: z.enum(
+    [
+      'RECEBIMENTO',
+      'PREPARACAO',
+      'DIGITALIZACAO',
+      'CONFERENCIA',
+      'MONTAGEM',
+      'CONTROLE_QUALIDADE',
+      'ENTREGA',
+    ],
+    { message: 'Etapa destino é obrigatória' }
+  ),
   statusDestino: z.string().min(1, 'Status destino é obrigatório'),
 });
 
@@ -204,18 +243,22 @@ export const criarProcessoAvulsoSchema = z.object({
 });
 
 export const criarProcessosBatchSchema = z.object({
-  processos: z.array(z.object({
-    protocolo: z.string().min(1, 'Protocolo é obrigatório'),
-    interessado: z.string().min(1, 'Interessado é obrigatório'),
-    setorId: z.string().uuid().optional().nullable(),
-    classificacaoId: z.string().uuid().optional().nullable(),
-    volumeAtual: z.number().int().min(1).default(1),
-    volumeTotal: z.number().int().min(0).default(0),
-    numeroCaixas: z.number().int().min(1).default(1),
-    caixaNova: z.boolean().default(false),
-    origem: z.enum(['MANUAL', 'OCR', 'LEGADO']).default('MANUAL'),
-    ocrConfianca: z.number().min(0).max(100).optional().nullable(),
-  })).min(1, 'Pelo menos um processo é obrigatório'),
+  processos: z
+    .array(
+      z.object({
+        protocolo: z.string().min(1, 'Protocolo é obrigatório'),
+        interessado: z.string().min(1, 'Interessado é obrigatório'),
+        setorId: z.string().uuid().optional().nullable(),
+        classificacaoId: z.string().uuid().optional().nullable(),
+        volumeAtual: z.number().int().min(1).default(1),
+        volumeTotal: z.number().int().min(0).default(0),
+        numeroCaixas: z.number().int().min(1).default(1),
+        caixaNova: z.boolean().default(false),
+        origem: z.enum(['MANUAL', 'OCR', 'LEGADO']).default('MANUAL'),
+        ocrConfianca: z.number().min(0).max(100).optional().nullable(),
+      })
+    )
+    .min(1, 'Pelo menos um processo é obrigatório'),
 });
 
 export const vincularProcessosSchema = z.object({
@@ -227,35 +270,43 @@ export const vincularProcessosSchema = z.object({
 export const importacaoLegadoSchema = z.object({
   tipo: z.enum(['recebimento', 'producao'], { message: 'Tipo é obrigatório' }),
   etapa: z.string().optional(),
-  registros: z.array(z.record(z.string(), z.unknown())).min(1, 'Pelo menos um registro é obrigatório'),
+  registros: z
+    .array(z.record(z.string(), z.unknown()))
+    .min(1, 'Pelo menos um registro é obrigatório'),
 });
 
 export const importacaoLegadoRecebimentoSchema = z.object({
   usuarioId: z.string().uuid().optional(),
-  registros: z.array(z.object({
-    idRepositorioGed: z.string().min(1),
-    orgao: z.string().optional(),
-    projeto: z.string().optional(),
-    processo: z.string().min(1),
-    interessado: z.string().min(1),
-    numeroCaixas: z.number().int().min(1).optional(),
-    volume: z.string().optional(),
-    caixaNova: z.boolean().optional(),
-  })).min(1, 'Pelo menos um registro é obrigatório'),
+  registros: z
+    .array(
+      z.object({
+        idRepositorioGed: z.string().min(1),
+        orgao: z.string().optional(),
+        projeto: z.string().optional(),
+        processo: z.string().min(1),
+        interessado: z.string().min(1),
+        numeroCaixas: z.number().int().min(1).optional(),
+        volume: z.string().optional(),
+        caixaNova: z.boolean().optional(),
+      })
+    )
+    .min(1, 'Pelo menos um registro é obrigatório'),
 });
 
 export const importacaoLegadoProducaoSchema = z.object({
   usuarioId: z.string().uuid().optional(),
   etapa: z.string().optional(),
-  registros: z.array(z.object({
-    data: z.string().optional(),
-    colaborador: z.string().min(1),
-    funcao: z.string().optional(),
-    repositorio: z.string().min(1),
-    coordenadoria: z.string().optional(),
-    quantidade: z.union([z.number(), z.string()]).optional(),
-    tipo: z.string().optional(),
-  })).min(1, 'Pelo menos um registro é obrigatório'),
+  registros: z
+    .array(
+      z.object({
+        data: z.string().optional(),
+        colaborador: z.string().min(1),
+        funcao: z.string().optional(),
+        repositorio: z.string().min(1),
+        coordenadoria: z.string().optional(),
+        quantidade: z.union([z.number(), z.string()]).optional(),
+        tipo: z.string().optional(),
+      })
+    )
+    .min(1, 'Pelo menos um registro é obrigatório'),
 });
-
-

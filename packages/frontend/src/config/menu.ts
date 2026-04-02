@@ -15,7 +15,12 @@ export const menuSections: MenuSection[] = [
     basePath: '/producao',
     items: [
       { id: 'producao-painel', label: 'Painel', icon: 'bar-chart', path: '/producao' },
-      { id: 'producao-importar', label: 'Importar Produção', icon: 'upload-cloud', path: '/producao/importar' },
+      {
+        id: 'producao-importar',
+        label: 'Importar Produção',
+        icon: 'upload-cloud',
+        path: '/producao/importar',
+      },
     ],
   },
   {
@@ -24,8 +29,18 @@ export const menuSections: MenuSection[] = [
     icon: 'clipboard',
     basePath: '/operacao',
     items: [
-      { id: 'operacao-recebimento', label: 'Recebimento', icon: 'inbox', path: '/operacao/recebimento' },
-      { id: 'operacao-cq', label: 'Controle de Qualidade', icon: 'shield', path: '/operacao/controle-qualidade' },
+      {
+        id: 'operacao-recebimento',
+        label: 'Recebimento',
+        icon: 'inbox',
+        path: '/operacao/recebimento',
+      },
+      {
+        id: 'operacao-cq',
+        label: 'Controle de Qualidade',
+        icon: 'shield',
+        path: '/operacao/controle-qualidade',
+      },
       { id: 'operacao-kb', label: 'Conhecimento', icon: 'book', path: '/operacao/conhecimento' },
     ],
   },
@@ -35,8 +50,18 @@ export const menuSections: MenuSection[] = [
     icon: 'file-text',
     basePath: '/relatorios',
     items: [
-      { id: 'gerenciais', label: 'Relatórios Gerenciais', icon: 'briefcase', path: '/relatorios/gerenciais' },
-      { id: 'exportacoes', label: 'Exportações', icon: 'download', path: '/relatorios/exportacoes' },
+      {
+        id: 'gerenciais',
+        label: 'Relatórios Gerenciais',
+        icon: 'briefcase',
+        path: '/relatorios/gerenciais',
+      },
+      {
+        id: 'exportacoes',
+        label: 'Exportações',
+        icon: 'download',
+        path: '/relatorios/exportacoes',
+      },
     ],
   },
   {
@@ -58,7 +83,12 @@ export const menuSections: MenuSection[] = [
     basePath: '/auditoria',
     allowedProfiles: ['administrador'],
     items: [
-      { id: 'importacoes', label: 'Importações', icon: 'upload-cloud', path: '/auditoria/importacoes' },
+      {
+        id: 'importacoes',
+        label: 'Importações',
+        icon: 'upload-cloud',
+        path: '/auditoria/importacoes',
+      },
       { id: 'ocr', label: 'OCR', icon: 'scan', path: '/auditoria/ocr' },
       { id: 'correcoes', label: 'Correções', icon: 'edit', path: '/auditoria/correcoes' },
       { id: 'acoes', label: 'Ações de Usuários', icon: 'user-check', path: '/auditoria/acoes' },

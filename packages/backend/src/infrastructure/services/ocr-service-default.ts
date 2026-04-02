@@ -18,7 +18,7 @@ export class OCRServiceDefault implements OCRService {
       const result = await Tesseract.recognize(processedImage, 'por', {
         logger: () => {},
       });
-      
+
       const tempoProcessamento = Date.now() - inicio;
 
       return {

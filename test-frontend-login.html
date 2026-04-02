@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Login</title>
+</head>
+<body>
+    <h1>Test Login</h1>
+    <button onclick="testLogin()">Test Login</button>
+    <pre id="result"></pre>
+
+    <script>
+        async function testLogin() {
+            const result = document.getElementById('result');
+            result.textContent = 'Testing...';
+
+            try {
+                const response = await fetch('http://localhost:3000/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: 'admin@recorda.com',
+                        senha: 'password123'
+                    })
+                });
+
+                const data = await response.json();
+                
+                result.textContent = `Status: ${response.status}\n\n` + 
+                                    `Response:\n${JSON.stringify(data, null, 2)}`;
+
+                if (response.ok) {
+                    result.textContent += '\n\n✅ Login successful!';
+                } else {
+                    result.textContent += '\n\n❌ Login failed!';
+                }
+            } catch (error) {
+                result.textContent = `Error: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>

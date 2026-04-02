@@ -24,7 +24,10 @@ function canAccessByProfile(
   return allowedProfiles.includes(usuarioPerfil);
 }
 
-function filterMenuItemByProfile(item: MenuItem, usuarioPerfil: string | undefined): MenuItem | null {
+function filterMenuItemByProfile(
+  item: MenuItem,
+  usuarioPerfil: string | undefined
+): MenuItem | null {
   if (!canAccessByProfile(usuarioPerfil, item.allowedProfiles)) {
     return null;
   }
@@ -69,9 +72,7 @@ function MenuItemComponent({
         <button
           onClick={() => setExpanded(!expanded)}
           className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-            isChildActive
-              ? 'bg-blue-50 text-blue-700'
-              : 'text-gray-600 hover:bg-gray-100'
+            isChildActive ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-100'
           }`}
           style={{ paddingLeft: `${12 + depth * 12}px` }}
         >
@@ -79,10 +80,7 @@ function MenuItemComponent({
           {!collapsed && (
             <>
               <span className="flex-1 text-left">{item.label}</span>
-              <Icon
-                name={expanded ? 'chevron-down' : 'chevron-right'}
-                className="w-4 h-4"
-              />
+              <Icon name={expanded ? 'chevron-down' : 'chevron-right'} className="w-4 h-4" />
             </>
           )}
         </button>
@@ -109,9 +107,7 @@ function MenuItemComponent({
       onClick={onNavigate}
       className={({ isActive: navActive }) =>
         `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-          navActive || isActive
-            ? 'bg-blue-600 text-white'
-            : 'text-gray-600 hover:bg-gray-100'
+          navActive || isActive ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'
         }`
       }
       style={{ paddingLeft: `${12 + depth * 12}px` }}
@@ -144,9 +140,7 @@ function MenuSectionComponent({
         title={collapsed ? section.label : undefined}
         className={({ isActive: navActive }) =>
           `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
-            navActive || isActive
-              ? 'bg-blue-600 text-white'
-              : 'text-gray-700 hover:bg-gray-100'
+            navActive || isActive ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'
           }`
         }
       >
@@ -179,7 +173,12 @@ function MenuSectionComponent({
       {!collapsed && expanded && (
         <div className="mt-1 ml-2 space-y-1 border-l-2 border-gray-200 pl-2">
           {section.items.map((item) => (
-            <MenuItemComponent key={item.id} item={item} collapsed={collapsed} onNavigate={onNavigate} />
+            <MenuItemComponent
+              key={item.id}
+              item={item}
+              collapsed={collapsed}
+              onNavigate={onNavigate}
+            />
           ))}
         </div>
       )}
@@ -217,9 +216,9 @@ export function Sidebar({ collapsed, onToggle, onMobileClose }: SidebarProps): J
         {!collapsed && (
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full shadow-sm overflow-hidden">
-              <img 
-                src="/images/logo-icon.png" 
-                alt="Recorda" 
+              <img
+                src="/images/logo-icon.png"
+                alt="Recorda"
                 className="w-full h-full object-contain"
               />
             </div>
@@ -231,9 +230,9 @@ export function Sidebar({ collapsed, onToggle, onMobileClose }: SidebarProps): J
         )}
         {collapsed && (
           <div className="w-9 h-9 rounded-full shadow-sm overflow-hidden mx-auto">
-            <img 
-              src="/images/logo-icon.png" 
-              alt="Recorda" 
+            <img
+              src="/images/logo-icon.png"
+              alt="Recorda"
               className="w-full h-full object-contain"
             />
           </div>
@@ -257,7 +256,12 @@ export function Sidebar({ collapsed, onToggle, onMobileClose }: SidebarProps): J
 
       <nav className="flex-1 overflow-y-auto p-3 space-y-1">
         {visibleSections.map((section) => (
-          <MenuSectionComponent key={section.id} section={section} collapsed={collapsed} onNavigate={onMobileClose} />
+          <MenuSectionComponent
+            key={section.id}
+            section={section}
+            collapsed={collapsed}
+            onNavigate={onMobileClose}
+          />
         ))}
       </nav>
 
@@ -269,7 +273,7 @@ export function Sidebar({ collapsed, onToggle, onMobileClose }: SidebarProps): J
             <p className="text-xs text-gray-500 truncate">{usuario.email}</p>
           </div>
         )}
-        <button 
+        <button
           onClick={handleLogout}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-colors"
         >

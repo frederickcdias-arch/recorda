@@ -12,7 +12,9 @@ export function ResetPasswordPage(): JSX.Element {
   const [novaSenha, setNovaSenha] = useState('');
   const [confirmarSenha, setConfirmarSenha] = useState('');
   const [carregando, setCarregando] = useState(false);
-  const [mensagem, setMensagem] = useState<{ tipo: 'success' | 'error'; texto: string } | null>(null);
+  const [mensagem, setMensagem] = useState<{ tipo: 'success' | 'error'; texto: string } | null>(
+    null
+  );
   const [redefinido, setRedefinido] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
@@ -37,15 +39,21 @@ export function ResetPasswordPage(): JSX.Element {
     setCarregando(true);
 
     try {
-      const response = await api.post<{ message: string }>('/auth/reset-password', {
-        token: token.trim(),
-        novaSenha,
-      }, { skipAuth: true });
+      const response = await api.post<{ message: string }>(
+        '/auth/reset-password',
+        {
+          token: token.trim(),
+          novaSenha,
+        },
+        { skipAuth: true }
+      );
       setMensagem({ tipo: 'success', texto: response.message });
       setRedefinido(true);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message :
-        (error as { error?: string })?.error || 'Erro ao redefinir senha';
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : (error as { error?: string })?.error || 'Erro ao redefinir senha';
       setMensagem({ tipo: 'error', texto: errorMessage });
     } finally {
       setCarregando(false);
@@ -73,9 +81,7 @@ export function ResetPasswordPage(): JSX.Element {
         </div>
 
         <div className="bg-white rounded-2xl shadow-2xl p-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-2 text-center">
-            Redefinir senha
-          </h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2 text-center">Redefinir senha</h2>
           <p className="text-gray-500 text-sm text-center mb-6">
             Insira o token recebido por e-mail e defina sua nova senha.
           </p>
@@ -125,7 +131,10 @@ export function ResetPasswordPage(): JSX.Element {
               </div>
 
               <div>
-                <label htmlFor="confirmarSenha" className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="confirmarSenha"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   Confirmar nova senha
                 </label>
                 <input
@@ -152,13 +161,21 @@ export function ResetPasswordPage(): JSX.Element {
           ) : (
             <div className="text-center">
               <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                <svg
+                  className="w-8 h-8 text-blue-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 13l4 4L19 7"
+                  />
                 </svg>
               </div>
-              <p className="text-gray-600 mb-4">
-                Sua senha foi redefinida com sucesso.
-              </p>
+              <p className="text-gray-600 mb-4">Sua senha foi redefinida com sucesso.</p>
               <button
                 onClick={() => navigate('/login')}
                 className="w-full py-3 px-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 focus:ring-4 focus:ring-blue-200 transition-all"
@@ -169,10 +186,7 @@ export function ResetPasswordPage(): JSX.Element {
           )}
 
           <div className="mt-6 text-center">
-            <Link
-              to="/login"
-              className="text-blue-600 hover:text-blue-700 font-medium text-sm"
-            >
+            <Link to="/login" className="text-blue-600 hover:text-blue-700 font-medium text-sm">
               ← Voltar para o login
             </Link>
           </div>

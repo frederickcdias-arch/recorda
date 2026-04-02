@@ -39,20 +39,23 @@ const iconPositionClasses: Record<InputSize, { left: string; right: string }> = 
 };
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ 
-    label, 
-    error, 
-    hint,
-    helperText,
-    inputSize = 'md',
-    leftIcon,
-    rightIcon,
-    onRightIconClick,
-    className = '', 
-    id, 
-    disabled,
-    ...props 
-  }, ref) => {
+  (
+    {
+      label,
+      error,
+      hint,
+      helperText,
+      inputSize = 'md',
+      leftIcon,
+      rightIcon,
+      onRightIconClick,
+      className = '',
+      id,
+      disabled,
+      ...props
+    },
+    ref
+  ) => {
     const inputId = id || label?.toLowerCase().replace(/\s+/g, '-');
     const hasLeftIcon = !!leftIcon;
     const hasRightIcon = !!rightIcon;
@@ -69,10 +72,12 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         )}
         <div className="relative">
           {hasLeftIcon && (
-            <div className={`absolute ${iconPositionClasses[inputSize].left} top-1/2 -translate-y-1/2 pointer-events-none`}>
-              <Icon 
-                name={leftIcon} 
-                className={`${iconSizeClasses[inputSize]} text-[var(--color-gray-400)]`} 
+            <div
+              className={`absolute ${iconPositionClasses[inputSize].left} top-1/2 -translate-y-1/2 pointer-events-none`}
+            >
+              <Icon
+                name={leftIcon}
+                className={`${iconSizeClasses[inputSize]} text-[var(--color-gray-400)]`}
               />
             </div>
           )}
@@ -88,26 +93,28 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
               ${sizeClasses[inputSize]}
               ${hasLeftIcon ? iconPaddingClasses[inputSize].left : ''}
               ${hasRightIcon ? iconPaddingClasses[inputSize].right : ''}
-              ${error
-                ? 'border-[var(--color-error-300)] focus:border-[var(--color-error-500)] focus:ring-[3px] focus:ring-[var(--color-error-100)]'
-                : 'border-[var(--color-gray-300)] focus:border-[var(--color-primary-500)] focus:ring-[3px] focus:ring-[var(--color-primary-100)]'
+              ${
+                error
+                  ? 'border-[var(--color-error-300)] focus:border-[var(--color-error-500)] focus:ring-[3px] focus:ring-[var(--color-error-100)]'
+                  : 'border-[var(--color-gray-300)] focus:border-[var(--color-primary-500)] focus:ring-[3px] focus:ring-[var(--color-primary-100)]'
               }
-              ${disabled 
-                ? 'bg-[var(--color-gray-50)] text-[var(--color-gray-500)] cursor-not-allowed' 
-                : 'text-[var(--color-text-primary)]'
+              ${
+                disabled
+                  ? 'bg-[var(--color-gray-50)] text-[var(--color-gray-500)] cursor-not-allowed'
+                  : 'text-[var(--color-text-primary)]'
               }
               ${className}
             `}
             {...props}
           />
           {hasRightIcon && (
-            <div 
+            <div
               className={`absolute ${iconPositionClasses[inputSize].right} top-1/2 -translate-y-1/2 ${onRightIconClick ? 'cursor-pointer' : 'pointer-events-none'}`}
               onClick={onRightIconClick}
             >
-              <Icon 
-                name={rightIcon} 
-                className={`${iconSizeClasses[inputSize]} text-[var(--color-gray-400)] ${onRightIconClick ? 'hover:text-[var(--color-gray-600)]' : ''}`} 
+              <Icon
+                name={rightIcon}
+                className={`${iconSizeClasses[inputSize]} text-[var(--color-gray-400)] ${onRightIconClick ? 'hover:text-[var(--color-gray-600)]' : ''}`}
               />
             </div>
           )}

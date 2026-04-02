@@ -22,12 +22,14 @@ Mesmo que no futuro existam usuários operacionais no sistema, eles **NÃO** lan
 ### O que é um Processo
 
 Todo **PROCESSO** possui:
+
 - Um **PROTOCOLO** (número único de identificação)
 - Pode ter **VOLUMES** (subdivisões físicas quando excede páginas)
 
 ### Processo Principal vs Apenso
 
 Um processo pode ser:
+
 - **PRINCIPAL** - Processo autônomo que pode receber apensos
 - **APENSO** - Processo com protocolo próprio, mas vinculado a um principal
 
@@ -42,6 +44,7 @@ Porém, cada um mantém seu **protocolo distinto** para rastreabilidade.
 ### Como a Produção é Registrada
 
 A produção é registrada por:
+
 - **ETAPA** - Fase do fluxo de trabalho (ex: triagem, digitalização)
 - **COLABORADOR** - Quem executou o trabalho
 - **PERÍODO** - Data em que a produção foi realizada
@@ -175,12 +178,14 @@ A produção é registrada por:
 O `ProcessoPrincipal` é o agregado raiz do domínio. Todas as operações que envolvem `Volume` e `Apenso` devem passar por ele.
 
 **Invariantes:**
+
 - Sempre possui pelo menos um volume (criado automaticamente)
 - Apenas processos ativos podem receber novos volumes ou apensos
 - Não pode ser arquivado com apensos ativos
 - Data de arquivamento não pode ser anterior à data de abertura
 
 **Status:**
+
 - `ATIVO`: Processo em tramitação normal
 - `ARQUIVADO`: Processo finalizado
 - `SUSPENSO`: Processo temporariamente parado
@@ -191,6 +196,7 @@ O `ProcessoPrincipal` é o agregado raiz do domínio. Todas as operações que e
 Representa um volume físico do processo.
 
 **Invariantes:**
+
 - Nunca existe sem `ProcessoPrincipal` (criado via agregado)
 - Número deve ser inteiro positivo
 - Data de fechamento não pode ser anterior à data de abertura
@@ -201,11 +207,13 @@ Representa um volume físico do processo.
 Representa a vinculação de outro processo ao processo principal.
 
 **Invariantes:**
+
 - Sempre referencia um `ProcessoPrincipal`
 - Data de desapensamento não pode ser anterior à data de apensamento
 - Não pode ser desapensado se já estiver desapensado
 
 **Tipos:**
+
 - `APENSO`: Vinculação temporária
 - `ANEXO`: Vinculação permanente
 - `APENSAMENTO`: Junção de processos
@@ -215,6 +223,7 @@ Representa a vinculação de outro processo ao processo principal.
 Registra a produção de um colaborador em uma etapa.
 
 **Invariantes:**
+
 - Imutável após criação (não possui métodos de alteração)
 - Quantidade deve ser maior que zero
 - Etapa deve estar ativa
@@ -227,6 +236,7 @@ Registra a produção de um colaborador em uma etapa.
 Representa um funcionário que registra produção.
 
 **Invariantes:**
+
 - Não pode ser vinculado a coordenadoria inativa
 - Matrícula não pode ser vazia
 
@@ -235,6 +245,7 @@ Representa um funcionário que registra produção.
 Representa uma unidade organizacional.
 
 **Invariantes:**
+
 - Sigla não pode ser vazia
 - Sigla é normalizada para maiúsculas
 
@@ -243,6 +254,7 @@ Representa uma unidade organizacional.
 Define uma fase do fluxo de trabalho.
 
 **Invariantes:**
+
 - Unidade de medida deve ser válida
 - Ordem deve ser inteiro não negativo
 
@@ -251,6 +263,7 @@ Define uma fase do fluxo de trabalho.
 Origem dos dados de produção.
 
 **Invariantes:**
+
 - Tipo deve ser válido
 
 ### DocumentoOCR
@@ -258,24 +271,30 @@ Origem dos dados de produção.
 Documento para extração de texto via OCR.
 
 **Invariantes:**
+
 - Caminho do arquivo não pode ser vazio
 - Transições de status são controladas (PENDENTE → PROCESSANDO → CONCLUIDO/ERRO)
 
 ## Value Objects
 
 ### EntityId
+
 Identificador único baseado em UUID v4.
 
 ### DataPassada
+
 Data que não pode ser no futuro. Garante consistência temporal.
 
 ### NumeroProcesso
+
 Número do processo com validação de formato.
 
 ### Nome
+
 String não vazia com limite de caracteres.
 
 ### Quantidade
+
 Número inteiro não negativo para contagens.
 
 ## Invariantes Globais

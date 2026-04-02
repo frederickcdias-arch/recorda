@@ -11,3 +11,4 @@ uploads/
 logs/
 
 .vercel
+.claude/
