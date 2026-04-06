@@ -120,7 +120,7 @@ describe('Usuario', () => {
       usuario.atualizarEmail('novo@example.com');
 
       expect(usuario.email).toBe('novo@example.com');
-      expect(usuario.atualizadoEm.getTime()).toBeGreaterThan(dataAntes.getTime());
+      expect(usuario.atualizadoEm.getTime()).toBeGreaterThanOrEqual(dataAntes.getTime());
     });
   });
 

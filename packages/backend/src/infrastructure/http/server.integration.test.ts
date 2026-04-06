@@ -325,6 +325,26 @@ function createMockDatabase(): DatabaseConnection & {
     }
 
     if (
+      text.includes('WITH unidades_config AS') &&
+      text.includes('unidades_dedup') &&
+      text.includes('FROM repositorios')
+    ) {
+      const seen = new Map<string, { id: string; nome: string }>();
+      for (const repo of repositorios.values()) {
+        const nome = String(repo.orgao ?? '').trim();
+        if (!nome) continue;
+        const key = nome.toLowerCase();
+        if (!seen.has(key)) {
+          seen.set(key, {
+            id: `mock-${key}`,
+            nome,
+          });
+        }
+      }
+      return makeResult(Array.from(seen.values()));
+    }
+
+    if (
       text.includes(
         'SELECT id, nome, descricao, ativo, criado_em, atualizado_em\n          FROM configuracao_projetos'
       )
@@ -1890,7 +1910,9 @@ describe('HTTP server integration', () => {
 
     expect(response.statusCode).toBe(200);
     const itens = response.json().itens;
-    const cinfMatches = itens.filter((u: any) => u.nome.trim().toLowerCase() === 'cinf');
+    const cinfMatches = itens.filter(
+      (u: any) => typeof u?.nome === 'string' && u.nome.trim().toLowerCase() === 'cinf'
+    );
     expect(cinfMatches.length).toBe(1);
   });
 

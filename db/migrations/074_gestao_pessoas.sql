@@ -160,18 +160,18 @@ CREATE TABLE IF NOT EXISTS avaliacoes_desempenho (
 );
 
 -- Índices para performance
-CREATE INDEX idx_ausencias_usuario ON ausencias(usuario_id);
-CREATE INDEX idx_ausencias_data ON ausencias(data_inicio, data_fim);
-CREATE INDEX idx_ausencias_status ON ausencias(status);
-CREATE INDEX idx_banco_horas_usuario ON banco_horas(usuario_id);
-CREATE INDEX idx_banco_horas_data ON banco_horas(data);
-CREATE INDEX idx_ferias_usuario ON ferias(usuario_id);
-CREATE INDEX idx_ferias_periodo ON ferias(periodo_aquisitivo_inicio, periodo_aquisitivo_fim);
-CREATE INDEX idx_ocorrencias_usuario ON ocorrencias(usuario_id);
-CREATE INDEX idx_ocorrencias_data ON ocorrencias(data_ocorrencia);
-CREATE INDEX idx_historico_cargos_usuario ON historico_cargos(usuario_id);
-CREATE INDEX idx_avaliacoes_usuario ON avaliacoes_desempenho(usuario_id);
-CREATE INDEX idx_avaliacoes_avaliador ON avaliacoes_desempenho(avaliador_id);
+CREATE INDEX IF NOT EXISTS idx_ausencias_usuario ON ausencias(usuario_id);
+CREATE INDEX IF NOT EXISTS idx_ausencias_data ON ausencias(data_inicio, data_fim);
+CREATE INDEX IF NOT EXISTS idx_ausencias_status ON ausencias(status);
+CREATE INDEX IF NOT EXISTS idx_banco_horas_usuario ON banco_horas(usuario_id);
+CREATE INDEX IF NOT EXISTS idx_banco_horas_data ON banco_horas(data);
+CREATE INDEX IF NOT EXISTS idx_ferias_usuario ON ferias(usuario_id);
+CREATE INDEX IF NOT EXISTS idx_ferias_periodo ON ferias(periodo_aquisitivo_inicio, periodo_aquisitivo_fim);
+CREATE INDEX IF NOT EXISTS idx_ocorrencias_usuario ON ocorrencias(usuario_id);
+CREATE INDEX IF NOT EXISTS idx_ocorrencias_data ON ocorrencias(data_ocorrencia);
+CREATE INDEX IF NOT EXISTS idx_historico_cargos_usuario ON historico_cargos(usuario_id);
+CREATE INDEX IF NOT EXISTS idx_avaliacoes_usuario ON avaliacoes_desempenho(usuario_id);
+CREATE INDEX IF NOT EXISTS idx_avaliacoes_avaliador ON avaliacoes_desempenho(avaliador_id);
 
 -- Recria a funÃ§Ã£o legacy usada pelos triggers desta migration.
 -- A migration 073 pode ter removido essa funÃ§Ã£o em bancos jÃ¡ consolidados.
@@ -184,20 +184,25 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Triggers para atualizar updated_at
+DROP TRIGGER IF EXISTS update_ausencias_updated_at ON ausencias;
 CREATE TRIGGER update_ausencias_updated_at BEFORE UPDATE ON ausencias
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+  FOR EACH ROW EXECUTE FUNCTION update_timestamp();
 
+DROP TRIGGER IF EXISTS update_banco_horas_updated_at ON banco_horas;
 CREATE TRIGGER update_banco_horas_updated_at BEFORE UPDATE ON banco_horas
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+  FOR EACH ROW EXECUTE FUNCTION update_timestamp();
 
+DROP TRIGGER IF EXISTS update_ferias_updated_at ON ferias;
 CREATE TRIGGER update_ferias_updated_at BEFORE UPDATE ON ferias
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+  FOR EACH ROW EXECUTE FUNCTION update_timestamp();
 
+DROP TRIGGER IF EXISTS update_ocorrencias_updated_at ON ocorrencias;
 CREATE TRIGGER update_ocorrencias_updated_at BEFORE UPDATE ON ocorrencias
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+  FOR EACH ROW EXECUTE FUNCTION update_timestamp();
 
+DROP TRIGGER IF EXISTS update_avaliacoes_updated_at ON avaliacoes_desempenho;
 CREATE TRIGGER update_avaliacoes_updated_at BEFORE UPDATE ON avaliacoes_desempenho
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+  FOR EACH ROW EXECUTE FUNCTION update_timestamp();
 
 -- View para saldo de banco de horas por usuário
 CREATE OR REPLACE VIEW saldo_banco_horas AS

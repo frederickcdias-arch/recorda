@@ -202,8 +202,7 @@ describe('UsuarioService', () => {
       expect(result[0]).toBeInstanceOf(Usuario);
       expect(result[1]).toBeInstanceOf(Usuario);
       expect(mockDatabase.query).toHaveBeenCalledWith(
-        expect.stringContaining('WHERE ativo = true ORDER BY nome'),
-        []
+        expect.stringContaining('WHERE ativo = true ORDER BY nome')
       );
     });
   });

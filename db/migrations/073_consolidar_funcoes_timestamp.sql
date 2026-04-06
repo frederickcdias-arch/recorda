@@ -53,9 +53,8 @@ CREATE TRIGGER update_kb_leis_normas_timestamp
   BEFORE UPDATE ON kb_leis_normas
   FOR EACH ROW EXECUTE FUNCTION update_timestamp();
 
--- Now drop the duplicate functions (triggers no longer reference them)
-DROP FUNCTION IF EXISTS update_updated_at_column();
-DROP FUNCTION IF EXISTS update_atualizado_em();
+-- Keep the legacy names available because later migrations still reference them
+-- during bootstrap from a clean database.
 
 INSERT INTO schema_migrations (version) VALUES ('073_consolidar_funcoes_timestamp')
   ON CONFLICT (version) DO NOTHING;
