@@ -173,6 +173,16 @@ CREATE INDEX idx_historico_cargos_usuario ON historico_cargos(usuario_id);
 CREATE INDEX idx_avaliacoes_usuario ON avaliacoes_desempenho(usuario_id);
 CREATE INDEX idx_avaliacoes_avaliador ON avaliacoes_desempenho(avaliador_id);
 
+-- Recria a funÃ§Ã£o legacy usada pelos triggers desta migration.
+-- A migration 073 pode ter removido essa funÃ§Ã£o em bancos jÃ¡ consolidados.
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.atualizado_em = CURRENT_TIMESTAMP;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
 -- Triggers para atualizar updated_at
 CREATE TRIGGER update_ausencias_updated_at BEFORE UPDATE ON ausencias
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
@@ -224,3 +234,12 @@ COMMENT ON TABLE ferias IS 'Gestão de férias dos colaboradores';
 COMMENT ON TABLE ocorrencias IS 'Registro de advertências, suspensões e elogios';
 COMMENT ON TABLE historico_cargos IS 'Histórico de mudanças de cargo e salário';
 COMMENT ON TABLE avaliacoes_desempenho IS 'Avaliações de desempenho dos colaboradores';
+-- Recria a funÃ§Ã£o legacy usada pelos triggers desta migration.
+-- A migration 073 pode ter removido essa funÃ§Ã£o em bancos jÃ¡ consolidados.
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.atualizado_em = CURRENT_TIMESTAMP;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
