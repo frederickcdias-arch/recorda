@@ -172,3 +172,5 @@ npm run dev
 - **Linguagem**: TypeScript (strict mode)
 - **Linting**: ESLint + Prettier
 - **Git Hooks**: Husky
+
+<!-- redeploy trigger -->
