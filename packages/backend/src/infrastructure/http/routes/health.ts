@@ -30,16 +30,6 @@ export const healthRoutes: FastifyPluginAsync = async (server: FastifyInstance):
               checks: { type: 'object', properties: { database: { type: 'boolean' } } },
             },
           },
-          503: {
-            type: 'object',
-            properties: {
-              status: { type: 'string' },
-              timestamp: { type: 'string' },
-              uptime: { type: 'number' },
-              version: { type: 'string' },
-              checks: { type: 'object', properties: { database: { type: 'boolean' } } },
-            },
-          },
         },
       },
     },
@@ -56,8 +46,9 @@ export const healthRoutes: FastifyPluginAsync = async (server: FastifyInstance):
         },
       };
 
-      const statusCode = databaseHealthy ? 200 : 503;
-      return reply.status(statusCode).send(response);
+      // Keep the deploy platform liveness probe independent from transient
+      // database connectivity issues. Dependency status remains in the payload.
+      return reply.status(200).send(response);
     }
   );
 

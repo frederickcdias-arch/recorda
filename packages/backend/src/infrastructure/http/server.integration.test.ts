@@ -2386,6 +2386,19 @@ describe('HTTP server integration', () => {
     expect(body).toHaveProperty('timestamp');
   });
 
+  it('keeps liveness healthy when database check is degraded', async () => {
+    const healthCheckMock = database.healthCheck as Mock;
+    healthCheckMock.mockResolvedValueOnce(false);
+
+    const response = await server.inject({ method: 'GET', url: '/health' });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      status: 'degraded',
+      checks: { database: false },
+    });
+  });
+
   it('returns system metrics', async () => {
     const response = await server.inject({ method: 'GET', url: '/metrics' });
     expect(response.statusCode).toBe(200);
