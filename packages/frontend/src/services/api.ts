@@ -75,7 +75,7 @@ class ApiService {
     });
 
     // Tratar erros de autenticação
-    if (response.status === 401) {
+    if (response.status === 401 && !skipAuth) {
       // Token expirado ou inválido - redirecionar para login
       clearTokens();
       window.location.href = '/login';

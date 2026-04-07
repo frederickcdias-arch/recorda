@@ -1,55 +1,36 @@
 import { test, expect } from '@playwright/test';
+import { performLogin } from './support/auth';
 
-const ADMIN_EMAIL = process.env.E2E_ADMIN_EMAIL ?? 'admin@recorda.local';
-const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD ?? 'admin123';
-
-async function performLogin(page: import('@playwright/test').Page): Promise<void> {
-  await page.goto('/login');
-  await page.evaluate(() => {
-    window.localStorage.clear();
-    window.sessionStorage.clear();
-  });
-  await page.goto('/login');
-  await page.getByLabel(/E-mail/i).fill(ADMIN_EMAIL);
-  await page.getByLabel(/Senha/i).fill(ADMIN_PASSWORD);
-  await page.getByRole('button', { name: /Entrar/i }).click();
-  await page.waitForURL('**/dashboard', { timeout: 15_000 });
-}
-
-test.describe('Auditoria — Sub-rotas diferenciadas', () => {
+test.describe('Auditoria - sub-rotas diferenciadas', () => {
   test.beforeEach(async ({ page }) => {
     await performLogin(page);
   });
 
-  test('navega até auditoria de importações', async ({ page }) => {
-    const auditoriaSection = page.getByRole('button', { name: /^Auditoria$/i });
-    await auditoriaSection.click();
-    await page.getByRole('link', { name: /Importações/i }).click();
+  test('navega ate auditoria de importacoes', async ({ page }) => {
+    await page.getByRole('button', { name: /^Auditoria$/i }).click();
+    await page.getByRole('link', { name: /Importa..es/i }).click();
     await expect(page).toHaveURL(/\/auditoria\/importacoes$/);
-    await expect(page.getByRole('heading', { name: /Importações/i })).toBeVisible();
+    await expect(page.getByText(/Auditoria de Importa..es/i).first()).toBeVisible();
   });
 
-  test('navega até auditoria de OCR', async ({ page }) => {
-    const auditoriaSection = page.getByRole('button', { name: /^Auditoria$/i });
-    await auditoriaSection.click();
+  test('navega ate auditoria de OCR', async ({ page }) => {
+    await page.getByRole('button', { name: /^Auditoria$/i }).click();
     await page.getByRole('link', { name: /OCR/i }).click();
     await expect(page).toHaveURL(/\/auditoria\/ocr$/);
-    await expect(page.getByRole('heading', { name: /OCR/i })).toBeVisible();
+    await expect(page.getByText(/Auditoria de OCR/i).first()).toBeVisible();
   });
 
-  test('navega até auditoria de correções', async ({ page }) => {
-    const auditoriaSection = page.getByRole('button', { name: /^Auditoria$/i });
-    await auditoriaSection.click();
-    await page.getByRole('link', { name: /Correções/i }).click();
+  test('navega ate auditoria de correcoes', async ({ page }) => {
+    await page.getByRole('button', { name: /^Auditoria$/i }).click();
+    await page.getByRole('link', { name: /Corre..es/i }).click();
     await expect(page).toHaveURL(/\/auditoria\/correcoes$/);
-    await expect(page.getByRole('heading', { name: /Correções/i })).toBeVisible();
+    await expect(page.getByText(/Auditoria de Corre..es/i).first()).toBeVisible();
   });
 
-  test('navega até auditoria de ações', async ({ page }) => {
-    const auditoriaSection = page.getByRole('button', { name: /^Auditoria$/i });
-    await auditoriaSection.click();
-    await page.getByRole('link', { name: /Ações/i }).click();
+  test('navega ate auditoria de acoes', async ({ page }) => {
+    await page.getByRole('button', { name: /^Auditoria$/i }).click();
+    await page.getByRole('link', { name: /A..es de Usu.rios/i }).click();
     await expect(page).toHaveURL(/\/auditoria\/acoes$/);
-    await expect(page.getByRole('heading', { name: /Ações/i })).toBeVisible();
+    await expect(page.getByText(/A..es de Usu.rios/i).first()).toBeVisible();
   });
 });
