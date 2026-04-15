@@ -2,7 +2,7 @@
  * Tipos relacionados a usuários
  */
 
-export type PerfilUsuario = 'operador' | 'administrador';
+export type PerfilUsuario = 'colaborador' | 'operador' | 'administrador';
 
 export type PermissaoTipo =
   | 'visualizar_dashboard'

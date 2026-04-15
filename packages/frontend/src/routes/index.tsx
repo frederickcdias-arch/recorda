@@ -60,6 +60,12 @@ const AuditoriaPage = lazy(() =>
 const NotFoundPage = lazy(() =>
   import('../pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage }))
 );
+const LancarProducaoPage = lazy(() =>
+  import('../pages/colaborador/LancarProducaoPage').then((m) => ({ default: m.LancarProducaoPage }))
+);
+const MeuHistoricoPage = lazy(() =>
+  import('../pages/colaborador/MeuHistoricoPage').then((m) => ({ default: m.MeuHistoricoPage }))
+);
 
 function PageSuspense({ children }: { children: React.ReactNode }): JSX.Element {
   return (
@@ -135,6 +141,26 @@ export const router = createBrowserRouter([
           <PageSuspense>
             <ImportarProducaoPage />
           </PageSuspense>
+        ),
+      },
+      {
+        path: 'minha-producao/lancar',
+        element: (
+          <RoleRoute allowedProfiles={['colaborador']}>
+            <PageSuspense>
+              <LancarProducaoPage />
+            </PageSuspense>
+          </RoleRoute>
+        ),
+      },
+      {
+        path: 'minha-producao/historico',
+        element: (
+          <RoleRoute allowedProfiles={['colaborador']}>
+            <PageSuspense>
+              <MeuHistoricoPage />
+            </PageSuspense>
+          </RoleRoute>
         ),
       },
       {

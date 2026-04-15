@@ -50,6 +50,12 @@ export function ProducaoPage(): JSX.Element {
   const [busca, setBusca] = useState('');
   const [buscaDebounced, setBuscaDebounced] = useState('');
 
+  // Ordenação
+  type SortColumn = 'data' | 'colaborador' | 'repositorio' | 'funcao' | 'tipo' | 'quantidade' | 'coordenadoria' | 'origem';
+  type SortDirection = 'asc' | 'desc';
+  const [sortColumn, setSortColumn] = useState<SortColumn | null>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+
   // Debounce busca
   useEffect(() => {
     const timer = setTimeout(() => setBuscaDebounced(busca), 400);
@@ -148,6 +154,103 @@ export function ProducaoPage(): JSX.Element {
     if (!dados) return '0';
     return toSafeNumber(dados.total).toLocaleString('pt-BR');
   }, [dados]);
+
+  // Função de ordenação
+  const handleSort = (column: SortColumn) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  // Dados ordenados
+  const registrosOrdenados = useMemo(() => {
+    if (!dados?.registros || !sortColumn) return dados?.registros ?? [];
+
+    const sorted = [...dados.registros].sort((a, b) => {
+      let aVal: string | number;
+      let bVal: string | number;
+
+      switch (sortColumn) {
+        case 'data':
+          aVal = new Date(a.data_producao).getTime();
+          bVal = new Date(b.data_producao).getTime();
+          break;
+        case 'colaborador':
+          aVal = a.colaborador_nome.toLowerCase();
+          bVal = b.colaborador_nome.toLowerCase();
+          break;
+        case 'repositorio':
+          aVal = a.repositorio_ged.toLowerCase();
+          bVal = b.repositorio_ged.toLowerCase();
+          break;
+        case 'funcao':
+          aVal = (a.funcao || ETAPA_LABELS[a.etapa] || a.etapa).toLowerCase();
+          bVal = (b.funcao || ETAPA_LABELS[b.etapa] || b.etapa).toLowerCase();
+          break;
+        case 'tipo':
+          aVal = (a.tipo || '').toLowerCase();
+          bVal = (b.tipo || '').toLowerCase();
+          break;
+        case 'quantidade':
+          aVal = toSafeNumber(a.quantidade);
+          bVal = toSafeNumber(b.quantidade);
+          break;
+        case 'coordenadoria':
+          aVal = (a.coordenadoria_sigla || '').toLowerCase();
+          bVal = (b.coordenadoria_sigla || '').toLowerCase();
+          break;
+        case 'origem':
+          aVal = a.origem.toLowerCase();
+          bVal = b.origem.toLowerCase();
+          break;
+        default:
+          return 0;
+      }
+
+      if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    return sorted;
+  }, [dados?.registros, sortColumn, sortDirection]);
+
+  // Componente de cabeçalho ordenável
+  const SortableHeader = ({
+    column,
+    children,
+    align = 'left',
+  }: {
+    column: SortColumn;
+    children: React.ReactNode;
+    align?: 'left' | 'right' | 'center';
+  }) => {
+    const isActive = sortColumn === column;
+    const alignClass = align === 'right' ? 'text-right' : align === 'center' ? 'text-center' : 'text-left';
+
+    return (
+      <th
+        className={`px-3 py-2.5 ${alignClass} text-xs font-semibold text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none transition-colors`}
+        onClick={() => handleSort(column)}
+      >
+        <div className={`flex items-center gap-1 ${align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : 'justify-start'}`}>
+          <span>{children}</span>
+          <span className="inline-flex flex-col">
+            {isActive && sortDirection === 'asc' && (
+              <Icon name="chevron-up" className="w-3 h-3 text-blue-600" />
+            )}
+            {isActive && sortDirection === 'desc' && (
+              <Icon name="chevron-down" className="w-3 h-3 text-blue-600" />
+            )}
+            {!isActive && <Icon name="chevron-up" className="w-3 h-3 text-gray-300" />}
+          </span>
+        </div>
+      </th>
+    );
+  };
 
   const erroComAcao = erro
     ? { ...erro, action: { label: 'Tentar novamente', onClick: () => void invalidate() } }
@@ -335,30 +438,14 @@ export function ProducaoPage(): JSX.Element {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase">
-                    Data
-                  </th>
-                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase">
-                    Colaborador
-                  </th>
-                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase">
-                    Repositório
-                  </th>
-                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase">
-                    Função
-                  </th>
-                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase">
-                    Unidade
-                  </th>
-                  <th className="px-3 py-2.5 text-right text-xs font-semibold text-gray-500 uppercase">
-                    Qtd
-                  </th>
-                  <th className="px-3 py-2.5 text-left text-xs font-semibold text-gray-500 uppercase">
-                    Coord.
-                  </th>
-                  <th className="px-3 py-2.5 text-center text-xs font-semibold text-gray-500 uppercase">
-                    Origem
-                  </th>
+                  <SortableHeader column="data">Data</SortableHeader>
+                  <SortableHeader column="colaborador">Colaborador</SortableHeader>
+                  <SortableHeader column="repositorio">Repositório</SortableHeader>
+                  <SortableHeader column="funcao">Função</SortableHeader>
+                  <SortableHeader column="tipo">Unidade</SortableHeader>
+                  <SortableHeader column="quantidade" align="right">Qtd</SortableHeader>
+                  <SortableHeader column="coordenadoria">Coord.</SortableHeader>
+                  <SortableHeader column="origem" align="center">Origem</SortableHeader>
                   {isAdmin && (
                     <th className="px-3 py-2.5 text-center text-xs font-semibold text-gray-500 uppercase">
                       Ações
@@ -377,7 +464,7 @@ export function ProducaoPage(): JSX.Element {
                     </td>
                   </tr>
                 ) : (
-                  dados.registros.map((reg) => (
+                  registrosOrdenados.map((reg) => (
                     <tr key={reg.id} className="hover:bg-gray-50">
                       <td className="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">
                         {new Date(reg.data_producao).toLocaleDateString('pt-BR')}

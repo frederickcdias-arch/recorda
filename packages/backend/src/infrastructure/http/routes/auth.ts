@@ -14,7 +14,7 @@ interface RegisterBody {
   nome: string;
   email: string;
   senha: string;
-  perfil?: 'operador' | 'administrador';
+  perfil?: 'colaborador' | 'operador' | 'administrador';
   coordenadoriaId?: string;
 }
 
@@ -374,8 +374,8 @@ export const authRoutes = fp(async (server: FastifyInstance): Promise<void> => {
         return reply.status(400).send({ error: 'Senha deve ter no mínimo 8 caracteres' });
       }
 
-      if (!['operador', 'administrador'].includes(perfil)) {
-        return reply.status(400).send({ error: 'Perfil inválido. Use operador ou administrador.' });
+      if (!['colaborador', 'operador', 'administrador'].includes(perfil)) {
+        return reply.status(400).send({ error: 'Perfil inválido. Use colaborador, operador ou administrador.' });
       }
 
       try {

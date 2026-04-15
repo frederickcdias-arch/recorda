@@ -212,7 +212,7 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
             JOIN usuarios u ON u.id = p.usuario_id
             JOIN repositorios r ON r.id_repositorio_recorda = p.repositorio_id
             WHERE (p.data_producao AT TIME ZONE 'America/Cuiaba')::date BETWEEN $1::date AND $2::date
-              AND COALESCE(p.marcadores->>'origem', '') = 'LEGADO'
+              AND COALESCE(p.marcadores->>'origem', '') IN ('LEGADO', 'SISTEMA')
               AND p.etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')
             ORDER BY p.data_producao DESC, u.nome
           `,
@@ -266,7 +266,7 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
             JOIN repositorios r ON r.id_repositorio_recorda = p.repositorio_id
             LEFT JOIN coordenadorias co ON co.id = u.coordenadoria_id
             WHERE (p.data_producao AT TIME ZONE 'America/Cuiaba')::date BETWEEN $1::date AND $2::date
-              AND COALESCE(p.marcadores->>'origem', '') = 'LEGADO'
+              AND COALESCE(p.marcadores->>'origem', '') IN ('LEGADO', 'SISTEMA')
               AND p.etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')
             ORDER BY p.data_producao DESC, colaborador
           `,
@@ -367,7 +367,7 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
             repositorio?: string;
             dataInicio?: string;
             dataFim?: string;
-            origem?: 'legado' | 'fluxo' | '';
+            origem?: 'legado' | 'sistema' | 'fluxo' | '';
             busca?: string;
           };
 
@@ -375,7 +375,7 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
           const limite = Math.min(Math.max(Number(query.limite ?? 25), 1), 100);
           const offset = (pagina - 1) * limite;
 
-          let where = `WHERE COALESCE(p.marcadores->>'origem', '') = 'LEGADO'
+          let where = `WHERE COALESCE(p.marcadores->>'origem', '') IN ('LEGADO', 'SISTEMA')
           AND p.etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')`;
           const params: (string | number)[] = [];
           let p = 1;
@@ -398,9 +398,11 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
           }
           if (query.origem === 'legado') {
             where += ` AND COALESCE(p.marcadores->>'origem', '') = 'LEGADO'`;
+          } else if (query.origem === 'sistema') {
+            where += ` AND COALESCE(p.marcadores->>'origem', '') = 'SISTEMA'`;
           } else if (query.origem === 'fluxo') {
-            // Produção desta tela é apenas importada; origem fluxo deve retornar vazio.
-            where += ` AND 1 = 0`;
+            // Produção de fluxo operacional normal (sem origem marcada ou outra)
+            where += ` AND COALESCE(p.marcadores->>'origem', '') NOT IN ('LEGADO', 'SISTEMA')`;
           }
           if (query.repositorio) {
             where += ` AND r.id_repositorio_ged ILIKE $${p++}`;
@@ -450,13 +452,13 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
           );
 
           // Buscar lista de colaboradores (usar nome da planilha, normalizado com INITCAP para unificar maiúsculas/minúsculas)
-          const colaboradoresResult = await server.database.query<{ id: string; nome: string }>(
+          const colaboradoresResult = await server.database.query<{ nome: string; id: string }>(
             `SELECT DISTINCT
              INITCAP(LOWER(COALESCE(NULLIF(p.marcadores->>'colaborador_nome', ''), u.nome))) as nome,
              INITCAP(LOWER(COALESCE(NULLIF(p.marcadores->>'colaborador_nome', ''), u.nome))) as id
            FROM producao_repositorio p
            JOIN usuarios u ON u.id = p.usuario_id
-           WHERE COALESCE(p.marcadores->>'origem', '') = 'LEGADO'
+           WHERE COALESCE(p.marcadores->>'origem', '') IN ('LEGADO', 'SISTEMA')
              AND p.etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')
            ORDER BY nome`
           );
@@ -464,7 +466,7 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
           const etapasResult = await server.database.query<{ etapa: string }>(
             `SELECT DISTINCT etapa::text as etapa
            FROM producao_repositorio
-           WHERE COALESCE(marcadores->>'origem', '') = 'LEGADO'
+           WHERE COALESCE(marcadores->>'origem', '') IN ('LEGADO', 'SISTEMA')
              AND etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')
            ORDER BY etapa`
           );
@@ -625,7 +627,7 @@ async function gerarRelatorioCompleto(
     LEFT JOIN coordenadorias co ON co.id = u.coordenadoria_id
     WHERE (p.data_producao AT TIME ZONE 'America/Cuiaba')::date >= $1::date
       AND (p.data_producao AT TIME ZONE 'America/Cuiaba')::date <= $2::date
-      AND COALESCE(p.marcadores->>'origem', '') = 'LEGADO'
+      AND COALESCE(p.marcadores->>'origem', '') IN ('LEGADO', 'SISTEMA')
       AND p.etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')
       ${coordenadoriaId ? 'AND u.coordenadoria_id = $3' : ''}
     ORDER BY p.data_producao

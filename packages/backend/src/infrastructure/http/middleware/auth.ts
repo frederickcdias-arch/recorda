@@ -1,6 +1,6 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
 
-export type PerfilUsuario = 'operador' | 'administrador';
+export type PerfilUsuario = 'colaborador' | 'operador' | 'administrador';
 
 /**
  * Middleware de autenticação - verifica se o token JWT é válido e
@@ -69,11 +69,13 @@ export const PERMISSIONS = {
   VIEW_DASHBOARD: [] as PerfilUsuario[],
   VIEW_CONHECIMENTO: [] as PerfilUsuario[],
 
+  // Colaborador, operador ou superior
+  REGISTER_PRODUCAO: ['colaborador', 'operador', 'administrador'] as PerfilUsuario[],
+  VIEW_OWN_HISTORY: ['colaborador', 'operador', 'administrador'] as PerfilUsuario[],
+
   // Operador ou superior
   CAPTURE_DOCUMENTS: ['operador', 'administrador'] as PerfilUsuario[],
   VIEW_PROCESSOS: ['operador', 'administrador'] as PerfilUsuario[],
-
-  // Operador ou superior
   IMPORT_PRODUCAO: ['operador', 'administrador'] as PerfilUsuario[],
   GENERATE_REPORTS: ['operador', 'administrador'] as PerfilUsuario[],
   VIEW_AUDITORIA: ['operador', 'administrador'] as PerfilUsuario[],

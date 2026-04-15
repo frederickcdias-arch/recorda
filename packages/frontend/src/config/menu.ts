@@ -13,6 +13,7 @@ export const menuSections: MenuSection[] = [
     label: 'Produção',
     icon: 'bar-chart',
     basePath: '/producao',
+    allowedProfiles: ['operador', 'administrador'],
     items: [
       { id: 'producao-painel', label: 'Painel', icon: 'bar-chart', path: '/producao' },
       {
@@ -24,10 +25,32 @@ export const menuSections: MenuSection[] = [
     ],
   },
   {
+    id: 'minha-producao',
+    label: 'Minha Produção',
+    icon: 'clipboard',
+    basePath: '/minha-producao',
+    allowedProfiles: ['colaborador'],
+    items: [
+      {
+        id: 'lancar-producao',
+        label: 'Lançar Produção',
+        icon: 'plus-circle',
+        path: '/minha-producao/lancar',
+      },
+      {
+        id: 'meu-historico',
+        label: 'Meu Histórico',
+        icon: 'history',
+        path: '/minha-producao/historico',
+      },
+    ],
+  },
+  {
     id: 'operacao',
     label: 'Operação',
     icon: 'clipboard',
     basePath: '/operacao',
+    allowedProfiles: ['operador', 'administrador'],
     items: [
       {
         id: 'operacao-recebimento',
@@ -49,6 +72,7 @@ export const menuSections: MenuSection[] = [
     label: 'Relatórios',
     icon: 'file-text',
     basePath: '/relatorios',
+    allowedProfiles: ['operador', 'administrador'],
     items: [
       {
         id: 'gerenciais',

@@ -2,7 +2,12 @@
 import { Icon } from '../components/ui/Icon';
 import { PageState } from '../components/ui';
 import { SkeletonCards } from '../components/ui/Skeleton';
+import { Card } from '../components/ui/Card';
+import { Button } from '../components/ui/Button';
 import { useDashboard, type DashboardData } from '../hooks/useQueries';
+import { useAuth } from '../contexts/AuthContext';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '../services/api';
 
 interface StatCardProps {
   title: string;
@@ -30,6 +35,166 @@ function StatCard({ title, value, icon, subtitle, onClick }: StatCardProps): JSX
         </div>
       </div>
     </button>
+  );
+}
+
+interface ProducaoItem {
+  id: string;
+  data_producao: string;
+  etapa: string;
+  quantidade: number;
+  id_repositorio_ged: string;
+}
+
+function DashboardColaborador(): JSX.Element {
+  const navigate = useNavigate();
+  const { usuario } = useAuth();
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['meu-historico'],
+    queryFn: () => api.get<{ producoes: ProducaoItem[]; total: number }>('/producao/meu-historico'),
+  });
+
+  const producoes = data?.producoes ?? [];
+  const producoesRecentes = producoes.slice(0, 10);
+  const totalProducoes = producoes.length;
+  const totalQuantidade = producoes.reduce((acc, p) => acc + p.quantidade, 0);
+
+  // Calcular produções dos últimos 7 dias
+  const seteDiasAtras = new Date();
+  seteDiasAtras.setDate(seteDiasAtras.getDate() - 7);
+  const producoesUltimos7Dias = producoes.filter(
+    (p) => new Date(p.data_producao) >= seteDiasAtras
+  ).length;
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <header>
+          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+          <p className="text-gray-500 mt-1">Bem-vindo, {usuario?.nome}</p>
+        </header>
+        <SkeletonCards count={3} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <header>
+        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+        <p className="text-gray-500 mt-1">Bem-vindo, {usuario?.nome}</p>
+      </header>
+
+      {/* Estatísticas Pessoais */}
+      <section>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Minhas Estatísticas</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <StatCard
+            title="Total de Registros"
+            value={totalProducoes.toLocaleString('pt-BR')}
+            icon="clipboard"
+          />
+          <StatCard
+            title="Quantidade Total"
+            value={totalQuantidade.toLocaleString('pt-BR')}
+            icon="bar-chart"
+          />
+          <StatCard
+            title="Últimos 7 Dias"
+            value={producoesUltimos7Dias.toLocaleString('pt-BR')}
+            icon="calendar"
+            subtitle="registros"
+          />
+        </div>
+      </section>
+
+      {/* Ação Rápida */}
+      <section>
+        <Card>
+          <div className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Lançar Nova Produção</h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  Registre sua produção do dia de forma rápida
+                </p>
+              </div>
+              <Button variant="primary" onClick={() => navigate('/minha-producao/lancar')}>
+                <Icon name="plus-circle" className="w-4 h-4 mr-2" />
+                Lançar Agora
+              </Button>
+            </div>
+          </div>
+        </Card>
+      </section>
+
+      {/* Histórico Recente */}
+      <section>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-900">Histórico Recente</h2>
+          <button
+            onClick={() => navigate('/minha-producao/historico')}
+            className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+          >
+            Ver tudo →
+          </button>
+        </div>
+
+        <Card>
+          {producoesRecentes.length === 0 ? (
+            <div className="p-12 text-center">
+              <Icon name="inbox" className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+              <p className="text-gray-500 mb-4">Nenhuma produção registrada ainda</p>
+              <Button variant="primary" onClick={() => navigate('/minha-producao/lancar')}>
+                Lançar Primeira Produção
+              </Button>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      Data
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      Repositório
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      Etapa
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                      Quantidade
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {producoesRecentes.map((p) => (
+                    <tr key={p.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 text-sm text-gray-900">
+                        {new Date(p.data_producao).toLocaleDateString('pt-BR')}
+                      </td>
+                      <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                        {p.id_repositorio_ged}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">
+                          {p.etapa}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-right font-medium text-gray-900">
+                        {p.quantidade}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
+      </section>
+    </div>
   );
 }
 
@@ -172,7 +337,13 @@ function DashboardContent({ data }: { data: DashboardData }): JSX.Element {
 }
 
 export function DashboardPage(): JSX.Element {
+  const { usuario } = useAuth();
   const { data, isLoading, error, refetch } = useDashboard();
+
+  // Se o usuário for colaborador, mostrar dashboard personalizado
+  if (usuario?.perfil === 'colaborador') {
+    return <DashboardColaborador />;
+  }
 
   const errorObj = error
     ? {

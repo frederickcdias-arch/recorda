@@ -1,5 +1,9 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { authorize } from '../middleware/auth.js';
+import { getCurrentUser } from './operacional-helpers.js';
+import { validateBody } from '../middleware/validate.js';
+import { lancarProducaoColaboradorSchema } from '../schemas/producao.js';
+import type { EtapaFluxo, StatusRepositorio } from '@recorda/shared';
 
 export function createMetasRoutes(): FastifyPluginAsync {
   return async (server: FastifyInstance): Promise<void> => {
@@ -12,7 +16,7 @@ export function createMetasRoutes(): FastifyPluginAsync {
           summary: 'Listar metas de produção por etapa',
           security: [{ bearerAuth: [] }],
         },
-        preHandler: [server.authenticate, authorize('operador', 'administrador')],
+        preHandler: [server.authenticate, authorize('colaborador', 'operador', 'administrador')],
       },
       async (_request, reply) => {
         try {
@@ -92,7 +96,7 @@ export function createMetasRoutes(): FastifyPluginAsync {
           },
           response: { 500: { type: 'object', properties: { error: { type: 'string' } } } },
         },
-        preHandler: [server.authenticate, authorize('operador', 'administrador')],
+        preHandler: [server.authenticate, authorize('colaborador', 'operador', 'administrador')],
       },
       async (request, reply) => {
         try {
@@ -154,7 +158,7 @@ export function createMetasRoutes(): FastifyPluginAsync {
           summary: 'Listar templates de mapeamento de importação',
           security: [{ bearerAuth: [] }],
         },
-        preHandler: [server.authenticate, authorize('operador', 'administrador')],
+        preHandler: [server.authenticate, authorize('colaborador', 'operador', 'administrador')],
       },
       async (_request, reply) => {
         try {
@@ -207,6 +211,383 @@ export function createMetasRoutes(): FastifyPluginAsync {
           return reply.status(201).send(result.rows[0]);
         } catch (error) {
           const message = error instanceof Error ? error.message : 'Erro ao criar mapeamento';
+          return reply.status(500).send({ error: message });
+        }
+      }
+    );
+
+    // GET /producao/meu-historico - Histórico individual do colaborador logado
+    server.get(
+      '/producao/meu-historico',
+      {
+        schema: {
+          tags: ['metas'],
+          summary: 'Visualizar próprio histórico de produção (colaborador)',
+          security: [{ bearerAuth: [] }],
+          querystring: {
+            type: 'object',
+            properties: {
+              dataInicio: { type: 'string', format: 'date' },
+              dataFim: { type: 'string', format: 'date' },
+              etapa: { type: 'string' },
+              limite: { type: 'number', default: 50 },
+              pagina: { type: 'number', default: 1 },
+            },
+          },
+        },
+        preHandler: [server.authenticate, authorize('colaborador', 'operador', 'administrador')],
+      },
+      async (request, reply) => {
+        try {
+          const user = getCurrentUser(request);
+          const { dataInicio, dataFim, etapa, limite = 50, pagina = 1 } = request.query as {
+            dataInicio?: string;
+            dataFim?: string;
+            etapa?: string;
+            limite?: number;
+            pagina?: number;
+          };
+
+          const offset = (Number(pagina) - 1) * Number(limite);
+          const conditions: string[] = ['pr.usuario_id = $1'];
+          const params: unknown[] = [user.id];
+          let idx = 2;
+
+          if (dataInicio) {
+            conditions.push(`pr.data_producao >= $${idx}`);
+            params.push(dataInicio);
+            idx++;
+          }
+
+          if (dataFim) {
+            conditions.push(`pr.data_producao <= $${idx}`);
+            params.push(dataFim);
+            idx++;
+          }
+
+          if (etapa) {
+            conditions.push(`pr.etapa = $${idx}`);
+            params.push(etapa);
+            idx++;
+          }
+
+          const where = conditions.join(' AND ');
+
+          // Count total
+          const countResult = await server.database.query<{ count: string }>(
+            `SELECT COUNT(*) as count FROM producao_repositorio pr WHERE ${where}`,
+            params
+          );
+          const total = Number(countResult.rows[0]?.count ?? 0);
+
+          // Get paginated data with repository info
+          params.push(Number(limite), offset);
+          const result = await server.database.query(
+            `SELECT 
+               pr.id,
+               pr.etapa,
+               pr.quantidade,
+               pr.data_producao,
+               pr.marcadores,
+               r.id_repositorio_ged,
+               r.orgao,
+               r.projeto
+             FROM producao_repositorio pr
+             JOIN repositorios r ON r.id_repositorio_recorda = pr.repositorio_id
+             WHERE ${where}
+             ORDER BY pr.data_producao DESC
+             LIMIT $${idx} OFFSET $${idx + 1}`,
+            params
+          );
+
+          return reply.send({
+            producoes: result.rows,
+            total,
+            pagina: Number(pagina),
+            totalPaginas: Math.ceil(total / Number(limite)),
+          });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Erro ao buscar histórico';
+          return reply.status(500).send({ error: message });
+        }
+      }
+    );
+
+    // PATCH /producao/:id/vincular-usuario - Vincular produção a usuário (admin)
+    server.patch(
+      '/producao/:id/vincular-usuario',
+      {
+        schema: {
+          tags: ['metas'],
+          summary: 'Vincular/reatribuir registro de produção a outro usuário (admin)',
+          security: [{ bearerAuth: [] }],
+          params: {
+            type: 'object',
+            properties: { id: { type: 'string' } },
+            required: ['id'],
+          },
+          body: {
+            type: 'object',
+            required: ['usuarioId'],
+            properties: {
+              usuarioId: { type: 'string', format: 'uuid' },
+            },
+          },
+        },
+        preHandler: [server.authenticate, authorize('administrador')],
+      },
+      async (request, reply) => {
+        try {
+          const { id } = request.params as { id: string };
+          const { usuarioId } = request.body as { usuarioId: string };
+
+          // Verificar se o usuário de destino existe e está ativo
+          const userCheck = await server.database.query<{ id: string }>(
+            `SELECT id FROM usuarios WHERE id = $1 AND ativo = TRUE`,
+            [usuarioId]
+          );
+
+          if (userCheck.rows.length === 0) {
+            return reply.status(404).send({ error: 'Usuário de destino não encontrado ou inativo' });
+          }
+
+          // Atualizar a produção
+          const result = await server.database.query(
+            `UPDATE producao_repositorio 
+             SET usuario_id = $1 
+             WHERE id = $2 
+             RETURNING *`,
+            [usuarioId, id]
+          );
+
+          if (result.rows.length === 0) {
+            return reply.status(404).send({ error: 'Registro de produção não encontrado' });
+          }
+
+          return reply.send({
+            message: 'Produção vinculada com sucesso',
+            producao: result.rows[0],
+          });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Erro ao vincular produção';
+          return reply.status(500).send({ error: message });
+        }
+      }
+    );
+
+    // POST /producao/lancar-direto - Lançamento direto de produção por colaboradores
+    server.post(
+      '/producao/lancar-direto',
+      {
+        schema: {
+          tags: ['producao'],
+          summary: 'Lançar produção diretamente (colaboradores)',
+          security: [{ bearerAuth: [] }],
+        },
+        preHandler: [
+          server.authenticate,
+          authorize('colaborador', 'operador', 'administrador'),
+          validateBody(lancarProducaoColaboradorSchema),
+        ],
+      },
+      async (request, reply) => {
+        try {
+          const user = getCurrentUser(request);
+          const body = request.body as {
+            data?: string;
+            repositorio: string;
+            etapa: string;
+            funcao?: string;
+            coordenadoria?: string;
+            quantidade?: number | string;
+            tipo?: string;
+          };
+
+          const PROJETO_IMPORTACAO_PRODUCAO = 'IMPORTACAO_PRODUCAO';
+          const quantidade = typeof body.quantidade === 'string' 
+            ? parseInt(body.quantidade) || 1 
+            : body.quantidade || 1;
+
+          const repoId = body.repositorio.trim();
+          const orgaoRepositorio = body.coordenadoria?.trim() || 'SGPA';
+
+          // Mapa de etapa para status (igual importação legada)
+          const etapaStatusMap: Record<string, StatusRepositorio> = {
+            RECEBIMENTO: 'RECEBIDO',
+            PREPARACAO: 'EM_PREPARACAO',
+            DIGITALIZACAO: 'EM_DIGITALIZACAO',
+            CONFERENCIA: 'EM_CONFERENCIA',
+            RECONFERENCIA: 'EM_CONFERENCIA',
+            MONTAGEM: 'EM_MONTAGEM',
+            ATENDIMENTO: 'EM_ENTREGA',
+            CONTROLE_QUALIDADE: 'AGUARDANDO_CQ_LOTE',
+            ENTREGA: 'EM_ENTREGA',
+          };
+          const statusRepositorio = etapaStatusMap[body.etapa as EtapaFluxo] ?? 'RECEBIDO';
+
+          // Buscar ou criar repositório (mesma lógica da importação)
+          let repositorioResult = await server.database.query(
+            `SELECT id_repositorio_recorda FROM repositorios
+             WHERE id_repositorio_ged = $1 AND orgao = $2 AND projeto = $3`,
+            [repoId, orgaoRepositorio, PROJETO_IMPORTACAO_PRODUCAO]
+          );
+
+          let repositorioId = repositorioResult.rows[0]?.id_repositorio_recorda;
+
+          if (!repositorioId) {
+            const createResult = await server.database.query(
+              `INSERT INTO repositorios 
+               (id_repositorio_ged, orgao, projeto, status_atual, etapa_atual)
+               VALUES ($1, $2, $3, $4, $5)
+               ON CONFLICT (id_repositorio_ged, orgao, projeto) DO UPDATE 
+                 SET id_repositorio_ged = EXCLUDED.id_repositorio_ged
+               RETURNING id_repositorio_recorda`,
+              [repoId, orgaoRepositorio, PROJETO_IMPORTACAO_PRODUCAO, statusRepositorio, body.etapa]
+            );
+            repositorioId = createResult.rows[0]?.id_repositorio_recorda;
+          }
+
+          if (!repositorioId) {
+            return reply.status(500).send({ error: 'Erro ao criar/localizar repositório' });
+          }
+
+          // Criar ou buscar checklist concluído
+          let checklistResult = await server.database.query(
+            `SELECT id FROM checklists
+             WHERE repositorio_id = $1 AND etapa = $2 AND status = 'CONCLUIDO'
+             ORDER BY criado_em DESC LIMIT 1`,
+            [repositorioId, body.etapa]
+          );
+
+          let checklistId = checklistResult.rows[0]?.id;
+
+          if (!checklistId) {
+            const createChecklistResult = await server.database.query(
+              `INSERT INTO checklists (repositorio_id, etapa, status, usuario_id)
+               VALUES ($1, $2, 'CONCLUIDO', $3)
+               RETURNING id`,
+              [repositorioId, body.etapa, user.id]
+            );
+            checklistId = createChecklistResult.rows[0]?.id;
+          }
+
+          const marcadores = {
+            funcao: body.funcao,
+            tipo: body.tipo,
+            coordenadoria: body.coordenadoria,
+            origem: 'SISTEMA', // Marca produção lançada diretamente no sistema (vs LEGADO = importada)
+          };
+
+          const dataProducao = body.data || new Date().toISOString();
+
+          // Sequência obrigatória de etapas
+          const sequenciaEtapas: Record<string, { ordem: number; anterior?: string }> = {
+            RECEBIMENTO: { ordem: 1 },
+            PREPARACAO: { ordem: 2, anterior: 'RECEBIMENTO' },
+            DIGITALIZACAO: { ordem: 3, anterior: 'PREPARACAO' },
+            CONFERENCIA: { ordem: 4, anterior: 'DIGITALIZACAO' },
+            RECONFERENCIA: { ordem: 5, anterior: 'CONFERENCIA' },
+            MONTAGEM: { ordem: 6, anterior: 'RECONFERENCIA' },
+            ATENDIMENTO: { ordem: 7, anterior: 'MONTAGEM' },
+          };
+
+          // Verificar se já existe registro idêntico NA MESMA ETAPA (previne duplicatas exatas)
+          const tipoMarcador = (body.tipo ?? '').trim();
+          const funcaoMarcador = (body.funcao ?? '').trim();
+          const coordenadoriaMarcador = (body.coordenadoria ?? '').trim();
+
+          const existente = await server.database.query(
+            `SELECT id, quantidade
+             FROM producao_repositorio
+             WHERE usuario_id = $1
+               AND repositorio_id = $2
+               AND (data_producao AT TIME ZONE 'America/Cuiaba')::date = $3::date
+               AND etapa = $4
+               AND COALESCE(marcadores->>'origem', '') = 'SISTEMA'
+               AND COALESCE(marcadores->>'tipo', '') = $5
+               AND COALESCE(marcadores->>'funcao', '') = $6
+               AND COALESCE(marcadores->>'coordenadoria', '') = $7
+             LIMIT 1`,
+            [
+              user.id,
+              repositorioId,
+              dataProducao,
+              body.etapa,
+              tipoMarcador,
+              funcaoMarcador,
+              coordenadoriaMarcador,
+            ]
+          );
+
+          if (existente.rows.length > 0) {
+            const registroExistente = existente.rows[0];
+            if (registroExistente && Number(registroExistente.quantidade) === quantidade) {
+              return reply.status(409).send({
+                error: 'Produção duplicada',
+                message: `Você já lançou esta produção: ${body.etapa} - ${repoId} - ${quantidade} unidade(s) na data ${new Date(dataProducao).toLocaleDateString('pt-BR')}`,
+                detalhes: {
+                  registroExistenteId: registroExistente.id,
+                  repositorio: repoId,
+                  etapa: body.etapa,
+                  quantidade,
+                  data: dataProducao,
+                },
+              });
+            }
+          }
+
+          // Validar sequência de etapas (não pode pular etapas)
+          const etapaAtual = sequenciaEtapas[body.etapa];
+          if (etapaAtual && etapaAtual.anterior) {
+            // Verificar se a etapa anterior já foi cumprida para este repositório+coordenadoria
+            const etapaAnteriorExiste = await server.database.query(
+              `SELECT id
+               FROM producao_repositorio
+               WHERE repositorio_id = $1
+                 AND etapa = $2
+                 AND COALESCE(marcadores->>'coordenadoria', '') = $3
+               LIMIT 1`,
+              [repositorioId, etapaAtual.anterior, coordenadoriaMarcador]
+            );
+
+            if (etapaAnteriorExiste.rows.length === 0) {
+              return reply.status(422).send({
+                error: 'Sequência de etapas inválida',
+                message: `Não é possível lançar produção na etapa ${body.etapa} sem ter passado pela etapa ${etapaAtual.anterior} primeiro.`,
+                detalhes: {
+                  repositorio: repoId,
+                  coordenadoria: coordenadoriaMarcador || 'SGPA',
+                  etapaAtual: body.etapa,
+                  etapaAnteriorNecessaria: etapaAtual.anterior,
+                  sequenciaCompleta: Object.keys(sequenciaEtapas),
+                },
+              });
+            }
+          }
+
+          const producaoResult = await server.database.query(
+            `INSERT INTO producao_repositorio 
+             (repositorio_id, etapa, checklist_id, usuario_id, quantidade, marcadores, data_producao)
+             VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7)
+             RETURNING *`,
+            [
+              repositorioId,
+              body.etapa,
+              checklistId,
+              user.id,
+              quantidade,
+              JSON.stringify(marcadores),
+              dataProducao,
+            ]
+          );
+
+          return reply.status(201).send({
+            message: 'Produção registrada com sucesso',
+            producao: producaoResult.rows[0],
+          });
+        } catch (error) {
+          request.log.error(error);
+          const message = error instanceof Error ? error.message : 'Erro ao registrar produção';
           return reply.status(500).send({ error: message });
         }
       }

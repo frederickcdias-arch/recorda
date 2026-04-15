@@ -770,7 +770,7 @@ export function createOperacionalChecklistsRoutes(): FastifyPluginAsync {
         },
         preHandler: [
           server.authenticate,
-          authorize('operador', 'administrador'),
+          authorize('colaborador', 'operador', 'administrador'),
           validateBody(registrarProducaoSchema),
         ],
       },

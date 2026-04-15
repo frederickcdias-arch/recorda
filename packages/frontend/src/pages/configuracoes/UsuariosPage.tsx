@@ -43,7 +43,7 @@ export function UsuariosPage(): JSX.Element {
     email: '',
     nome: '',
     senha: '',
-    perfil: 'operador' as 'operador' | 'administrador',
+    perfil: 'operador' as 'colaborador' | 'operador' | 'administrador',
   });
   const [salvando, setSalvando] = useState(false);
 
@@ -207,16 +207,17 @@ export function UsuariosPage(): JSX.Element {
                 />
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Papel</label>
-                  <select
+  <select
                     value={formData.perfil}
                     onChange={(e) =>
                       setFormData((p) => ({
                         ...p,
-                        perfil: e.target.value as 'operador' | 'administrador',
+                        perfil: e.target.value as 'colaborador' | 'operador' | 'administrador',
                       }))
                     }
                     className="w-full px-3 py-2 border rounded-lg"
                   >
+                    <option value="colaborador">Colaborador</option>
                     <option value="operador">Operador</option>
                     <option value="administrador">Administrador</option>
                   </select>
