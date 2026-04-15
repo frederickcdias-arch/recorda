@@ -301,7 +301,7 @@ export function LancarProducaoPage(): JSX.Element {
             <li>• <strong>Coordenadoria:</strong> Unidade/coordenadoria responsável</li>
             <li>• <strong>Quantidade:</strong> Número de itens processados</li>
             <li>• <strong>Tipo:</strong> Informação adicional (opcional)</li>
-            <li>• Consulte seu histórico em "Meu Histórico"</li>
+            <li>• Consulte seu histórico em &quot;Meu Histórico&quot;</li>
           </ul>
         </div>
       </div>
