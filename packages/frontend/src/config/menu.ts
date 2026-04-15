@@ -97,6 +97,7 @@ export const menuSections: MenuSection[] = [
     items: [
       { id: 'empresa', label: 'Empresa', icon: 'building', path: '/configuracoes/empresa' },
       { id: 'usuarios', label: 'Usuários', icon: 'user-plus', path: '/configuracoes/usuarios' },
+      { id: 'vincular-producoes', label: 'Vincular Produções', icon: 'link', path: '/configuracoes/vincular-producoes' },
       { id: 'admin', label: 'Administração', icon: 'settings', path: '/configuracoes/admin' },
     ],
   },

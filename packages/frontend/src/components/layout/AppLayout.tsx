@@ -18,6 +18,7 @@ const routeTitles: Record<string, string> = {
   '/configuracoes': 'Configurações',
   '/configuracoes/empresa': 'Empresa',
   '/configuracoes/usuarios': 'Usuários',
+  '/configuracoes/vincular-producoes': 'Vincular Produções',
   '/configuracoes/admin': 'Administração',
   '/auditoria': 'Auditoria',
   '/auditoria/importacoes': 'Auditoria de Importações',
