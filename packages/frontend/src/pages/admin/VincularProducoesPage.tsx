@@ -168,8 +168,7 @@ export function VincularProducoesPage(): JSX.Element {
                       {new Date(colab.ultima_producao).toLocaleDateString('pt-BR')}
                     </p>
                   </button>
-                ))}
-              </div>
+                }iv>
             </div>
           </Card>
 
@@ -181,8 +180,21 @@ export function VincularProducoesPage(): JSX.Element {
               </div>
 
               <div className="space-y-2 max-h-96 overflow-y-auto">
-                {usuarios?.map((usuario) => (
-                  <button
+                {!usuarios || usuarios.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <Icon name="user" className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+                    <p className="text-sm">
+                      {loadingUsuarios ? 'Carregando...' : 'Nenhum usuário colaborador cadastrado'}
+                    </p>
+                    {!loadingUsuarios && (
+                      <p className="text-xs mt-1">
+                        Crie usuários com perfil "Colaborador" em Configurações → Usuários
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  usuarios.map((usuario) => (
+                    <button
                     key={usuario.id}
                     onClick={() => {
                       setUsuarioSelecionado(usuario.id);
@@ -205,7 +217,8 @@ export function VincularProducoesPage(): JSX.Element {
                           <p className="text-xs text-gray-500 mt-1">
                             {usuario.coordenadoria_sigla} - {usuario.coordenadoria_nome}
                           </p>
-                        )}
+                    
+                )      )}
                         <p className="text-xs text-gray-500 mt-1">
                           {usuario.total_producoes_vinculadas} produções já vinculadas
                         </p>
@@ -304,20 +317,7 @@ export function VincularProducoesPage(): JSX.Element {
               )}
 
               <div className="mt-6 flex items-center justify-end gap-3">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setColaboradorSelecionado('');
-                    setUsuarioSelecionado('');
-                    setMostrarPreview(false);
-                  }}
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  variant="primary"
-                  onClick={handleVincular}
-                  disabled={vincularMutation.isPending || !mostrarPreview}
+                <Buttonsd                  disabled={vincularMutation.isPending || !mostrarPreview}
                 >
                   <Icon name="link" className="w-4 h-4" />
                   {vincularMutation.isPending ? 'Vinculando...' : 'Confirmar Vinculação'}
