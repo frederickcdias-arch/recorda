@@ -66,6 +66,9 @@ const LancarProducaoPage = lazy(() =>
 const MeuHistoricoPage = lazy(() =>
   import('../pages/colaborador/MeuHistoricoPage').then((m) => ({ default: m.MeuHistoricoPage }))
 );
+const VincularProducoesPage = lazy(() =>
+  import('../pages/admin/VincularProducoesPage').then((m) => ({ default: m.VincularProducoesPage }))
+);
 
 function PageSuspense({ children }: { children: React.ReactNode }): JSX.Element {
   return (
@@ -243,6 +246,16 @@ export const router = createBrowserRouter([
           <RoleRoute allowedProfiles={['administrador']}>
             <PageSuspense>
               <AdminPage />
+            </PageSuspense>
+          </RoleRoute>
+        ),
+      },
+      {
+        path: 'configuracoes/vincular-producoes',
+        element: (
+          <RoleRoute allowedProfiles={['administrador']}>
+            <PageSuspense>
+              <VincularProducoesPage />
             </PageSuspense>
           </RoleRoute>
         ),

@@ -2,8 +2,226 @@ import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { authorize } from '../middleware/auth.js';
 import { getCurrentUser } from './operacional-helpers.js';
 
+interface VincularProducoesBody {
+  colaboradorNomeLegado: string;
+  usuarioId: string;
+}
+
 export function createAdminRoutes(): FastifyPluginAsync {
   return async (server: FastifyInstance): Promise<void> => {
+    // GET /api/admin/colaboradores-legado - Listar colaboradores do sistema legado
+    server.get(
+      '/api/admin/colaboradores-legado',
+      {
+        schema: {
+          tags: ['admin'],
+          summary: 'Listar colaboradores do sistema legado',
+          security: [{ bearerAuth: [] }],
+        },
+        preHandler: [server.authenticate, authorize('administrador')],
+      },
+      async (_request, reply) => {
+        try {
+          const result = await server.database.query(`
+            SELECT 
+              DISTINCT TRIM(marcadores->>'colaborador_nome') as nome,
+              COUNT(*) as total_producoes,
+              MIN(data_producao)::date as primeira_producao,
+              MAX(data_producao)::date as ultima_producao,
+              COUNT(DISTINCT repositorio_id) as total_repositorios,
+              ARRAY_AGG(DISTINCT etapa::text) as etapas
+            FROM producao_repositorio
+            WHERE COALESCE(marcadores->>'origem', '') = 'LEGADO'
+              AND TRIM(marcadores->>'colaborador_nome') != ''
+            GROUP BY TRIM(marcadores->>'colaborador_nome')
+            ORDER BY total_producoes DESC
+          `);
+
+          return reply.send(result.rows);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Erro ao buscar colaboradores do legado';
+          return reply.status(500).send({ error: message });
+        }
+      }
+    );
+
+    // GET /api/admin/usuarios-colaboradores - Listar usuários com perfil colaborador
+    server.get(
+      '/api/admin/usuarios-colaboradores',
+      {
+        schema: {
+          tags: ['admin'],
+          summary: 'Listar usuários colaboradores',
+          security: [{ bearerAuth: [] }],
+        },
+        preHandler: [server.authenticate, authorize('administrador')],
+      },
+      async (_request, reply) => {
+        try {
+          const result = await server.database.query(`
+            SELECT 
+              u.id,
+              u.nome,
+              u.email,
+              u.ativo,
+              COUNT(pr.id) as total_producoes_vinculadas,
+              c.nome as coordenadoria_nome,
+              c.sigla as coordenadoria_sigla
+            FROM usuarios u
+            LEFT JOIN producao_repositorio pr ON pr.usuario_id = u.id
+            LEFT JOIN coordenadorias c ON c.id = u.coordenadoria_id
+            WHERE u.perfil = 'colaborador'
+            GROUP BY u.id, u.nome, u.email, u.ativo, c.nome, c.sigla
+            ORDER BY u.nome
+          `);
+
+          return reply.send(result.rows);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Erro ao buscar usuários colaboradores';
+          return reply.status(500).send({ error: message });
+        }
+      }
+    );
+
+    // POST /api/admin/vincular-producoes - Vincular produções legadas a usuário colaborador
+    server.post<{ Body: VincularProducoesBody }>(
+      '/api/admin/vincular-producoes',
+      {
+        schema: {
+          tags: ['admin'],
+          summary: 'Vincular produções legadas a um usuário colaborador',
+          security: [{ bearerAuth: [] }],
+          body: {
+            type: 'object',
+            required: ['colaboradorNomeLegado', 'usuarioId'],
+            properties: {
+              colaboradorNomeLegado: { type: 'string' },
+              usuarioId: { type: 'string' },
+            },
+          },
+        },
+        preHandler: [server.authenticate, authorize('administrador')],
+      },
+      async (request, reply) => {
+        try {
+          const { colaboradorNomeLegado, usuarioId } = request.body;
+          const adminUser = getCurrentUser(request);
+
+          // Validar que o usuário existe e é colaborador
+          const userCheck = await server.database.query(
+            `SELECT id, nome, perfil FROM usuarios WHERE id = $1`,
+            [usuarioId]
+          );
+
+          if (userCheck.rows.length === 0) {
+            return reply.status(404).send({ error: 'Usuário não encontrado' });
+          }
+
+          const usuario = userCheck.rows[0];
+          if (!usuario || usuario.perfil !== 'colaborador') {
+            return reply.status(400).send({ error: 'O usuário selecionado não é um colaborador' });
+          }
+
+          // Contar produções que serão vinculadas
+          const countResult = await server.database.query(
+            `SELECT COUNT(*) as total
+             FROM producao_repositorio
+             WHERE LOWER(TRIM(marcadores->>'colaborador_nome')) = LOWER($1)
+               AND COALESCE(marcadores->>'origem', '') = 'LEGADO'`,
+            [colaboradorNomeLegado]
+          );
+
+          const totalProducoes = Number(countResult.rows[0]?.total ?? 0);
+
+          if (totalProducoes === 0) {
+            return reply.status(404).send({ 
+              error: 'Nenhuma produção encontrada para este colaborador no sistema legado' 
+            });
+          }
+
+          // Executar vinculação
+          const updateResult = await server.database.query(
+            `UPDATE producao_repositorio
+             SET usuario_id = $1
+             WHERE LOWER(TRIM(marcadores->>'colaborador_nome')) = LOWER($2)
+               AND COALESCE(marcadores->>'origem', '') = 'LEGADO'
+             RETURNING id`,
+            [usuarioId, colaboradorNomeLegado]
+          );
+
+          const vinculadas = updateResult.rowCount ?? 0;
+
+          request.log.info({
+            admin: adminUser.id,
+            colaboradorLegado: colaboradorNomeLegado,
+            usuarioId,
+            vinculadas,
+          }, 'Produções legadas vinculadas a colaborador');
+
+          return reply.send({
+            sucesso: true,
+            colaboradorLegado: colaboradorNomeLegado,
+            usuarioNome: usuario.nome,
+            producoesVinculadas: vinculadas,
+            mensagem: `${vinculadas} produções vinculadas com sucesso ao colaborador ${usuario.nome}`,
+          });
+        } catch (error) {
+          request.log.error(error);
+          const message = error instanceof Error ? error.message : 'Erro ao vincular produções';
+          return reply.status(500).send({ error: message });
+        }
+      }
+    );
+
+    // GET /api/admin/preview-vinculacao/:colaboradorNome/:usuarioId - Preview da vinculação
+    server.get<{ Params: { colaboradorNome: string; usuarioId: string } }>(
+      '/api/admin/preview-vinculacao/:colaboradorNome/:usuarioId',
+      {
+        schema: {
+          tags: ['admin'],
+          summary: 'Preview de vinculação de produções',
+          security: [{ bearerAuth: [] }],
+        },
+        preHandler: [server.authenticate, authorize('administrador')],
+      },
+      async (request, reply) => {
+        try {
+          const { colaboradorNome, usuarioId } = request.params;
+
+          const result = await server.database.query(`
+            SELECT 
+              pr.data_producao::date as data,
+              pr.etapa,
+              COUNT(*) as registros,
+              SUM(pr.quantidade) as quantidade_total,
+              ARRAY_AGG(DISTINCT r.id_repositorio_ged) as repositorios
+            FROM producao_repositorio pr
+            JOIN repositorios r ON r.id_repositorio_recorda = pr.repositorio_id
+            WHERE LOWER(TRIM(pr.marcadores->>'colaborador_nome')) = LOWER($1)
+              AND COALESCE(pr.marcadores->>'origem', '') = 'LEGADO'
+            GROUP BY pr.data_producao::date, pr.etapa
+            ORDER BY pr.data_producao::date DESC, pr.etapa
+            LIMIT 100
+          `, [decodeURIComponent(colaboradorNome)]);
+
+          const userResult = await server.database.query(
+            `SELECT nome, email FROM usuarios WHERE id = $1`,
+            [usuarioId]
+          );
+
+          return reply.send({
+            colaboradorLegado: decodeURIComponent(colaboradorNome),
+            usuario: userResult.rows[0] || null,
+            preview: result.rows,
+            totalRegistros: result.rows.reduce((acc, r) => acc + Number(r.registros), 0),
+          });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Erro ao gerar preview';
+          return reply.status(500).send({ error: message });
+        }
+      }
+    );
+
     // POST /admin/limpar-duplicatas-producao - Remove duplicate production records
     server.post(
       '/admin/limpar-duplicatas-producao',
