@@ -426,7 +426,7 @@ export function createMetasRoutes(): FastifyPluginAsync {
           const statusRepositorio = etapaStatusMap[body.etapa as EtapaFluxo] ?? 'RECEBIDO';
 
           // Buscar ou criar repositório (mesma lógica da importação)
-          let repositorioResult = await server.database.query(
+          const repositorioResult = await server.database.query(
             `SELECT id_repositorio_recorda FROM repositorios
              WHERE id_repositorio_ged = $1 AND orgao = $2 AND projeto = $3`,
             [repoId, orgaoRepositorio, PROJETO_IMPORTACAO_PRODUCAO]
@@ -452,7 +452,7 @@ export function createMetasRoutes(): FastifyPluginAsync {
           }
 
           // Criar ou buscar checklist concluído
-          let checklistResult = await server.database.query(
+          const checklistResult = await server.database.query(
             `SELECT id FROM checklists
              WHERE repositorio_id = $1 AND etapa = $2 AND status = 'CONCLUIDO'
              ORDER BY criado_em DESC LIMIT 1`,

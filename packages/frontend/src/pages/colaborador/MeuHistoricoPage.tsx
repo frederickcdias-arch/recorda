@@ -102,7 +102,7 @@ export function MeuHistoricoPage(): JSX.Element {
                       <Icon name="inbox" className="w-12 h-12 mx-auto mb-4 text-gray-300" />
                       <p>Nenhuma produção registrada ainda</p>
                       <p className="text-sm mt-2">
-                        Comece lançando sua primeira produção em "Lançar Produção"
+                        Comece lançando sua primeira produção em &quot;Lançar Produção&quot;
                       </p>
                     </td>
                   </tr>

@@ -1,18 +1,16 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { FastifyInstance } from 'fastify';
-import { buildTestServer, getTestToken, cleanupTestData, generateTestRepoId, createTestProducao } from '../../../test/helpers.js';
+import { buildTestServer, getTestToken, cleanupTestData, generateTestRepoId } from '../../../test/helpers.js';
 
 describe('POST /api/producao/lancar-direto', () => {
   let app: FastifyInstance;
   let colaboradorToken: string;
-  let adminToken: string;
 
   beforeAll(async () => {
     app = await buildTestServer();
     
-    // Obter tokens de teste
+    // Obter token de teste
     colaboradorToken = await getTestToken(app, 'colaborador');
-    adminToken = await getTestToken(app, 'administrador');
   });
 
   afterAll(async () => {
@@ -447,7 +445,7 @@ describe('POST /api/producao/lancar-direto', () => {
 
     it('deve usar prepared statements (previne SQL injection)', async () => {
       // Tentativa de SQL injection no repositório
-      const response = await app.inject({
+      await app.inject({
         method: 'POST',
         url: '/api/producao/lancar-direto',
         headers: { authorization: `Bearer ${colaboradorToken}` },

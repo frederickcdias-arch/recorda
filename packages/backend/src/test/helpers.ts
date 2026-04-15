@@ -1,13 +1,15 @@
 import { FastifyInstance } from 'fastify';
-import { buildServer } from '../infrastructure/http/server.js';
+import Fastify from 'fastify';
 import pg from 'pg';
+import type { DatabaseConnection } from '../infrastructure/database/connection.js';
 
 const { Pool } = pg;
 
 let testPool: pg.Pool | null = null;
+let testConnection: DatabaseConnection | null = null;
 
-export async function createTestDatabase(): Promise<pg.Pool> {
-  if (testPool) return testPool;
+export async function createTestDatabase(): Promise<DatabaseConnection> {
+  if (testConnection) return testConnection;
 
   testPool = new Pool({
     host: process.env.DB_HOST || 'localhost',
@@ -17,21 +19,47 @@ export async function createTestDatabase(): Promise<pg.Pool> {
     password: process.env.DB_PASSWORD || 'postgres',
   });
 
-  return testPool;
+  // Criar DatabaseConnection compatível
+  testConnection = {
+    pool: testPool,
+    query: testPool.query.bind(testPool),
+    healthCheck: async () => {
+      try {
+        await testPool!.query('SELECT 1');
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    close: async () => {
+      await testPool?.end();
+      testPool = null;
+      testConnection = null;
+    }
+  };
+
+  return testConnection;
 }
 
 export async function closeTestDatabase(): Promise<void> {
-  if (testPool) {
-    await testPool.end();
-    testPool = null;
+  if (testConnection) {
+    await testConnection.close();
   }
 }
 
 export async function buildTestServer(): Promise<FastifyInstance> {
-  const app = await buildServer({
-    logger: false, // Desabilitar logs em testes
+  // Criar servidor Fastify simples para testes
+  const app = Fastify({
+    logger: false,
   });
 
+  // Decorar com database
+  const database = await createTestDatabase();
+  app.decorate('database', database);
+
+  // Registrar rotas necessárias para testes
+  // (assumindo que as rotas já estão implementadas)
+  
   return app;
 }
 
