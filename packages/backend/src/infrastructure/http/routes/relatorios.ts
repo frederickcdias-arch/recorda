@@ -625,11 +625,16 @@ async function gerarRelatorioCompleto(
     FROM producao_repositorio p
     JOIN usuarios u ON u.id = p.usuario_id
     LEFT JOIN coordenadorias co ON co.id = u.coordenadoria_id
+    LEFT JOIN coordenadorias co_filtro ON co_filtro.id = $3
     WHERE (p.data_producao AT TIME ZONE 'America/Cuiaba')::date >= $1::date
       AND (p.data_producao AT TIME ZONE 'America/Cuiaba')::date <= $2::date
       AND COALESCE(p.marcadores->>'origem', '') IN ('LEGADO', 'SISTEMA')
       AND p.etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')
-      ${coordenadoriaId ? 'AND u.coordenadoria_id = $3' : ''}
+      ${coordenadoriaId ? `AND (
+        u.coordenadoria_id = $3 
+        OR LOWER(TRIM(p.marcadores->>'coordenadoria')) = LOWER(co_filtro.sigla)
+        OR LOWER(TRIM(p.marcadores->>'coordenadoria')) = LOWER(co_filtro.nome)
+      )` : ''}
     ORDER BY p.data_producao
   `;
 
