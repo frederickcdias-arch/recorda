@@ -274,21 +274,82 @@ export function createMetasRoutes(): FastifyPluginAsync {
           const where = conditions.join(' AND ');
 
           // Count total + stats agregados
-          const statsResult = await server.database.query<{
-            count: string;
-            total_quantidade: string;
-            registros_7dias: string;
-          }>(
-            `SELECT 
-               COUNT(*) as count,
-               COALESCE(SUM(pr.quantidade), 0)::text as total_quantidade,
-               COUNT(*) FILTER (WHERE pr.data_producao >= (CURRENT_DATE - INTERVAL '7 days'))::text as registros_7dias
-             FROM producao_repositorio pr WHERE ${where}`,
-            params
-          );
+          const [statsResult, porEtapaResult, porTipoResult] = await Promise.all([
+            server.database.query<{
+              count: string;
+              total_quantidade: string;
+              registros_7dias: string;
+              quantidade_7dias: string;
+            }>(
+              `SELECT 
+                 COUNT(*) as count,
+                 COALESCE(SUM(pr.quantidade), 0)::text as total_quantidade,
+                 COUNT(*) FILTER (WHERE pr.data_producao >= (CURRENT_DATE - INTERVAL '7 days'))::text as registros_7dias,
+                 COALESCE(SUM(pr.quantidade) FILTER (WHERE pr.data_producao >= (CURRENT_DATE - INTERVAL '7 days')), 0)::text as quantidade_7dias
+               FROM producao_repositorio pr WHERE ${where}`,
+              params
+            ),
+            server.database.query<{
+              etapa: string;
+              registros: string;
+              quantidade: string;
+            }>(
+              `SELECT 
+                 COALESCE(NULLIF(TRIM(pr.marcadores->>'funcao'), ''),
+                   CASE pr.etapa::text
+                     WHEN 'RECEBIMENTO' THEN 'Recebimento'
+                     WHEN 'PREPARACAO' THEN 'Preparação'
+                     WHEN 'DIGITALIZACAO' THEN 'Digitalização'
+                     WHEN 'CONFERENCIA' THEN 'Conferência'
+                     WHEN 'MONTAGEM' THEN 'Montagem'
+                     WHEN 'CONTROLE_QUALIDADE' THEN 'Reconferência'
+                     WHEN 'ENTREGA' THEN 'Entrega'
+                     ELSE pr.etapa::text
+                   END
+                 ) AS etapa,
+                 COUNT(*)::text AS registros,
+                 COALESCE(SUM(pr.quantidade), 0)::text AS quantidade
+               FROM producao_repositorio pr WHERE ${where}
+               GROUP BY 1
+               ORDER BY quantidade DESC`,
+              params
+            ),
+            server.database.query<{
+              tipo: string;
+              registros: string;
+              quantidade: string;
+            }>(
+              `SELECT 
+                 CASE 
+                   WHEN LOWER(COALESCE(NULLIF(TRIM(pr.marcadores->>'tipo'), ''), 'Não informado')) LIKE '%imag%' THEN 'Imagens'
+                   WHEN LOWER(COALESCE(NULLIF(TRIM(pr.marcadores->>'tipo'), ''), 'Não informado')) LIKE '%caix%' THEN 'Caixas'
+                   WHEN COALESCE(NULLIF(TRIM(pr.marcadores->>'tipo'), ''), '') = '' THEN 'Não informado'
+                   ELSE TRIM(pr.marcadores->>'tipo')
+                 END AS tipo,
+                 COUNT(*)::text AS registros,
+                 COALESCE(SUM(pr.quantidade), 0)::text AS quantidade
+               FROM producao_repositorio pr WHERE ${where}
+               GROUP BY 1
+               ORDER BY quantidade DESC`,
+              params
+            ),
+          ]);
           const total = Number(statsResult.rows[0]?.count ?? 0);
           const totalQuantidade = Number(statsResult.rows[0]?.total_quantidade ?? 0);
           const registrosUltimos7Dias = Number(statsResult.rows[0]?.registros_7dias ?? 0);
+          const quantidadeUltimos7Dias = Number(statsResult.rows[0]?.quantidade_7dias ?? 0);
+
+          const producaoPorEtapa = porEtapaResult.rows.map((r) => ({
+            etapa: r.etapa,
+            registros: Number(r.registros),
+            quantidade: Number(r.quantidade),
+          }));
+
+          const producaoPorTipo = porTipoResult.rows.map((r) => ({
+            tipo: r.tipo,
+            registros: Number(r.registros),
+            quantidade: Number(r.quantidade),
+          }));
 
           // Get paginated data with repository info
           params.push(Number(limite), offset);
@@ -315,6 +376,9 @@ export function createMetasRoutes(): FastifyPluginAsync {
             total,
             totalQuantidade,
             registrosUltimos7Dias,
+            quantidadeUltimos7Dias,
+            producaoPorEtapa,
+            producaoPorTipo,
             pagina: Number(pagina),
             totalPaginas: Math.ceil(total / Number(limite)),
           });

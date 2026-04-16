@@ -46,22 +46,80 @@ interface ProducaoItem {
   id_repositorio_ged: string;
 }
 
+interface EtapaStats {
+  etapa: string;
+  registros: number;
+  quantidade: number;
+}
+
+interface TipoStats {
+  tipo: string;
+  registros: number;
+  quantidade: number;
+}
+
+interface MeuHistoricoResponse {
+  producoes: ProducaoItem[];
+  total: number;
+  totalQuantidade?: number;
+  registrosUltimos7Dias?: number;
+  quantidadeUltimos7Dias?: number;
+  producaoPorEtapa?: EtapaStats[];
+  producaoPorTipo?: TipoStats[];
+}
+
+const etapaCores: Record<string, { bg: string; text: string; bar: string }> = {
+  'Recebimento': { bg: 'bg-purple-50', text: 'text-purple-700', bar: 'bg-purple-500' },
+  'Preparação': { bg: 'bg-amber-50', text: 'text-amber-700', bar: 'bg-amber-500' },
+  'Preparacao': { bg: 'bg-amber-50', text: 'text-amber-700', bar: 'bg-amber-500' },
+  'Digitalização': { bg: 'bg-cyan-50', text: 'text-cyan-700', bar: 'bg-cyan-500' },
+  'Digitalizacao': { bg: 'bg-cyan-50', text: 'text-cyan-700', bar: 'bg-cyan-500' },
+  'Conferência': { bg: 'bg-green-50', text: 'text-green-700', bar: 'bg-green-500' },
+  'Conferencia': { bg: 'bg-green-50', text: 'text-green-700', bar: 'bg-green-500' },
+  'Montagem': { bg: 'bg-orange-50', text: 'text-orange-700', bar: 'bg-orange-500' },
+  'Reconferência': { bg: 'bg-rose-50', text: 'text-rose-700', bar: 'bg-rose-500' },
+  'Reconferencia': { bg: 'bg-rose-50', text: 'text-rose-700', bar: 'bg-rose-500' },
+  'Entrega': { bg: 'bg-emerald-50', text: 'text-emerald-700', bar: 'bg-emerald-500' },
+};
+
+const tipoCores: Record<string, { bg: string; text: string; icon: string }> = {
+  'Imagens': { bg: 'bg-blue-50', text: 'text-blue-700', icon: 'image' },
+  'Caixas': { bg: 'bg-amber-50', text: 'text-amber-700', icon: 'box' },
+  'Não informado': { bg: 'bg-gray-50', text: 'text-gray-500', icon: 'help-circle' },
+};
+
+function getEtapaCor(etapa: string): { bg: string; text: string; bar: string } {
+  const normalizada = Object.keys(etapaCores).find((k) =>
+    etapa.toLowerCase().includes(k.toLowerCase())
+  );
+  return etapaCores[normalizada ?? ''] ?? { bg: 'bg-blue-50', text: 'text-blue-700', bar: 'bg-blue-500' };
+}
+
+function getTipoCor(tipo: string): { bg: string; text: string; icon: string } {
+  const normalizado = Object.keys(tipoCores).find((k) =>
+    tipo.toLowerCase().includes(k.toLowerCase())
+  );
+  return tipoCores[normalizado ?? ''] ?? { bg: 'bg-gray-50', text: 'text-gray-600', icon: 'file' };
+}
+
 function DashboardColaborador(): JSX.Element {
   const navigate = useNavigate();
   const { usuario } = useAuth();
 
   const { data, isLoading } = useQuery({
     queryKey: ['meu-historico'],
-    queryFn: () => api.get<{ producoes: ProducaoItem[]; total: number; totalQuantidade?: number; registrosUltimos7Dias?: number }>('/producao/meu-historico'),
+    queryFn: () => api.get<MeuHistoricoResponse>('/producao/meu-historico'),
   });
 
   const producoes = data?.producoes ?? [];
   const producoesRecentes = producoes.slice(0, 10);
   const totalProducoes = data?.total ?? producoes.length;
   const totalQuantidade = data?.totalQuantidade ?? producoes.reduce((acc, p) => acc + p.quantidade, 0);
-  const producoesUltimos7Dias = data?.registrosUltimos7Dias ?? producoes.filter(
-    (p) => new Date(p.data_producao) >= new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-  ).length;
+  const registrosUltimos7Dias = data?.registrosUltimos7Dias ?? 0;
+  const quantidadeUltimos7Dias = data?.quantidadeUltimos7Dias ?? 0;
+  const producaoPorEtapa = data?.producaoPorEtapa ?? [];
+  const producaoPorTipo = data?.producaoPorTipo ?? [];
+  const maxQuantidadeEtapa = Math.max(...producaoPorEtapa.map((e) => e.quantidade), 1);
 
   if (isLoading) {
     return (
@@ -70,7 +128,7 @@ function DashboardColaborador(): JSX.Element {
           <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
           <p className="text-gray-500 mt-1">Bem-vindo, {usuario?.nome}</p>
         </header>
-        <SkeletonCards count={3} />
+        <SkeletonCards count={4} />
       </div>
     );
   }
@@ -85,7 +143,7 @@ function DashboardColaborador(): JSX.Element {
       {/* Estatísticas Pessoais */}
       <section>
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Minhas Estatísticas</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
             title="Total de Registros"
             value={totalProducoes.toLocaleString('pt-BR')}
@@ -97,11 +155,94 @@ function DashboardColaborador(): JSX.Element {
             icon="bar-chart"
           />
           <StatCard
-            title="Últimos 7 Dias"
-            value={producoesUltimos7Dias.toLocaleString('pt-BR')}
+            title="Registros (7 dias)"
+            value={registrosUltimos7Dias.toLocaleString('pt-BR')}
             icon="calendar"
             subtitle="registros"
           />
+          <StatCard
+            title="Quantidade (7 dias)"
+            value={quantidadeUltimos7Dias.toLocaleString('pt-BR')}
+            icon="trending-up"
+            subtitle="produzidos"
+          />
+        </div>
+      </section>
+
+      {/* Produção por Etapa + Produção por Tipo */}
+      <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Produção por Etapa */}
+        <div className="lg:col-span-2 bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+          <h3 className="font-semibold text-gray-900 mb-4">Produção por Etapa</h3>
+          {producaoPorEtapa.length === 0 ? (
+            <p className="text-gray-500 text-sm py-4">Nenhuma produção registrada</p>
+          ) : (
+            <div className="space-y-3">
+              {producaoPorEtapa.map((item) => {
+                const cor = getEtapaCor(item.etapa);
+                return (
+                  <div key={item.etapa} className="group">
+                    <div className="flex items-center justify-between text-sm mb-1.5">
+                      <div className="flex items-center gap-2">
+                        <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${cor.bg} ${cor.text}`}>
+                          {item.etapa}
+                        </span>
+                        <span className="text-gray-400 text-xs">
+                          {item.registros.toLocaleString('pt-BR')} registro{item.registros !== 1 ? 's' : ''}
+                        </span>
+                      </div>
+                      <span className="font-semibold text-gray-900">
+                        {item.quantidade.toLocaleString('pt-BR')}
+                      </span>
+                    </div>
+                    <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full ${cor.bar} rounded-full transition-all duration-700`}
+                        style={{ width: `${Math.max((item.quantidade / maxQuantidadeEtapa) * 100, 2)}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Produção por Tipo (Imagens / Caixas) */}
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+          <h3 className="font-semibold text-gray-900 mb-4">Por Tipo</h3>
+          {producaoPorTipo.length === 0 ? (
+            <p className="text-gray-500 text-sm py-4">Nenhum dado</p>
+          ) : (
+            <div className="space-y-3">
+              {producaoPorTipo.map((item) => {
+                const cor = getTipoCor(item.tipo);
+                return (
+                  <div
+                    key={item.tipo}
+                    className={`p-4 rounded-lg border ${cor.bg} border-opacity-50`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg ${cor.bg} ${cor.text}`}>
+                        <Icon name={cor.icon} className="w-5 h-5" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm font-semibold ${cor.text}`}>{item.tipo}</p>
+                        <p className="text-xs text-gray-500">
+                          {item.registros.toLocaleString('pt-BR')} registro{item.registros !== 1 ? 's' : ''}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-lg font-bold text-gray-900">
+                          {item.quantidade.toLocaleString('pt-BR')}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </section>
 
@@ -166,24 +307,27 @@ function DashboardColaborador(): JSX.Element {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {producoesRecentes.map((p) => (
-                    <tr key={p.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 text-sm text-gray-900">
-                        {new Date(p.data_producao).toLocaleDateString('pt-BR')}
-                      </td>
-                      <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                        {p.id_repositorio_ged}
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">
-                          {p.etapa}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-right font-medium text-gray-900">
-                        {p.quantidade}
-                      </td>
-                    </tr>
-                  ))}
+                  {producoesRecentes.map((p) => {
+                    const cor = getEtapaCor(p.etapa);
+                    return (
+                      <tr key={p.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 text-sm text-gray-900">
+                          {new Date(p.data_producao).toLocaleDateString('pt-BR')}
+                        </td>
+                        <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                          {p.id_repositorio_ged}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`px-2 py-1 text-xs rounded-full ${cor.bg} ${cor.text}`}>
+                            {p.etapa}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-right font-medium text-gray-900">
+                          {p.quantidade.toLocaleString('pt-BR')}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
