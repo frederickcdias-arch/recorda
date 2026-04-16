@@ -300,7 +300,9 @@ export function createMetasRoutes(): FastifyPluginAsync {
                  COALESCE(SUM(pr.quantidade), 0)::text as total_quantidade,
                  COUNT(*) FILTER (WHERE pr.data_producao >= (CURRENT_DATE - INTERVAL '7 days'))::text as registros_7dias,
                  COALESCE(SUM(pr.quantidade) FILTER (WHERE pr.data_producao >= (CURRENT_DATE - INTERVAL '7 days')), 0)::text as quantidade_7dias
-               FROM producao_repositorio pr WHERE ${where}`,
+               FROM producao_repositorio pr
+               JOIN repositorios r ON r.id_repositorio_recorda = pr.repositorio_id
+               WHERE ${where}`,
               params
             ),
             server.database.query<{
@@ -323,7 +325,9 @@ export function createMetasRoutes(): FastifyPluginAsync {
                  ) AS etapa,
                  COUNT(*)::text AS registros,
                  COALESCE(SUM(pr.quantidade), 0)::text AS quantidade
-               FROM producao_repositorio pr WHERE ${where}
+               FROM producao_repositorio pr
+               JOIN repositorios r ON r.id_repositorio_recorda = pr.repositorio_id
+               WHERE ${where}
                GROUP BY 1
                ORDER BY quantidade DESC`,
               params
@@ -342,7 +346,9 @@ export function createMetasRoutes(): FastifyPluginAsync {
                  END AS tipo,
                  COUNT(*)::text AS registros,
                  COALESCE(SUM(pr.quantidade), 0)::text AS quantidade
-               FROM producao_repositorio pr WHERE ${where}
+               FROM producao_repositorio pr
+               JOIN repositorios r ON r.id_repositorio_recorda = pr.repositorio_id
+               WHERE ${where}
                GROUP BY 1
                ORDER BY quantidade DESC`,
               params

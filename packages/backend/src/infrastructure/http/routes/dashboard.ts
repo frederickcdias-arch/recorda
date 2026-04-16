@@ -132,31 +132,35 @@ export function createDashboardRoutes(): FastifyPluginAsync {
             retrabalhoCQResult,
           ] = await Promise.all([
             server.database.query<{ total: string }>(
-              `SELECT COALESCE(SUM(quantidade), 0)::text AS total
-             FROM producao_repositorio
-             WHERE data_producao >= $1
-               AND COALESCE(marcadores->>'origem', '') IN ('LEGADO', 'SISTEMA')
-               AND etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')`,
+              `SELECT COALESCE(SUM(p.quantidade), 0)::text AS total
+             FROM producao_repositorio p
+             JOIN repositorios r ON r.id_repositorio_recorda = p.repositorio_id
+             WHERE p.data_producao >= $1
+               AND COALESCE(p.marcadores->>'origem', '') IN ('LEGADO', 'SISTEMA')
+               AND p.etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')`,
               [inicioMes.toISOString()]
             ),
             server.database.query<{ total: string }>(
-              `SELECT COALESCE(SUM(quantidade), 0)::text AS total
-             FROM producao_repositorio
-             WHERE data_producao >= $1
-               AND data_producao < $2
-               AND COALESCE(marcadores->>'origem', '') IN ('LEGADO', 'SISTEMA')
-               AND etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')`,
+              `SELECT COALESCE(SUM(p.quantidade), 0)::text AS total
+             FROM producao_repositorio p
+             JOIN repositorios r ON r.id_repositorio_recorda = p.repositorio_id
+             WHERE p.data_producao >= $1
+               AND p.data_producao < $2
+               AND COALESCE(p.marcadores->>'origem', '') IN ('LEGADO', 'SISTEMA')
+               AND p.etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')`,
               [inicioMesAnterior.toISOString(), inicioMes.toISOString()]
             ),
             server.database.query<{ total: string }>(
               `SELECT COUNT(DISTINCT p.repositorio_id)::text AS total
              FROM producao_repositorio p
+             JOIN repositorios r ON r.id_repositorio_recorda = p.repositorio_id
              WHERE COALESCE(p.marcadores->>'origem', '') IN ('LEGADO', 'SISTEMA')
                AND p.etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')`
             ),
             server.database.query<{ total: string }>(
               `SELECT COUNT(DISTINCT p.repositorio_id)::text AS total
              FROM producao_repositorio p
+             JOIN repositorios r ON r.id_repositorio_recorda = p.repositorio_id
              WHERE p.data_producao >= $1
                AND COALESCE(p.marcadores->>'origem', '') IN ('LEGADO', 'SISTEMA')
                AND p.etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')`,
@@ -183,6 +187,7 @@ export function createDashboardRoutes(): FastifyPluginAsync {
                ) AS etapa,
                COALESCE(SUM(p.quantidade), 0)::text AS valor
              FROM producao_repositorio p
+             JOIN repositorios r ON r.id_repositorio_recorda = p.repositorio_id
              WHERE p.data_producao >= $1
                AND COALESCE(p.marcadores->>'origem', '') IN ('LEGADO', 'SISTEMA')
                AND p.etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')
