@@ -411,7 +411,8 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
                FROM producao_repositorio p
                JOIN repositorios r ON r.id_repositorio_recorda = p.repositorio_id
                JOIN usuarios u ON u.id = p.usuario_id
-               WHERE r.id_repositorio_ged = ANY($1)`,
+               WHERE r.id_repositorio_ged = ANY($1)
+                 AND COALESCE(p.marcadores->>'origem', '') = 'LEGADO'`,
                 [repoIds]
               );
 
