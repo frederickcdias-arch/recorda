@@ -1385,6 +1385,9 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
           const importResult = await server.database.query(
             'DELETE FROM importacoes_legado_operacional'
           );
+          const fontesLinhasResult = await server.database.query(
+            'DELETE FROM importacao_fontes_linhas'
+          );
           await server.database.query('COMMIT');
 
           request.log.info('Limpeza legada completa');
@@ -1396,6 +1399,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
               recebimentos: recebResult.rowCount ?? 0,
               repositorios: repoResult.rowCount ?? 0,
               importacoes: importResult.rowCount ?? 0,
+              fontes_linhas: fontesLinhasResult.rowCount ?? 0,
             },
           });
         } catch (error) {
