@@ -17,6 +17,21 @@ import {
 import { normalizeIdRepositorioGed } from './operacional-repositorios.js';
 
 const PROJETO_IMPORTACAO_PRODUCAO = 'IMPORTACAO_PRODUCAO';
+
+// Convert Excel serial date to YYYY-MM-DD
+function excelSerialToDate(serial: number): string {
+  const excelEpoch = new Date(1899, 11, 30); // Excel epoch (30 Dec 1899)
+  const days = Math.floor(serial);
+  const milliseconds = days * 24 * 60 * 60 * 1000;
+  const date = new Date(excelEpoch.getTime() + milliseconds);
+  
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  
+  return `${year}-${month}-${day}`;
+}
+
 function parseQuantidadePlanilha(input: unknown): number {
   const raw = String(input ?? '').trim();
   if (!raw) return 1;
@@ -835,7 +850,11 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
                 let dataProducaoStr: string;
                 const currentYear = new Date().getFullYear();
                 if (dataStr) {
-                  if (dataStr.includes('/')) {
+                  // Check if it's an Excel serial date (pure number between 1 and 60000)
+                  const serialNum = parseFloat(dataStr);
+                  if (!isNaN(serialNum) && serialNum > 1 && serialNum < 60000 && !dataStr.includes('/') && !dataStr.includes('-')) {
+                    dataProducaoStr = excelSerialToDate(serialNum);
+                  } else if (dataStr.includes('/')) {
                     const parts = dataStr.split('/');
                     const dd = (parts[0] ?? '').padStart(2, '0');
                     const mm = (parts[1] ?? '').padStart(2, '0');
@@ -1844,18 +1863,26 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
               continue;
             }
 
-            const dataProducao =
-              dataStr && dataStr.includes('/')
-                ? (() => {
-                    const parts = dataStr.split('/');
-                    const dd = (parts[0] ?? '').padStart(2, '0');
-                    const mm = (parts[1] ?? '').padStart(2, '0');
-                    let yyyy = parts[2] ?? '';
-                    if (yyyy.length === 2) yyyy = (parseInt(yyyy, 10) > 50 ? '19' : '20') + yyyy;
-                    if (!yyyy || yyyy.length < 4) yyyy = String(new Date().getFullYear());
-                    return `${yyyy}-${mm}-${dd}`;
-                  })()
-                : dataStr || getBrazilDateString();
+            let dataProducao: string;
+            if (dataStr) {
+              // Check if it's an Excel serial date
+              const serialNum = parseFloat(dataStr);
+              if (!isNaN(serialNum) && serialNum > 1 && serialNum < 60000 && !dataStr.includes('/') && !dataStr.includes('-')) {
+                dataProducao = excelSerialToDate(serialNum);
+              } else if (dataStr.includes('/')) {
+                const parts = dataStr.split('/');
+                const dd = (parts[0] ?? '').padStart(2, '0');
+                const mm = (parts[1] ?? '').padStart(2, '0');
+                let yyyy = parts[2] ?? '';
+                if (yyyy.length === 2) yyyy = (parseInt(yyyy, 10) > 50 ? '19' : '20') + yyyy;
+                if (!yyyy || yyyy.length < 4) yyyy = String(new Date().getFullYear());
+                dataProducao = `${yyyy}-${mm}-${dd}`;
+              } else {
+                dataProducao = dataStr;
+              }
+            } else {
+              dataProducao = getBrazilDateString();
+            }
 
             const existente = await server.database.query<{ id: string; quantidade: number }>(
               `SELECT id, quantidade FROM producao_repositorio
@@ -2106,7 +2133,11 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
               let dataProducaoStr: string;
               const currentYear = new Date().getFullYear();
               if (dataStr) {
-                if (dataStr.includes('/')) {
+                // Check if it's an Excel serial date (pure number between 1 and 60000)
+                const serialNum = parseFloat(dataStr);
+                if (!isNaN(serialNum) && serialNum > 1 && serialNum < 60000 && !dataStr.includes('/') && !dataStr.includes('-')) {
+                  dataProducaoStr = excelSerialToDate(serialNum);
+                } else if (dataStr.includes('/')) {
                   const parts = dataStr.split('/');
                   const dd = (parts[0] ?? '').padStart(2, '0');
                   const mm = (parts[1] ?? '').padStart(2, '0');
