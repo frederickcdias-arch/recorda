@@ -30,6 +30,7 @@ interface MeuHistoricoResponse {
   quantidadeUltimos7Dias?: number;
   producaoPorEtapa?: EtapaStats[];
   producaoPorTipo?: Array<{ tipo: string; registros: number; quantidade: number }>;
+  etapasDisponiveis?: string[];
   pagina: number;
   totalPaginas: number;
 }
@@ -79,9 +80,7 @@ export function MeuHistoricoPage(): JSX.Element {
   const total = data?.total ?? 0;
   const totalQuantidade = data?.totalQuantidade ?? 0;
   const totalPaginas = data?.totalPaginas ?? 1;
-  const producaoPorEtapa = data?.producaoPorEtapa ?? [];
-
-  const etapasDisponiveis = producaoPorEtapa.map((e) => e.etapa);
+  const etapasDisponiveis = data?.etapasDisponiveis ?? [];
 
   const handleLimparFiltros = (): void => {
     setEtapaFiltro('');

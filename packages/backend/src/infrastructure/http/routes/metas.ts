@@ -371,6 +371,28 @@ export function createMetasRoutes(): FastifyPluginAsync {
             quantidade: Number(r.quantidade),
           }));
 
+          // Buscar TODAS as etapas disponíveis para o dropdown (sem filtros de data/etapa)
+          const etapasDisponiveisResult = await server.database.query<{ etapa: string }>(
+            `SELECT DISTINCT
+               COALESCE(NULLIF(TRIM(pr.marcadores->>'funcao'), ''),
+                 CASE pr.etapa::text
+                   WHEN 'RECEBIMENTO' THEN 'Recebimento'
+                   WHEN 'PREPARACAO' THEN 'Preparação'
+                   WHEN 'DIGITALIZACAO' THEN 'Digitalização'
+                   WHEN 'CONFERENCIA' THEN 'Conferência'
+                   WHEN 'MONTAGEM' THEN 'Montagem'
+                   WHEN 'CONTROLE_QUALIDADE' THEN 'Reconferência'
+                   WHEN 'ENTREGA' THEN 'Entrega'
+                   ELSE pr.etapa::text
+                 END
+               ) AS etapa
+             FROM producao_repositorio pr
+             JOIN repositorios r ON r.id_repositorio_recorda = pr.repositorio_id
+             WHERE pr.usuario_id = $1
+             ORDER BY etapa`,
+            [user.id]
+          );
+
           // Get paginated data with repository info
           params.push(Number(limite), offset);
           const result = await server.database.query(
@@ -399,6 +421,7 @@ export function createMetasRoutes(): FastifyPluginAsync {
             quantidadeUltimos7Dias,
             producaoPorEtapa,
             producaoPorTipo,
+            etapasDisponiveis: etapasDisponiveisResult.rows.map((r) => r.etapa),
             pagina: Number(pagina),
             totalPaginas: Math.ceil(total / Number(limite)),
           });
