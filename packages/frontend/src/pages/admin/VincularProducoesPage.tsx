@@ -139,7 +139,20 @@ export function VincularProducoesPage(): JSX.Element {
               </div>
 
               <div className="space-y-2 max-h-96 overflow-y-auto">
-                {colaboradores?.map((colab) => (
+                {!colaboradores || colaboradores.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <Icon name="users" className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+                    <p className="text-sm">
+                      {loadingColaboradores ? 'Carregando...' : 'Nenhum colaborador encontrado no sistema legado'}
+                    </p>
+                    {!loadingColaboradores && (
+                      <p className="text-xs mt-1">
+                        Verifique se as produções foram importadas com colaborador_nome
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  colaboradores.map((colab) => (
                   <button
                     key={colab.nome}
                     onClick={() => {
@@ -231,7 +244,8 @@ export function VincularProducoesPage(): JSX.Element {
                       )}
                     </div>
                   </button>
-                ))}
+                  ))
+                )}
               </div>
             </div>
           </Card>
@@ -318,7 +332,10 @@ export function VincularProducoesPage(): JSX.Element {
               )}
 
               <div className="mt-6 flex items-center justify-end gap-3">
-                <Buttonsd                  disabled={vincularMutation.isPending || !mostrarPreview}
+                <Button
+                  variant="primary"
+                  onClick={handleVincular}
+                  disabled={vincularMutation.isPending || !mostrarPreview}
                 >
                   <Icon name="link" className="w-4 h-4" />
                   {vincularMutation.isPending ? 'Vinculando...' : 'Confirmar Vinculação'}
