@@ -135,7 +135,7 @@ export function createDashboardRoutes(): FastifyPluginAsync {
               `SELECT COALESCE(SUM(quantidade), 0)::text AS total
              FROM producao_repositorio
              WHERE data_producao >= $1
-               AND COALESCE(marcadores->>'origem', '') = 'LEGADO'
+               AND COALESCE(marcadores->>'origem', '') IN ('LEGADO', 'SISTEMA')
                AND etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')`,
               [inicioMes.toISOString()]
             ),
@@ -144,21 +144,21 @@ export function createDashboardRoutes(): FastifyPluginAsync {
              FROM producao_repositorio
              WHERE data_producao >= $1
                AND data_producao < $2
-               AND COALESCE(marcadores->>'origem', '') = 'LEGADO'
+               AND COALESCE(marcadores->>'origem', '') IN ('LEGADO', 'SISTEMA')
                AND etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')`,
               [inicioMesAnterior.toISOString(), inicioMes.toISOString()]
             ),
             server.database.query<{ total: string }>(
               `SELECT COUNT(DISTINCT p.repositorio_id)::text AS total
              FROM producao_repositorio p
-             WHERE COALESCE(p.marcadores->>'origem', '') = 'LEGADO'
+             WHERE COALESCE(p.marcadores->>'origem', '') IN ('LEGADO', 'SISTEMA')
                AND p.etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')`
             ),
             server.database.query<{ total: string }>(
               `SELECT COUNT(DISTINCT p.repositorio_id)::text AS total
              FROM producao_repositorio p
              WHERE p.data_producao >= $1
-               AND COALESCE(p.marcadores->>'origem', '') = 'LEGADO'
+               AND COALESCE(p.marcadores->>'origem', '') IN ('LEGADO', 'SISTEMA')
                AND p.etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')`,
               [inicioHoje.toISOString()]
             ),
@@ -184,7 +184,7 @@ export function createDashboardRoutes(): FastifyPluginAsync {
                COALESCE(SUM(p.quantidade), 0)::text AS valor
              FROM producao_repositorio p
              WHERE p.data_producao >= $1
-               AND COALESCE(p.marcadores->>'origem', '') = 'LEGADO'
+               AND COALESCE(p.marcadores->>'origem', '') IN ('LEGADO', 'SISTEMA')
                AND p.etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')
              GROUP BY 1
              ORDER BY
