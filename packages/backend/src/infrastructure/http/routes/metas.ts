@@ -273,12 +273,22 @@ export function createMetasRoutes(): FastifyPluginAsync {
 
           const where = conditions.join(' AND ');
 
-          // Count total
-          const countResult = await server.database.query<{ count: string }>(
-            `SELECT COUNT(*) as count FROM producao_repositorio pr WHERE ${where}`,
+          // Count total + stats agregados
+          const statsResult = await server.database.query<{
+            count: string;
+            total_quantidade: string;
+            registros_7dias: string;
+          }>(
+            `SELECT 
+               COUNT(*) as count,
+               COALESCE(SUM(pr.quantidade), 0)::text as total_quantidade,
+               COUNT(*) FILTER (WHERE pr.data_producao >= (CURRENT_DATE - INTERVAL '7 days'))::text as registros_7dias
+             FROM producao_repositorio pr WHERE ${where}`,
             params
           );
-          const total = Number(countResult.rows[0]?.count ?? 0);
+          const total = Number(statsResult.rows[0]?.count ?? 0);
+          const totalQuantidade = Number(statsResult.rows[0]?.total_quantidade ?? 0);
+          const registrosUltimos7Dias = Number(statsResult.rows[0]?.registros_7dias ?? 0);
 
           // Get paginated data with repository info
           params.push(Number(limite), offset);
@@ -303,6 +313,8 @@ export function createMetasRoutes(): FastifyPluginAsync {
           return reply.send({
             producoes: result.rows,
             total,
+            totalQuantidade,
+            registrosUltimos7Dias,
             pagina: Number(pagina),
             totalPaginas: Math.ceil(total / Number(limite)),
           });

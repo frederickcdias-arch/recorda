@@ -52,19 +52,15 @@ function DashboardColaborador(): JSX.Element {
 
   const { data, isLoading } = useQuery({
     queryKey: ['meu-historico'],
-    queryFn: () => api.get<{ producoes: ProducaoItem[]; total: number }>('/producao/meu-historico'),
+    queryFn: () => api.get<{ producoes: ProducaoItem[]; total: number; totalQuantidade?: number; registrosUltimos7Dias?: number }>('/producao/meu-historico'),
   });
 
   const producoes = data?.producoes ?? [];
   const producoesRecentes = producoes.slice(0, 10);
-  const totalProducoes = producoes.length;
-  const totalQuantidade = producoes.reduce((acc, p) => acc + p.quantidade, 0);
-
-  // Calcular produções dos últimos 7 dias
-  const seteDiasAtras = new Date();
-  seteDiasAtras.setDate(seteDiasAtras.getDate() - 7);
-  const producoesUltimos7Dias = producoes.filter(
-    (p) => new Date(p.data_producao) >= seteDiasAtras
+  const totalProducoes = data?.total ?? producoes.length;
+  const totalQuantidade = data?.totalQuantidade ?? producoes.reduce((acc, p) => acc + p.quantidade, 0);
+  const producoesUltimos7Dias = data?.registrosUltimos7Dias ?? producoes.filter(
+    (p) => new Date(p.data_producao) >= new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
   ).length;
 
   if (isLoading) {
