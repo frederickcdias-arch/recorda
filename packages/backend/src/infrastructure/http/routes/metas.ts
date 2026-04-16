@@ -404,7 +404,25 @@ export function createMetasRoutes(): FastifyPluginAsync {
                pr.marcadores,
                r.id_repositorio_ged,
                r.orgao,
-               r.projeto
+               r.projeto,
+               COALESCE(NULLIF(TRIM(pr.marcadores->>'funcao'), ''),
+                 CASE pr.etapa::text
+                   WHEN 'RECEBIMENTO' THEN 'Recebimento'
+                   WHEN 'PREPARACAO' THEN 'Preparação'
+                   WHEN 'DIGITALIZACAO' THEN 'Digitalização'
+                   WHEN 'CONFERENCIA' THEN 'Conferência'
+                   WHEN 'MONTAGEM' THEN 'Montagem'
+                   WHEN 'CONTROLE_QUALIDADE' THEN 'Reconferência'
+                   WHEN 'ENTREGA' THEN 'Entrega'
+                   ELSE pr.etapa::text
+                 END
+               ) AS etapa_label,
+               CASE 
+                 WHEN LOWER(COALESCE(NULLIF(TRIM(pr.marcadores->>'tipo'), ''), '')) LIKE '%imag%' THEN 'Imagens'
+                 WHEN LOWER(COALESCE(NULLIF(TRIM(pr.marcadores->>'tipo'), ''), '')) LIKE '%caix%' THEN 'Caixas'
+                 WHEN COALESCE(NULLIF(TRIM(pr.marcadores->>'tipo'), ''), '') = '' THEN 'Não informado'
+                 ELSE TRIM(pr.marcadores->>'tipo')
+               END AS tipo_label
              FROM producao_repositorio pr
              JOIN repositorios r ON r.id_repositorio_recorda = pr.repositorio_id
              WHERE ${where}

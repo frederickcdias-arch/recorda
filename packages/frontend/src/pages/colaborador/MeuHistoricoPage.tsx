@@ -11,6 +11,8 @@ interface ProducaoItem {
   id: string;
   data_producao: string;
   etapa: string;
+  etapa_label?: string;
+  tipo_label?: string;
   quantidade: number;
   id_repositorio_ged: string;
   marcadores?: Record<string, string>;
@@ -226,7 +228,8 @@ export function MeuHistoricoPage(): JSX.Element {
                   </tr>
                 ) : (
                   producoes.map((p) => {
-                    const cor = getEtapaCor(p.etapa);
+                    const label = p.etapa_label ?? p.etapa;
+                    const cor = getEtapaCor(label);
                     return (
                       <tr key={p.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 text-gray-900">
@@ -235,7 +238,7 @@ export function MeuHistoricoPage(): JSX.Element {
                         <td className="px-6 py-4 font-medium text-gray-900">{p.id_repositorio_ged}</td>
                         <td className="px-6 py-4">
                           <span className={`px-2 py-1 text-xs rounded-full ${cor.bg} ${cor.text}`}>
-                            {p.etapa}
+                            {label}
                           </span>
                         </td>
                         <td className="px-6 py-4 text-right font-medium text-gray-900">
