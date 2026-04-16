@@ -168,7 +168,9 @@ export function VincularProducoesPage(): JSX.Element {
                       {new Date(colab.ultima_producao).toLocaleDateString('pt-BR')}
                     </p>
                   </button>
-                }iv>
+                  ))
+                )}
+              </div>
             </div>
           </Card>
 
@@ -217,8 +219,7 @@ export function VincularProducoesPage(): JSX.Element {
                           <p className="text-xs text-gray-500 mt-1">
                             {usuario.coordenadoria_sigla} - {usuario.coordenadoria_nome}
                           </p>
-                    
-                )      )}
+                        )}
                         <p className="text-xs text-gray-500 mt-1">
                           {usuario.total_producoes_vinculadas} produções já vinculadas
                         </p>
