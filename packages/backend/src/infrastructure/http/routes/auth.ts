@@ -33,8 +33,9 @@ declare module '@fastify/jwt' {
   }
 }
 
-function perfilToPapel(perfil: string): 'ADMIN' | 'OPERADOR' {
+function perfilToPapel(perfil: string): 'ADMIN' | 'OPERADOR' | 'COLABORADOR' {
   if (perfil === 'administrador') return 'ADMIN';
+  if (perfil === 'colaborador') return 'COLABORADOR';
   if (perfil === 'supervisor') return 'OPERADOR';
   return 'OPERADOR';
 }
