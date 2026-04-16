@@ -464,6 +464,108 @@ export const authRoutes = fp(async (server: FastifyInstance): Promise<void> => {
     }
   );
 
+  // PUT /auth/usuarios/:id - Editar usuário (apenas administrador)
+  server.put<{
+    Params: { id: string };
+    Body: { nome?: string; email?: string; perfil?: string; coordenadoriaId?: string; senha?: string };
+  }>(
+    '/auth/usuarios/:id',
+    {
+      preHandler: [server.authenticate],
+    },
+    async (request, reply) => {
+      const user = request.user;
+
+      if (user.perfil !== 'administrador') {
+        return reply.status(403).send({ error: 'Apenas administradores podem editar usuários' });
+      }
+
+      const { id } = request.params;
+      const { nome, email, perfil, coordenadoriaId, senha } = request.body;
+
+      if (!nome && !email && !perfil && coordenadoriaId === undefined && !senha) {
+        return reply.status(400).send({ error: 'Nenhum campo para atualizar foi fornecido' });
+      }
+
+      try {
+        const updates: string[] = [];
+        const values: unknown[] = [];
+        let paramIndex = 1;
+
+        if (nome) {
+          updates.push(`nome = $${paramIndex++}`);
+          values.push(nome);
+        }
+
+        if (email) {
+          const existeResult = await server.database.query(
+            `SELECT id FROM usuarios WHERE email = $1 AND id != $2`,
+            [email.toLowerCase(), id]
+          );
+
+          if (existeResult.rows.length > 0) {
+            return reply.status(409).send({ error: 'E-mail já está em uso por outro usuário' });
+          }
+
+          updates.push(`email = $${paramIndex++}`);
+          values.push(email.toLowerCase());
+        }
+
+        if (perfil) {
+          if (!['colaborador', 'operador', 'administrador'].includes(perfil)) {
+            return reply.status(400).send({ error: 'Perfil inválido' });
+          }
+          updates.push(`perfil = $${paramIndex++}`);
+          values.push(perfil);
+        }
+
+        if (coordenadoriaId !== undefined) {
+          updates.push(`coordenadoria_id = $${paramIndex++}`);
+          values.push(coordenadoriaId || null);
+        }
+
+        if (senha) {
+          if (senha.length < 8) {
+            return reply.status(400).send({ error: 'Senha deve ter no mínimo 8 caracteres' });
+          }
+          const senhaHash = await bcrypt.hash(senha, 10);
+          updates.push(`senha_hash = $${paramIndex++}`);
+          values.push(senhaHash);
+        }
+
+        updates.push('atualizado_em = CURRENT_TIMESTAMP');
+        values.push(id);
+
+        const result = await server.database.query(
+          `UPDATE usuarios
+           SET ${updates.join(', ')}
+           WHERE id = $${paramIndex}
+           RETURNING id, nome, email, perfil, ativo, criado_em, coordenadoria_id`,
+          values
+        );
+
+        if (result.rows.length === 0) {
+          return reply.status(404).send({ error: 'Usuário não encontrado' });
+        }
+
+        const row = result.rows[0] as Record<string, unknown>;
+        return reply.send({
+          id: row.id as string,
+          nome: row.nome as string,
+          email: row.email as string,
+          perfil: row.perfil as string,
+          papel: perfilToPapel(row.perfil as string),
+          ativo: row.ativo as boolean,
+          criado_em: row.criado_em as string,
+          coordenadoriaId: row.coordenadoria_id as string | null,
+        });
+      } catch (error) {
+        request.log.error(error);
+        return reply.status(500).send({ error: 'Erro ao editar usuário' });
+      }
+    }
+  );
+
   // PATCH /auth/usuarios/:id/toggle-ativo - Ativar/desativar usuário (apenas administrador)
   server.patch<{ Params: { id: string } }>(
     '/auth/usuarios/:id/toggle-ativo',

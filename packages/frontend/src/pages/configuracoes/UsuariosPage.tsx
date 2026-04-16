@@ -7,6 +7,7 @@ import { PageState, ActionFeedback } from '../../components/ui/PageState';
 import {
   useUsuarios,
   useRegisterUsuario,
+  useUpdateUsuario,
   useToggleUsuarioAtivo,
   useQueryClient,
   queryKeys,
@@ -25,6 +26,7 @@ export function UsuariosPage(): JSX.Element {
   const queryClient = useQueryClient();
   const usuariosQuery = useUsuarios();
   const registerUsuario = useRegisterUsuario();
+  const updateUsuario = useUpdateUsuario();
   const toggleUsuarioAtivo = useToggleUsuarioAtivo();
   const usuarios = usuariosQuery.data?.usuarios ?? [];
   const carregando = usuariosQuery.isLoading;
@@ -39,6 +41,7 @@ export function UsuariosPage(): JSX.Element {
     null
   );
   const [modalAberto, setModalAberto] = useState(false);
+  const [usuarioEditando, setUsuarioEditando] = useState<Usuario | null>(null);
   const [formData, setFormData] = useState({
     email: '',
     nome: '',
@@ -49,21 +52,50 @@ export function UsuariosPage(): JSX.Element {
 
   const invalidate = () => void queryClient.invalidateQueries({ queryKey: queryKeys.usuarios });
 
+  const handleAbrirModalNovo = () => {
+    setUsuarioEditando(null);
+    setFormData({ email: '', nome: '', senha: '', perfil: 'operador' });
+    setModalAberto(true);
+  };
+
+  const handleAbrirModalEditar = (usuario: Usuario) => {
+    setUsuarioEditando(usuario);
+    setFormData({
+      email: usuario.email,
+      nome: usuario.nome,
+      senha: '',
+      perfil: usuario.papel === 'ADMIN' ? 'administrador' : usuario.papel.toLowerCase() as 'colaborador' | 'operador' | 'administrador',
+    });
+    setModalAberto(true);
+  };
+
   const handleSalvar = async () => {
-    if (!formData.email || !formData.nome || !formData.senha) {
+    if (!formData.email || !formData.nome || (!usuarioEditando && !formData.senha)) {
       setMensagem({ tipo: 'error', texto: 'Preencha todos os campos obrigatórios' });
       return;
     }
     setSalvando(true);
     try {
-      await registerUsuario.mutateAsync({
-        email: formData.email,
-        nome: formData.nome,
-        senha: formData.senha,
-        perfil: formData.perfil,
-      });
-      setMensagem({ tipo: 'success', texto: 'Usuário criado!' });
+      if (usuarioEditando) {
+        await updateUsuario.mutateAsync({
+          id: usuarioEditando.id,
+          nome: formData.nome,
+          email: formData.email,
+          perfil: formData.perfil,
+          ...(formData.senha && { senha: formData.senha }),
+        });
+        setMensagem({ tipo: 'success', texto: 'Usuário atualizado!' });
+      } else {
+        await registerUsuario.mutateAsync({
+          email: formData.email,
+          nome: formData.nome,
+          senha: formData.senha,
+          perfil: formData.perfil,
+        });
+        setMensagem({ tipo: 'success', texto: 'Usuário criado!' });
+      }
       setModalAberto(false);
+      setUsuarioEditando(null);
       setFormData({ email: '', nome: '', senha: '', perfil: 'operador' });
     } catch (error) {
       const message =
@@ -100,7 +132,7 @@ export function UsuariosPage(): JSX.Element {
             <h1 className="text-2xl font-bold text-gray-900">Usuários</h1>
             <p className="text-gray-500 mt-1">Gerencie os Usuários do sistema</p>
           </div>
-          <Button variant="primary" icon="plus" onClick={() => setModalAberto(true)}>
+          <Button variant="primary" icon="plus" onClick={handleAbrirModalNovo}>
             Novo Usuário
           </Button>
         </div>
@@ -164,16 +196,26 @@ export function UsuariosPage(): JSX.Element {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <button
-                          onClick={() => handleToggleAtivo(u)}
-                          className={
-                            u.ativo
-                              ? 'text-gray-400 hover:text-gray-700'
-                              : 'text-blue-600 hover:text-blue-800'
-                          }
-                        >
-                          <Icon name={u.ativo ? 'x' : 'check'} className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => handleAbrirModalEditar(u)}
+                            className="text-blue-600 hover:text-blue-800"
+                            title="Editar usuário"
+                          >
+                            <Icon name="edit" className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleToggleAtivo(u)}
+                            className={
+                              u.ativo
+                                ? 'text-gray-400 hover:text-gray-700'
+                                : 'text-green-600 hover:text-green-800'
+                            }
+                            title={u.ativo ? 'Desativar usuário' : 'Ativar usuário'}
+                          >
+                            <Icon name={u.ativo ? 'x' : 'check'} className="w-4 h-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -186,7 +228,7 @@ export function UsuariosPage(): JSX.Element {
         {modalAberto && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fade-in">
             <div className="bg-white rounded-xl p-6 max-w-md w-full shadow-2xl animate-scale-in">
-              <h3 className="text-lg font-semibold mb-4">Novo Usuário</h3>
+              <h3 className="text-lg font-semibold mb-4">{usuarioEditando ? 'Editar Usuário' : 'Novo Usuário'}</h3>
               <div className="space-y-4">
                 <Input
                   label="Nome"
@@ -200,10 +242,11 @@ export function UsuariosPage(): JSX.Element {
                   onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))}
                 />
                 <Input
-                  label="Senha"
+                  label={usuarioEditando ? 'Senha (deixe em branco para manter)' : 'Senha'}
                   type="password"
                   value={formData.senha}
                   onChange={(e) => setFormData((p) => ({ ...p, senha: e.target.value }))}
+                  required={!usuarioEditando}
                 />
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Papel</label>
@@ -228,7 +271,7 @@ export function UsuariosPage(): JSX.Element {
                   Cancelar
                 </Button>
                 <Button variant="primary" onClick={handleSalvar} loading={salvando}>
-                  Criar
+                  {usuarioEditando ? 'Salvar' : 'Criar'}
                 </Button>
               </div>
             </div>
