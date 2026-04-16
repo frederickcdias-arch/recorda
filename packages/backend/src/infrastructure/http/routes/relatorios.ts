@@ -505,6 +505,8 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
           const total = Number(countResult.rows[0]?.total ?? '0');
 
           if (total === 0) {
+            // Mesmo sem produções, limpar hashes de idempotencia para permitir re-importacao
+            await server.database.query('DELETE FROM importacao_fontes_linhas');
             return reply.send({
               message: 'Nenhum registro de produção importada para excluir',
               removidos: 0,
@@ -515,6 +517,8 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
             `DELETE FROM producao_repositorio
            WHERE COALESCE(marcadores->>'origem', '') = 'LEGADO'`
           );
+          // Limpar hashes de idempotencia para permitir re-importacao
+          await server.database.query('DELETE FROM importacao_fontes_linhas');
           return reply.send({
             message: 'Registros de produção importada foram excluídos',
             removidos: total,
