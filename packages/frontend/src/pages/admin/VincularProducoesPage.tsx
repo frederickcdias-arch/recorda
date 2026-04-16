@@ -47,26 +47,26 @@ export function VincularProducoesPage(): JSX.Element {
 
   const { data: colaboradores, isLoading: loadingColaboradores } = useQuery({
     queryKey: ['colaboradores-legado'],
-    queryFn: () => api.get<ColaboradorLegado[]>('/api/admin/colaboradores-legado'),
+    queryFn: () => api.get<ColaboradorLegado[]>('/admin/colaboradores-legado'),
   });
 
   const { data: usuarios, isLoading: loadingUsuarios } = useQuery({
     queryKey: ['usuarios-colaboradores'],
-    queryFn: () => api.get<UsuarioColaborador[]>('/api/admin/usuarios-colaboradores'),
+    queryFn: () => api.get<UsuarioColaborador[]>('/admin/usuarios-colaboradores'),
   });
 
   const { data: preview, isLoading: loadingPreview } = useQuery({
     queryKey: ['preview-vinculacao', colaboradorSelecionado, usuarioSelecionado],
     queryFn: () => 
       api.get<PreviewVinculacao>(
-        `/api/admin/preview-vinculacao/${encodeURIComponent(colaboradorSelecionado)}/${usuarioSelecionado}`
+        `/admin/preview-vinculacao/${encodeURIComponent(colaboradorSelecionado)}/${usuarioSelecionado}`
       ),
     enabled: mostrarPreview && !!colaboradorSelecionado && !!usuarioSelecionado,
   });
 
   const vincularMutation = useMutation({
     mutationFn: (data: { colaboradorNomeLegado: string; usuarioId: string }) =>
-      api.post('/api/admin/vincular-producoes', data),
+      api.post('/admin/vincular-producoes', data),
     onSuccess: (data: any) => {
       setMensagem({ tipo: 'success', texto: data.mensagem });
       setColaboradorSelecionado('');

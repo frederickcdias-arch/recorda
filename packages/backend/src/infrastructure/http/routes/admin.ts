@@ -9,9 +9,9 @@ interface VincularProducoesBody {
 
 export function createAdminRoutes(): FastifyPluginAsync {
   return async (server: FastifyInstance): Promise<void> => {
-    // GET /api/admin/colaboradores-legado - Listar colaboradores do sistema legado
+    // GET /admin/colaboradores-legado - Listar colaboradores do sistema legado
     server.get(
-      '/api/admin/colaboradores-legado',
+      '/admin/colaboradores-legado',
       {
         schema: {
           tags: ['admin'],
@@ -45,9 +45,9 @@ export function createAdminRoutes(): FastifyPluginAsync {
       }
     );
 
-    // GET /api/admin/usuarios-colaboradores - Listar usuários com perfil colaborador
+    // GET /admin/usuarios-colaboradores - Listar usuários com perfil colaborador
     server.get(
-      '/api/admin/usuarios-colaboradores',
+      '/admin/usuarios-colaboradores',
       {
         schema: {
           tags: ['admin'],
@@ -83,9 +83,9 @@ export function createAdminRoutes(): FastifyPluginAsync {
       }
     );
 
-    // POST /api/admin/vincular-producoes - Vincular produções legadas a usuário colaborador
+    // POST /admin/vincular-producoes - Vincular produções legadas a usuário colaborador
     server.post<{ Body: VincularProducoesBody }>(
-      '/api/admin/vincular-producoes',
+      '/admin/vincular-producoes',
       {
         schema: {
           tags: ['admin'],
@@ -173,9 +173,9 @@ export function createAdminRoutes(): FastifyPluginAsync {
       }
     );
 
-    // GET /api/admin/preview-vinculacao/:colaboradorNome/:usuarioId - Preview da vinculação
+    // GET /admin/preview-vinculacao/:colaboradorNome/:usuarioId - Preview da vinculação
     server.get<{ Params: { colaboradorNome: string; usuarioId: string } }>(
-      '/api/admin/preview-vinculacao/:colaboradorNome/:usuarioId',
+      '/admin/preview-vinculacao/:colaboradorNome/:usuarioId',
       {
         schema: {
           tags: ['admin'],
