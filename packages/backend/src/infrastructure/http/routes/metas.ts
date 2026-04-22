@@ -4,6 +4,7 @@ import { getCurrentUser } from './operacional-helpers.js';
 import { validateBody } from '../middleware/validate.js';
 import { lancarProducaoColaboradorSchema } from '../schemas/producao.js';
 import type { EtapaFluxo, StatusRepositorio } from '@recorda/shared';
+import { normalizeIdRepositorioGed } from './operacional-repositorios.js';
 
 export function createMetasRoutes(): FastifyPluginAsync {
   return async (server: FastifyInstance): Promise<void> => {
@@ -542,7 +543,8 @@ export function createMetasRoutes(): FastifyPluginAsync {
             ? parseInt(body.quantidade) || 1 
             : body.quantidade || 1;
 
-          const repoId = body.repositorio.trim();
+          const anoReferencia = body.data ? new Date(body.data).getFullYear() : undefined;
+          const repoId = normalizeIdRepositorioGed(body.repositorio.trim(), anoReferencia);
           const orgaoRepositorio = body.coordenadoria?.trim() || 'SGPA';
 
           // Mapa de etapa para status (igual importação legada)
@@ -624,6 +626,31 @@ export function createMetasRoutes(): FastifyPluginAsync {
             MONTAGEM: { ordem: 6, anterior: 'RECONFERENCIA' },
             ATENDIMENTO: { ordem: 7, anterior: 'MONTAGEM' },
           };
+
+          // Bloquear quando a mesma etapa já foi importada do legado para o repositório/coordenadoria.
+          const legadoExistente = await server.database.query(
+            `SELECT id
+             FROM producao_repositorio
+             WHERE repositorio_id = $1
+               AND etapa = $2
+               AND COALESCE(marcadores->>'origem', '') = 'LEGADO'
+               AND COALESCE(marcadores->>'coordenadoria', '') = $3
+             LIMIT 1`,
+            [repositorioId, body.etapa, body.coordenadoria?.trim() ?? '']
+          );
+
+          if (legadoExistente.rows.length > 0) {
+            return reply.status(409).send({
+              error: 'Produção já importada do legado',
+              message: `O repositório ${repoId} já possui produção legada na etapa ${body.etapa}.`,
+              detalhes: {
+                repositorio: repoId,
+                etapa: body.etapa,
+                coordenadoria: body.coordenadoria?.trim() || 'SGPA',
+                origemExistente: 'LEGADO',
+              },
+            });
+          }
 
           // Verificar se já existe registro idêntico NA MESMA ETAPA (previne duplicatas exatas)
           const tipoMarcador = (body.tipo ?? '').trim();

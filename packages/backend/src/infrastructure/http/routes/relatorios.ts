@@ -376,7 +376,10 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
           const offset = (pagina - 1) * limite;
 
           let where = `WHERE COALESCE(p.marcadores->>'origem', '') IN ('LEGADO', 'SISTEMA')
-          AND p.etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')`;
+          AND (
+            COALESCE(p.marcadores->>'origem', '') = 'SISTEMA'
+            OR p.etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')
+          )`;
           const params: (string | number)[] = [];
           let p = 1;
 
@@ -459,7 +462,10 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
            FROM producao_repositorio p
            JOIN usuarios u ON u.id = p.usuario_id
            WHERE COALESCE(p.marcadores->>'origem', '') IN ('LEGADO', 'SISTEMA')
-             AND p.etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')
+             AND (
+               COALESCE(p.marcadores->>'origem', '') = 'SISTEMA'
+               OR p.etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')
+             )
            ORDER BY nome`
           );
 
@@ -467,7 +473,10 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
             `SELECT DISTINCT etapa::text as etapa
            FROM producao_repositorio
            WHERE COALESCE(marcadores->>'origem', '') IN ('LEGADO', 'SISTEMA')
-             AND etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')
+             AND (
+               COALESCE(marcadores->>'origem', '') = 'SISTEMA'
+               OR etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')
+             )
            ORDER BY etapa`
           );
 

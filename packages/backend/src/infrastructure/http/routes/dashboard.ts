@@ -137,7 +137,10 @@ export function createDashboardRoutes(): FastifyPluginAsync {
              JOIN repositorios r ON r.id_repositorio_recorda = p.repositorio_id
              WHERE p.data_producao >= $1
                AND COALESCE(p.marcadores->>'origem', '') IN ('LEGADO', 'SISTEMA')
-               AND p.etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')`,
+               AND (
+                 COALESCE(p.marcadores->>'origem', '') = 'SISTEMA'
+                 OR p.etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')
+               )`,
               [inicioMes.toISOString()]
             ),
             server.database.query<{ total: string }>(
@@ -147,7 +150,10 @@ export function createDashboardRoutes(): FastifyPluginAsync {
              WHERE p.data_producao >= $1
                AND p.data_producao < $2
                AND COALESCE(p.marcadores->>'origem', '') IN ('LEGADO', 'SISTEMA')
-               AND p.etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')`,
+               AND (
+                 COALESCE(p.marcadores->>'origem', '') = 'SISTEMA'
+                 OR p.etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')
+               )`,
               [inicioMesAnterior.toISOString(), inicioMes.toISOString()]
             ),
             server.database.query<{ total: string }>(
@@ -155,7 +161,10 @@ export function createDashboardRoutes(): FastifyPluginAsync {
              FROM producao_repositorio p
              JOIN repositorios r ON r.id_repositorio_recorda = p.repositorio_id
              WHERE COALESCE(p.marcadores->>'origem', '') IN ('LEGADO', 'SISTEMA')
-               AND p.etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')`
+               AND (
+                 COALESCE(p.marcadores->>'origem', '') = 'SISTEMA'
+                 OR p.etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')
+               )`
             ),
             server.database.query<{ total: string }>(
               `SELECT COUNT(DISTINCT p.repositorio_id)::text AS total
@@ -163,7 +172,10 @@ export function createDashboardRoutes(): FastifyPluginAsync {
              JOIN repositorios r ON r.id_repositorio_recorda = p.repositorio_id
              WHERE p.data_producao >= $1
                AND COALESCE(p.marcadores->>'origem', '') IN ('LEGADO', 'SISTEMA')
-               AND p.etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')`,
+               AND (
+                 COALESCE(p.marcadores->>'origem', '') = 'SISTEMA'
+                 OR p.etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')
+               )`,
               [inicioHoje.toISOString()]
             ),
             server.database.query<{ total: string }>(
@@ -190,7 +202,10 @@ export function createDashboardRoutes(): FastifyPluginAsync {
              JOIN repositorios r ON r.id_repositorio_recorda = p.repositorio_id
              WHERE p.data_producao >= $1
                AND COALESCE(p.marcadores->>'origem', '') IN ('LEGADO', 'SISTEMA')
-               AND p.etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')
+               AND (
+                 COALESCE(p.marcadores->>'origem', '') = 'SISTEMA'
+                 OR p.etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')
+               )
              GROUP BY 1
              ORDER BY
                CASE UPPER(COALESCE(NULLIF(TRIM(p.marcadores->>'funcao'), ''),
