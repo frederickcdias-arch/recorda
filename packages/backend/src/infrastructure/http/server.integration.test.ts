@@ -199,6 +199,16 @@ function createMockDatabase(): DatabaseConnection & {
     ativo: true,
   });
 
+  usuarios.set('user-colab', {
+    id: 'user-colab',
+    nome: 'Colaborador Teste',
+    email: lowerEmail('colaborador@test.com'),
+    senha_hash: HASHED_PASSWORD,
+    perfil: 'colaborador',
+    coordenadoria_id: 'coord-1',
+    ativo: true,
+  });
+
   colaboradores.set('col-1', {
     id: 'col-1',
     nome: 'Colaborador 1',
@@ -331,6 +341,13 @@ function createMockDatabase(): DatabaseConnection & {
     ) {
       const seen = new Map<string, { id: string; nome: string }>();
       for (const repo of repositorios.values()) {
+        if (String(repo.projeto ?? '').trim().toUpperCase() === 'LEGADO') continue;
+        if (
+          text.includes("projeto NOT IN ('LEGADO', $1)") &&
+          String(repo.projeto ?? '').trim() === String(params?.[0] ?? '')
+        ) {
+          continue;
+        }
         const nome = String(repo.orgao ?? '').trim();
         if (!nome) continue;
         const key = nome.toLowerCase();
@@ -1602,6 +1619,20 @@ describe('HTTP server integration', () => {
     return loginResponse.json().accessToken as string;
   }
 
+  async function authenticateCollaborator(): Promise<string> {
+    const loginResponse = await server.inject({
+      method: 'POST',
+      url: '/auth/login',
+      payload: {
+        email: 'colaborador@test.com',
+        senha: 'SenhaSegura123',
+      },
+    });
+
+    expect(loginResponse.statusCode).toBe(200);
+    return loginResponse.json().accessToken as string;
+  }
+
   async function authenticateWithCredentials(
     email: string,
     senha: string
@@ -1914,6 +1945,35 @@ describe('HTTP server integration', () => {
       (u: any) => typeof u?.nome === 'string' && u.nome.trim().toLowerCase() === 'cinf'
     );
     expect(cinfMatches.length).toBe(1);
+  });
+
+  it('lista coordenadorias da importacao legada para colaborador em lancar producao', async () => {
+    const adminToken = await authenticate();
+
+    await server.inject({
+      method: 'POST',
+      url: '/operacional/repositorios',
+      headers: { authorization: `Bearer ${adminToken}` },
+      payload: {
+        idRepositorioGed: '000950/2026',
+        orgao: 'SGPA',
+        projeto: 'IMPORTACAO_PRODUCAO',
+        classificacaoId: '550e8400-e29b-41d4-a716-446655440000',
+      },
+    });
+
+    const collaboratorToken = await authenticateCollaborator();
+    const response = await server.inject({
+      method: 'GET',
+      url: '/operacional/orgaos-recebimento',
+      headers: { authorization: `Bearer ${collaboratorToken}` },
+    });
+
+    expect(response.statusCode).toBe(200);
+    const itens = response.json().itens;
+    expect(
+      itens.some((u: any) => typeof u?.nome === 'string' && u.nome.trim().toUpperCase() === 'SGPA')
+    ).toBe(true);
   });
 
   it('evita duplicatas no nome de projetos configuracao', async () => {

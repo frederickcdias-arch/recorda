@@ -160,7 +160,7 @@ export function createOperacionalRepositoriosRoutes(): FastifyPluginAsync {
           summary: 'Listar unidades para criacao de repositorio',
           security: [{ bearerAuth: [] }],
         },
-        preHandler: [server.authenticate, authorize('operador', 'administrador')],
+        preHandler: [server.authenticate, authorize('colaborador', 'operador', 'administrador')],
       },
       async (_request, reply) => {
         try {
@@ -175,12 +175,21 @@ export function createOperacionalRepositoriosRoutes(): FastifyPluginAsync {
              FROM repositorios
              WHERE orgao IS NOT NULL
                AND TRIM(orgao) <> ''
-               AND projeto NOT IN ('LEGADO', $1)
+               AND projeto <> 'LEGADO'
+           ),
+           unidades_legado AS (
+             SELECT DISTINCT
+               md5(LOWER(TRIM(p.marcadores->>'coordenadoria'))) AS id,
+               TRIM(p.marcadores->>'coordenadoria') AS nome
+             FROM producao_repositorio p
+             WHERE TRIM(COALESCE(p.marcadores->>'coordenadoria', '')) <> ''
            ),
            unidades_uniao AS (
              SELECT id, nome FROM unidades_config
              UNION ALL
              SELECT id, nome FROM unidades_historico
+             UNION ALL
+             SELECT id, nome FROM unidades_legado
            ),
            unidades_dedup AS (
              SELECT MIN(id) AS id, MIN(nome) AS nome
@@ -189,21 +198,36 @@ export function createOperacionalRepositoriosRoutes(): FastifyPluginAsync {
            )
            SELECT id, nome
            FROM unidades_dedup
-           ORDER BY LOWER(nome) ASC`,
-            [PROJETO_IMPORTACAO_PRODUCAO]
+           ORDER BY LOWER(nome) ASC`
           );
           return reply.send({ itens: result.rows });
         } catch (error) {
           const message = error instanceof Error ? error.message : 'Erro ao listar unidades';
           if (message.includes('unidades_recebimento')) {
             const fallbackResult = await server.database.query(
-              `SELECT DISTINCT md5(LOWER(TRIM(orgao))) AS id, TRIM(orgao) AS nome
-             FROM repositorios
-             WHERE orgao IS NOT NULL
-               AND TRIM(orgao) <> ''
-               AND projeto NOT IN ('LEGADO', $1)
-             ORDER BY nome ASC`,
-              [PROJETO_IMPORTACAO_PRODUCAO]
+              `WITH unidades_historico AS (
+                 SELECT DISTINCT md5(LOWER(TRIM(orgao))) AS id, TRIM(orgao) AS nome
+                 FROM repositorios
+                 WHERE orgao IS NOT NULL
+                   AND TRIM(orgao) <> ''
+                   AND projeto <> 'LEGADO'
+               ),
+               unidades_legado AS (
+                 SELECT DISTINCT
+                   md5(LOWER(TRIM(p.marcadores->>'coordenadoria'))) AS id,
+                   TRIM(p.marcadores->>'coordenadoria') AS nome
+                 FROM producao_repositorio p
+                 WHERE TRIM(COALESCE(p.marcadores->>'coordenadoria', '')) <> ''
+               ),
+               unidades_uniao AS (
+                 SELECT id, nome FROM unidades_historico
+                 UNION ALL
+                 SELECT id, nome FROM unidades_legado
+               )
+               SELECT MIN(id) AS id, MIN(nome) AS nome
+               FROM unidades_uniao
+               GROUP BY LOWER(TRIM(nome))
+               ORDER BY LOWER(MIN(nome)) ASC`
             );
             return reply.send({ itens: fallbackResult.rows });
           }
