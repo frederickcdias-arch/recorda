@@ -479,14 +479,8 @@ function DashboardContent({ data }: { data: DashboardData }): JSX.Element {
   );
 }
 
-export function DashboardPage(): JSX.Element {
-  const { usuario } = useAuth();
+function DashboardAdminPage(): JSX.Element {
   const { data, isLoading, error, refetch } = useDashboard();
-
-  // Se o usuário for colaborador, mostrar dashboard personalizado
-  if (usuario?.perfil === 'colaborador') {
-    return <DashboardColaborador />;
-  }
 
   const errorObj = error
     ? {
@@ -518,4 +512,15 @@ export function DashboardPage(): JSX.Element {
       {data ? <DashboardContent data={data} /> : null}
     </PageState>
   );
+}
+
+export function DashboardPage(): JSX.Element {
+  const { usuario } = useAuth();
+
+  // Se o usuário for colaborador, mostrar dashboard personalizado
+  if (usuario?.perfil === 'colaborador') {
+    return <DashboardColaborador />;
+  }
+
+  return <DashboardAdminPage />;
 }

@@ -83,6 +83,8 @@ export function MeuHistoricoPage(): JSX.Element {
   const totalQuantidade = data?.totalQuantidade ?? 0;
   const totalPaginas = data?.totalPaginas ?? 1;
   const etapasDisponiveis = data?.etapasDisponiveis ?? [];
+  const producaoPorEtapa = data?.producaoPorEtapa ?? [];
+  const maxQuantidadeEtapa = Math.max(...producaoPorEtapa.map((e) => e.quantidade), 1);
 
   const handleLimparFiltros = (): void => {
     setEtapaFiltro('');
@@ -145,6 +147,56 @@ export function MeuHistoricoPage(): JSX.Element {
             </div>
           </Card>
         </div>
+
+        {/* Resumo por etapa */}
+        <Card>
+          <div className="p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">Produção por Etapa</h2>
+              <p className="text-xs text-gray-500">
+                Mesmos filtros aplicados à tabela abaixo
+              </p>
+            </div>
+
+            {producaoPorEtapa.length === 0 ? (
+              <p className="text-gray-500 text-sm py-4">Nenhuma produção encontrada</p>
+            ) : (
+              <div className="space-y-3">
+                {producaoPorEtapa.map((item) => {
+                  const cor = getEtapaCor(item.etapa);
+                  const largura = Math.max((item.quantidade / maxQuantidadeEtapa) * 100, 2);
+
+                  return (
+                    <div key={item.etapa}>
+                      <div className="flex items-center justify-between text-sm mb-1.5">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${cor.bg} ${cor.text}`}
+                          >
+                            {item.etapa}
+                          </span>
+                          <span className="text-gray-400 text-xs">
+                            {item.registros.toLocaleString('pt-BR')} registro
+                            {item.registros !== 1 ? 's' : ''}
+                          </span>
+                        </div>
+                        <span className="font-semibold text-gray-900">
+                          {item.quantidade.toLocaleString('pt-BR')}
+                        </span>
+                      </div>
+                      <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-blue-500 rounded-full transition-all duration-700"
+                          style={{ width: `${largura}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </Card>
 
         {/* Filtros */}
         <Card>
