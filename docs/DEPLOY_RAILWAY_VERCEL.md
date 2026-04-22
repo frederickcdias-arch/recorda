@@ -28,7 +28,7 @@ git push
 1. Criar projeto Railway e conectar ao repositório.
 2. Service root: repositório raiz (`recorda`).
 3. Railway usa [railway.json](../railway.json):
-   - build: `npm run build --workspace=@recorda/shared && npm run build --workspace=@recorda/backend`
+   - build: `npm ci --include=dev && npm run build --workspace=@recorda/shared && npm run build --workspace=@recorda/backend`
    - start: `npm run start --workspace=@recorda/backend`
    - healthcheck: `/health`
 
