@@ -203,7 +203,7 @@ export function VincularProducoesPage(): JSX.Element {
                     </p>
                     {!loadingUsuarios && (
                       <p className="text-xs mt-1">
-                        Crie usuários com perfil "Colaborador" em Configurações → Usuários
+                        Crie usuários com perfil &quot;Colaborador&quot; em Configurações → Usuários
                       </p>
                     )}
                   </div>
