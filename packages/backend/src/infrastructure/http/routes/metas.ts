@@ -266,11 +266,8 @@ export function createMetasRoutes(): FastifyPluginAsync {
           }
 
           if (etapa) {
-            conditions.push(`(
-              pr.etapa::text = $${idx}
-              OR pr.etapa::text = UPPER(REPLACE(REPLACE($${idx}, 'ã', 'a'), 'ê', 'e'))
-              OR LOWER(TRIM(COALESCE(pr.marcadores->>'funcao', ''))) = LOWER($${idx})
-              OR LOWER(CASE pr.etapa::text
+            conditions.push(`LOWER(COALESCE(NULLIF(TRIM(pr.marcadores->>'funcao'), ''),
+              CASE pr.etapa::text
                 WHEN 'RECEBIMENTO' THEN 'Recebimento'
                 WHEN 'PREPARACAO' THEN 'Preparação'
                 WHEN 'DIGITALIZACAO' THEN 'Digitalização'
@@ -279,8 +276,8 @@ export function createMetasRoutes(): FastifyPluginAsync {
                 WHEN 'CONTROLE_QUALIDADE' THEN 'Reconferência'
                 WHEN 'ENTREGA' THEN 'Entrega'
                 ELSE pr.etapa::text
-              END) = LOWER($${idx})
-            )`);
+              END
+            )) = LOWER($${idx})`);
             params.push(etapa);
             idx++;
           }
@@ -731,3 +728,4 @@ export function createMetasRoutes(): FastifyPluginAsync {
     );
   };
 }
+
