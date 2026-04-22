@@ -28,9 +28,13 @@ git push
 1. Criar projeto Railway e conectar ao repositório.
 2. Service root: repositório raiz (`recorda`).
 3. Railway usa [railway.json](../railway.json):
-   - build: `npm ci --include=dev && npm run build --workspace=@recorda/shared && npm run build --workspace=@recorda/backend`
+   - builder: `NIXPACKS`
    - start: `npm run start --workspace=@recorda/backend`
    - healthcheck: `/health`
+4. A fase de build do Nixpacks é configurada em [nixpacks.toml](../nixpacks.toml):
+   - install: `npm ci --include=dev`
+   - build: `npm run build --workspace=@recorda/shared`
+   - build: `npm run build --workspace=@recorda/backend`
 
 ### Variáveis obrigatórias (Railway)
 
