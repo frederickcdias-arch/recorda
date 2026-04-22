@@ -20,7 +20,7 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "db:migrate": "npm run migrate --workspace=@recorda/backend",
     "db:bootstrap": "node scripts/db-bootstrap.js",
-    "prepare": "husky"
+    "prepare": "node scripts/prepare-husky.js"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^7.0.0",
