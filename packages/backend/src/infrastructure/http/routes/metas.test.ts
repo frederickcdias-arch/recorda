@@ -24,8 +24,8 @@ describe('POST /api/producao/lancar-direto', () => {
     await cleanupTestData(app);
   });
 
-  describe('✅ Casos de Sucesso', () => {
-    it('deve criar produção com sucesso', async () => {
+  describe('âœ… Casos de Sucesso', () => {
+    it('deve criar produÃ§Ã£o com sucesso', async () => {
       const response = await app.inject({
         method: 'POST',
         url: '/api/producao/lancar-direto',
@@ -42,12 +42,12 @@ describe('POST /api/producao/lancar-direto', () => {
 
       expect(response.statusCode).toBe(201);
       const body = response.json();
-      expect(body).toHaveProperty('message', 'Produção registrada com sucesso');
+      expect(body).toHaveProperty('message', 'ProduÃ§Ã£o registrada com sucesso');
       expect(body).toHaveProperty('producao');
       expect(body.producao).toHaveProperty('id');
     });
 
-    it('deve criar repositório automaticamente se não existir', async () => {
+    it('deve criar repositÃ³rio automaticamente se nÃ£o existir', async () => {
       const repoId = generateTestRepoId();
       
       const response = await app.inject({
@@ -63,7 +63,7 @@ describe('POST /api/producao/lancar-direto', () => {
 
       expect(response.statusCode).toBe(201);
 
-      // Verificar que repositório foi criado
+      // Verificar que repositÃ³rio foi criado
       const database = (app as any).database;
       const repo = await database.query(
         `SELECT * FROM repositorios WHERE id_repositorio_ged = $1`,
@@ -76,7 +76,7 @@ describe('POST /api/producao/lancar-direto', () => {
       expect(repo.rows[0].etapa_atual).toBe('RECEBIMENTO');
     });
 
-    it('deve criar checklist concluído automaticamente', async () => {
+    it('deve criar checklist concluÃ­do automaticamente', async () => {
       const repoId = generateTestRepoId();
       
       await app.inject({
@@ -107,7 +107,7 @@ describe('POST /api/producao/lancar-direto', () => {
     it('deve permitir mesma etapa com quantidade diferente', async () => {
       const repoId = generateTestRepoId();
 
-      // Primeiro lançamento
+      // Primeiro lanÃ§amento
       const response1 = await app.inject({
         method: 'POST',
         url: '/api/producao/lancar-direto',
@@ -120,7 +120,7 @@ describe('POST /api/producao/lancar-direto', () => {
       });
       expect(response1.statusCode).toBe(201);
 
-      // Segundo lançamento com quantidade diferente
+      // Segundo lanÃ§amento com quantidade diferente
       const response2 = await app.inject({
         method: 'POST',
         url: '/api/producao/lancar-direto',
@@ -144,7 +144,7 @@ describe('POST /api/producao/lancar-direto', () => {
       expect(Number(producoes.rows[0].total)).toBe(2);
     });
 
-    it('deve permitir mesmo repositório em coordenadorias diferentes', async () => {
+    it('deve permitir mesmo repositÃ³rio em coordenadorias diferentes', async () => {
       const repoId = generateTestRepoId();
 
       // CINF
@@ -176,7 +176,7 @@ describe('POST /api/producao/lancar-direto', () => {
       expect(response2.statusCode).toBe(201);
     });
 
-    it('deve permitir sequência correta de etapas', async () => {
+    it('deve permitir sequÃªncia correta de etapas', async () => {
       const repoId = generateTestRepoId();
       
       // 1. RECEBIMENTO
@@ -237,7 +237,7 @@ describe('POST /api/producao/lancar-direto', () => {
       expect(response.statusCode).toBe(201);
     });
 
-    it('deve usar coordenadoria padrão SGPA quando não informada', async () => {
+    it('deve usar coordenadoria padrÃ£o SGPA quando nÃ£o informada', async () => {
       const repoId = generateTestRepoId();
       
       const response = await app.inject({
@@ -253,7 +253,7 @@ describe('POST /api/producao/lancar-direto', () => {
 
       expect(response.statusCode).toBe(201);
 
-      // Verificar que repositório tem orgao = SGPA
+      // Verificar que repositÃ³rio tem orgao = SGPA
       const database = (app as any).database;
       const repo = await database.query(
         `SELECT orgao FROM repositorios WHERE id_repositorio_ged = $1`,
@@ -263,7 +263,7 @@ describe('POST /api/producao/lancar-direto', () => {
     });
   });
 
-  describe('❌ Casos de Erro', () => {
+  describe('âŒ Casos de Erro', () => {
     it('deve bloquear duplicata exata', async () => {
       const repoId = generateTestRepoId();
       const payload = {
@@ -273,7 +273,7 @@ describe('POST /api/producao/lancar-direto', () => {
         tipo: 'Imagens'
       };
 
-      // Primeiro lançamento
+      // Primeiro lanÃ§amento
       const response1 = await app.inject({
         method: 'POST',
         url: '/api/producao/lancar-direto',
@@ -292,11 +292,11 @@ describe('POST /api/producao/lancar-direto', () => {
 
       expect(response2.statusCode).toBe(409);
       const body = response2.json();
-      expect(body).toHaveProperty('error', 'Produção duplicada');
-      expect(body.message).toContain('Você já lançou esta produção');
+      expect(body).toHaveProperty('error', 'ProduÃ§Ã£o duplicada');
+      expect(body.message).toContain('VocÃª jÃ¡ lanÃ§ou esta produÃ§Ã£o');
     });
 
-    it('deve permitir o mesmo lan�amento quando feito por outro usu�rio', async () => {
+    it('deve permitir o mesmo lançamento quando feito por outro usuário', async () => {
       const repoId = generateTestRepoId();
       const payload = {
         repositorio: repoId,
@@ -323,7 +323,7 @@ describe('POST /api/producao/lancar-direto', () => {
 
       expect(response2.statusCode).toBe(201);
       const body = response2.json();
-      expect(body).toHaveProperty('message', 'Produ��o registrada com sucesso');
+      expect(body).toHaveProperty('message', 'Produção registrada com sucesso');
     });
 
     it('deve bloquear pulo de etapa', async () => {
@@ -355,11 +355,11 @@ describe('POST /api/producao/lancar-direto', () => {
 
       expect(response.statusCode).toBe(422);
       const body = response.json();
-      expect(body).toHaveProperty('error', 'Sequência de etapas inválida');
+      expect(body).toHaveProperty('error', 'SequÃªncia de etapas invÃ¡lida');
       expect(body.detalhes).toHaveProperty('etapaAnteriorNecessaria', 'PREPARACAO');
     });
 
-    it('deve avisar falta da etapa anterior mesmo quando o reposit�rio j� teve outro lan�amento', async () => {
+    it('deve avisar falta da etapa anterior mesmo quando o repositório já teve outro lançamento', async () => {
       const repoId = generateTestRepoId();
 
       const response1 = await app.inject({
@@ -389,11 +389,11 @@ describe('POST /api/producao/lancar-direto', () => {
 
       expect(response2.statusCode).toBe(422);
       const body = response2.json();
-      expect(body).toHaveProperty('error', 'Sequência de etapas inválida');
+      expect(body).toHaveProperty('error', 'SequÃªncia de etapas invÃ¡lida');
       expect(body.detalhes).toHaveProperty('etapaAnteriorNecessaria', 'PREPARACAO');
     });
 
-    it('deve rejeitar requisição sem autenticação', async () => {
+    it('deve rejeitar requisiÃ§Ã£o sem autenticaÃ§Ã£o', async () => {
       const response = await app.inject({
         method: 'POST',
         url: '/api/producao/lancar-direto',
@@ -406,13 +406,13 @@ describe('POST /api/producao/lancar-direto', () => {
       expect(response.statusCode).toBe(401);
     });
 
-    it('deve rejeitar dados inválidos do schema', async () => {
+    it('deve rejeitar dados invÃ¡lidos do schema', async () => {
       const response = await app.inject({
         method: 'POST',
         url: '/api/producao/lancar-direto',
         headers: { authorization: `Bearer ${colaboradorToken}` },
         payload: {
-          repositorio: '', // inválido
+          repositorio: '', // invÃ¡lido
           etapa: 'DIGITALIZACAO'
         }
       });
@@ -450,7 +450,7 @@ describe('POST /api/producao/lancar-direto', () => {
       expect(response.statusCode).toBe(400);
     });
 
-    it('deve rejeitar data em formato inválido', async () => {
+    it('deve rejeitar data em formato invÃ¡lido', async () => {
       const response = await app.inject({
         method: 'POST',
         url: '/api/producao/lancar-direto',
@@ -458,14 +458,14 @@ describe('POST /api/producao/lancar-direto', () => {
         payload: {
           repositorio: generateTestRepoId(),
           etapa: 'RECEBIMENTO',
-          data: '15/04/2026' // formato inválido
+          data: '15/04/2026' // formato invÃ¡lido
         }
       });
 
       expect(response.statusCode).toBe(400);
     });
 
-    it('deve rejeitar etapa inválida', async () => {
+    it('deve rejeitar etapa invÃ¡lida', async () => {
       const response = await app.inject({
         method: 'POST',
         url: '/api/producao/lancar-direto',
@@ -480,7 +480,7 @@ describe('POST /api/producao/lancar-direto', () => {
     });
   });
 
-  describe('🔒 Segurança', () => {
+  describe('ðŸ”’ SeguranÃ§a', () => {
     it('deve marcar origem como SISTEMA', async () => {
       const repoId = generateTestRepoId();
       
@@ -508,7 +508,7 @@ describe('POST /api/producao/lancar-direto', () => {
     });
 
     it('deve usar prepared statements (previne SQL injection)', async () => {
-      // Tentativa de SQL injection no repositório
+      // Tentativa de SQL injection no repositÃ³rio
       await app.inject({
         method: 'POST',
         url: '/api/producao/lancar-direto',
@@ -520,8 +520,8 @@ describe('POST /api/producao/lancar-direto', () => {
         }
       });
 
-      // Deve falhar na validação ou criar repositório com nome estranho
-      // Mas NÃO deve executar o DROP TABLE
+      // Deve falhar na validaÃ§Ã£o ou criar repositÃ³rio com nome estranho
+      // Mas NÃƒO deve executar o DROP TABLE
       const database = (app as any).database;
       const tabelas = await database.query(
         `SELECT table_name FROM information_schema.tables 
@@ -559,7 +559,7 @@ describe('POST /api/producao/lancar-direto', () => {
     });
   });
 
-  describe('📊 Marcadores JSONB', () => {
+  describe('ðŸ“Š Marcadores JSONB', () => {
     it('deve salvar todos marcadores corretamente', async () => {
       const repoId = generateTestRepoId();
       
