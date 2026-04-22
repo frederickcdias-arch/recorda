@@ -5,12 +5,14 @@ import { buildTestServer, getTestToken, cleanupTestData, generateTestRepoId } fr
 describe('POST /api/producao/lancar-direto', () => {
   let app: FastifyInstance;
   let colaboradorToken: string;
+  let operadorToken: string;
 
   beforeAll(async () => {
     app = await buildTestServer();
     
     // Obter token de teste
     colaboradorToken = await getTestToken(app, 'colaborador');
+    operadorToken = await getTestToken(app, 'operador');
   });
 
   afterAll(async () => {
@@ -294,10 +296,39 @@ describe('POST /api/producao/lancar-direto', () => {
       expect(body.message).toContain('VocÃª jÃ¡ lanÃ§ou esta produÃ§Ã£o');
     });
 
+    it('deve permitir o mesmo lançamento quando feito por outro usuário', async () => {
+      const repoId = generateTestRepoId();
+      const payload = {
+        repositorio: repoId,
+        etapa: 'RECEBIMENTO',
+        coordenadoria: 'CINF',
+        quantidade: 10,
+        tipo: 'Imagens'
+      };
+
+      const response1 = await app.inject({
+        method: 'POST',
+        url: '/api/producao/lancar-direto',
+        headers: { authorization: `Bearer ${colaboradorToken}` },
+        payload
+      });
+      expect(response1.statusCode).toBe(201);
+
+      const response2 = await app.inject({
+        method: 'POST',
+        url: '/api/producao/lancar-direto',
+        headers: { authorization: `Bearer ${operadorToken}` },
+        payload
+      });
+
+      expect(response2.statusCode).toBe(201);
+      const body = response2.json();
+      expect(body).toHaveProperty('message', 'Produção registrada com sucesso');
+    });
+
     it('deve bloquear pulo de etapa', async () => {
       const repoId = generateTestRepoId();
 
-      // Apenas RECEBIMENTO
       await app.inject({
         method: 'POST',
         url: '/api/producao/lancar-direto',
@@ -310,7 +341,6 @@ describe('POST /api/producao/lancar-direto', () => {
         }
       });
 
-      // Tenta pular para DIGITALIZACAO (sem PREPARACAO)
       const response = await app.inject({
         method: 'POST',
         url: '/api/producao/lancar-direto',
@@ -325,6 +355,40 @@ describe('POST /api/producao/lancar-direto', () => {
 
       expect(response.statusCode).toBe(422);
       const body = response.json();
+      expect(body).toHaveProperty('error', 'SequÃªncia de etapas invÃ¡lida');
+      expect(body.detalhes).toHaveProperty('etapaAnteriorNecessaria', 'PREPARACAO');
+    });
+
+    it('deve avisar falta da etapa anterior mesmo quando o repositório já teve outro lançamento', async () => {
+      const repoId = generateTestRepoId();
+
+      const response1 = await app.inject({
+        method: 'POST',
+        url: '/api/producao/lancar-direto',
+        headers: { authorization: `Bearer ${colaboradorToken}` },
+        payload: {
+          repositorio: repoId,
+          etapa: 'RECEBIMENTO',
+          coordenadoria: 'CINF',
+          quantidade: 1
+        }
+      });
+      expect(response1.statusCode).toBe(201);
+
+      const response2 = await app.inject({
+        method: 'POST',
+        url: '/api/producao/lancar-direto',
+        headers: { authorization: `Bearer ${operadorToken}` },
+        payload: {
+          repositorio: repoId,
+          etapa: 'DIGITALIZACAO',
+          coordenadoria: 'CINF',
+          quantidade: 1
+        }
+      });
+
+      expect(response2.statusCode).toBe(422);
+      const body = response2.json();
       expect(body).toHaveProperty('error', 'SequÃªncia de etapas invÃ¡lida');
       expect(body.detalhes).toHaveProperty('etapaAnteriorNecessaria', 'PREPARACAO');
     });
