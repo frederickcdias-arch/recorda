@@ -13,7 +13,7 @@ export function createColaboradoresRoutes(): FastifyPluginAsync {
     // GET /colaboradores - Listar colaboradores com paginação
     // GET /api/coordenadorias - Listar coordenadorias ativas
     server.get(
-      '/api/coordenadorias',
+      '/coordenadorias',
       {
         schema: {
           tags: ['colaboradores'],
@@ -53,7 +53,7 @@ export function createColaboradoresRoutes(): FastifyPluginAsync {
     );
 
     server.get(
-      '/api/colaboradores',
+      '/colaboradores',
       {
         schema: {
           tags: ['colaboradores'],
@@ -148,9 +148,9 @@ export function createColaboradoresRoutes(): FastifyPluginAsync {
       }
     );
 
-    // POST /api/colaboradores - Criar colaborador (apenas admin)
+    // POST /colaboradores - Criar colaborador (apenas admin)
     server.post<{ Body: CriarColaboradorBody }>(
-      '/api/colaboradores',
+      '/colaboradores',
       {
         preHandler: [server.authenticate, authorize('administrador')],
       },
@@ -198,9 +198,9 @@ export function createColaboradoresRoutes(): FastifyPluginAsync {
       }
     );
 
-    // PUT /api/colaboradores/:id - Atualizar colaborador (apenas admin)
+    // PUT /colaboradores/:id - Atualizar colaborador (apenas admin)
     server.put<{ Params: { id: string }; Body: CriarColaboradorBody }>(
-      '/api/colaboradores/:id',
+      '/colaboradores/:id',
       {
         preHandler: [server.authenticate, authorize('administrador')],
       },
@@ -251,9 +251,9 @@ export function createColaboradoresRoutes(): FastifyPluginAsync {
       }
     );
 
-    // PATCH /api/colaboradores/:id/toggle-ativo - Ativar/desativar colaborador (apenas admin)
+    // PATCH /colaboradores/:id/toggle-ativo - Ativar/desativar colaborador (apenas admin)
     server.patch<{ Params: { id: string } }>(
-      '/api/colaboradores/:id/toggle-ativo',
+      '/colaboradores/:id/toggle-ativo',
       {
         preHandler: [server.authenticate, authorize('administrador')],
       },
@@ -278,9 +278,9 @@ export function createColaboradoresRoutes(): FastifyPluginAsync {
       }
     );
 
-    // GET /api/colaboradores/:id - Buscar colaborador por ID
+    // GET /colaboradores/:id - Buscar colaborador por ID
     server.get<{ Params: { id: string } }>(
-      '/api/colaboradores/:id',
+      '/colaboradores/:id',
       {
         preHandler: [server.authenticate],
       },

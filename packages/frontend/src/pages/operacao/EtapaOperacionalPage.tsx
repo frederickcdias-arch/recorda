@@ -146,6 +146,11 @@ export function EtapaOperacionalPage(): JSX.Element {
   const queryClient = useQueryClient();
   const [processando, setProcessando] = useState(false);
   const [processandoCsv, setProcessandoCsv] = useState(false);
+  const [etiquetaPdfFiles, setEtiquetaPdfFiles] = useState<File[]>([]);
+  const [etiquetaPdfInputKey, setEtiquetaPdfInputKey] = useState(0);
+  const [etiquetaPdfProcessando, setEtiquetaPdfProcessando] = useState(false);
+  const [previewEtiquetasUrl, setPreviewEtiquetasUrl] = useState<string | null>(null);
+  const [previewEtiquetasFilename, setPreviewEtiquetasFilename] = useState<string | null>(null);
 
   const [pagina, setPagina] = useState(1);
   const [filtroBusca, setFiltroBusca] = useState('');
@@ -357,6 +362,66 @@ export function EtapaOperacionalPage(): JSX.Element {
 
   const showSuccess = (texto: string): void => toast.success(texto);
   const showError = (texto: string): void => toast.error(texto);
+
+  const handleFecharPreviewEtiquetas = (): void => {
+    if (previewEtiquetasUrl) {
+      URL.revokeObjectURL(previewEtiquetasUrl);
+    }
+    setPreviewEtiquetasUrl(null);
+    setPreviewEtiquetasFilename(null);
+  };
+
+  const handleDownloadPreviewEtiquetas = (): void => {
+    if (!previewEtiquetasUrl) return;
+
+    const link = document.createElement('a');
+    link.href = previewEtiquetasUrl;
+    link.download = previewEtiquetasFilename ?? 'etiquetas-4-por-folha.pdf';
+    link.click();
+  };
+
+  const handleCompactarEtiquetasPdf = async (): Promise<void> => {
+    if (etiquetaPdfFiles.length === 0) {
+      showError('Selecione um ou mais PDFs de etiquetas para processar.');
+      return;
+    }
+
+    try {
+      setEtiquetaPdfProcessando(true);
+      const formData = new FormData();
+      etiquetaPdfFiles.forEach((file) => formData.append('arquivo', file));
+
+      const response = await api.fetchWithAuth('/operacional/etiquetas/compactar', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(errorData?.error ?? 'Erro ao processar PDF de etiquetas.');
+      }
+
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const baseName = etiquetaPdfFiles[0]!.name.toLowerCase().endsWith('.pdf')
+        ? etiquetaPdfFiles[0]!.name.slice(0, -4)
+        : etiquetaPdfFiles[0]!.name;
+      const filename = `${baseName || 'etiquetas'}-4-por-folha.pdf`;
+
+      if (previewEtiquetasUrl) {
+        URL.revokeObjectURL(previewEtiquetasUrl);
+      }
+      setPreviewEtiquetasUrl(downloadUrl);
+      setPreviewEtiquetasFilename(filename);
+      setEtiquetaPdfFiles([]);
+      setEtiquetaPdfInputKey((current) => current + 1);
+      showSuccess('PDF processado. Confira a visualização antes de imprimir.');
+    } catch (error) {
+      showError(extractErrorMessage(error, 'Erro ao processar PDF de etiquetas'));
+    } finally {
+      setEtiquetaPdfProcessando(false);
+    }
+  };
 
   const handleCriarUnidadeRapida = async (): Promise<void> => {
     const nomeUnidade = novaUnidadeInput.trim();
@@ -855,6 +920,47 @@ export function EtapaOperacionalPage(): JSX.Element {
 
             {recebSubTab === 'repositorios' ? (
               <div className="space-y-6 pb-24 md:pb-0">
+                <Card>
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                    <div className="max-w-2xl">
+                      <h2 className="text-lg font-semibold text-gray-900">
+                        Etiquetas de localização
+                      </h2>
+                      <p className="mt-1 text-sm text-gray-600">
+                        Envie vários PDFs de etiquetas para o sistema agrupar 4 por folha, em
+                        layout vertical: 1, 2, 3 e 4 na primeira folha; 5, 6, 7 e 8 na segunda.
+                      </p>
+                    </div>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          PDFs de etiquetas
+                        </label>
+                        <input
+                          key={etiquetaPdfInputKey}
+                          type="file"
+                          accept="application/pdf,.pdf"
+                          multiple
+                          className="block w-full text-sm text-gray-700 file:mr-3 file:rounded-md file:border-0 file:bg-gray-100 file:px-3 file:py-2 file:text-sm file:font-medium file:text-gray-700 hover:file:bg-gray-200"
+                          onChange={(e) => setEtiquetaPdfFiles(Array.from(e.target.files ?? []))}
+                        />
+                        {etiquetaPdfFiles.length > 0 ? (
+                          <p className="mt-1 text-xs text-gray-500">
+                            {etiquetaPdfFiles.length} arquivo(s) selecionado(s).
+                          </p>
+                        ) : null}
+                      </div>
+                      <Button
+                        onClick={() => void handleCompactarEtiquetasPdf()}
+                        loading={etiquetaPdfProcessando}
+                        disabled={etiquetaPdfFiles.length === 0 || etiquetaPdfProcessando}
+                      >
+                        Gerar PDF 4 por folha
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+
                 <Card>
                   <h2 className="text-lg font-semibold text-gray-900 mb-4">Criar repositório</h2>
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
@@ -2320,6 +2426,44 @@ export function EtapaOperacionalPage(): JSX.Element {
                   src={previewTermoUrl}
                   className="w-full h-full border-0"
                   title="Preview do Termo de Recebimento"
+                />
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {previewEtiquetasUrl ? (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in">
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl h-[85vh] flex flex-col overflow-hidden animate-scale-in">
+              <div className="px-6 py-4 border-b flex items-center justify-between shrink-0">
+                <h3 className="text-lg font-semibold text-gray-900">Pré-visualização das Etiquetas</h3>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => {
+                      const iframe = document.getElementById(
+                        'etiquetas-preview-iframe'
+                      ) as HTMLIFrameElement | null;
+                      if (iframe?.contentWindow) iframe.contentWindow.print();
+                    }}
+                  >
+                    Imprimir
+                  </Button>
+                  <Button size="sm" onClick={() => handleDownloadPreviewEtiquetas()}>
+                    Baixar PDF
+                  </Button>
+                  <Button size="sm" variant="secondary" onClick={handleFecharPreviewEtiquetas}>
+                    Fechar
+                  </Button>
+                </div>
+              </div>
+              <div className="flex-1 min-h-0">
+                <iframe
+                  id="etiquetas-preview-iframe"
+                  src={previewEtiquetasUrl}
+                  className="w-full h-full border-0"
+                  title="Pré-visualização das etiquetas"
                 />
               </div>
             </div>

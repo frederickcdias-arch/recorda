@@ -5,6 +5,7 @@ import { createOperacionalAvulsosRoutes } from './operacional-avulsos.js';
 import { createOperacionalImportacaoLegadoRoutes } from './operacional-importacao-legado.js';
 import { createOperacionalChecklistsRoutes } from './operacional-checklists.js';
 import { createOperacionalCQRoutes } from './operacional-cq.js';
+import { createOperacionalEtiquetasRoutes } from './operacional-etiquetas.js';
 
 /**
  * Orchestrator that registers all operational sub-route modules.
@@ -24,5 +25,6 @@ export function createOperacionalRoutes(): FastifyPluginAsync {
     await server.register(createOperacionalImportacaoLegadoRoutes());
     await server.register(createOperacionalChecklistsRoutes());
     await server.register(createOperacionalCQRoutes());
+    await server.register(createOperacionalEtiquetasRoutes());
   };
 }
