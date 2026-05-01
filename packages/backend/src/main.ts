@@ -7,7 +7,7 @@ import { logger } from './infrastructure/logging/logger.js';
 dotenv.config();
 
 if (!process.env.TZ) {
-  process.env.TZ = 'America/Sao_Paulo';
+  process.env.TZ = 'America/Cuiaba';
 }
 
 async function cleanupExpiredTokens(

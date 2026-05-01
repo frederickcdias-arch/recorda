@@ -1,5 +1,11 @@
 ﻿import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { authorize } from '../middleware/auth.js';
+import {
+  buildProducaoContabilizadaWhere,
+  sqlDateInSystemTimezone,
+  sqlMonthStartInSystemTimezone,
+  sqlTodayInSystemTimezone,
+} from '../../../domain/producao/producao-metrics.js';
 
 interface ProducaoPorEtapa {
   etapa: string;
@@ -111,10 +117,10 @@ export function createDashboardRoutes(): FastifyPluginAsync {
       },
       async (_request, reply) => {
         try {
-          const agora = new Date();
-          const inicioMes = new Date(agora.getFullYear(), agora.getMonth(), 1);
-          const inicioMesAnterior = new Date(agora.getFullYear(), agora.getMonth() - 1, 1);
-          const inicioHoje = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate());
+          const producaoContabilizadaWhere = buildProducaoContabilizadaWhere('p');
+          const dataProducaoLocal = sqlDateInSystemTimezone('p');
+          const inicioMes = sqlMonthStartInSystemTimezone();
+          const inicioHoje = sqlTodayInSystemTimezone();
 
           const [
             producaoMesAtualResult,
@@ -135,48 +141,29 @@ export function createDashboardRoutes(): FastifyPluginAsync {
               `SELECT COALESCE(SUM(p.quantidade), 0)::text AS total
              FROM producao_repositorio p
              JOIN repositorios r ON r.id_repositorio_recorda = p.repositorio_id
-             WHERE p.data_producao >= $1
-               AND COALESCE(p.marcadores->>'origem', '') IN ('LEGADO', 'SISTEMA')
-               AND (
-                 COALESCE(p.marcadores->>'origem', '') = 'SISTEMA'
-                 OR p.etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')
-               )`,
-              [inicioMes.toISOString()]
+             WHERE ${dataProducaoLocal} >= ${inicioMes}
+               AND ${producaoContabilizadaWhere}`
             ),
             server.database.query<{ total: string }>(
               `SELECT COALESCE(SUM(p.quantidade), 0)::text AS total
              FROM producao_repositorio p
              JOIN repositorios r ON r.id_repositorio_recorda = p.repositorio_id
-             WHERE p.data_producao >= $1
-               AND p.data_producao < $2
-               AND COALESCE(p.marcadores->>'origem', '') IN ('LEGADO', 'SISTEMA')
-               AND (
-                 COALESCE(p.marcadores->>'origem', '') = 'SISTEMA'
-                 OR p.etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')
-               )`,
-              [inicioMesAnterior.toISOString(), inicioMes.toISOString()]
+             WHERE ${dataProducaoLocal} >= (${inicioMes} - INTERVAL '1 month')::date
+               AND ${dataProducaoLocal} < ${inicioMes}
+               AND ${producaoContabilizadaWhere}`
             ),
             server.database.query<{ total: string }>(
               `SELECT COUNT(DISTINCT p.repositorio_id)::text AS total
              FROM producao_repositorio p
              JOIN repositorios r ON r.id_repositorio_recorda = p.repositorio_id
-             WHERE COALESCE(p.marcadores->>'origem', '') IN ('LEGADO', 'SISTEMA')
-               AND (
-                 COALESCE(p.marcadores->>'origem', '') = 'SISTEMA'
-                 OR p.etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')
-               )`
+             WHERE ${producaoContabilizadaWhere}`
             ),
             server.database.query<{ total: string }>(
               `SELECT COUNT(DISTINCT p.repositorio_id)::text AS total
              FROM producao_repositorio p
              JOIN repositorios r ON r.id_repositorio_recorda = p.repositorio_id
-             WHERE p.data_producao >= $1
-               AND COALESCE(p.marcadores->>'origem', '') IN ('LEGADO', 'SISTEMA')
-               AND (
-                 COALESCE(p.marcadores->>'origem', '') = 'SISTEMA'
-                 OR p.etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')
-               )`,
-              [inicioHoje.toISOString()]
+             WHERE ${dataProducaoLocal} = ${inicioHoje}
+               AND ${producaoContabilizadaWhere}`
             ),
             server.database.query<{ total: string }>(
               `SELECT COUNT(*)::text AS total
@@ -200,12 +187,8 @@ export function createDashboardRoutes(): FastifyPluginAsync {
                COALESCE(SUM(p.quantidade), 0)::text AS valor
              FROM producao_repositorio p
              JOIN repositorios r ON r.id_repositorio_recorda = p.repositorio_id
-             WHERE p.data_producao >= $1
-               AND COALESCE(p.marcadores->>'origem', '') IN ('LEGADO', 'SISTEMA')
-               AND (
-                 COALESCE(p.marcadores->>'origem', '') = 'SISTEMA'
-                 OR p.etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')
-               )
+             WHERE ${dataProducaoLocal} >= ${inicioMes}
+               AND ${producaoContabilizadaWhere}
              GROUP BY 1
              ORDER BY
                CASE UPPER(COALESCE(NULLIF(TRIM(p.marcadores->>'funcao'), ''),
@@ -233,8 +216,7 @@ export function createDashboardRoutes(): FastifyPluginAsync {
                  WHEN 'RECONFERENCIA' THEN 7
                  WHEN 'ENTREGA' THEN 8
                  ELSE 99
-               END`,
-              [inicioMes.toISOString()]
+               END`
             ),
             server.database.query<{ total: string }>(
               `SELECT COUNT(*)::text AS total

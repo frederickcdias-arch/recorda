@@ -43,12 +43,12 @@ export function getCurrentUser(request: { user?: unknown }): { id: string; perfi
 }
 
 /**
- * Returns the current date in Brazil timezone (America/Sao_Paulo) as YYYY-MM-DD string.
+ * Returns the current date in the official Recorda timezone (America/Cuiaba) as YYYY-MM-DD string.
  * This avoids timezone issues when the server runs in UTC but users are in Brazil.
  */
 export function getBrazilDateString(): string {
   const now = new Date();
-  const brazilDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+  const brazilDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/Cuiaba' }));
   const year = brazilDate.getFullYear();
   const month = String(brazilDate.getMonth() + 1).padStart(2, '0');
   const day = String(brazilDate.getDate()).padStart(2, '0');

@@ -10,6 +10,7 @@ import {
   useGerarTermoCorrecao,
   useGerarTermoDevolucao,
   useGerarTermoDevolucaoMulti,
+  useRepositoriosControleQualidade,
   useQueryClient,
   queryKeys,
 } from '../../hooks/useQueries';
@@ -61,6 +62,8 @@ export function ControleQualidadePanel({
   busy = false,
   setBusy,
 }: ControleQualidadePanelProps): JSX.Element {
+  const reposCQQuery = useRepositoriosControleQualidade();
+  const todosRepositoriosCQ = reposCQQuery.data ?? repositoriosDisponiveis;
   const [repoSelecionadoId, setRepoSelecionadoId] = useState('');
   const [docs, setDocs] = useState<CQDocItem[]>([]);
   const [resumo, setResumo] = useState<CQResumo>({
@@ -90,7 +93,7 @@ export function ControleQualidadePanel({
   const termoDevolucaoMultiMut = useGerarTermoDevolucaoMulti();
   const queryClient = useQueryClient();
 
-  const repoSelecionado = repositoriosDisponiveis.find(
+  const repoSelecionado = todosRepositoriosCQ.find(
     (r) => r.id_repositorio_recorda === repoSelecionadoId
   );
   const isConcluido =
@@ -306,14 +309,13 @@ export function ControleQualidadePanel({
   });
 
   const reposPorStatus = {
-    AGUARDANDO_CQ_LOTE: repositoriosDisponiveis.filter(
-      (r) => r.status_atual === 'AGUARDANDO_CQ_LOTE'
-    ).length,
-    CQ_APROVADO: repositoriosDisponiveis.filter((r) => r.status_atual === 'CQ_APROVADO').length,
-    CQ_REPROVADO: repositoriosDisponiveis.filter((r) => r.status_atual === 'CQ_REPROVADO').length,
+    AGUARDANDO_CQ_LOTE: todosRepositoriosCQ.filter((r) => r.status_atual === 'AGUARDANDO_CQ_LOTE')
+      .length,
+    CQ_APROVADO: todosRepositoriosCQ.filter((r) => r.status_atual === 'CQ_APROVADO').length,
+    CQ_REPROVADO: todosRepositoriosCQ.filter((r) => r.status_atual === 'CQ_REPROVADO').length,
   };
 
-  const reposFiltrados = repositoriosDisponiveis.filter((repo) => {
+  const reposFiltrados = todosRepositoriosCQ.filter((repo) => {
     const matchStatus = filtroRepo === 'TODOS' || repo.status_atual === filtroRepo;
     const matchBusca =
       buscaRepo === '' ||
@@ -322,7 +324,7 @@ export function ControleQualidadePanel({
     return matchStatus && matchBusca;
   });
 
-  const reposAprovados = repositoriosDisponiveis.filter((r) => r.status_atual === 'CQ_APROVADO');
+  const reposAprovados = todosRepositoriosCQ.filter((r) => r.status_atual === 'CQ_APROVADO');
 
   return (
     <div className="space-y-6">
@@ -396,7 +398,7 @@ export function ControleQualidadePanel({
       <Card>
         <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
           <h2 className="text-lg font-semibold text-gray-900">Repositorios</h2>
-          <span className="text-xs text-gray-400">{repositoriosDisponiveis.length} total</span>
+          <span className="text-xs text-gray-400">{todosRepositoriosCQ.length} total</span>
         </div>
         <div className="flex flex-wrap gap-2 mb-3">
           <input
@@ -408,7 +410,7 @@ export function ControleQualidadePanel({
           />
           {(
             [
-              { key: 'TODOS', label: `Todos (${repositoriosDisponiveis.length})` },
+              { key: 'TODOS', label: `Todos (${todosRepositoriosCQ.length})` },
               {
                 key: 'AGUARDANDO_CQ_LOTE',
                 label: `Pendentes (${reposPorStatus.AGUARDANDO_CQ_LOTE})`,

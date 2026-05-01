@@ -170,7 +170,7 @@ test: adicionar testes E2E para lançamento de produção
 
 - [Guia de Contribuição](CONTRIBUTING.md)
 - [Código de Conduta](CODE_OF_CONDUCT.md)
-- [Documentação Completa](docs/README.md)
+- [Documentação Completa](README.md)
 - [Issues](https://github.com/seu-usuario/recorda/issues)
 - [Pull Requests](https://github.com/seu-usuario/recorda/pulls)
 
@@ -178,3 +178,4 @@ test: adicionar testes E2E para lançamento de produção
 
 **Mantido por:** Equipe Recorda  
 **Última Atualização:** 15 de Abril de 2026
+

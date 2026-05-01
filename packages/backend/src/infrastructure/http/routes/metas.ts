@@ -5,6 +5,16 @@ import { validateBody } from '../middleware/validate.js';
 import { lancarProducaoColaboradorSchema } from '../schemas/producao.js';
 import type { EtapaFluxo, StatusRepositorio } from '@recorda/shared';
 import { normalizeIdRepositorioGed } from './operacional-repositorios.js';
+import {
+  SYSTEM_TIMEZONE,
+  PRODUCAO_CONTABILIZADA_DESCRICAO,
+  PRODUCAO_ESCOPOS,
+  buildProducaoContabilizadaWhere,
+  sqlDateInSystemTimezone,
+  sqlLastNDaysStartInSystemTimezone,
+  sqlMonthStartInSystemTimezone,
+  sqlTodayInSystemTimezone,
+} from '../../../domain/producao/producao-metrics.js';
 
 export function createMetasRoutes(): FastifyPluginAsync {
   return async (server: FastifyInstance): Promise<void> => {
@@ -102,14 +112,16 @@ export function createMetasRoutes(): FastifyPluginAsync {
       async (request, reply) => {
         try {
           const { periodo = 'mes' } = request.query as { periodo?: string };
+          const dataProducaoLocal = sqlDateInSystemTimezone('rp');
+          const producaoContabilizadaWhere = buildProducaoContabilizadaWhere('rp');
 
           let dateFilter = '';
           if (periodo === 'dia') {
-            dateFilter = `AND rp.data_producao = CURRENT_DATE`;
+            dateFilter = `AND ${dataProducaoLocal} = ${sqlTodayInSystemTimezone()}`;
           } else if (periodo === 'semana') {
-            dateFilter = `AND rp.data_producao >= CURRENT_DATE - INTERVAL '7 days'`;
+            dateFilter = `AND ${dataProducaoLocal} >= ${sqlLastNDaysStartInSystemTimezone(7)}`;
           } else {
-            dateFilter = `AND rp.data_producao >= DATE_TRUNC('month', CURRENT_DATE)`;
+            dateFilter = `AND ${dataProducaoLocal} >= ${sqlMonthStartInSystemTimezone()}`;
           }
 
           // Buscar meta configurada (soma de todas as metas por etapa)
@@ -135,6 +147,7 @@ export function createMetasRoutes(): FastifyPluginAsync {
             ROUND(COALESCE(SUM(rp.quantidade), 0) * 100.0 / NULLIF($1::integer, 0)) as percentual
           FROM usuarios u
           LEFT JOIN producao_repositorio rp ON rp.usuario_id = u.id ${dateFilter}
+            AND ${producaoContabilizadaWhere}
           WHERE u.ativo = true
           GROUP BY u.id, u.nome
           ORDER BY total_producao DESC
@@ -250,18 +263,19 @@ export function createMetasRoutes(): FastifyPluginAsync {
           };
 
           const offset = (Number(pagina) - 1) * Number(limite);
-          const conditions: string[] = ['pr.usuario_id = $1'];
+          const dataProducaoLocal = sqlDateInSystemTimezone('pr');
+          const conditions: string[] = ['pr.usuario_id = $1', buildProducaoContabilizadaWhere('pr')];
           const params: unknown[] = [user.id];
           let idx = 2;
 
           if (dataInicio) {
-            conditions.push(`pr.data_producao >= $${idx}`);
+            conditions.push(`${dataProducaoLocal} >= $${idx}::date`);
             params.push(dataInicio);
             idx++;
           }
 
           if (dataFim) {
-            conditions.push(`pr.data_producao <= $${idx}`);
+            conditions.push(`${dataProducaoLocal} <= $${idx}::date`);
             params.push(dataFim);
             idx++;
           }
@@ -296,8 +310,8 @@ export function createMetasRoutes(): FastifyPluginAsync {
               `SELECT 
                  COUNT(*) as count,
                  COALESCE(SUM(pr.quantidade), 0)::text as total_quantidade,
-                 COUNT(*) FILTER (WHERE pr.data_producao >= (CURRENT_DATE - INTERVAL '7 days'))::text as registros_7dias,
-                 COALESCE(SUM(pr.quantidade) FILTER (WHERE pr.data_producao >= (CURRENT_DATE - INTERVAL '7 days')), 0)::text as quantidade_7dias
+                 COUNT(*) FILTER (WHERE ${dataProducaoLocal} >= ${sqlLastNDaysStartInSystemTimezone(7)})::text as registros_7dias,
+                 COALESCE(SUM(pr.quantidade) FILTER (WHERE ${dataProducaoLocal} >= ${sqlLastNDaysStartInSystemTimezone(7)}), 0)::text as quantidade_7dias
                FROM producao_repositorio pr
                JOIN repositorios r ON r.id_repositorio_recorda = pr.repositorio_id
                WHERE ${where}`,
@@ -387,6 +401,7 @@ export function createMetasRoutes(): FastifyPluginAsync {
              FROM producao_repositorio pr
              JOIN repositorios r ON r.id_repositorio_recorda = pr.repositorio_id
              WHERE pr.usuario_id = $1
+               AND ${buildProducaoContabilizadaWhere('pr')}
              ORDER BY etapa`,
             [user.id]
           );
@@ -440,6 +455,11 @@ export function createMetasRoutes(): FastifyPluginAsync {
             etapasDisponiveis: etapasDisponiveisResult.rows.map((r) => r.etapa),
             pagina: Number(pagina),
             totalPaginas: Math.ceil(total / Number(limite)),
+            escopoProducao: {
+              id: PRODUCAO_ESCOPOS.contabilizada,
+              timezone: SYSTEM_TIMEZONE,
+              descricao: PRODUCAO_CONTABILIZADA_DESCRICAO,
+            },
           });
         } catch (error) {
           const message = error instanceof Error ? error.message : 'Erro ao buscar histórico';
@@ -539,9 +559,12 @@ export function createMetasRoutes(): FastifyPluginAsync {
           };
 
           const PROJETO_IMPORTACAO_PRODUCAO = 'IMPORTACAO_PRODUCAO';
-          const quantidade = typeof body.quantidade === 'string' 
-            ? parseInt(body.quantidade) || 1 
-            : body.quantidade || 1;
+          const quantidade = Number(body.quantidade);
+          if (!Number.isInteger(quantidade) || quantidade <= 0) {
+            return reply.status(400).send({
+              error: 'Quantidade inválida. Informe um número inteiro maior que zero.',
+            });
+          }
 
           const anoReferencia = body.data ? new Date(body.data).getFullYear() : undefined;
           const repoId = normalizeIdRepositorioGed(body.repositorio.trim(), anoReferencia);
@@ -614,7 +637,12 @@ export function createMetasRoutes(): FastifyPluginAsync {
             origem: 'SISTEMA', // Marca produção lançada diretamente no sistema (vs LEGADO = importada)
           };
 
-          const dataProducao = body.data || new Date().toISOString();
+          if (!body.data) {
+            return reply.status(400).send({
+              error: 'Data de produção inválida. Corrija a data antes de lançar.',
+            });
+          }
+          const dataProducao = body.data;
 
           // Sequência obrigatória de etapas
           const sequenciaEtapas: Record<string, { ordem: number; anterior?: string }> = {

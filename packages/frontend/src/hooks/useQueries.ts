@@ -91,19 +91,41 @@ export function useDashboard() {
   });
 }
 
+async function fetchAllRepositoriosByEtapa(etapa: string): Promise<RepositorioItem[]> {
+  const limite = 100;
+  const itens: RepositorioItem[] = [];
+  let pagina = 1;
+  let totalPaginas = 1;
+
+  do {
+    const qs = new URLSearchParams({
+      etapa,
+      pagina: String(pagina),
+      limite: String(limite),
+    });
+    const data = await api.get<PaginatedResponse<RepositorioItem>>(
+      `/operacional/repositorios?${qs.toString()}`
+    );
+    itens.push(...(data.itens ?? []));
+    totalPaginas = Math.max(data.totalPaginas ?? 1, 1);
+    pagina += 1;
+  } while (pagina <= totalPaginas);
+
+  return itens;
+}
+
 export function useRepositoriosRecebimento() {
   return useQuery({
     queryKey: [...queryKeys.repositoriosAll, 'recebimento-options'] as const,
-    queryFn: () =>
-      api.get<{
-        itens: {
-          id_repositorio_recorda: string;
-          id_repositorio_ged: string;
-          orgao: string;
-          projeto: string;
-        }[];
-      }>('/operacional/repositorios?etapa=RECEBIMENTO&limite=100&pagina=1'),
-    select: (data) => data.itens ?? [],
+    queryFn: () => fetchAllRepositoriosByEtapa('RECEBIMENTO'),
+    staleTime: 30_000,
+  });
+}
+
+export function useRepositoriosControleQualidade() {
+  return useQuery({
+    queryKey: [...queryKeys.repositoriosAll, 'controle-qualidade-options'] as const,
+    queryFn: () => fetchAllRepositoriosByEtapa('CONTROLE_QUALIDADE'),
     staleTime: 30_000,
   });
 }

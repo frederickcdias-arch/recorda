@@ -530,4 +530,5 @@ app.get('/health', async () => {
 **Próximos Passos:**
 - Leia [Banco de Dados](DATABASE.md) para detalhes do schema
 - Veja [API Reference](API.md) para documentação de endpoints
-- Consulte [Segurança](../AUDITORIA_SEGURANCA_PRODUCAO.md) para auditoria completa
+- Consulte [Segurança](../auditorias/seguranca/AUDITORIA_SEGURANCA_PRODUCAO.md) para auditoria completa
+

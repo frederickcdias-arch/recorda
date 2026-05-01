@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Icon } from '../../components/ui/Icon';
 import { Button } from '../../components/ui/Button';
 import { ActionFeedback } from '../../components/ui/PageState';
 import { api } from '../../services/api';
 import { useCoordenadorias } from '../../hooks/useQueries';
 import { formatDateBR, formatDateTimeBR } from '../../utils/date';
+import { formatCriticalNumber } from '../../utils/number';
 
 interface Coordenadoria {
   id: string;
@@ -67,11 +69,12 @@ interface RelatorioCompleto {
 }
 
 function formatNum(n: unknown): string {
-  const parsed = Number(n ?? 0);
-  return (Number.isFinite(parsed) ? parsed : 0).toLocaleString('pt-BR');
+  return formatCriticalNumber(n);
 }
 
 export function RelatoriosGerenciaisPage(): JSX.Element {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [dataInicio, setDataInicio] = useState('');
   const [dataFim, setDataFim] = useState('');
   const [coordenadoriaId, setCoordenadoriaId] = useState('');
@@ -86,6 +89,61 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
   } | null>(null);
   const [relatorio, setRelatorio] = useState<RelatorioCompleto | null>(null);
   const [carregandoRelatorio, setCarregandoRelatorio] = useState(false);
+  const ultimoAutoLoadRef = useRef<string | null>(null);
+
+  const filtrosUrl = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    return {
+      dataInicio: params.get('dataInicio') ?? '',
+      dataFim: params.get('dataFim') ?? '',
+      coordenadoriaId: params.get('coordenadoriaId') ?? '',
+    };
+  }, [location.search]);
+
+  useEffect(() => {
+    setDataInicio(filtrosUrl.dataInicio);
+    setDataFim(filtrosUrl.dataFim);
+    setCoordenadoriaId(filtrosUrl.coordenadoriaId);
+  }, [filtrosUrl.dataInicio, filtrosUrl.dataFim, filtrosUrl.coordenadoriaId]);
+
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (dataInicio) params.set('dataInicio', dataInicio);
+    if (dataFim) params.set('dataFim', dataFim);
+    if (coordenadoriaId) params.set('coordenadoriaId', coordenadoriaId);
+
+    const nextSearch = params.toString();
+    const currentSearch = location.search.startsWith('?')
+      ? location.search.slice(1)
+      : location.search;
+
+    if (nextSearch !== currentSearch) {
+      navigate(
+        {
+          pathname: location.pathname,
+          search: nextSearch ? `?${nextSearch}` : '',
+        },
+        { replace: true }
+      );
+    }
+  }, [dataInicio, dataFim, coordenadoriaId, location.pathname, location.search, navigate]);
+
+  useEffect(() => {
+    if (!dataInicio || !dataFim) {
+      ultimoAutoLoadRef.current = null;
+      return;
+    }
+
+    if (new Date(dataInicio) > new Date(dataFim)) {
+      return;
+    }
+
+    const key = [dataInicio, dataFim, coordenadoriaId].join('|');
+    if (ultimoAutoLoadRef.current === key) return;
+
+    ultimoAutoLoadRef.current = key;
+    void handleVisualizar();
+  }, [coordenadoriaId, dataFim, dataInicio]);
 
   const validarPeriodo = (): boolean => {
     if (!dataInicio || !dataFim) {

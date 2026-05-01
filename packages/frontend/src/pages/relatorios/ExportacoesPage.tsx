@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Icon } from '../../components/ui/Icon';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { ActionFeedback } from '../../components/ui/PageState';
 import { api } from '../../services/api';
 import { formatDateBR, toDateInputValue } from '../../utils/date';
+import { formatCriticalNumber } from '../../utils/number';
 
 interface PreviewData {
   titulo: string;
@@ -77,24 +79,70 @@ const EXPORTACOES: ExportItem[] = [
   },
 ];
 
-const toSafeNumber = (value: unknown): number => {
-  const parsed = Number(value ?? 0);
-  return Number.isFinite(parsed) ? parsed : 0;
-};
-
 export function ExportacoesPage(): JSX.Element {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [mensagem, setMensagem] = useState<{ tipo: 'success' | 'error'; texto: string } | null>(
     null
   );
   const [exportando, setExportando] = useState<string | null>(null);
   const [previewData, setPreviewData] = useState<PreviewData | null>(null);
   const [previewOperacional, setPreviewOperacional] = useState<OperacionalRow[] | null>(null);
-  const [dataInicio, setDataInicio] = useState(() => {
+  const dataInicioPadrao = useMemo(() => {
     const d = new Date();
     d.setMonth(d.getMonth() - 1);
     return toDateInputValue(d);
-  });
-  const [dataFim, setDataFim] = useState(() => toDateInputValue(new Date()));
+  }, []);
+  const dataFimPadrao = useMemo(() => toDateInputValue(new Date()), []);
+  const [dataInicio, setDataInicio] = useState(dataInicioPadrao);
+  const [dataFim, setDataFim] = useState(dataFimPadrao);
+  const ultimoAutoPreviewRef = useRef<string | null>(null);
+
+  const filtrosUrl = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    const preview = params.get('preview');
+    return {
+      dataInicio: params.get('dataInicio') ?? dataInicioPadrao,
+      dataFim: params.get('dataFim') ?? dataFimPadrao,
+      preview: preview === 'gerencial' || preview === 'operacional' ? preview : '',
+    };
+  }, [dataFimPadrao, dataInicioPadrao, location.search]);
+
+  useEffect(() => {
+    setDataInicio(filtrosUrl.dataInicio);
+    setDataFim(filtrosUrl.dataFim);
+  }, [filtrosUrl.dataFim, filtrosUrl.dataInicio]);
+
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (dataInicio) params.set('dataInicio', dataInicio);
+    if (dataFim) params.set('dataFim', dataFim);
+    if (previewData) params.set('preview', 'gerencial');
+    if (previewOperacional) params.set('preview', 'operacional');
+
+    const nextSearch = params.toString();
+    const currentSearch = location.search.startsWith('?')
+      ? location.search.slice(1)
+      : location.search;
+
+    if (nextSearch !== currentSearch) {
+      navigate(
+        {
+          pathname: location.pathname,
+          search: nextSearch ? `?${nextSearch}` : '',
+        },
+        { replace: true }
+      );
+    }
+  }, [
+    dataFim,
+    dataInicio,
+    location.pathname,
+    location.search,
+    navigate,
+    previewData,
+    previewOperacional,
+  ]);
 
   const validarPeriodo = (): boolean => {
     if (!dataInicio || !dataFim) {
@@ -144,11 +192,13 @@ export function ExportacoesPage(): JSX.Element {
     setMensagem(null);
     try {
       if (tipo === 'gerencial') {
+        setPreviewOperacional(null);
         const data = await api.get<PreviewData>(
           `/relatorios?formato=json&dataInicio=${dataInicio}&dataFim=${dataFim}`
         );
         setPreviewData(data);
       } else {
+        setPreviewData(null);
         const data = await api.get<{
           registros: {
             id: string;
@@ -168,7 +218,9 @@ export function ExportacoesPage(): JSX.Element {
             etapa: r.etapa ?? '',
             funcao: r.funcao ?? '',
             repositorio: r.repositorio ?? '',
-            quantidade: Number(r.quantidade ?? 0),
+            quantidade: Number.isFinite(Number(r.quantidade))
+              ? Number(r.quantidade)
+              : Number.NaN,
           }))
         );
       }
@@ -181,6 +233,23 @@ export function ExportacoesPage(): JSX.Element {
       setExportando(null);
     }
   };
+
+  useEffect(() => {
+    if (!filtrosUrl.preview || !dataInicio || !dataFim) {
+      ultimoAutoPreviewRef.current = null;
+      return;
+    }
+
+    if (new Date(dataInicio) > new Date(dataFim)) {
+      return;
+    }
+
+    const key = [filtrosUrl.preview, dataInicio, dataFim].join('|');
+    if (ultimoAutoPreviewRef.current === key) return;
+
+    ultimoAutoPreviewRef.current = key;
+    void handlePreview(filtrosUrl.preview);
+  }, [dataFim, dataInicio, filtrosUrl.preview]);
 
   const colorClasses: Record<string, { bg: string; icon: string; border: string }> = {
     blue: { bg: 'bg-blue-50', icon: 'text-blue-600', border: 'border-blue-200' },
@@ -340,13 +409,13 @@ export function ExportacoesPage(): JSX.Element {
                 <div className="bg-gray-50 rounded-lg p-3 text-center">
                   <p className="text-xs text-gray-500">Total Caixas</p>
                   <p className="text-lg font-bold text-gray-900">
-                    {toSafeNumber(previewData.totais.totalCaixas).toLocaleString('pt-BR')}
+                    {formatCriticalNumber(previewData.totais.totalCaixas)}
                   </p>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-3 text-center">
                   <p className="text-xs text-gray-500">Total Imagens</p>
                   <p className="text-lg font-bold text-gray-900">
-                    {toSafeNumber(previewData.totais.totalImagens).toLocaleString('pt-BR')}
+                    {formatCriticalNumber(previewData.totais.totalImagens)}
                   </p>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-3 text-center">
@@ -385,7 +454,7 @@ export function ExportacoesPage(): JSX.Element {
                         <tr key={r.etapaNome} className="hover:bg-gray-50">
                           <td className="px-3 py-2 text-gray-700">{r.etapaNome}</td>
                           <td className="px-3 py-2 text-right text-gray-900 font-medium">
-                            {toSafeNumber(r.totalQuantidade).toLocaleString('pt-BR')}
+                            {formatCriticalNumber(r.totalQuantidade)}
                           </td>
                           <td className="px-3 py-2 text-right text-gray-500 text-xs">
                             {r.unidade}
@@ -412,8 +481,8 @@ export function ExportacoesPage(): JSX.Element {
                           {c.coordenadoriaNome} ({c.coordenadoriaSigla})
                         </span>
                         <span className="text-sm font-medium text-gray-900">
-                          {toSafeNumber(c.totalCaixas).toLocaleString('pt-BR')} caixas |{' '}
-                          {toSafeNumber(c.totalImagens).toLocaleString('pt-BR')} imagens
+                          {formatCriticalNumber(c.totalCaixas)} caixas |{' '}
+                          {formatCriticalNumber(c.totalImagens)} imagens
                         </span>
                       </div>
                     ))}
@@ -484,7 +553,7 @@ export function ExportacoesPage(): JSX.Element {
                           {row.repositorio}
                         </td>
                         <td className="px-3 py-1.5 text-right text-gray-900 font-medium">
-                          {row.quantidade}
+                          {formatCriticalNumber(row.quantidade)}
                         </td>
                       </tr>
                     ))}

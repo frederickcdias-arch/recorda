@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Icon } from '../../components/ui/Icon';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -32,40 +33,109 @@ const CATEGORIA_CONFIG: Record<
   correcoes: {
     titulo: 'Auditoria de Correções',
     descricao: 'Histórico de atualizações e correções em registros',
-    tabelasFiltro: [],
+    tabelasFiltro: [
+      'repositorios',
+      'recebimento_processos',
+      'recebimento_apensos',
+      'recebimento_volumes',
+      'recebimento_apenso_volumes',
+      'recebimento_documentos',
+      'checklists',
+      'checklist_itens',
+      'producao_repositorio',
+    ],
   },
   acoes: {
     titulo: 'Ações de Usuários',
     descricao: 'Histórico de ações realizadas por usuários no sistema',
-    tabelasFiltro: ['usuarios', 'refresh_tokens'],
+    tabelasFiltro: ['usuarios'],
   },
 };
 
 export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
+  const navigate = useNavigate();
+  const location = useLocation();
   const config = categoria ? CATEGORIA_CONFIG[categoria] : null;
   const queryClient = useQueryClient();
 
   // Filtros
-  const [filtroTabela, setFiltroTabela] = useState('');
-  const [filtroOperacao, setFiltroOperacao] = useState('');
-  const [dataInicio, setDataInicio] = useState(() => {
+  const dataInicioPadrao = useMemo(() => {
     const d = new Date();
     d.setDate(d.getDate() - 7);
     return d.toISOString().split('T')[0];
-  });
-  const [dataFim, setDataFim] = useState(() => new Date().toISOString().split('T')[0]);
-
+  }, []);
+  const dataFimPadrao = useMemo(() => new Date().toISOString().split('T')[0], []);
+  const [filtroTabela, setFiltroTabela] = useState('');
+  const [filtroOperacao, setFiltroOperacao] = useState('');
+  const [dataInicio, setDataInicio] = useState(dataInicioPadrao);
+  const [dataFim, setDataFim] = useState(dataFimPadrao);
   const [pagina, setPagina] = useState(1);
   const [expandido, setExpandido] = useState<string | null>(null);
+
+  const filtrosUrl = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    return {
+      pagina: Math.max(Number(params.get('pagina') ?? '1'), 1),
+      tabela: params.get('tabela') ?? '',
+      operacao: params.get('operacao') ?? '',
+      dataInicio: params.get('dataInicio') ?? dataInicioPadrao,
+      dataFim: params.get('dataFim') ?? dataFimPadrao,
+    };
+  }, [dataFimPadrao, dataInicioPadrao, location.search]);
+
+  useEffect(() => {
+    setPagina(filtrosUrl.pagina);
+    setFiltroTabela(filtrosUrl.tabela);
+    setFiltroOperacao(filtrosUrl.operacao);
+    setDataInicio(filtrosUrl.dataInicio);
+    setDataFim(filtrosUrl.dataFim);
+  }, [
+    filtrosUrl.dataFim,
+    filtrosUrl.dataInicio,
+    filtrosUrl.operacao,
+    filtrosUrl.pagina,
+    filtrosUrl.tabela,
+  ]);
+
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (pagina > 1) params.set('pagina', String(pagina));
+    if (filtroTabela) params.set('tabela', filtroTabela);
+    if (filtroOperacao) params.set('operacao', filtroOperacao);
+    if (dataInicio) params.set('dataInicio', dataInicio);
+    if (dataFim) params.set('dataFim', dataFim);
+
+    const nextSearch = params.toString();
+    const currentSearch = location.search.startsWith('?')
+      ? location.search.slice(1)
+      : location.search;
+
+    if (nextSearch !== currentSearch) {
+      navigate(
+        {
+          pathname: location.pathname,
+          search: nextSearch ? `?${nextSearch}` : '',
+        },
+        { replace: true }
+      );
+    }
+  }, [
+    dataFim,
+    dataInicio,
+    filtroOperacao,
+    filtroTabela,
+    location.pathname,
+    location.search,
+    navigate,
+    pagina,
+  ]);
 
   const tabelaEfetiva =
     filtroTabela ||
     (config && config.tabelasFiltro.length > 0 ? config.tabelasFiltro.join(',') : '') ||
     undefined;
   const operacaoEfetiva =
-    filtroOperacao ||
-    (config && config.tabelasFiltro.length === 0 && !filtroTabela ? 'UPDATE' : '') ||
-    undefined;
+    filtroOperacao || (categoria === 'correcoes' && !filtroTabela ? 'UPDATE' : '') || undefined;
 
   const auditoriaQuery = useAuditoria({
     pagina,
@@ -119,7 +189,7 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
       apensos: 'Apensos',
       colaboradores: 'Colaboradores',
       etapas: 'Etapas',
-      registros_producao: 'Produção',
+      producao_repositorio: 'Produção',
       documentos_ocr: 'Documentos OCR',
       importacoes: 'Importações',
       usuarios: 'Usuários',
@@ -160,7 +230,10 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
                 <input
                   type="date"
                   value={dataInicio}
-                  onChange={(e) => setDataInicio(e.target.value)}
+                  onChange={(e) => {
+                    setDataInicio(e.target.value);
+                    setPagina(1);
+                  }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -169,7 +242,10 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
                 <input
                   type="date"
                   value={dataFim}
-                  onChange={(e) => setDataFim(e.target.value)}
+                  onChange={(e) => {
+                    setDataFim(e.target.value);
+                    setPagina(1);
+                  }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -177,14 +253,17 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Tabela</label>
                 <select
                   value={filtroTabela}
-                  onChange={(e) => setFiltroTabela(e.target.value)}
+                  onChange={(e) => {
+                    setFiltroTabela(e.target.value);
+                    setPagina(1);
+                  }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Todas</option>
                   <option value="processos_principais">Processos</option>
                   <option value="colaboradores">Colaboradores</option>
                   <option value="etapas">Etapas</option>
-                  <option value="registros_producao">Produção</option>
+                  <option value="producao_repositorio">Produção</option>
                   <option value="documentos_ocr">Documentos OCR</option>
                   <option value="usuarios">Usuários</option>
                 </select>
@@ -193,7 +272,10 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Operação</label>
                 <select
                   value={filtroOperacao}
-                  onChange={(e) => setFiltroOperacao(e.target.value)}
+                  onChange={(e) => {
+                    setFiltroOperacao(e.target.value);
+                    setPagina(1);
+                  }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Todas</option>

@@ -464,6 +464,10 @@ export function createOperacionalRepositoriosRoutes(): FastifyPluginAsync {
             contadoresWhere += ` AND r.etapa_atual = $${cp++}`;
             contadoresParams.push(query.etapa);
           }
+          if (query.status) {
+            contadoresWhere += ` AND r.status_atual = $${cp++}`;
+            contadoresParams.push(query.status);
+          }
           if (query.orgao) {
             contadoresWhere += ` AND LOWER(TRIM(r.orgao)) = LOWER(TRIM($${cp++}))`;
             contadoresParams.push(query.orgao);
@@ -479,6 +483,28 @@ export function createOperacionalRepositoriosRoutes(): FastifyPluginAsync {
           if (query.dataFim) {
             contadoresWhere += ` AND r.data_criacao < ($${cp++}::date + INTERVAL '1 day')`;
             contadoresParams.push(query.dataFim);
+          }
+          if (query.busca) {
+            contadoresWhere += ` AND (
+            r.id_repositorio_ged ILIKE $${cp}
+            OR r.orgao ILIKE $${cp}
+            OR r.projeto ILIKE $${cp}
+            OR EXISTS (
+              SELECT 1
+              FROM recebimento_processos rp
+              WHERE rp.repositorio_id = r.id_repositorio_recorda
+                AND (rp.protocolo ILIKE $${cp} OR rp.interessado ILIKE $${cp})
+            )
+            OR EXISTS (
+              SELECT 1
+              FROM recebimento_apensos ra
+              JOIN recebimento_processos rp ON rp.id = ra.processo_principal_id
+              WHERE rp.repositorio_id = r.id_repositorio_recorda
+                AND (ra.protocolo ILIKE $${cp} OR ra.interessado ILIKE $${cp})
+            )
+          )`;
+            contadoresParams.push(`%${query.busca}%`);
+            cp++;
           }
           const contadoresResult = await server.database.query<{
             status_atual: string;

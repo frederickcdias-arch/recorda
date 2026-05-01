@@ -1,4 +1,5 @@
 const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const SYSTEM_TIMEZONE = 'America/Cuiaba';
 
 function parseDatePreservingDay(value: string): Date | null {
   const raw = String(value ?? '').trim();
@@ -18,14 +19,14 @@ export function formatDateBR(value: string | Date | null | undefined, fallback =
   if (!value) return fallback;
   const parsed = value instanceof Date ? value : parseDatePreservingDay(value);
   if (!parsed) return fallback;
-  return parsed.toLocaleDateString('pt-BR');
+  return parsed.toLocaleDateString('pt-BR', { timeZone: SYSTEM_TIMEZONE });
 }
 
 export function formatDateTimeBR(value: string | Date | null | undefined, fallback = '-'): string {
   if (!value) return fallback;
   const parsed = value instanceof Date ? value : parseDatePreservingDay(value);
   if (!parsed) return fallback;
-  return parsed.toLocaleString('pt-BR');
+  return parsed.toLocaleString('pt-BR', { timeZone: SYSTEM_TIMEZONE });
 }
 
 export function toDateInputValue(value: Date): string {

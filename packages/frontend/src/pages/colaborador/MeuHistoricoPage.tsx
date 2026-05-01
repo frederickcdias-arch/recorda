@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Card } from '../../components/ui/Card';
 import { Icon } from '../../components/ui/Icon';
 import { PageState } from '../../components/ui/PageState';
@@ -6,6 +7,8 @@ import { Button } from '../../components/ui/Button';
 import { useAuth } from '../../contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../services/api';
+import { formatDateBR } from '../../utils/date';
+import { formatCriticalNumber, parseFiniteNumber } from '../../utils/number';
 
 interface ProducaoItem {
   id: string;
@@ -59,12 +62,54 @@ function getEtapaCor(etapa: string): { bg: string; text: string } {
 }
 
 export function MeuHistoricoPage(): JSX.Element {
+  const navigate = useNavigate();
+  const location = useLocation();
   const { usuario } = useAuth();
   const [pagina, setPagina] = useState(1);
   const [etapaFiltro, setEtapaFiltro] = useState('');
   const [dataInicio, setDataInicio] = useState('');
   const [dataFim, setDataFim] = useState('');
   const limite = 50;
+
+  const filtrosUrl = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    return {
+      pagina: Math.max(Number(params.get('pagina') ?? '1'), 1),
+      etapa: params.get('etapa') ?? '',
+      dataInicio: params.get('dataInicio') ?? '',
+      dataFim: params.get('dataFim') ?? '',
+    };
+  }, [location.search]);
+
+  useEffect(() => {
+    setPagina(filtrosUrl.pagina);
+    setEtapaFiltro(filtrosUrl.etapa);
+    setDataInicio(filtrosUrl.dataInicio);
+    setDataFim(filtrosUrl.dataFim);
+  }, [filtrosUrl.pagina, filtrosUrl.etapa, filtrosUrl.dataInicio, filtrosUrl.dataFim]);
+
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (pagina > 1) params.set('pagina', String(pagina));
+    if (etapaFiltro) params.set('etapa', etapaFiltro);
+    if (dataInicio) params.set('dataInicio', dataInicio);
+    if (dataFim) params.set('dataFim', dataFim);
+
+    const nextSearch = params.toString();
+    const currentSearch = location.search.startsWith('?')
+      ? location.search.slice(1)
+      : location.search;
+
+    if (nextSearch !== currentSearch) {
+      navigate(
+        {
+          pathname: location.pathname,
+          search: nextSearch ? `?${nextSearch}` : '',
+        },
+        { replace: true }
+      );
+    }
+  }, [pagina, etapaFiltro, dataInicio, dataFim, location.pathname, location.search, navigate]);
 
   const queryParams = new URLSearchParams();
   queryParams.set('limite', String(limite));
@@ -73,14 +118,14 @@ export function MeuHistoricoPage(): JSX.Element {
   if (dataInicio) queryParams.set('dataInicio', dataInicio);
   if (dataFim) queryParams.set('dataFim', dataFim);
 
-  const { data, isLoading } = useQuery({
+  const { data, error, isError, isLoading, refetch } = useQuery({
     queryKey: ['meu-historico', pagina, etapaFiltro, dataInicio, dataFim],
     queryFn: () => api.get<MeuHistoricoResponse>(`/producao/meu-historico?${queryParams.toString()}`),
   });
 
   const producoes = data?.producoes ?? [];
-  const total = data?.total ?? 0;
-  const totalQuantidade = data?.totalQuantidade ?? 0;
+  const total = parseFiniteNumber(data?.total);
+  const totalQuantidade = parseFiniteNumber(data?.totalQuantidade);
   const totalPaginas = data?.totalPaginas ?? 1;
   const etapasDisponiveis = data?.etapasDisponiveis ?? [];
   const producaoPorEtapa = data?.producaoPorEtapa ?? [];
@@ -94,6 +139,26 @@ export function MeuHistoricoPage(): JSX.Element {
   };
 
   const temFiltros = etapaFiltro || dataInicio || dataFim;
+  const errorInfo = isError
+    ? {
+        message: 'Não foi possível carregar os números agora. Tente novamente em instantes.',
+        details: error instanceof Error ? error.message : 'Falha ao carregar o histórico do colaborador.',
+        action: {
+          label: 'Tentar novamente',
+          onClick: () => {
+            void refetch();
+          },
+        },
+      }
+    : null;
+
+  if (errorInfo) {
+    return (
+      <PageState loading={false} error={errorInfo}>
+        <div />
+      </PageState>
+    );
+  }
 
   return (
     <PageState loading={isLoading} loadingMessage="Carregando histórico...">
@@ -112,7 +177,7 @@ export function MeuHistoricoPage(): JSX.Element {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-500">Total de Registros</p>
-                  <p className="text-2xl font-bold text-gray-900">{total.toLocaleString('pt-BR')}</p>
+                  <p className="text-2xl font-bold text-gray-900">{formatCriticalNumber(total)}</p>
                 </div>
                 <Icon name="clipboard" className="w-8 h-8 text-blue-600" />
               </div>
@@ -124,7 +189,7 @@ export function MeuHistoricoPage(): JSX.Element {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-500">Quantidade Total</p>
-                  <p className="text-2xl font-bold text-gray-900">{totalQuantidade.toLocaleString('pt-BR')}</p>
+                  <p className="text-2xl font-bold text-gray-900">{formatCriticalNumber(totalQuantidade)}</p>
                 </div>
                 <Icon name="bar-chart" className="w-8 h-8 text-green-600" />
               </div>
@@ -138,7 +203,7 @@ export function MeuHistoricoPage(): JSX.Element {
                   <p className="text-sm text-gray-500">Último Registro</p>
                   <p className="text-lg font-bold text-gray-900">
                     {producoes[0]?.data_producao
-                      ? new Date(producoes[0].data_producao).toLocaleDateString('pt-BR')
+                      ? formatDateBR(producoes[0].data_producao)
                       : '-'}
                   </p>
                 </div>
@@ -285,7 +350,7 @@ export function MeuHistoricoPage(): JSX.Element {
                     return (
                       <tr key={p.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 text-gray-900">
-                          {new Date(p.data_producao).toLocaleDateString('pt-BR')}
+                          {formatDateBR(p.data_producao)}
                         </td>
                         <td className="px-6 py-4 font-medium text-gray-900">{p.id_repositorio_ged}</td>
                         <td className="px-6 py-4">
@@ -308,8 +373,8 @@ export function MeuHistoricoPage(): JSX.Element {
           {totalPaginas > 1 ? (
             <div className="flex items-center justify-between border-t border-gray-200 px-6 py-3">
               <p className="text-sm text-gray-500">
-                Mostrando {((pagina - 1) * limite) + 1}-{Math.min(pagina * limite, total)} de{' '}
-                <span className="font-medium">{total.toLocaleString('pt-BR')}</span> registros
+                Mostrando {((pagina - 1) * limite) + 1}-{Math.min(pagina * limite, total ?? 0)} de{' '}
+                <span className="font-medium">{formatCriticalNumber(total)}</span> registros
               </p>
               <div className="flex gap-2">
                 <Button

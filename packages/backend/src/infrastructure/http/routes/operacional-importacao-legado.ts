@@ -12,53 +12,67 @@ import {
   type EtapaFluxo,
   type StatusRepositorio,
   getCurrentUser,
-  getBrazilDateString,
 } from './operacional-helpers.js';
 import { normalizeIdRepositorioGed } from './operacional-repositorios.js';
+import {
+  INVALID_DATA_MESSAGE,
+  INVALID_QUANTIDADE_MESSAGE,
+  parseDataProducaoPlanilha,
+  parseQuantidadePlanilha,
+} from '../../../domain/producao/importacao-legado.js';
+import { SYSTEM_TIMEZONE } from '../../../domain/producao/producao-metrics.js';
 
 const PROJETO_IMPORTACAO_PRODUCAO = 'IMPORTACAO_PRODUCAO';
 
-// Convert Excel serial date to YYYY-MM-DD
-function excelSerialToDate(serial: number): string {
-  const excelEpoch = new Date(1899, 11, 30); // Excel epoch (30 Dec 1899)
-  const days = Math.floor(serial);
-  const milliseconds = days * 24 * 60 * 60 * 1000;
-  const date = new Date(excelEpoch.getTime() + milliseconds);
-  
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  
-  return `${year}-${month}-${day}`;
+interface ParsedAndValidatedImportRow {
+  repoIdentificadorRaw: string;
+  colaboradorNome: string;
+  quantidade: number;
+  dataProducaoStr: string;
+  anoRef: number;
+  tipoMarcador: string;
+  funcaoMarcador: string;
+  coordenadoriaMarcador: string;
 }
 
-function parseQuantidadePlanilha(input: unknown): number {
-  const raw = String(input ?? '').trim();
-  if (!raw) return 1;
+function parseImportRowStrict(
+  row: ParsedImportRow | Record<string, unknown> | null | undefined
+): { ok: true; value: ParsedAndValidatedImportRow } | { ok: false; error: string } {
+  if (!row) return { ok: false, error: 'Registro invalido' };
 
-  const compact = raw.replace(/\s/g, '');
-  const hasDot = compact.includes('.');
-  const hasComma = compact.includes(',');
-
-  let normalized = compact;
-
-  if (hasDot && hasComma) {
-    if (compact.lastIndexOf(',') > compact.lastIndexOf('.')) {
-      normalized = compact.replace(/\./g, '').replace(',', '.');
-    } else {
-      normalized = compact.replace(/,/g, '');
-    }
-  } else if (hasComma) {
-    normalized = /^\d{1,3}(,\d{3})+$/.test(compact)
-      ? compact.replace(/,/g, '')
-      : compact.replace(',', '.');
-  } else if (hasDot) {
-    normalized = /^\d{1,3}(\.\d{3})+$/.test(compact) ? compact.replace(/\./g, '') : compact;
+  const repoIdentificadorRaw = String(row.repositorio ?? '').trim();
+  if (!repoIdentificadorRaw) {
+    return { ok: false, error: 'Coluna repositorio e obrigatoria' };
   }
 
-  const parsed = Number(normalized);
-  if (!Number.isFinite(parsed)) return 1;
-  return Math.max(Math.round(parsed), 1);
+  const colaboradorNome = String(row.colaborador ?? '').trim();
+  if (!colaboradorNome) {
+    return { ok: false, error: 'Coluna colaborador e obrigatoria' };
+  }
+
+  const quantidadeResult = parseQuantidadePlanilha(row.quantidade);
+  if (!quantidadeResult.ok) {
+    return { ok: false, error: INVALID_QUANTIDADE_MESSAGE };
+  }
+
+  const dataResult = parseDataProducaoPlanilha(row.data);
+  if (!dataResult.ok) {
+    return { ok: false, error: INVALID_DATA_MESSAGE };
+  }
+
+  return {
+    ok: true,
+    value: {
+      repoIdentificadorRaw,
+      colaboradorNome,
+      quantidade: quantidadeResult.value,
+      dataProducaoStr: dataResult.value,
+      anoRef: Number(dataResult.value.slice(0, 4)),
+      tipoMarcador: String(row.tipo ?? '').trim(),
+      funcaoMarcador: String(row.funcao ?? '').trim(),
+      coordenadoriaMarcador: String(row.coordenadoria ?? '').trim(),
+    },
+  };
 }
 
 function normalizeImportKeyPart(value: unknown): string {
@@ -218,7 +232,7 @@ function parseImportRowsFromCsv(csvContent: string): ParsedImportRow[] {
       funcao: idxFuncao >= 0 ? (cols[idxFuncao] ?? '').trim() : '',
       repositorio,
       coordenadoria: idxCoordenadoria >= 0 ? (cols[idxCoordenadoria] ?? '').trim() : '',
-      quantidade: idxQuantidade >= 0 ? (cols[idxQuantidade] ?? '1').trim() || '1' : '1',
+      quantidade: idxQuantidade >= 0 ? (cols[idxQuantidade] ?? '').trim() : '',
       tipo: idxTipo >= 0 ? (cols[idxTipo] ?? '').trim() : '',
     });
   }
@@ -452,20 +466,25 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
 
               for (let i = 0; i < registros.length; i++) {
                 const row = registros[i] as Record<string, string | undefined>;
-                const repo = normalizeIdRepositorioGed((row.repositorio ?? '').trim());
-                const colaborador = (row.colaborador ?? '').trim().toLowerCase();
-                const quantidade = parseQuantidadePlanilha(row.quantidade);
-                const tipoVal = (row.tipo ?? '').trim().toLowerCase();
-                const etapaVal = funcaoToEtapaVal((row.funcao ?? '').trim());
-
-                // Normalizar data para YYYY-MM-DD
-                let dataStr = (row.data ?? '').trim();
-                if (dataStr.includes('/')) {
-                  const parts = dataStr.split('/');
-                  dataStr = `${parts[2]}-${parts[1]?.padStart(2, '0')}-${parts[0]?.padStart(2, '0')}`;
+                const parsedRow = parseImportRowStrict(row);
+                if (!parsedRow.ok) {
+                  continue;
                 }
+                const {
+                  repoIdentificadorRaw,
+                  colaboradorNome,
+                  quantidade,
+                  dataProducaoStr,
+                  anoRef,
+                  tipoMarcador,
+                  funcaoMarcador,
+                } = parsedRow.value;
+                const repo = normalizeIdRepositorioGed(repoIdentificadorRaw, anoRef);
+                const colaborador = colaboradorNome.toLowerCase();
+                const tipoVal = tipoMarcador.toLowerCase();
+                const etapaVal = funcaoToEtapaVal(funcaoMarcador);
 
-                const chave = `${repo.toLowerCase()}|${colaborador}|${quantidade}|${dataStr}|${tipoVal}|${etapaVal}`;
+                const chave = `${repo.toLowerCase()}|${colaborador}|${quantidade}|${dataProducaoStr}|${tipoVal}|${etapaVal}`;
                 if (existentesSet.has(chave)) {
                   duplicadasBanco.push(i + 1);
                 }
@@ -736,32 +755,27 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
 
           await server.database.query('BEGIN');
           try {
-            // Desabilitar triggers apenas nesta transacao (seguro: reverte automaticamente no ROLLBACK)
-            await server.database.query(`SET LOCAL session_replication_role = 'replica'`);
-
             for (let idx = 0; idx < registros.length; idx++) {
               const row = registros[idx];
               const linha = idx + 1;
-              if (!row) {
-                erros.push({ linha, erro: 'Registro invalido' });
+              const parsedRow = parseImportRowStrict(row);
+              if (!parsedRow.ok) {
+                erros.push({ linha, erro: parsedRow.error });
                 continue;
               }
 
-              const repoIdentificadorRaw = (row.repositorio ?? '').trim();
-              const quantidade = parseQuantidadePlanilha(row.quantidade);
-              const colaboradorNome = (row.colaborador ?? '').trim();
-              const dataStr = (row.data ?? '').trim();
-              const etapaImport = funcaoToEtapa((row.funcao ?? '').trim(), body.etapa);
+              const {
+                repoIdentificadorRaw,
+                colaboradorNome,
+                quantidade,
+                dataProducaoStr,
+                anoRef,
+                tipoMarcador,
+                funcaoMarcador,
+                coordenadoriaMarcador,
+              } = parsedRow.value;
+              const etapaImport = funcaoToEtapa(funcaoMarcador, body.etapa);
               const statusImport = etapaStatusMap[etapaImport] ?? 'RECEBIDO';
-
-              if (!repoIdentificadorRaw) {
-                erros.push({ linha, erro: 'Coluna repositorio e obrigatoria' });
-                continue;
-              }
-              if (!colaboradorNome) {
-                erros.push({ linha, erro: 'Coluna colaborador e obrigatoria' });
-                continue;
-              }
 
               // Resolver usuario pelo nome do colaborador
               let colaboradorId = usuariosPorNome.get(colaboradorNome.toLowerCase());
@@ -780,22 +794,8 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
               if (!colaboradorId) {
                 colaboradorId = usuarioDestinoId;
               }
-
-              // Extrair ano da data de producao para normalizacao do ID
-              let anoRef = new Date().getFullYear();
-              if (dataStr) {
-                if (dataStr.includes('/')) {
-                  const parts = dataStr.split('/');
-                  const anoStr = parts[2] ?? '';
-                  const parsed = parseInt(anoStr, 10);
-                  if (!isNaN(parsed)) anoRef = parsed < 100 ? 2000 + parsed : parsed;
-                } else {
-                  const parsed = new Date(dataStr);
-                  if (!isNaN(parsed.getTime())) anoRef = parsed.getFullYear();
-                }
-              }
               const repoIdentificador = normalizeIdRepositorioGed(repoIdentificadorRaw, anoRef);
-              const orgaoRepositorio = (row.coordenadoria ?? '').trim() || 'NAO INFORMADO';
+              const orgaoRepositorio = coordenadoriaMarcador || 'NAO INFORMADO';
 
               try {
                 // Buscar repositorio existente pelo ID normalizado
@@ -847,58 +847,16 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
                   checklistId = checklistResult.rows[0]?.id ?? '';
                 }
 
-                // Parsear data - produce YYYY-MM-DD string (NOT a Date object, to avoid pg driver timezone shift)
-                let dataProducaoStr: string;
-                const currentYear = new Date().getFullYear();
-                if (dataStr) {
-                  // Check if it's an Excel serial date (pure number between 1 and 60000)
-                  const serialNum = parseFloat(dataStr);
-                  if (!isNaN(serialNum) && serialNum > 1 && serialNum < 60000 && !dataStr.includes('/') && !dataStr.includes('-')) {
-                    dataProducaoStr = excelSerialToDate(serialNum);
-                  } else if (dataStr.includes('/')) {
-                    const parts = dataStr.split('/');
-                    const dd = (parts[0] ?? '').padStart(2, '0');
-                    const mm = (parts[1] ?? '').padStart(2, '0');
-                    let yyyy = parts[2] ?? '';
-                    // Handle 2-digit year
-                    if (yyyy.length === 2) {
-                      yyyy = (parseInt(yyyy, 10) > 50 ? '19' : '20') + yyyy;
-                    }
-                    // If year is empty, use current year
-                    if (!yyyy || yyyy.length < 4) {
-                      yyyy = String(currentYear);
-                    }
-                    dataProducaoStr = `${yyyy}-${mm}-${dd}`;
-                  } else if (dataStr.match(/^\d{4}-\d{1,2}-\d{1,2}$/)) {
-                    dataProducaoStr = dataStr;
-                  } else if (dataStr.match(/^-?\d{1,2}-\d{1,2}$/)) {
-                    // Handle incomplete dates like '-11-21' or '11-21' (missing year)
-                    const cleanDate = dataStr.replace(/^-/, '');
-                    const [mm, dd] = cleanDate.split('-');
-                    dataProducaoStr = `${currentYear}-${(mm ?? '01').padStart(2, '0')}-${(dd ?? '01').padStart(2, '0')}`;
-                  } else {
-                    dataProducaoStr = getBrazilDateString();
-                  }
-                  if (isNaN(new Date(dataProducaoStr).getTime())) {
-                    dataProducaoStr = getBrazilDateString();
-                  }
-                } else {
-                  dataProducaoStr = getBrazilDateString();
-                }
-
                 const marcadores = JSON.stringify({
                   origem: 'LEGADO',
                   importacao_exec_id: importacaoExecId,
-                  funcao: (row.funcao ?? '').trim(),
-                  tipo: (row.tipo ?? '').trim(),
-                  coordenadoria: (row.coordenadoria ?? '').trim(),
+                  funcao: funcaoMarcador,
+                  tipo: tipoMarcador,
+                  coordenadoria: coordenadoriaMarcador,
                   colaborador_nome: colaboradorNome,
                 });
 
                 // Verificar se ja existe registro identico (mesmo colaborador, repositorio, data, tipo, etapa, quantidade, funcao, coordenadoria)
-                const tipoMarcador = (row.tipo ?? '').trim();
-                const funcaoMarcador = (row.funcao ?? '').trim();
-                const coordenadoriaMarcador = (row.coordenadoria ?? '').trim();
                 const colaboradorNomeMarcador = (colaboradorNome ?? '').trim();
 
                 const existente = await server.database.query<{
@@ -908,11 +866,11 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
                   etapa: string;
                   marcadores: Record<string, unknown>;
                 }>(
-                  `SELECT id, quantidade, checklist_id, etapa::text as etapa, marcadores
+                 `SELECT id, quantidade, checklist_id, etapa::text as etapa, marcadores
                  FROM producao_repositorio
                  WHERE usuario_id = $1
                    AND repositorio_id = $2
-                   AND (data_producao AT TIME ZONE 'America/Sao_Paulo')::date = $3::date
+                   AND (data_producao AT TIME ZONE '${SYSTEM_TIMEZONE}')::date = $3::date
                    AND etapa = $4
                    AND COALESCE(marcadores->>'origem', '') = 'LEGADO'
                    AND COALESCE(marcadores->>'tipo', '') = $5
@@ -1609,18 +1567,24 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
           for (let idx = 0; idx < registros.length; idx++) {
             const row = registros[idx]!;
             const linha = idx + 1;
-
-            let anoRef = new Date().getFullYear();
-            if (row.data.includes('/')) {
-              const parts = row.data.split('/');
-              const parsed = parseInt(parts[2] ?? '', 10);
-              if (!isNaN(parsed)) anoRef = parsed < 100 ? 2000 + parsed : parsed;
-            } else if (row.data) {
-              const parsedDate = new Date(row.data);
-              if (!isNaN(parsedDate.getTime())) anoRef = parsedDate.getFullYear();
+            const parsedRow = parseImportRowStrict(row);
+            if (!parsedRow.ok) {
+              novos.push({ linha, dados: row, motivo: parsedRow.error });
+              continue;
             }
-            const repoId = normalizeIdRepositorioGed(row.repositorio ?? '', anoRef);
-            const orgaoRepositorio = (row.coordenadoria ?? '').trim() || 'NAO INFORMADO';
+
+            const {
+              anoRef,
+              repoIdentificadorRaw,
+              colaboradorNome,
+              quantidade,
+              dataProducaoStr,
+              tipoMarcador,
+              funcaoMarcador,
+              coordenadoriaMarcador,
+            } = parsedRow.value;
+            const repoId = normalizeIdRepositorioGed(repoIdentificadorRaw, anoRef);
+            const orgaoRepositorio = coordenadoriaMarcador || 'NAO INFORMADO';
             if (!repoId) {
               novos.push({ linha, dados: row, motivo: 'Repositorio invalido' });
               continue;
@@ -1639,13 +1603,12 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
               continue;
             }
             const repositorioId = repoResult.rows[0]!.id_repositorio_recorda;
-
-            let colaboradorId = usuariosPorNome.get(row.colaborador.toLowerCase());
+            let colaboradorId = usuariosPorNome.get(colaboradorNome.toLowerCase());
             if (!colaboradorId) {
               for (const [nome, uid] of usuariosPorNome.entries()) {
                 if (
-                  nome.includes(row.colaborador.toLowerCase()) ||
-                  row.colaborador.toLowerCase().includes(nome)
+                  nome.includes(colaboradorNome.toLowerCase()) ||
+                  colaboradorNome.toLowerCase().includes(nome)
                 ) {
                   colaboradorId = uid;
                   break;
@@ -1653,32 +1616,11 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
               }
             }
             if (!colaboradorId) colaboradorId = usuariosPorNome.values().next().value;
-
-            let dataProducaoStr: string;
-            if (row.data) {
-              if (row.data.includes('/')) {
-                const parts = row.data.split('/');
-                const dd = (parts[0] ?? '').padStart(2, '0');
-                const mm = (parts[1] ?? '').padStart(2, '0');
-                let yyyy = parts[2] ?? '';
-                if (yyyy.length === 2) {
-                  yyyy = (parseInt(yyyy, 10) > 50 ? '19' : '20') + yyyy;
-                }
-                if (!yyyy) yyyy = String(new Date().getFullYear());
-                dataProducaoStr = `${yyyy}-${mm}-${dd}`;
-              } else {
-                dataProducaoStr = row.data;
-              }
-            } else {
-              dataProducaoStr = new Date().toISOString().split('T')[0]!;
-            }
-
-            const etapaImport = funcaoToEtapa(row.funcao);
-            const quantidade = parseQuantidadePlanilha(row.quantidade);
+            const etapaImport = funcaoToEtapa(funcaoMarcador);
 
             const existente = await server.database.query<{ id: string }>(
               `SELECT id FROM producao_repositorio
-             WHERE usuario_id = $1 AND repositorio_id = $2 AND (data_producao AT TIME ZONE 'America/Sao_Paulo')::date = $3::date
+             WHERE usuario_id = $1 AND repositorio_id = $2 AND (data_producao AT TIME ZONE '${SYSTEM_TIMEZONE}')::date = $3::date
                AND etapa = $4 AND quantidade = $5
                AND COALESCE(marcadores->>'tipo', '') = $6
                AND COALESCE(marcadores->>'funcao', '') = $7
@@ -1691,10 +1633,10 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
                 dataProducaoStr,
                 etapaImport,
                 quantidade,
-                (row.tipo || '').trim(),
-                (row.funcao || '').trim(),
-                (row.coordenadoria || '').trim(),
-                row.colaborador.trim(),
+                tipoMarcador,
+                funcaoMarcador,
+                coordenadoriaMarcador,
+                colaboradorNome,
               ]
             );
 
@@ -1781,30 +1723,25 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
           for (let idx = 0; idx < registros.length; idx++) {
             const row = registros[idx];
             const linha = idx + 1;
-            if (!row) {
-              linhasInvalidas.push({ linha, erro: 'Registro invalido' });
+            const parsedRow = parseImportRowStrict(row);
+            if (!parsedRow.ok) {
+              linhasInvalidas.push({ linha, erro: parsedRow.error });
               continue;
             }
-            const repoRaw = (row.repositorio ?? '').trim();
-            const colaboradorNome = (row.colaborador ?? '').trim();
-            if (!repoRaw) {
-              linhasInvalidas.push({ linha, erro: 'Coluna repositorio e obrigatoria' });
-              continue;
-            }
-            if (!colaboradorNome) {
-              linhasInvalidas.push({ linha, erro: 'Coluna colaborador e obrigatoria' });
-              continue;
-            }
-
-            const quantidade = parseQuantidadePlanilha(row.quantidade);
-            const dataStr = (row.data ?? '').trim();
-            const tipoMarcador = (row.tipo ?? '').trim();
-            const funcaoMarcador = (row.funcao ?? '').trim();
-            const coordenadoriaMarcador = (row.coordenadoria ?? '').trim();
+            const {
+              repoIdentificadorRaw: repoRaw,
+              colaboradorNome,
+              quantidade,
+              dataProducaoStr: dataStr,
+              anoRef,
+              tipoMarcador,
+              funcaoMarcador,
+              coordenadoriaMarcador,
+            } = parsedRow.value;
             const etapaImport = funcaoToEtapa(funcaoMarcador, body.etapa);
 
             const chavePlanilha = buildImportRowHash({
-              data: dataStr || 'hoje',
+              data: dataStr,
               colaborador: colaboradorNome,
               repositorio: repoRaw,
               quantidade,
@@ -1841,18 +1778,6 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
               continue;
             }
 
-            let anoRef = new Date().getFullYear();
-            if (dataStr) {
-              if (dataStr.includes('/')) {
-                const parts = dataStr.split('/');
-                const anoStr = parts[2] ?? '';
-                const parsed = parseInt(anoStr, 10);
-                if (!isNaN(parsed)) anoRef = parsed < 100 ? 2000 + parsed : parsed;
-              } else {
-                const parsed = new Date(dataStr);
-                if (!isNaN(parsed.getTime())) anoRef = parsed.getFullYear();
-              }
-            }
             const repoIdentificador = normalizeIdRepositorioGed(repoRaw, anoRef);
             const orgaoRepositorio = coordenadoriaMarcador || 'NAO INFORMADO';
 
@@ -1868,32 +1793,11 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
               continue;
             }
 
-            let dataProducao: string;
-            if (dataStr) {
-              // Check if it's an Excel serial date
-              const serialNum = parseFloat(dataStr);
-              if (!isNaN(serialNum) && serialNum > 1 && serialNum < 60000 && !dataStr.includes('/') && !dataStr.includes('-')) {
-                dataProducao = excelSerialToDate(serialNum);
-              } else if (dataStr.includes('/')) {
-                const parts = dataStr.split('/');
-                const dd = (parts[0] ?? '').padStart(2, '0');
-                const mm = (parts[1] ?? '').padStart(2, '0');
-                let yyyy = parts[2] ?? '';
-                if (yyyy.length === 2) yyyy = (parseInt(yyyy, 10) > 50 ? '19' : '20') + yyyy;
-                if (!yyyy || yyyy.length < 4) yyyy = String(new Date().getFullYear());
-                dataProducao = `${yyyy}-${mm}-${dd}`;
-              } else {
-                dataProducao = dataStr;
-              }
-            } else {
-              dataProducao = getBrazilDateString();
-            }
-
             const existente = await server.database.query<{ id: string; quantidade: number }>(
               `SELECT id, quantidade FROM producao_repositorio
              WHERE usuario_id = $1
                AND repositorio_id = $2
-               AND (data_producao AT TIME ZONE 'America/Sao_Paulo')::date = $3::date
+               AND (data_producao AT TIME ZONE '${SYSTEM_TIMEZONE}')::date = $3::date
                AND etapa = $4
                AND COALESCE(marcadores->>'origem', '') = 'LEGADO'
                AND COALESCE(marcadores->>'tipo', '') = $5
@@ -1904,7 +1808,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
               [
                 colaboradorId,
                 repositorioId,
-                dataProducao,
+                dataStr,
                 etapaImport,
                 tipoMarcador,
                 funcaoMarcador,
@@ -2056,7 +1960,6 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
 
         await server.database.query('BEGIN');
         try {
-          // Desabilitar triggers apenas nesta transacao (seguro: reverte automaticamente no ROLLBACK)
           const lockResult = await server.database.query<{ acquired: boolean }>(
             `SELECT pg_try_advisory_xact_lock(hashtext($1)) AS acquired`,
             [`importacao_fonte:${fonte.id}`]
@@ -2064,16 +1967,26 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
           if (!lockResult.rows[0]?.acquired) {
             throw new Error('Importacao desta fonte ja esta em execucao. Tente novamente.');
           }
-          await server.database.query(`SET LOCAL session_replication_role = 'replica'`);
 
           for (let idx = 0; idx < registros.length; idx++) {
             const row = registros[idx]!;
             const linha = idx + 1;
-            const repoIdentificadorRaw = row.repositorio;
-            const quantidade = parseQuantidadePlanilha(row.quantidade);
-            const colaboradorNome = row.colaborador;
-            const dataStr = row.data;
-            const etapaImport = funcaoToEtapa(row.funcao);
+            const parsedRow = parseImportRowStrict(row);
+            if (!parsedRow.ok) {
+              erros.push({ linha, erro: parsedRow.error, dados: row });
+              continue;
+            }
+            const {
+              repoIdentificadorRaw,
+              colaboradorNome,
+              quantidade,
+              dataProducaoStr,
+              anoRef,
+              tipoMarcador,
+              funcaoMarcador,
+              coordenadoriaMarcador,
+            } = parsedRow.value;
+            const etapaImport = funcaoToEtapa(funcaoMarcador);
             const statusImport = etapaStatusMap[etapaImport] ?? 'RECEBIDO';
 
             // Resolve collaborator
@@ -2091,20 +2004,8 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
             }
             if (!colaboradorId) colaboradorId = user.id;
 
-            // Parse year for repo normalization
-            let anoRef = new Date().getFullYear();
-            if (dataStr) {
-              if (dataStr.includes('/')) {
-                const parts = dataStr.split('/');
-                const parsed = parseInt(parts[2] ?? '', 10);
-                if (!isNaN(parsed)) anoRef = parsed < 100 ? 2000 + parsed : parsed;
-              } else {
-                const parsed = new Date(dataStr);
-                if (!isNaN(parsed.getTime())) anoRef = parsed.getFullYear();
-              }
-            }
             const repoIdentificador = normalizeIdRepositorioGed(repoIdentificadorRaw, anoRef);
-            const orgaoRepositorio = (row.coordenadoria ?? '').trim() || 'NAO INFORMADO';
+            const orgaoRepositorio = coordenadoriaMarcador || 'NAO INFORMADO';
 
             try {
               // Find or create repo
@@ -2134,50 +2035,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
                 repositorioId = createdRepo.rows[0]?.id_repositorio_recorda ?? '';
               }
 
-              // Parse date - produce YYYY-MM-DD string (NOT a Date object, to avoid pg driver timezone shift)
-              let dataProducaoStr: string;
-              const currentYear = new Date().getFullYear();
-              if (dataStr) {
-                // Check if it's an Excel serial date (pure number between 1 and 60000)
-                const serialNum = parseFloat(dataStr);
-                if (!isNaN(serialNum) && serialNum > 1 && serialNum < 60000 && !dataStr.includes('/') && !dataStr.includes('-')) {
-                  dataProducaoStr = excelSerialToDate(serialNum);
-                } else if (dataStr.includes('/')) {
-                  const parts = dataStr.split('/');
-                  const dd = (parts[0] ?? '').padStart(2, '0');
-                  const mm = (parts[1] ?? '').padStart(2, '0');
-                  let yyyy = parts[2] ?? '';
-                  // Handle 2-digit year
-                  if (yyyy.length === 2) {
-                    yyyy = (parseInt(yyyy, 10) > 50 ? '19' : '20') + yyyy;
-                  }
-                  // If year is empty, use current year
-                  if (!yyyy || yyyy.length < 4) {
-                    yyyy = String(currentYear);
-                  }
-                  dataProducaoStr = `${yyyy}-${mm}-${dd}`;
-                } else if (dataStr.match(/^\d{4}-\d{1,2}-\d{1,2}$/)) {
-                  dataProducaoStr = dataStr;
-                } else if (dataStr.match(/^-?\d{1,2}-\d{1,2}$/)) {
-                  // Handle incomplete dates like '-11-21' or '11-21' (missing year)
-                  const cleanDate = dataStr.replace(/^-/, '');
-                  const [mm, dd] = cleanDate.split('-');
-                  dataProducaoStr = `${currentYear}-${(mm ?? '01').padStart(2, '0')}-${(dd ?? '01').padStart(2, '0')}`;
-                } else {
-                  dataProducaoStr = getBrazilDateString();
-                }
-                // Validate it's a real date
-                if (isNaN(new Date(dataProducaoStr).getTime())) {
-                  dataProducaoStr = getBrazilDateString();
-                }
-              } else {
-                dataProducaoStr = getBrazilDateString();
-              }
-
               // Check for duplicate - auto-skip with comprehensive comparison
-              const tipoMarcador = (row.tipo || '').trim();
-              const funcaoMarcador = (row.funcao || '').trim();
-              const coordenadoriaMarcador = (row.coordenadoria || '').trim();
               const colaboradorNomeMarcador = (colaboradorNome || '').trim();
               const idempotencyHash = buildImportRowHash({
                 fonteId: fonte.id,
@@ -2206,9 +2064,9 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
               const marcadores = JSON.stringify({
                 origem: 'LEGADO',
                 importacao_exec_id: importacaoExecId,
-                funcao: row.funcao,
-                tipo: row.tipo,
-                coordenadoria: row.coordenadoria,
+                funcao: funcaoMarcador,
+                tipo: tipoMarcador,
+                coordenadoria: coordenadoriaMarcador,
                 colaborador_nome: colaboradorNome,
               });
 
@@ -2221,7 +2079,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
               }>(
                 `SELECT id, quantidade, checklist_id, etapa::text as etapa, marcadores
                FROM producao_repositorio
-               WHERE usuario_id = $1 AND repositorio_id = $2 AND (data_producao AT TIME ZONE 'America/Sao_Paulo')::date = $3::date
+               WHERE usuario_id = $1 AND repositorio_id = $2 AND (data_producao AT TIME ZONE '${SYSTEM_TIMEZONE}')::date = $3::date
                  AND etapa = $4
                  AND COALESCE(marcadores->>'origem', '') = 'LEGADO'
                  AND COALESCE(marcadores->>'tipo', '') = $5

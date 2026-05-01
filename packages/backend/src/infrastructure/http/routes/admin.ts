@@ -242,7 +242,7 @@ export function createAdminRoutes(): FastifyPluginAsync {
               PARTITION BY 
                 usuario_id, 
                 repositorio_id, 
-                DATE(data_producao AT TIME ZONE 'America/Sao_Paulo'),
+                DATE(data_producao AT TIME ZONE 'America/Cuiaba'),
                 etapa, 
                 quantidade,
                 COALESCE(marcadores->>'tipo', ''),
@@ -373,7 +373,7 @@ export function createAdminRoutes(): FastifyPluginAsync {
             COUNT(*) as total_registros,
             COUNT(DISTINCT usuario_id) as usuarios_unicos,
             COUNT(DISTINCT repositorio_id) as repositorios_unicos,
-            COUNT(DISTINCT DATE(data_producao AT TIME ZONE 'America/Sao_Paulo')) as dias_unicos,
+            COUNT(DISTINCT DATE(data_producao AT TIME ZONE 'America/Cuiaba')) as dias_unicos,
             MIN(data_producao) as data_primeira,
             MAX(data_producao) as data_ultima
           FROM producao_repositorio

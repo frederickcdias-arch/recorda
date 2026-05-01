@@ -245,6 +245,39 @@ export function EtapaOperacionalPage(): JSX.Element {
     setFiltroDataFim(filtrosUrl.dataFim);
   }, [filtrosUrl.busca, filtrosUrl.orgao, filtrosUrl.dataInicio, filtrosUrl.dataFim]);
 
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (filtrosUrl.status) params.set('status', filtrosUrl.status);
+    if (filtroBusca.trim()) params.set('busca', filtroBusca.trim());
+    if (filtroUnidade) params.set('orgao', filtroUnidade);
+    if (filtroDataInicio) params.set('dataInicio', filtroDataInicio);
+    if (filtroDataFim) params.set('dataFim', filtroDataFim);
+
+    const nextSearch = params.toString();
+    const currentSearch = location.search.startsWith('?')
+      ? location.search.slice(1)
+      : location.search;
+
+    if (nextSearch !== currentSearch) {
+      navigate(
+        {
+          pathname: location.pathname,
+          search: nextSearch ? `?${nextSearch}` : '',
+        },
+        { replace: true }
+      );
+    }
+  }, [
+    filtroBusca,
+    filtroUnidade,
+    filtroDataInicio,
+    filtroDataFim,
+    filtrosUrl.status,
+    location.pathname,
+    location.search,
+    navigate,
+  ]);
+
   const debouncedBusca = useDebounce(filtroBusca.trim(), 300);
 
   useEffect(() => {
@@ -357,7 +390,7 @@ export function EtapaOperacionalPage(): JSX.Element {
 
   const irProximaEtapa = (): void => {
     if (!etapaConfig.nextPath) return;
-    navigate(etapaConfig.nextPath);
+    navigate(`${etapaConfig.nextPath}${location.search}`);
   };
 
   const showSuccess = (texto: string): void => toast.success(texto);

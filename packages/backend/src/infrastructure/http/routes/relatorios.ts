@@ -9,6 +9,11 @@ import type {
   ResumoEtapa,
   RelatorioCompleto,
 } from '../../../application/use-cases/gerar-relatorio-completo.js';
+import {
+  buildProducaoContabilizadaWhere,
+  buildProducaoOrigemWhere,
+  sqlDateInSystemTimezone,
+} from '../../../domain/producao/producao-metrics.js';
 
 interface RelatorioQuery {
   dataInicio: string;
@@ -197,6 +202,7 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
         const { dataInicio, dataFim } = request.query;
 
         try {
+          const producaoContabilizadaWhere = buildProducaoContabilizadaWhere('p');
           const result = await server.database.query(
             `
             SELECT 
@@ -211,9 +217,8 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
             FROM producao_repositorio p
             JOIN usuarios u ON u.id = p.usuario_id
             JOIN repositorios r ON r.id_repositorio_recorda = p.repositorio_id
-            WHERE (p.data_producao AT TIME ZONE 'America/Cuiaba')::date BETWEEN $1::date AND $2::date
-              AND COALESCE(p.marcadores->>'origem', '') IN ('LEGADO', 'SISTEMA')
-              AND p.etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')
+            WHERE ${sqlDateInSystemTimezone('p')} BETWEEN $1::date AND $2::date
+              AND ${producaoContabilizadaWhere}
             ORDER BY p.data_producao DESC, u.nome
           `,
             [dataInicio, dataFim]
@@ -230,7 +235,16 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
     // GET /relatorios/operacional/export - Export operacional data as Excel
     // Supports ?token= query param for iframe preview (copies token to Authorization header)
     server.get<{
-      Querystring: { dataInicio: string; dataFim: string; formato?: string; token?: string };
+      Querystring: {
+        dataInicio: string;
+        dataFim: string;
+        formato?: string;
+        token?: string;
+        etapa?: string;
+        colaborador?: string;
+        origem?: 'legado' | 'sistema' | 'fluxo' | '';
+        busca?: string;
+      };
     }>(
       '/relatorios/operacional/export',
       {
@@ -246,9 +260,42 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
         ],
       },
       async (request, reply) => {
-        const { dataInicio, dataFim } = request.query;
+        const { dataInicio, dataFim, etapa, colaborador, origem, busca } = request.query;
 
         try {
+          const producaoContabilizadaWhere = buildProducaoContabilizadaWhere('p');
+          let where = `
+            WHERE ${sqlDateInSystemTimezone('p')} BETWEEN $1::date AND $2::date
+              AND ${producaoContabilizadaWhere}
+          `;
+          const params: Array<string | number> = [dataInicio, dataFim];
+          let p = 3;
+
+          if (etapa) {
+            where += ` AND p.etapa::text = $${p++}`;
+            params.push(etapa.toUpperCase());
+          }
+          if (colaborador) {
+            where += ` AND u.id = $${p++}`;
+            params.push(colaborador);
+          }
+          if (origem === 'legado') {
+            where += ` AND ${buildProducaoOrigemWhere('p', 'LEGADO')}`;
+          } else if (origem === 'sistema' || origem === 'fluxo') {
+            where += ` AND ${buildProducaoOrigemWhere('p', 'SISTEMA')}`;
+          }
+          if (busca) {
+            where += ` AND (
+              u.nome ILIKE $${p}
+              OR r.id_repositorio_ged ILIKE $${p}
+              OR COALESCE(p.marcadores->>'funcao', '') ILIKE $${p}
+              OR COALESCE(p.marcadores->>'tipo', '') ILIKE $${p}
+              OR COALESCE(p.marcadores->>'colaborador_nome', '') ILIKE $${p}
+            )`;
+            params.push(`%${busca}%`);
+            p++;
+          }
+
           const result = await server.database.query(
             `
             SELECT
@@ -265,12 +312,10 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
             JOIN usuarios u ON u.id = p.usuario_id
             JOIN repositorios r ON r.id_repositorio_recorda = p.repositorio_id
             LEFT JOIN coordenadorias co ON co.id = u.coordenadoria_id
-            WHERE (p.data_producao AT TIME ZONE 'America/Cuiaba')::date BETWEEN $1::date AND $2::date
-              AND COALESCE(p.marcadores->>'origem', '') IN ('LEGADO', 'SISTEMA')
-              AND p.etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')
+            ${where}
             ORDER BY p.data_producao DESC, colaborador
           `,
-            [dataInicio, dataFim]
+            params
           );
 
           const ExcelJS = (await import('exceljs')).default;
@@ -375,11 +420,7 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
           const limite = Math.min(Math.max(Number(query.limite ?? 25), 1), 100);
           const offset = (pagina - 1) * limite;
 
-          let where = `WHERE COALESCE(p.marcadores->>'origem', '') IN ('LEGADO', 'SISTEMA')
-          AND (
-            COALESCE(p.marcadores->>'origem', '') = 'SISTEMA'
-            OR p.etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')
-          )`;
+          let where = `WHERE ${buildProducaoContabilizadaWhere('p')}`;
           const params: (string | number)[] = [];
           let p = 1;
 
@@ -388,24 +429,21 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
             params.push(query.etapa.toUpperCase());
           }
           if (query.colaborador) {
-            where += ` AND LOWER(COALESCE(NULLIF(p.marcadores->>'colaborador_nome', ''), u.nome)) = LOWER($${p++})`;
+            where += ` AND u.id = $${p++}`;
             params.push(query.colaborador);
           }
           if (query.dataInicio) {
-            where += ` AND (p.data_producao AT TIME ZONE 'America/Cuiaba')::date >= $${p++}::date`;
+            where += ` AND ${sqlDateInSystemTimezone('p')} >= $${p++}::date`;
             params.push(query.dataInicio);
           }
           if (query.dataFim) {
-            where += ` AND (p.data_producao AT TIME ZONE 'America/Cuiaba')::date <= $${p++}::date`;
+            where += ` AND ${sqlDateInSystemTimezone('p')} <= $${p++}::date`;
             params.push(query.dataFim);
           }
           if (query.origem === 'legado') {
-            where += ` AND COALESCE(p.marcadores->>'origem', '') = 'LEGADO'`;
-          } else if (query.origem === 'sistema') {
-            where += ` AND COALESCE(p.marcadores->>'origem', '') = 'SISTEMA'`;
-          } else if (query.origem === 'fluxo') {
-            // Produção de fluxo operacional normal (sem origem marcada ou outra)
-            where += ` AND COALESCE(p.marcadores->>'origem', '') NOT IN ('LEGADO', 'SISTEMA')`;
+            where += ` AND ${buildProducaoOrigemWhere('p', 'LEGADO')}`;
+          } else if (query.origem === 'sistema' || query.origem === 'fluxo') {
+            where += ` AND ${buildProducaoOrigemWhere('p', 'SISTEMA')}`;
           }
           if (query.repositorio) {
             where += ` AND r.id_repositorio_ged ILIKE $${p++}`;
@@ -456,27 +494,19 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
 
           // Buscar lista de colaboradores (usar nome da planilha, normalizado com INITCAP para unificar maiúsculas/minúsculas)
           const colaboradoresResult = await server.database.query<{ nome: string; id: string }>(
-            `SELECT DISTINCT
-             INITCAP(LOWER(COALESCE(NULLIF(p.marcadores->>'colaborador_nome', ''), u.nome))) as nome,
-             INITCAP(LOWER(COALESCE(NULLIF(p.marcadores->>'colaborador_nome', ''), u.nome))) as id
+           `SELECT DISTINCT
+             u.id as id,
+             INITCAP(LOWER(COALESCE(NULLIF(p.marcadores->>'colaborador_nome', ''), u.nome))) as nome
            FROM producao_repositorio p
            JOIN usuarios u ON u.id = p.usuario_id
-           WHERE COALESCE(p.marcadores->>'origem', '') IN ('LEGADO', 'SISTEMA')
-             AND (
-               COALESCE(p.marcadores->>'origem', '') = 'SISTEMA'
-               OR p.etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')
-             )
+           WHERE ${buildProducaoContabilizadaWhere('p')}
            ORDER BY nome`
           );
 
           const etapasResult = await server.database.query<{ etapa: string }>(
-            `SELECT DISTINCT etapa::text as etapa
+           `SELECT DISTINCT etapa::text as etapa
            FROM producao_repositorio
-           WHERE COALESCE(marcadores->>'origem', '') IN ('LEGADO', 'SISTEMA')
-             AND (
-               COALESCE(marcadores->>'origem', '') = 'SISTEMA'
-               OR etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')
-             )
+           WHERE ${buildProducaoContabilizadaWhere('producao_repositorio')}
            ORDER BY etapa`
           );
 
@@ -639,10 +669,9 @@ async function gerarRelatorioCompleto(
     JOIN usuarios u ON u.id = p.usuario_id
     LEFT JOIN coordenadorias co ON co.id = u.coordenadoria_id
     ${coordenadoriaId ? 'LEFT JOIN coordenadorias co_filtro ON co_filtro.id = $3' : ''}
-    WHERE (p.data_producao AT TIME ZONE 'America/Cuiaba')::date >= $1::date
-      AND (p.data_producao AT TIME ZONE 'America/Cuiaba')::date <= $2::date
-      AND COALESCE(p.marcadores->>'origem', '') IN ('LEGADO', 'SISTEMA')
-      AND p.etapa::text NOT IN ('RECEBIMENTO', 'CONTROLE_QUALIDADE')
+    WHERE ${sqlDateInSystemTimezone('p')} >= $1::date
+      AND ${sqlDateInSystemTimezone('p')} <= $2::date
+      AND ${buildProducaoContabilizadaWhere('p')}
       ${coordenadoriaId ? `AND (
         u.coordenadoria_id = $3 
         OR LOWER(TRIM(p.marcadores->>'coordenadoria')) = LOWER(co_filtro.sigla)
@@ -655,15 +684,18 @@ async function gerarRelatorioCompleto(
   const registrosResult = await server.database.query(registrosQuery, params);
 
   // Chave composta: colaborador+coordenadoria (um colaborador pode aparecer em várias coordenadorias)
-  // producaoMap: chave composta "nomeNorm||coordId" -> Map<etapaId, quantidade>
+  // producaoMap: chave composta "usuarioId||coordId" -> Map<etapaId, quantidade>
   const producaoMap = new Map<string, Map<string, number>>();
-  const chaveInfo = new Map<string, { nome: string; matricula: string; coordId: string }>();
+  const chaveInfo = new Map<
+    string,
+    { nome: string; matricula: string; coordId: string; colaboradorId: string }
+  >();
   const etapasInfo = new Map<string, { nome: string; unidade: string; ordem: number }>();
   const coordenadoriasInfo = new Map<string, { nome: string; sigla: string }>();
 
   for (const row of registrosResult.rows) {
     const colaboradorNome = row.colaborador_nome as string;
-    const nomeNorm = colaboradorNome.trim().toLowerCase();
+    const colaboradorId = row.colaborador_id as string;
     const etapaSistema = row.etapa_sistema as string;
     const funcaoMarcador = row.funcao_marcador as string;
     const quantidade = row.quantidade as number;
@@ -680,7 +712,7 @@ async function gerarRelatorioCompleto(
     const coordId = (row.coordenadoria_id as string) || `coord_${coordSigla}`;
 
     // Chave composta: colaborador + coordenadoria
-    const chave = `${nomeNorm}||${coordId}`;
+    const chave = `${colaboradorId}||${coordId}`;
 
     if (!producaoMap.has(chave)) {
       producaoMap.set(chave, new Map());
@@ -693,6 +725,7 @@ async function gerarRelatorioCompleto(
       nome: colaboradorNome,
       matricula: row.colaborador_matricula as string,
       coordId,
+      colaboradorId,
     });
 
     etapasInfo.set(etapaId, {
@@ -716,14 +749,13 @@ async function gerarRelatorioCompleto(
 
   for (const [chave, etapasProducao] of producaoMap) {
     const info = chaveInfo.get(chave)!;
-    const nomeNorm = info.nome.trim().toLowerCase();
     for (const [etapaId, quantidade] of etapasProducao) {
       if (!producaoPorEtapaTotal.has(etapaId)) {
         producaoPorEtapaTotal.set(etapaId, { quantidade: 0, colaboradores: new Set() });
       }
       const etapaTotal = producaoPorEtapaTotal.get(etapaId)!;
       etapaTotal.quantidade += quantidade;
-      etapaTotal.colaboradores.add(nomeNorm); // contar colaboradores únicos por nome
+      etapaTotal.colaboradores.add(info.colaboradorId);
     }
   }
 
@@ -803,7 +835,7 @@ async function gerarRelatorioCompleto(
       etapasColaborador.sort((a, b) => a.ordem - b.ordem);
 
       colaboradoresRelatorio.push({
-        colaboradorId,
+        colaboradorId: colaboradorInfo.colaboradorId,
         colaboradorNome: colaboradorInfo.nome,
         matricula: colaboradorInfo.matricula,
         etapas: etapasColaborador,

@@ -8,6 +8,8 @@ import { useDashboard, type DashboardData } from '../hooks/useQueries';
 import { useAuth } from '../contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../services/api';
+import { formatDateBR } from '../utils/date';
+import { formatCriticalNumber, parseFiniteNumber } from '../utils/number';
 
 interface StatCardProps {
   title: string;
@@ -108,17 +110,17 @@ function DashboardColaborador(): JSX.Element {
   const navigate = useNavigate();
   const { usuario } = useAuth();
 
-  const { data, isLoading } = useQuery({
+  const { data, error, isError, isLoading, refetch } = useQuery({
     queryKey: ['meu-historico'],
     queryFn: () => api.get<MeuHistoricoResponse>('/producao/meu-historico'),
   });
 
   const producoes = data?.producoes ?? [];
   const producoesRecentes = producoes.slice(0, 10);
-  const totalProducoes = data?.total ?? producoes.length;
-  const totalQuantidade = data?.totalQuantidade ?? producoes.reduce((acc, p) => acc + p.quantidade, 0);
-  const registrosUltimos7Dias = data?.registrosUltimos7Dias ?? 0;
-  const quantidadeUltimos7Dias = data?.quantidadeUltimos7Dias ?? 0;
+  const totalProducoes = parseFiniteNumber(data?.total);
+  const totalQuantidade = parseFiniteNumber(data?.totalQuantidade);
+  const registrosUltimos7Dias = parseFiniteNumber(data?.registrosUltimos7Dias);
+  const quantidadeUltimos7Dias = parseFiniteNumber(data?.quantidadeUltimos7Dias);
   const producaoPorEtapa = data?.producaoPorEtapa ?? [];
   const producaoPorTipo = data?.producaoPorTipo ?? [];
   const maxQuantidadeEtapa = Math.max(...producaoPorEtapa.map((e) => e.quantidade), 1);
@@ -135,6 +137,26 @@ function DashboardColaborador(): JSX.Element {
     );
   }
 
+  if (isError) {
+    return (
+      <PageState
+        loading={false}
+        error={{
+          message: 'Não foi possível carregar os números agora. Tente novamente em instantes.',
+          details: error instanceof Error ? error.message : 'Falha ao carregar o dashboard do colaborador.',
+          action: {
+            label: 'Tentar novamente',
+            onClick: () => {
+              void refetch();
+            },
+          },
+        }}
+      >
+        <div />
+      </PageState>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <header>
@@ -148,23 +170,23 @@ function DashboardColaborador(): JSX.Element {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
             title="Total de Registros"
-            value={totalProducoes.toLocaleString('pt-BR')}
+            value={formatCriticalNumber(totalProducoes)}
             icon="clipboard"
           />
           <StatCard
             title="Quantidade Total"
-            value={totalQuantidade.toLocaleString('pt-BR')}
+            value={formatCriticalNumber(totalQuantidade)}
             icon="bar-chart"
           />
           <StatCard
             title="Registros (7 dias)"
-            value={registrosUltimos7Dias.toLocaleString('pt-BR')}
+            value={formatCriticalNumber(registrosUltimos7Dias)}
             icon="calendar"
             subtitle="registros"
           />
           <StatCard
             title="Quantidade (7 dias)"
-            value={quantidadeUltimos7Dias.toLocaleString('pt-BR')}
+            value={formatCriticalNumber(quantidadeUltimos7Dias)}
             icon="trending-up"
             subtitle="produzidos"
           />
@@ -315,7 +337,7 @@ function DashboardColaborador(): JSX.Element {
                     return (
                       <tr key={p.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 text-sm text-gray-900">
-                          {new Date(p.data_producao).toLocaleDateString('pt-BR')}
+                          {formatDateBR(p.data_producao)}
                         </td>
                         <td className="px-6 py-4 text-sm font-medium text-gray-900">
                           {p.id_repositorio_ged}
@@ -343,20 +365,16 @@ function DashboardColaborador(): JSX.Element {
 
 function DashboardContent({ data }: { data: DashboardData }): JSX.Element {
   const navigate = useNavigate();
-  const toSafeNumber = (value: unknown): number => {
-    const parsed = Number(value ?? 0);
-    return Number.isFinite(parsed) ? parsed : 0;
-  };
 
   const producaoPorEtapa = Array.isArray(data.producaoPorEtapa) ? data.producaoPorEtapa : [];
   const statusProducao = Array.isArray(data.statusRecebimento) ? data.statusRecebimento : [];
   const retrabalhoCQ = Array.isArray(data.retrabalhoCQ) ? data.retrabalhoCQ : [];
 
-  const producaoTotal = toSafeNumber(data.stats?.producaoTotal);
-  const processosAtivos = toSafeNumber(data.stats?.processosAtivos);
-  const processosNovosHoje = toSafeNumber(data.stats?.processosNovosHoje);
-  const colaboradoresAtivos = toSafeNumber(data.stats?.colaboradoresAtivos);
-  const maxProducao = Math.max(...producaoPorEtapa.map((e) => toSafeNumber(e?.valor)), 1);
+  const producaoTotal = parseFiniteNumber(data.stats?.producaoTotal);
+  const processosAtivos = parseFiniteNumber(data.stats?.processosAtivos);
+  const processosNovosHoje = parseFiniteNumber(data.stats?.processosNovosHoje);
+  const colaboradoresAtivos = parseFiniteNumber(data.stats?.colaboradoresAtivos);
+  const maxProducao = Math.max(...producaoPorEtapa.map((e) => parseFiniteNumber(e?.valor) ?? 0), 1);
 
   return (
     <div className="space-y-6">
@@ -368,17 +386,17 @@ function DashboardContent({ data }: { data: DashboardData }): JSX.Element {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <StatCard
             title="Produção do Mês"
-            value={producaoTotal.toLocaleString('pt-BR')}
+            value={formatCriticalNumber(producaoTotal)}
             icon="bar-chart"
             subtitle={data.stats.producaoTrend !== '0%' ? data.stats.producaoTrend : undefined}
             onClick={() => navigate('/producao')}
           />
           <StatCard
-            title="Repositórios Ativos"
-            value={processosAtivos.toLocaleString('pt-BR')}
+            title="Repositórios com Produção"
+            value={formatCriticalNumber(processosAtivos)}
             icon="folder"
             subtitle={
-              processosNovosHoje > 0
+              typeof processosNovosHoje === 'number' && processosNovosHoje > 0
                 ? `${processosNovosHoje.toLocaleString('pt-BR')} importados hoje`
                 : undefined
             }
@@ -386,7 +404,7 @@ function DashboardContent({ data }: { data: DashboardData }): JSX.Element {
           />
           <StatCard
             title="Usuários Ativos"
-            value={colaboradoresAtivos.toLocaleString('pt-BR')}
+            value={formatCriticalNumber(colaboradoresAtivos)}
             icon="users"
             onClick={() => navigate('/producao')}
           />
@@ -401,7 +419,7 @@ function DashboardContent({ data }: { data: DashboardData }): JSX.Element {
               <p className="text-gray-500 text-sm">Nenhuma produção registrada no período</p>
             ) : (
               producaoPorEtapa.map((item) => {
-                const valor = toSafeNumber(item?.valor);
+                const valor = parseFiniteNumber(item?.valor);
                 return (
                   <button
                     key={item.etapa}
@@ -412,13 +430,13 @@ function DashboardContent({ data }: { data: DashboardData }): JSX.Element {
                     <div className="flex justify-between text-sm mb-1">
                       <span className="text-gray-600">{item.etapa}</span>
                       <span className="font-medium text-gray-900">
-                        {valor.toLocaleString('pt-BR')}
+                        {formatCriticalNumber(valor)}
                       </span>
                     </div>
                     <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-blue-500 rounded-full transition-all duration-500"
-                        style={{ width: `${(valor / maxProducao) * 100}%` }}
+                        style={{ width: `${((valor ?? 0) / maxProducao) * 100}%` }}
                       />
                     </div>
                   </button>
@@ -443,7 +461,7 @@ function DashboardContent({ data }: { data: DashboardData }): JSX.Element {
                   <span className="text-gray-700">{item.status}</span>
                 </div>
                 <span className="font-semibold text-gray-900">
-                  {toSafeNumber(item?.valor).toLocaleString('pt-BR')}
+                  {formatCriticalNumber(item?.valor)}
                 </span>
               </button>
             ))}
@@ -461,7 +479,7 @@ function DashboardContent({ data }: { data: DashboardData }): JSX.Element {
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-sm font-medium text-gray-800">{item.motivo}</span>
                     <span className="text-sm font-bold text-blue-700">
-                      {toSafeNumber(item?.total).toLocaleString('pt-BR')}
+                      {formatCriticalNumber(item?.total)}
                     </span>
                   </div>
                   {item.repositorios ? (

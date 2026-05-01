@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Card } from '../../components/ui/Card';
 import { Icon } from '../../components/ui/Icon';
 import { Button } from '../../components/ui/Button';
@@ -9,6 +10,8 @@ import { useToastHelpers } from '../../components/ui/Toast';
 import { useAuth } from '../../contexts/AuthContext';
 import { useConfirmDialog } from '../../hooks/useConfirmDialog';
 import { extractErrorMessage } from '../../utils/errors';
+import { formatDateBR } from '../../utils/date';
+import { formatCriticalNumber, parseFiniteNumber } from '../../utils/number';
 import {
   useProducao,
   useDeleteProducao,
@@ -28,12 +31,9 @@ const ETAPA_LABELS: Record<string, string> = {
   ENTREGA: 'Entrega',
 };
 
-const toSafeNumber = (value: unknown): number => {
-  const parsed = Number(value ?? 0);
-  return Number.isFinite(parsed) ? parsed : 0;
-};
-
 export function ProducaoPage(): JSX.Element {
+  const navigate = useNavigate();
+  const location = useLocation();
   const { usuario } = useAuth();
   const queryClient = useQueryClient();
   const deleteProducao = useDeleteProducao();
@@ -55,6 +55,35 @@ export function ProducaoPage(): JSX.Element {
   type SortDirection = 'asc' | 'desc';
   const [sortColumn, setSortColumn] = useState<SortColumn | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+  const filtrosInicializadosRef = useRef(false);
+
+  const filtrosUrl = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    return {
+      pagina: Math.max(Number(params.get('pagina') ?? '1'), 1),
+      etapa: params.get('etapa') ?? '',
+      colaborador: params.get('colaborador') ?? '',
+      dataInicio: params.get('dataInicio') ?? '',
+      dataFim: params.get('dataFim') ?? '',
+      busca: params.get('busca') ?? '',
+    };
+  }, [location.search]);
+
+  useEffect(() => {
+    setPagina(filtrosUrl.pagina);
+    setEtapa(filtrosUrl.etapa);
+    setColaborador(filtrosUrl.colaborador);
+    setDataInicio(filtrosUrl.dataInicio);
+    setDataFim(filtrosUrl.dataFim);
+    setBusca(filtrosUrl.busca);
+  }, [
+    filtrosUrl.pagina,
+    filtrosUrl.etapa,
+    filtrosUrl.colaborador,
+    filtrosUrl.dataInicio,
+    filtrosUrl.dataFim,
+    filtrosUrl.busca,
+  ]);
 
   // Debounce busca
   useEffect(() => {
@@ -64,8 +93,37 @@ export function ProducaoPage(): JSX.Element {
 
   // Reset page when filters change
   useEffect(() => {
+    if (!filtrosInicializadosRef.current) {
+      filtrosInicializadosRef.current = true;
+      return;
+    }
     setPagina(1);
-  }, [etapa, colaborador, dataInicio, dataFim, buscaDebounced]);
+  }, [etapa, colaborador, dataInicio, dataFim, busca]);
+
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (pagina > 1) params.set('pagina', String(pagina));
+    if (etapa) params.set('etapa', etapa);
+    if (colaborador) params.set('colaborador', colaborador);
+    if (dataInicio) params.set('dataInicio', dataInicio);
+    if (dataFim) params.set('dataFim', dataFim);
+    if (busca.trim()) params.set('busca', busca.trim());
+
+    const nextSearch = params.toString();
+    const currentSearch = location.search.startsWith('?')
+      ? location.search.slice(1)
+      : location.search;
+
+    if (nextSearch !== currentSearch) {
+      navigate(
+        {
+          pathname: location.pathname,
+          search: nextSearch ? `?${nextSearch}` : '',
+        },
+        { replace: true }
+      );
+    }
+  }, [pagina, etapa, colaborador, dataInicio, dataFim, busca, location.pathname, location.search, navigate]);
 
   const producaoQuery = useProducao({
     pagina,
@@ -137,6 +195,9 @@ export function ProducaoPage(): JSX.Element {
       const params = new URLSearchParams();
       if (dataInicio) params.set('dataInicio', dataInicio);
       if (dataFim) params.set('dataFim', dataFim);
+      if (etapa) params.set('etapa', etapa);
+      if (colaborador) params.set('colaborador', colaborador);
+      if (buscaDebounced) params.set('busca', buscaDebounced);
       params.set('formato', 'excel');
       await api.download(
         `/api/relatorios/operacional/export?${params.toString()}`,
@@ -151,8 +212,8 @@ export function ProducaoPage(): JSX.Element {
   };
 
   const totalFormatado = useMemo(() => {
-    if (!dados) return '0';
-    return toSafeNumber(dados.total).toLocaleString('pt-BR');
+    if (!dados) return '—';
+    return formatCriticalNumber(dados.total);
   }, [dados]);
 
   // Função de ordenação
@@ -195,8 +256,8 @@ export function ProducaoPage(): JSX.Element {
           bVal = (b.tipo || '').toLowerCase();
           break;
         case 'quantidade':
-          aVal = toSafeNumber(a.quantidade);
-          bVal = toSafeNumber(b.quantidade);
+          aVal = parseFiniteNumber(a.quantidade) ?? Number.NEGATIVE_INFINITY;
+          bVal = parseFiniteNumber(b.quantidade) ?? Number.NEGATIVE_INFINITY;
           break;
         case 'coordenadoria':
           aVal = (a.coordenadoria_sigla || '').toLowerCase();
@@ -393,11 +454,11 @@ export function ProducaoPage(): JSX.Element {
                     <div>
                       <p className="text-sm font-semibold text-gray-900">{reg.colaborador_nome}</p>
                       <p className="text-xs text-gray-500">
-                        {new Date(reg.data_producao).toLocaleDateString('pt-BR')}
+                        {formatDateBR(reg.data_producao)}
                       </p>
                     </div>
                     <span className="text-sm font-semibold text-gray-900 tabular-nums">
-                      {toSafeNumber(reg.quantidade).toLocaleString('pt-BR')}
+                      {formatCriticalNumber(reg.quantidade)}
                     </span>
                   </div>
                   <p className="mt-2 font-mono text-xs text-gray-700 break-all">
@@ -467,7 +528,7 @@ export function ProducaoPage(): JSX.Element {
                   registrosOrdenados.map((reg) => (
                     <tr key={reg.id} className="hover:bg-gray-50">
                       <td className="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">
-                        {new Date(reg.data_producao).toLocaleDateString('pt-BR')}
+                        {formatDateBR(reg.data_producao)}
                       </td>
                       <td className="px-3 py-2 text-sm text-gray-800">{reg.colaborador_nome}</td>
                       <td className="px-3 py-2 text-xs text-gray-800 font-mono">
@@ -478,7 +539,7 @@ export function ProducaoPage(): JSX.Element {
                       </td>
                       <td className="px-3 py-2 text-sm text-gray-600">{reg.tipo || '-'}</td>
                       <td className="px-3 py-2 text-sm text-gray-800 text-right font-medium tabular-nums">
-                        {toSafeNumber(reg.quantidade).toLocaleString('pt-BR')}
+                        {formatCriticalNumber(reg.quantidade)}
                       </td>
                       <td className="px-3 py-2 text-sm text-gray-600">
                         {reg.coordenadoria_sigla || '-'}

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import type { EtapaFluxo } from '@recorda/shared';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -54,6 +55,8 @@ const ETAPAS: EtapaFluxo[] = [
 type KBTab = 'documentos' | 'glossario' | 'leis';
 
 export function ConhecimentoOperacionalPage(): JSX.Element {
+  const navigate = useNavigate();
+  const location = useLocation();
   const { usuario } = useAuth();
   const isAdmin = usuario?.perfil === 'administrador';
 
@@ -68,6 +71,59 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
   const [categoria, setCategoria] = useState('');
   const [etapaFiltro, setEtapaFiltro] = useState('');
   const [selectedId, setSelectedId] = useState('');
+
+  const filtrosUrl = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    const tab = params.get('tab');
+    return {
+      tab: tab === 'documentos' || tab === 'glossario' || tab === 'leis' ? tab : 'documentos',
+      busca: params.get('busca') ?? '',
+      categoria: params.get('categoria') ?? '',
+      etapa: params.get('etapa') ?? '',
+      documento: params.get('documento') ?? '',
+    };
+  }, [location.search]);
+
+  useEffect(() => {
+    setActiveTab(filtrosUrl.tab);
+    setBusca(filtrosUrl.busca);
+    setCategoria(filtrosUrl.categoria);
+    setEtapaFiltro(filtrosUrl.etapa);
+    setSelectedId(filtrosUrl.documento);
+  }, [filtrosUrl.busca, filtrosUrl.categoria, filtrosUrl.documento, filtrosUrl.etapa, filtrosUrl.tab]);
+
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (activeTab !== 'documentos') params.set('tab', activeTab);
+    if (busca.trim()) params.set('busca', busca.trim());
+    if (categoria) params.set('categoria', categoria);
+    if (etapaFiltro) params.set('etapa', etapaFiltro);
+    if (selectedId) params.set('documento', selectedId);
+
+    const nextSearch = params.toString();
+    const currentSearch = location.search.startsWith('?')
+      ? location.search.slice(1)
+      : location.search;
+
+    if (nextSearch !== currentSearch) {
+      navigate(
+        {
+          pathname: location.pathname,
+          search: nextSearch ? `?${nextSearch}` : '',
+        },
+        { replace: true }
+      );
+    }
+  }, [
+    activeTab,
+    busca,
+    categoria,
+    etapaFiltro,
+    location.pathname,
+    location.search,
+    navigate,
+    selectedId,
+  ]);
 
   const [novoDoc, setNovoDoc] = useState({
     codigo: '',
@@ -121,7 +177,13 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
 
   // Auto-select first item
   useEffect(() => {
-    if (itens.length > 0 && !selectedId) {
+    if (itens.length === 0) {
+      if (selectedId) setSelectedId('');
+      return;
+    }
+
+    const selecionadoAindaExiste = itens.some((item) => item.id === selectedId);
+    if (!selectedId || !selecionadoAindaExiste) {
       setSelectedId(itens[0]!.id);
     }
   }, [itens, selectedId]);

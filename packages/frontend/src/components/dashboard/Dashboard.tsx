@@ -19,6 +19,7 @@ import {
   Pie,
   Cell,
 } from 'recharts';
+import { formatCriticalNumber, parseFiniteNumber } from '../../utils/number';
 
 interface DashboardWidget {
   id: string;
@@ -331,14 +332,15 @@ const GaugeWidget: React.FC<{ widget: DashboardWidget; data: any }> = ({ widget,
     );
   }
 
-  const value = data.value || 0;
+  const value = parseFiniteNumber(data?.value);
   const { min = 0, max = 100, thresholds = [] } = widget.options || {};
-  const percentage = ((value - min) / (max - min)) * 100;
+  const numericValue = value ?? min;
+  const percentage = max === min ? 0 : ((numericValue - min) / (max - min)) * 100;
 
   // Determinar cor baseada nos thresholds
   let color = 'bg-green-500';
   for (const threshold of thresholds) {
-    if (value >= threshold.value) {
+    if (numericValue >= threshold.value) {
       color = threshold.color;
     }
   }
@@ -354,7 +356,9 @@ const GaugeWidget: React.FC<{ widget: DashboardWidget; data: any }> = ({ widget,
           />
         </div>
         <div className="mt-2 text-center">
-          <span className="text-2xl font-bold text-gray-900">{value}</span>
+          <span className="text-2xl font-bold text-gray-900">
+            {formatCriticalNumber(value)}
+          </span>
           <span className="text-sm text-gray-500 ml-1">/ {max}</span>
         </div>
       </div>

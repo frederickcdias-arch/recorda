@@ -5,10 +5,10 @@ import { Input } from '../../components/ui/Input';
 import { PageState, ActionFeedback } from '../../components/ui/PageState';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../services/api';
-import { 
-  useQueryClient, 
-  useOrgaosRecebimento, 
-  useCriarOrgaoRecebimento 
+import {
+  useQueryClient,
+  useOrgaosRecebimento,
+  useCriarOrgaoRecebimento,
 } from '../../hooks/useQueries';
 import { useToastHelpers } from '../../components/ui/Toast';
 
@@ -36,12 +36,25 @@ function normalizeIdRepositorioGed(raw: string, anoReferencia?: number): string 
     ano = String(anoReferencia ?? new Date().getFullYear());
   }
 
-  // Pad número para 6 dígitos
   const numeroPadded = numero.replace(/^0+/, '').padStart(6, '0');
-  // Garantir ano com 4 dígitos
   const anoFinal = ano.length === 2 ? `20${ano}` : ano;
 
   return `${numeroPadded}/${anoFinal}`;
+}
+
+function validarQuantidade(value: string): number | null {
+  const trimmed = value.trim();
+
+  if (!/^\d+$/.test(trimmed)) {
+    return null;
+  }
+
+  const parsed = Number(trimmed);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    return null;
+  }
+
+  return parsed;
 }
 
 export function LancarProducaoPage(): JSX.Element {
@@ -54,11 +67,11 @@ export function LancarProducaoPage(): JSX.Element {
   const [salvando, setSalvando] = useState(false);
   const [novaCoordenadoriaInput, setNovaCoordenadoriaInput] = useState('');
   const [formData, setFormData] = useState({
-    data: new Date().toISOString().split('T')[0], // Formato YYYY-MM-DD
+    data: new Date().toISOString().split('T')[0],
     repositorio: '',
     etapa: '',
     coordenadoria: '',
-    quantidade: 1,
+    quantidade: '1',
     tipo: '',
   });
 
@@ -111,6 +124,12 @@ export function LancarProducaoPage(): JSX.Element {
       return;
     }
 
+    const quantidade = validarQuantidade(formData.quantidade);
+    if (quantidade === null) {
+      setMensagem({ tipo: 'error', texto: 'Informe uma quantidade inteira maior que zero.' });
+      return;
+    }
+
     setSalvando(true);
     try {
       await api.post('/producao/lancar-direto', {
@@ -118,7 +137,7 @@ export function LancarProducaoPage(): JSX.Element {
         repositorio: formData.repositorio,
         etapa: formData.etapa,
         coordenadoria: formData.coordenadoria || undefined,
-        quantidade: formData.quantidade,
+        quantidade,
         tipo: formData.tipo || undefined,
       });
 
@@ -128,7 +147,7 @@ export function LancarProducaoPage(): JSX.Element {
         repositorio: '',
         etapa: '',
         coordenadoria: '',
-        quantidade: 1,
+        quantidade: '1',
         tipo: '',
       });
       await queryClient.invalidateQueries({ queryKey: ['meu-historico'] });
@@ -147,9 +166,7 @@ export function LancarProducaoPage(): JSX.Element {
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Lançar Produção</h1>
-          <p className="text-gray-500 mt-1">
-            Registre sua produção diária - {usuario?.nome}
-          </p>
+          <p className="text-gray-500 mt-1">Registre sua produção diária - {usuario?.nome}</p>
         </div>
 
         {mensagem && (
@@ -164,7 +181,6 @@ export function LancarProducaoPage(): JSX.Element {
         <Card>
           <div className="p-6 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Data */}
               <Input
                 label="Data"
                 type="date"
@@ -172,7 +188,6 @@ export function LancarProducaoPage(): JSX.Element {
                 onChange={(e) => setFormData((p) => ({ ...p, data: e.target.value }))}
               />
 
-              {/* Repositório (ID GED) */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Repositório <span className="text-red-500">*</span>
@@ -195,7 +210,6 @@ export function LancarProducaoPage(): JSX.Element {
                 </p>
               </div>
 
-              {/* Etapa */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Etapa <span className="text-red-500">*</span>
@@ -206,15 +220,14 @@ export function LancarProducaoPage(): JSX.Element {
                   className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Selecione a etapa</option>
-                  {etapas.map((e) => (
-                    <option key={e.value} value={e.value}>
-                      {e.label}
+                  {etapas.map((etapa) => (
+                    <option key={etapa.value} value={etapa.value}>
+                      {etapa.label}
                     </option>
                   ))}
                 </select>
               </div>
 
-              {/* Coordenadoria */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Coordenadoria
@@ -225,9 +238,9 @@ export function LancarProducaoPage(): JSX.Element {
                   onChange={(e) => setFormData((p) => ({ ...p, coordenadoria: e.target.value }))}
                 >
                   <option value="">— Selecione —</option>
-                  {coordenadoriasOptions.map((c) => (
-                    <option key={c.id} value={c.nome}>
-                      {c.nome}
+                  {coordenadoriasOptions.map((coordenadoria) => (
+                    <option key={coordenadoria.id} value={coordenadoria.nome}>
+                      {coordenadoria.nome}
                     </option>
                   ))}
                 </select>
@@ -256,18 +269,15 @@ export function LancarProducaoPage(): JSX.Element {
                 </div>
               </div>
 
-              {/* Quantidade */}
               <Input
                 label="Quantidade"
                 type="number"
                 min="1"
+                step="1"
                 value={formData.quantidade}
-                onChange={(e) =>
-                  setFormData((p) => ({ ...p, quantidade: parseInt(e.target.value) || 1 }))
-                }
+                onChange={(e) => setFormData((p) => ({ ...p, quantidade: e.target.value }))}
               />
 
-              {/* Tipo */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
                 <select
@@ -282,7 +292,6 @@ export function LancarProducaoPage(): JSX.Element {
               </div>
             </div>
 
-            {/* Botão Salvar */}
             <div className="flex justify-end pt-4">
               <Button variant="primary" onClick={handleSalvar} loading={salvando}>
                 Registrar Produção
@@ -291,7 +300,6 @@ export function LancarProducaoPage(): JSX.Element {
           </div>
         </Card>
 
-        {/* Instruções */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <h3 className="font-semibold text-blue-900 mb-2">📋 Instruções</h3>
           <ul className="text-sm text-blue-800 space-y-1">
@@ -301,7 +309,7 @@ export function LancarProducaoPage(): JSX.Element {
             <li>• <strong>Coordenadoria:</strong> Unidade/coordenadoria responsável</li>
             <li>• <strong>Quantidade:</strong> Número de itens processados</li>
             <li>• <strong>Tipo:</strong> Informação adicional (opcional)</li>
-            <li>• Consulte seu histórico em &quot;Meu Histórico&quot;</li>
+            <li>• Consulte seu histórico em "Meu Histórico"</li>
           </ul>
         </div>
       </div>
