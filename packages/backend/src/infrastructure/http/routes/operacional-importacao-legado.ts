@@ -1973,7 +1973,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
             const linha = idx + 1;
             const parsedRow = parseImportRowStrict(row);
             if (!parsedRow.ok) {
-              erros.push({ linha, erro: parsedRow.error, dados: row });
+              erros.push({ linha, erro: parsedRow.error, dados: { ...row } });
               continue;
             }
             const {
@@ -2180,7 +2180,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
                   colaborador: colaboradorNome,
                   funcao: row.funcao,
                   tipo: row.tipo,
-                  data: dataStr,
+                  data: dataProducaoStr,
                   quantidade,
                 },
               });
