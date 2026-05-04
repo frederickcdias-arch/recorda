@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Card } from '../../components/ui/Card';
 import { Icon } from '../../components/ui/Icon';
 import { PageState } from '../../components/ui/PageState';
 import { Button } from '../../components/ui/Button';
 import { useAuth } from '../../contexts/AuthContext';
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { api } from '../../services/api';
 import { formatDateBR } from '../../utils/date';
 import { formatCriticalNumber, parseFiniteNumber } from '../../utils/number';
@@ -60,6 +60,35 @@ function getEtapaCor(etapa: string): { bg: string; text: string } {
   return etapaCores[found ?? ''] ?? { bg: 'bg-blue-50', text: 'text-blue-700' };
 }
 
+function fmtDate(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+
+type DatePreset = 'hoje' | 'semana' | 'mes' | 'mes-anterior';
+
+function getPresetRange(preset: DatePreset): { start: string; end: string } {
+  const today = new Date();
+  switch (preset) {
+    case 'hoje':
+      return { start: fmtDate(today), end: fmtDate(today) };
+    case 'semana': {
+      const start = new Date(today);
+      start.setDate(today.getDate() - 6);
+      return { start: fmtDate(start), end: fmtDate(today) };
+    }
+    case 'mes': {
+      const start = new Date(today.getFullYear(), today.getMonth(), 1);
+      const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      return { start: fmtDate(start), end: fmtDate(end) };
+    }
+    case 'mes-anterior': {
+      const start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+      const end = new Date(today.getFullYear(), today.getMonth(), 0);
+      return { start: fmtDate(start), end: fmtDate(end) };
+    }
+  }
+}
+
 export function MeuHistoricoPage(): JSX.Element {
   const navigate = useNavigate();
   const location = useLocation();
@@ -68,6 +97,9 @@ export function MeuHistoricoPage(): JSX.Element {
   const [etapaFiltro, setEtapaFiltro] = useState('');
   const [dataInicio, setDataInicio] = useState('');
   const [dataFim, setDataFim] = useState('');
+  const [buscaInput, setBuscaInput] = useState('');
+  const [busca, setBusca] = useState('');
+  const buscaDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
   const limite = 50;
 
   const filtrosUrl = useMemo(() => {
@@ -77,6 +109,7 @@ export function MeuHistoricoPage(): JSX.Element {
       etapa: params.get('etapa') ?? '',
       dataInicio: params.get('dataInicio') ?? '',
       dataFim: params.get('dataFim') ?? '',
+      busca: params.get('busca') ?? '',
     };
   }, [location.search]);
 
@@ -85,7 +118,15 @@ export function MeuHistoricoPage(): JSX.Element {
     setEtapaFiltro(filtrosUrl.etapa);
     setDataInicio(filtrosUrl.dataInicio);
     setDataFim(filtrosUrl.dataFim);
-  }, [filtrosUrl.pagina, filtrosUrl.etapa, filtrosUrl.dataInicio, filtrosUrl.dataFim]);
+    setBusca(filtrosUrl.busca);
+    setBuscaInput(filtrosUrl.busca);
+  }, [
+    filtrosUrl.pagina,
+    filtrosUrl.etapa,
+    filtrosUrl.dataInicio,
+    filtrosUrl.dataFim,
+    filtrosUrl.busca,
+  ]);
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -93,6 +134,7 @@ export function MeuHistoricoPage(): JSX.Element {
     if (etapaFiltro) params.set('etapa', etapaFiltro);
     if (dataInicio) params.set('dataInicio', dataInicio);
     if (dataFim) params.set('dataFim', dataFim);
+    if (busca) params.set('busca', busca);
 
     const nextSearch = params.toString();
     const currentSearch = location.search.startsWith('?')
@@ -108,7 +150,16 @@ export function MeuHistoricoPage(): JSX.Element {
         { replace: true }
       );
     }
-  }, [pagina, etapaFiltro, dataInicio, dataFim, location.pathname, location.search, navigate]);
+  }, [
+    pagina,
+    etapaFiltro,
+    dataInicio,
+    dataFim,
+    busca,
+    location.pathname,
+    location.search,
+    navigate,
+  ]);
 
   const queryParams = new URLSearchParams();
   queryParams.set('limite', String(limite));
@@ -116,16 +167,20 @@ export function MeuHistoricoPage(): JSX.Element {
   if (etapaFiltro) queryParams.set('etapa', etapaFiltro);
   if (dataInicio) queryParams.set('dataInicio', dataInicio);
   if (dataFim) queryParams.set('dataFim', dataFim);
+  if (busca) queryParams.set('busca', busca);
 
-  const { data, error, isError, isLoading, refetch } = useQuery({
-    queryKey: ['meu-historico', pagina, etapaFiltro, dataInicio, dataFim],
+  const { data, error, isError, isLoading, isFetching, refetch } = useQuery({
+    queryKey: ['meu-historico', pagina, etapaFiltro, dataInicio, dataFim, busca],
     queryFn: () =>
       api.get<MeuHistoricoResponse>(`/producao/meu-historico?${queryParams.toString()}`),
+    placeholderData: keepPreviousData,
   });
 
   const producoes = data?.producoes ?? [];
   const total = parseFiniteNumber(data?.total);
   const totalQuantidade = parseFiniteNumber(data?.totalQuantidade);
+  const registrosUltimos7Dias = parseFiniteNumber(data?.registrosUltimos7Dias) ?? 0;
+  const quantidadeUltimos7Dias = parseFiniteNumber(data?.quantidadeUltimos7Dias) ?? 0;
   const totalPaginas = data?.totalPaginas ?? 1;
   const etapasDisponiveis = data?.etapasDisponiveis ?? [];
   const producaoPorEtapa = data?.producaoPorEtapa ?? [];
@@ -135,10 +190,29 @@ export function MeuHistoricoPage(): JSX.Element {
     setEtapaFiltro('');
     setDataInicio('');
     setDataFim('');
+    setBusca('');
+    setBuscaInput('');
     setPagina(1);
   };
 
-  const temFiltros = etapaFiltro || dataInicio || dataFim;
+  const handleBuscaChange = (value: string): void => {
+    setBuscaInput(value);
+    if (buscaDebounce.current) clearTimeout(buscaDebounce.current);
+    buscaDebounce.current = setTimeout(() => {
+      setBusca(value);
+      setPagina(1);
+    }, 400);
+  };
+
+  const handlePreset = (preset: DatePreset): void => {
+    const range = getPresetRange(preset);
+    setDataInicio(range.start);
+    setDataFim(range.end);
+    setPagina(1);
+  };
+
+  const temFiltros = etapaFiltro || dataInicio || dataFim || busca;
+
   const errorInfo = isError
     ? {
         message: 'Não foi possível carregar os números agora. Tente novamente em instantes.',
@@ -169,8 +243,113 @@ export function MeuHistoricoPage(): JSX.Element {
           <p className="text-gray-500 mt-1">Acompanhe sua produção - {usuario?.nome}</p>
         </div>
 
+        {/* Filtros */}
+        <Card>
+          <div className="p-4 space-y-3">
+            {/* Atalhos de período */}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-medium text-gray-500 mr-1">Período:</span>
+              {(
+                [
+                  { label: 'Hoje', preset: 'hoje' },
+                  { label: 'Últimos 7 dias', preset: 'semana' },
+                  { label: 'Este mês', preset: 'mes' },
+                  { label: 'Mês passado', preset: 'mes-anterior' },
+                ] as { label: string; preset: DatePreset }[]
+              ).map(({ label, preset }) => {
+                const range = getPresetRange(preset);
+                const active = dataInicio === range.start && dataFim === range.end;
+                return (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => handlePreset(preset)}
+                    className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+                      active
+                        ? 'bg-blue-600 text-white border-blue-600'
+                        : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400 hover:text-blue-600'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+              {temFiltros ? (
+                <button
+                  type="button"
+                  onClick={handleLimparFiltros}
+                  className="ml-auto flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium border border-gray-300 text-gray-500 hover:text-red-600 hover:border-red-300 transition-colors"
+                >
+                  <Icon name="x" className="w-3 h-3" />
+                  Limpar filtros
+                </button>
+              ) : null}
+            </div>
+
+            {/* Inputs */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Data Início</label>
+                <input
+                  type="date"
+                  value={dataInicio}
+                  onChange={(e) => {
+                    setDataInicio(e.target.value);
+                    setPagina(1);
+                  }}
+                  className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Data Fim</label>
+                <input
+                  type="date"
+                  value={dataFim}
+                  onChange={(e) => {
+                    setDataFim(e.target.value);
+                    setPagina(1);
+                  }}
+                  className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Etapa</label>
+                <select
+                  value={etapaFiltro}
+                  onChange={(e) => {
+                    setEtapaFiltro(e.target.value);
+                    setPagina(1);
+                  }}
+                  className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                >
+                  <option value="">Todas</option>
+                  {etapasDisponiveis.map((e) => (
+                    <option key={e} value={e}>
+                      {e}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">
+                  Buscar repositório
+                </label>
+                <input
+                  type="text"
+                  value={buscaInput}
+                  onChange={(e) => handleBuscaChange(e.target.value)}
+                  placeholder="Ex: 943/2024"
+                  className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+          </div>
+        </Card>
+
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div
+          className={`grid grid-cols-1 md:grid-cols-3 gap-4 transition-opacity duration-150 ${isFetching && !isLoading ? 'opacity-60' : 'opacity-100'}`}
+        >
           <Card>
             <div className="p-4">
               <div className="flex items-center justify-between">
@@ -201,10 +380,15 @@ export function MeuHistoricoPage(): JSX.Element {
             <div className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-500">Último Registro</p>
-                  <p className="text-lg font-bold text-gray-900">
-                    {producoes[0]?.data_producao ? formatDateBR(producoes[0].data_producao) : '-'}
+                  <p className="text-sm text-gray-500">Últimos 7 dias</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {formatCriticalNumber(registrosUltimos7Dias)}
                   </p>
+                  {quantidadeUltimos7Dias > 0 ? (
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      {quantidadeUltimos7Dias.toLocaleString('pt-BR')} itens
+                    </p>
+                  ) : null}
                 </div>
                 <Icon name="calendar" className="w-8 h-8 text-purple-600" />
               </div>
@@ -257,62 +441,6 @@ export function MeuHistoricoPage(): JSX.Element {
                 })}
               </div>
             )}
-          </div>
-        </Card>
-
-        {/* Filtros */}
-        <Card>
-          <div className="p-4">
-            <div className="flex flex-wrap items-end gap-4">
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Data Início</label>
-                <input
-                  type="date"
-                  value={dataInicio}
-                  onChange={(e) => {
-                    setDataInicio(e.target.value);
-                    setPagina(1);
-                  }}
-                  className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Data Fim</label>
-                <input
-                  type="date"
-                  value={dataFim}
-                  onChange={(e) => {
-                    setDataFim(e.target.value);
-                    setPagina(1);
-                  }}
-                  className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Etapa</label>
-                <select
-                  value={etapaFiltro}
-                  onChange={(e) => {
-                    setEtapaFiltro(e.target.value);
-                    setPagina(1);
-                  }}
-                  className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                >
-                  <option value="">Todas</option>
-                  {etapasDisponiveis.map((e) => (
-                    <option key={e} value={e}>
-                      {e}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              {temFiltros ? (
-                <Button variant="ghost" onClick={handleLimparFiltros}>
-                  <Icon name="x" className="w-4 h-4 mr-1" />
-                  Limpar
-                </Button>
-              ) : null}
-            </div>
           </div>
         </Card>
 

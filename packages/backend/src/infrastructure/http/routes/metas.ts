@@ -244,6 +244,7 @@ export function createMetasRoutes(): FastifyPluginAsync {
               dataInicio: { type: 'string', format: 'date' },
               dataFim: { type: 'string', format: 'date' },
               etapa: { type: 'string' },
+              busca: { type: 'string' },
               limite: { type: 'number', default: 50 },
               pagina: { type: 'number', default: 1 },
             },
@@ -258,12 +259,14 @@ export function createMetasRoutes(): FastifyPluginAsync {
             dataInicio,
             dataFim,
             etapa,
+            busca,
             limite = 50,
             pagina = 1,
           } = request.query as {
             dataInicio?: string;
             dataFim?: string;
             etapa?: string;
+            busca?: string;
             limite?: number;
             pagina?: number;
           };
@@ -303,6 +306,12 @@ export function createMetasRoutes(): FastifyPluginAsync {
               END
             )) = LOWER($${idx})`);
             params.push(etapa);
+            idx++;
+          }
+
+          if (busca) {
+            conditions.push(`r.id_repositorio_ged ILIKE $${idx}`);
+            params.push(`%${busca}%`);
             idx++;
           }
 
