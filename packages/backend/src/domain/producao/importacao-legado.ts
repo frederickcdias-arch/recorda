@@ -1,9 +1,19 @@
+import { SYSTEM_TIMEZONE } from './producao-metrics.js';
+
 export const INVALID_QUANTIDADE_MESSAGE =
-  'Quantidade inválida. Informe um número inteiro maior que zero.';
+  'Quantidade invalida. Informe um numero inteiro maior que zero.';
 export const INVALID_DATA_MESSAGE =
-  'Data de produção inválida. Corrija a data na planilha antes de importar.';
+  'Data de producao invalida. Corrija a data na planilha antes de importar.';
+export const FUTURE_DATA_MESSAGE =
+  'Data de producao futura nao e permitida. Corrija a data na planilha antes de importar.';
 
 export type ValidationResult<T> = { ok: true; value: T } | { ok: false; error: string };
+
+interface ParseDataOptions {
+  maxDateIso?: string;
+  now?: Date;
+  timeZone?: string;
+}
 
 function isValidDateParts(year: number, month: number, day: number): boolean {
   if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) return false;
@@ -21,7 +31,39 @@ function formatIsoDate(year: number, month: number, day: number): string {
   return `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
 
-export function excelSerialToIsoDate(serial: number): ValidationResult<string> {
+export function getTodayIsoInTimezone(
+  now: Date = new Date(),
+  timeZone: string = SYSTEM_TIMEZONE
+): string {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(now);
+  const year = parts.find((part) => part.type === 'year')?.value;
+  const month = parts.find((part) => part.type === 'month')?.value;
+  const day = parts.find((part) => part.type === 'day')?.value;
+
+  if (!year || !month || !day) {
+    throw new Error(`Nao foi possivel resolver a data atual para o timezone ${timeZone}`);
+  }
+
+  return `${year}-${month}-${day}`;
+}
+
+function validateMaxDate(isoDate: string, options?: ParseDataOptions): ValidationResult<string> {
+  const maxDateIso = options?.maxDateIso ?? getTodayIsoInTimezone(options?.now, options?.timeZone);
+  if (isoDate > maxDateIso) {
+    return { ok: false, error: FUTURE_DATA_MESSAGE };
+  }
+  return { ok: true, value: isoDate };
+}
+
+export function excelSerialToIsoDate(
+  serial: number,
+  options?: ParseDataOptions
+): ValidationResult<string> {
   if (!Number.isFinite(serial) || serial <= 0) {
     return { ok: false, error: INVALID_DATA_MESSAGE };
   }
@@ -37,7 +79,7 @@ export function excelSerialToIsoDate(serial: number): ValidationResult<string> {
     return { ok: false, error: INVALID_DATA_MESSAGE };
   }
 
-  return { ok: true, value: formatIsoDate(year, month, day) };
+  return validateMaxDate(formatIsoDate(year, month, day), options);
 }
 
 export function parseQuantidadePlanilha(input: unknown): ValidationResult<number> {
@@ -72,7 +114,10 @@ export function parseQuantidadePlanilha(input: unknown): ValidationResult<number
   return { ok: false, error: INVALID_QUANTIDADE_MESSAGE };
 }
 
-export function parseDataProducaoPlanilha(input: unknown): ValidationResult<string> {
+export function parseDataProducaoPlanilha(
+  input: unknown,
+  options?: ParseDataOptions
+): ValidationResult<string> {
   const raw = String(input ?? '').trim();
   if (!raw) {
     return { ok: false, error: INVALID_DATA_MESSAGE };
@@ -80,7 +125,7 @@ export function parseDataProducaoPlanilha(input: unknown): ValidationResult<stri
 
   if (/^\d+([.,]\d+)?$/.test(raw) && !raw.includes('/') && !raw.includes('-')) {
     const serial = Number(raw.replace(',', '.'));
-    return excelSerialToIsoDate(serial);
+    return excelSerialToIsoDate(serial, options);
   }
 
   const isoMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -89,7 +134,7 @@ export function parseDataProducaoPlanilha(input: unknown): ValidationResult<stri
     const month = Number(isoMatch[2]);
     const day = Number(isoMatch[3]);
     return isValidDateParts(year, month, day)
-      ? { ok: true, value: formatIsoDate(year, month, day) }
+      ? validateMaxDate(formatIsoDate(year, month, day), options)
       : { ok: false, error: INVALID_DATA_MESSAGE };
   }
 
@@ -104,7 +149,7 @@ export function parseDataProducaoPlanilha(input: unknown): ValidationResult<stri
         : Number(yearPart);
 
     return isValidDateParts(year, month, day)
-      ? { ok: true, value: formatIsoDate(year, month, day) }
+      ? validateMaxDate(formatIsoDate(year, month, day), options)
       : { ok: false, error: INVALID_DATA_MESSAGE };
   }
 

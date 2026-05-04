@@ -6,6 +6,7 @@ import { useToastHelpers } from '../../components/ui/Toast';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { useAuth } from '../../contexts/AuthContext';
 import { useConfirmDialog } from '../../hooks/useConfirmDialog';
+import { formatDateBR } from '../../utils/date';
 import { extractErrorMessage } from '../../utils/errors';
 import { api } from '../../services/api';
 import {
@@ -40,6 +41,13 @@ interface PreviewImportacao {
   duplicadasPlanilha: number[];
   duplicadasBanco: number[];
   linhasInvalidas: { linha: number; erro: string }[];
+  amostraDatas: Array<{
+    linha: number;
+    dataOriginal: string;
+    dataNormalizada: string | null;
+    status: 'valido' | 'invalido';
+    erro?: string;
+  }>;
   impacto: {
     inseridosPrevistos: number;
     atualizadosPrevistos: number;
@@ -126,7 +134,7 @@ function parseCsvToProducao(content: string): RegistroProducao[] {
       funcao: idxFuncao >= 0 ? (cols[idxFuncao] ?? '').trim() : '',
       repositorio,
       coordenadoria: idxCoordenadoria >= 0 ? (cols[idxCoordenadoria] ?? '').trim() : '',
-      quantidade: idxQuantidade >= 0 ? (cols[idxQuantidade] ?? '1').trim() || '1' : '1',
+      quantidade: idxQuantidade >= 0 ? (cols[idxQuantidade] ?? '').trim() : '',
       tipo: idxTipo >= 0 ? (cols[idxTipo] ?? '').trim() : '',
     });
   }
@@ -537,6 +545,33 @@ export function ImportarProducaoPage(): JSX.Element {
                   </p>
                 </div>
               )}
+              {previewImportacao.amostraDatas.length > 0 && (
+                <div>
+                  <p className="font-semibold text-gray-700">Amostra da normalizacao das datas:</p>
+                  <div className="text-xs bg-gray-50 rounded p-2 max-h-40 overflow-y-auto space-y-2">
+                    {previewImportacao.amostraDatas.slice(0, 8).map((item) => (
+                      <div
+                        key={`${item.status}-${item.linha}`}
+                        className="border-b border-gray-100 pb-2 last:border-0 last:pb-0"
+                      >
+                        <p className="font-mono text-gray-700">Linha {item.linha}</p>
+                        <p className="text-gray-600">
+                          Planilha: <strong>{item.dataOriginal || '-'}</strong>
+                        </p>
+                        <p
+                          className={item.status === 'valido' ? 'text-green-700' : 'text-red-700'}
+                        >
+                          Sistema:{' '}
+                          <strong>
+                            {item.dataNormalizada ? formatDateBR(item.dataNormalizada) : '-'}
+                          </strong>
+                          {item.erro ? ` | ${item.erro}` : ''}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="flex gap-3 mt-5">
@@ -917,7 +952,7 @@ export function ImportarProducaoPage(): JSX.Element {
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">
-                        Data
+                        Data (planilha)
                       </th>
                       <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">
                         Colaborador

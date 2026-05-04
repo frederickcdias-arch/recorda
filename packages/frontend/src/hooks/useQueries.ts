@@ -641,6 +641,13 @@ export function usePreviewImportacaoProducaoLegado() {
         duplicadasPlanilha: number[];
         duplicadasBanco: number[];
         linhasInvalidas: { linha: number; erro: string }[];
+        amostraDatas: Array<{
+          linha: number;
+          dataOriginal: string;
+          dataNormalizada: string | null;
+          status: 'valido' | 'invalido';
+          erro?: string;
+        }>;
         impacto: {
           inseridosPrevistos: number;
           atualizadosPrevistos: number;

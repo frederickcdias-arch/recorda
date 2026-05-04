@@ -70,6 +70,7 @@ export function LancarProducaoPage(): JSX.Element {
     data: new Date().toISOString().split('T')[0],
     repositorio: '',
     etapa: '',
+    funcao: '',
     coordenadoria: '',
     quantidade: '1',
     tipo: '',
@@ -82,7 +83,8 @@ export function LancarProducaoPage(): JSX.Element {
   const etapas = [
     { value: 'RECEBIMENTO', label: 'Recebimento' },
     { value: 'PREPARACAO', label: 'Preparação' },
-    { value: 'DIGITALIZACAO', label: 'Digitalização' },
+    { value: 'DIGITALIZACAO', label: 'Digitalização P/B' },
+    { value: 'DIGITALIZACAO', label: 'Digitalização Colorida' },
     { value: 'CONFERENCIA', label: 'Conferência' },
     { value: 'MONTAGEM', label: 'Montagem' },
     { value: 'CONTROLE_QUALIDADE', label: 'Controle de Qualidade' },
@@ -136,6 +138,7 @@ export function LancarProducaoPage(): JSX.Element {
         data: formData.data,
         repositorio: formData.repositorio,
         etapa: formData.etapa,
+        funcao: formData.funcao || undefined,
         coordenadoria: formData.coordenadoria || undefined,
         quantidade,
         tipo: formData.tipo || undefined,
@@ -146,6 +149,7 @@ export function LancarProducaoPage(): JSX.Element {
         data: new Date().toISOString().split('T')[0],
         repositorio: '',
         etapa: '',
+        funcao: '',
         coordenadoria: '',
         quantidade: '1',
         tipo: '',
@@ -215,13 +219,20 @@ export function LancarProducaoPage(): JSX.Element {
                   Etapa <span className="text-red-500">*</span>
                 </label>
                 <select
-                  value={formData.etapa}
-                  onChange={(e) => setFormData((p) => ({ ...p, etapa: e.target.value }))}
+                  value={formData.funcao}
+                  onChange={(e) => {
+                    const selected = etapas.find((item) => item.label === e.target.value);
+                    setFormData((p) => ({
+                      ...p,
+                      etapa: selected?.value ?? '',
+                      funcao: selected?.label ?? '',
+                    }));
+                  }}
                   className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Selecione a etapa</option>
                   {etapas.map((etapa) => (
-                    <option key={etapa.value} value={etapa.value}>
+                    <option key={etapa.label} value={etapa.label}>
                       {etapa.label}
                     </option>
                   ))}

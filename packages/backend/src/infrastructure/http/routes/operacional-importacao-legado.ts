@@ -15,8 +15,7 @@ import {
 } from './operacional-helpers.js';
 import { normalizeIdRepositorioGed } from './operacional-repositorios.js';
 import {
-  INVALID_DATA_MESSAGE,
-  INVALID_QUANTIDADE_MESSAGE,
+  type ValidationResult,
   parseDataProducaoPlanilha,
   parseQuantidadePlanilha,
 } from '../../../domain/producao/importacao-legado.js';
@@ -29,6 +28,7 @@ interface ParsedAndValidatedImportRow {
   colaboradorNome: string;
   quantidade: number;
   dataProducaoStr: string;
+  dataOriginalRaw: string;
   anoRef: number;
   tipoMarcador: string;
   funcaoMarcador: string;
@@ -52,12 +52,12 @@ function parseImportRowStrict(
 
   const quantidadeResult = parseQuantidadePlanilha(row.quantidade);
   if (!quantidadeResult.ok) {
-    return { ok: false, error: INVALID_QUANTIDADE_MESSAGE };
+    return { ok: false, error: quantidadeResult.error };
   }
 
   const dataResult = parseDataProducaoPlanilha(row.data);
   if (!dataResult.ok) {
-    return { ok: false, error: INVALID_DATA_MESSAGE };
+    return { ok: false, error: dataResult.error };
   }
 
   return {
@@ -67,6 +67,7 @@ function parseImportRowStrict(
       colaboradorNome,
       quantidade: quantidadeResult.value,
       dataProducaoStr: dataResult.value,
+      dataOriginalRaw: String(row.data ?? '').trim(),
       anoRef: Number(dataResult.value.slice(0, 4)),
       tipoMarcador: String(row.tipo ?? '').trim(),
       funcaoMarcador: String(row.funcao ?? '').trim(),
@@ -107,8 +108,31 @@ interface CsvFetchResult {
   contentType: string;
 }
 
-function buildCsvUrlFromSourceUrl(rawUrl: string): string {
+function ensureGoogleSheetsUrlHasExplicitGid(rawUrl: string): ValidationResult<string> {
   const trimmed = rawUrl.trim();
+  const isPublishedSpreadsheetUrl = trimmed.includes('/spreadsheets/d/e/');
+  const isEditSpreadsheetUrl =
+    !isPublishedSpreadsheetUrl && /\/spreadsheets\/d\/[a-zA-Z0-9_-]+/.test(trimmed);
+  const hasExplicitGid = /[?&#]gid=\d+/.test(trimmed);
+
+  if (isEditSpreadsheetUrl && !hasExplicitGid) {
+    return {
+      ok: false,
+      error:
+        'A URL da planilha precisa apontar para uma aba especifica (gid). Abra a aba correta no Google Sheets e copie a URL completa antes de importar.',
+    };
+  }
+
+  return { ok: true, value: trimmed };
+}
+
+function buildCsvUrlFromSourceUrl(rawUrl: string): string {
+  const urlValidation = ensureGoogleSheetsUrlHasExplicitGid(rawUrl);
+  if (!urlValidation.ok) {
+    throw new Error(urlValidation.error);
+  }
+
+  const trimmed = urlValidation.value;
   let csvUrl = trimmed;
   const spreadsheetIdMatch = trimmed.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
   if (spreadsheetIdMatch) {
@@ -769,6 +793,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
                 colaboradorNome,
                 quantidade,
                 dataProducaoStr,
+                dataOriginalRaw,
                 anoRef,
                 tipoMarcador,
                 funcaoMarcador,
@@ -854,6 +879,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
                   tipo: tipoMarcador,
                   coordenadoria: coordenadoriaMarcador,
                   colaborador_nome: colaboradorNome,
+                  data_original: dataOriginalRaw,
                 });
 
                 // Verificar se ja existe registro identico (mesmo colaborador, repositorio, data, tipo, etapa, quantidade, funcao, coordenadoria)
@@ -1385,6 +1411,10 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
           if (!url || typeof url !== 'string' || !url.trim()) {
             return reply.status(400).send({ error: 'URL e obrigatoria' });
           }
+          const urlValidation = ensureGoogleSheetsUrlHasExplicitGid(url);
+          if (!urlValidation.ok) {
+            return reply.status(400).send({ error: urlValidation.error });
+          }
 
           try {
             const fetched = await fetchCsvFromSourceUrl(url);
@@ -1474,9 +1504,13 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
         if (!nome?.trim() || !url?.trim()) {
           return reply.status(400).send({ error: 'Nome e URL sao obrigatorios' });
         }
+        const urlValidation = ensureGoogleSheetsUrlHasExplicitGid(url);
+        if (!urlValidation.ok) {
+          return reply.status(400).send({ error: urlValidation.error });
+        }
         const result = await server.database.query<{ id: string }>(
           `INSERT INTO fontes_importacao (nome, url, tipo, criado_por) VALUES ($1, $2, 'sheets', $3) RETURNING id`,
-          [nome.trim(), url.trim(), user.id]
+          [nome.trim(), urlValidation.value, user.id]
         );
         return reply.status(201).send({ id: result.rows[0]!.id });
       }
@@ -1715,6 +1749,13 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
           const linhasInvalidas: Array<{ linha: number; erro: string }> = [];
           const duplicadasPlanilha: number[] = [];
           const duplicadasBanco: number[] = [];
+          const amostraDatas: Array<{
+            linha: number;
+            dataOriginal: string;
+            dataNormalizada: string | null;
+            status: 'valido' | 'invalido';
+            erro?: string;
+          }> = [];
           const vistos = new Map<string, number>();
           let inseridosPrevistos = 0;
           let atualizadosPrevistos = 0;
@@ -1726,6 +1767,15 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
             const parsedRow = parseImportRowStrict(row);
             if (!parsedRow.ok) {
               linhasInvalidas.push({ linha, erro: parsedRow.error });
+              if (amostraDatas.length < 20) {
+                amostraDatas.push({
+                  linha,
+                  dataOriginal: String(row?.data ?? '').trim(),
+                  dataNormalizada: null,
+                  status: 'invalido',
+                  erro: parsedRow.error,
+                });
+              }
               continue;
             }
             const {
@@ -1733,11 +1783,20 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
               colaboradorNome,
               quantidade,
               dataProducaoStr: dataStr,
+              dataOriginalRaw,
               anoRef,
               tipoMarcador,
               funcaoMarcador,
               coordenadoriaMarcador,
             } = parsedRow.value;
+            if (amostraDatas.length < 20) {
+              amostraDatas.push({
+                linha,
+                dataOriginal: dataOriginalRaw,
+                dataNormalizada: dataStr,
+                status: 'valido',
+              });
+            }
             const etapaImport = funcaoToEtapa(funcaoMarcador, body.etapa);
 
             const chavePlanilha = buildImportRowHash({
@@ -1841,6 +1900,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
             duplicadasPlanilha: [...new Set(duplicadasPlanilha)].sort((a, b) => a - b),
             duplicadasBanco: [...new Set(duplicadasBanco)].sort((a, b) => a - b),
             linhasInvalidas,
+            amostraDatas,
             impacto: {
               inseridosPrevistos,
               atualizadosPrevistos,
@@ -1981,6 +2041,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
               colaboradorNome,
               quantidade,
               dataProducaoStr,
+              dataOriginalRaw,
               anoRef,
               tipoMarcador,
               funcaoMarcador,
@@ -2068,6 +2129,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
                 tipo: tipoMarcador,
                 coordenadoria: coordenadoriaMarcador,
                 colaborador_nome: colaboradorNome,
+                data_original: dataOriginalRaw,
               });
 
               const existente = await server.database.query<{
@@ -2180,6 +2242,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
                   colaborador: colaboradorNome,
                   funcao: row.funcao,
                   tipo: row.tipo,
+                  data_original: dataOriginalRaw,
                   data: dataProducaoStr,
                   quantidade,
                 },

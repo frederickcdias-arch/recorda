@@ -285,7 +285,7 @@ export function createMetasRoutes(): FastifyPluginAsync {
               CASE pr.etapa::text
                 WHEN 'RECEBIMENTO' THEN 'Recebimento'
                 WHEN 'PREPARACAO' THEN 'Preparação'
-                WHEN 'DIGITALIZACAO' THEN 'Digitalização'
+                WHEN 'DIGITALIZACAO' THEN 'Digitalização P/B'
                 WHEN 'CONFERENCIA' THEN 'Conferência'
                 WHEN 'MONTAGEM' THEN 'Montagem'
                 WHEN 'CONTROLE_QUALIDADE' THEN 'Reconferência'
@@ -327,7 +327,7 @@ export function createMetasRoutes(): FastifyPluginAsync {
                    CASE pr.etapa::text
                      WHEN 'RECEBIMENTO' THEN 'Recebimento'
                      WHEN 'PREPARACAO' THEN 'Preparação'
-                     WHEN 'DIGITALIZACAO' THEN 'Digitalização'
+                     WHEN 'DIGITALIZACAO' THEN 'Digitalização P/B'
                      WHEN 'CONFERENCIA' THEN 'Conferência'
                      WHEN 'MONTAGEM' THEN 'Montagem'
                      WHEN 'CONTROLE_QUALIDADE' THEN 'Reconferência'
@@ -390,7 +390,7 @@ export function createMetasRoutes(): FastifyPluginAsync {
                  CASE pr.etapa::text
                    WHEN 'RECEBIMENTO' THEN 'Recebimento'
                    WHEN 'PREPARACAO' THEN 'Preparação'
-                   WHEN 'DIGITALIZACAO' THEN 'Digitalização'
+                   WHEN 'DIGITALIZACAO' THEN 'Digitalização P/B'
                    WHEN 'CONFERENCIA' THEN 'Conferência'
                    WHEN 'MONTAGEM' THEN 'Montagem'
                    WHEN 'CONTROLE_QUALIDADE' THEN 'Reconferência'
@@ -422,7 +422,7 @@ export function createMetasRoutes(): FastifyPluginAsync {
                  CASE pr.etapa::text
                    WHEN 'RECEBIMENTO' THEN 'Recebimento'
                    WHEN 'PREPARACAO' THEN 'Preparação'
-                   WHEN 'DIGITALIZACAO' THEN 'Digitalização'
+                   WHEN 'DIGITALIZACAO' THEN 'Digitalização P/B'
                    WHEN 'CONFERENCIA' THEN 'Conferência'
                    WHEN 'MONTAGEM' THEN 'Montagem'
                    WHEN 'CONTROLE_QUALIDADE' THEN 'Reconferência'
@@ -630,10 +630,26 @@ export function createMetasRoutes(): FastifyPluginAsync {
             checklistId = createChecklistResult.rows[0]?.id;
           }
 
+          const etapaFuncaoFallback: Record<string, string> = {
+            RECEBIMENTO: 'Recebimento',
+            PREPARACAO: 'Preparação',
+            DIGITALIZACAO: 'Digitalização P/B',
+            CONFERENCIA: 'Conferência',
+            RECONFERENCIA: 'Reconferência',
+            MONTAGEM: 'Montagem',
+            ATENDIMENTO: 'Atendimento',
+            CONTROLE_QUALIDADE: 'Controle de Qualidade',
+            ENTREGA: 'Entrega',
+          };
+          const tipoMarcador = (body.tipo ?? '').trim();
+          const funcaoMarcador =
+            (body.funcao ?? '').trim() || etapaFuncaoFallback[body.etapa] || body.etapa;
+          const coordenadoriaMarcador = (body.coordenadoria ?? '').trim();
+
           const marcadores = {
-            funcao: body.funcao,
-            tipo: body.tipo,
-            coordenadoria: body.coordenadoria,
+            funcao: funcaoMarcador,
+            tipo: tipoMarcador,
+            coordenadoria: coordenadoriaMarcador,
             origem: 'SISTEMA', // Marca produção lançada diretamente no sistema (vs LEGADO = importada)
           };
 
@@ -664,7 +680,7 @@ export function createMetasRoutes(): FastifyPluginAsync {
                AND COALESCE(marcadores->>'origem', '') = 'LEGADO'
                AND COALESCE(marcadores->>'coordenadoria', '') = $3
              LIMIT 1`,
-            [repositorioId, body.etapa, body.coordenadoria?.trim() ?? '']
+            [repositorioId, body.etapa, coordenadoriaMarcador]
           );
 
           if (legadoExistente.rows.length > 0) {
@@ -681,10 +697,6 @@ export function createMetasRoutes(): FastifyPluginAsync {
           }
 
           // Verificar se já existe registro idêntico NA MESMA ETAPA (previne duplicatas exatas)
-          const tipoMarcador = (body.tipo ?? '').trim();
-          const funcaoMarcador = (body.funcao ?? '').trim();
-          const coordenadoriaMarcador = (body.coordenadoria ?? '').trim();
-
           const existente = await server.database.query(
             `SELECT id, quantidade
              FROM producao_repositorio

@@ -2933,6 +2933,65 @@ describe('HTTP server integration', () => {
     expect(body.duplicados.quantidade).toBe(0);
   });
 
+  it('rejeita fonte do Google Sheets sem gid explicito', async () => {
+    const token = await authenticate();
+
+    const response = await server.inject({
+      method: 'POST',
+      url: '/operacional/fontes-importacao',
+      headers: { authorization: `Bearer ${token}` },
+      payload: {
+        nome: 'Fonte sem aba',
+        url: 'https://docs.google.com/spreadsheets/d/abc123/edit',
+      },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json().error).toContain('gid');
+  });
+
+  it('marca data futura como invalida no preview de importacao', async () => {
+    const token = await authenticate();
+
+    const response = await server.inject({
+      method: 'POST',
+      url: '/operacional/importacoes-legado/producao/preview',
+      headers: { authorization: `Bearer ${token}` },
+      payload: {
+        registros: [
+          {
+            data: '15/12/2099',
+            colaborador: 'Usuario Teste',
+            funcao: 'conferencia',
+            repositorio: '000121/2026',
+            coordenadoria: 'CINF',
+            quantidade: 1,
+            tipo: '',
+          },
+        ],
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = response.json();
+    expect(body.registrosValidos).toBe(0);
+    expect(body.linhasInvalidas).toEqual([
+      {
+        linha: 1,
+        erro: 'Data de producao futura nao e permitida. Corrija a data na planilha antes de importar.',
+      },
+    ]);
+    expect(body.amostraDatas).toEqual([
+      {
+        linha: 1,
+        dataOriginal: '15/12/2099',
+        dataNormalizada: null,
+        status: 'invalido',
+        erro: 'Data de producao futura nao e permitida. Corrija a data na planilha antes de importar.',
+      },
+    ]);
+  });
+
   it('mantem idempotencia ao reimportar a mesma planilha de fonte', async () => {
     const token = await authenticate();
     fetchMock.mockReset();
