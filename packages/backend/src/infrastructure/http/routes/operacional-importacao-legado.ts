@@ -126,13 +126,15 @@ function ensureGoogleSheetsUrlHasExplicitGid(rawUrl: string): ValidationResult<s
   return { ok: true, value: trimmed };
 }
 
-function buildCsvUrlFromSourceUrl(rawUrl: string): string {
-  const urlValidation = ensureGoogleSheetsUrlHasExplicitGid(rawUrl);
-  if (!urlValidation.ok) {
-    throw new Error(urlValidation.error);
+function buildCsvUrlFromSourceUrl(rawUrl: string, requireExplicitGid = true): string {
+  const trimmed = rawUrl.trim();
+  if (requireExplicitGid) {
+    const urlValidation = ensureGoogleSheetsUrlHasExplicitGid(rawUrl);
+    if (!urlValidation.ok) {
+      throw new Error(urlValidation.error);
+    }
   }
 
-  const trimmed = urlValidation.value;
   let csvUrl = trimmed;
   const spreadsheetIdMatch = trimmed.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
   if (spreadsheetIdMatch) {
@@ -146,8 +148,12 @@ function buildCsvUrlFromSourceUrl(rawUrl: string): string {
   return csvUrl;
 }
 
-async function fetchCsvFromSourceUrl(rawUrl: string, timeoutMs = 15_000): Promise<CsvFetchResult> {
-  const csvUrl = buildCsvUrlFromSourceUrl(rawUrl);
+async function fetchCsvFromSourceUrl(
+  rawUrl: string,
+  timeoutMs = 15_000,
+  requireExplicitGid = true
+): Promise<CsvFetchResult> {
+  const csvUrl = buildCsvUrlFromSourceUrl(rawUrl, requireExplicitGid);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   let response: Response;
@@ -1596,7 +1602,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
 
           let fetched: CsvFetchResult;
           try {
-            fetched = await fetchCsvFromSourceUrl(fonte.url);
+            fetched = await fetchCsvFromSourceUrl(fonte.url, 15_000, false);
           } catch (error) {
             return sendSpreadsheetFetchError(reply, error);
           }
@@ -1975,7 +1981,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
         // 2. Fetch CSV and parse rows from source
         let registros: ParsedImportRow[] = [];
         try {
-          const fetched = await fetchCsvFromSourceUrl(fonte.url);
+          const fetched = await fetchCsvFromSourceUrl(fonte.url, 15_000, false);
           if (!fetched.csvContent.trim()) {
             return reply.status(400).send({ error: 'A planilha retornou conteudo vazio.' });
           }

@@ -2980,14 +2980,21 @@ describe('HTTP server integration', () => {
     expect(response.json().error).toContain('gid');
   });
 
-  it('retorna erro claro ao importar fonte salva antiga sem gid', async () => {
+  it('importa fonte salva antiga sem gid usando primeira aba como fallback', async () => {
     const token = await authenticate();
+    fetchMock.mockReset();
     database.fontesImportacao.set('fonte-sem-gid-legada', {
       id: 'fonte-sem-gid-legada',
       nome: 'Fonte legada sem aba',
       url: 'https://docs.google.com/spreadsheets/d/abc123/edit',
       tipo: 'sheets',
     });
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        'data,colaborador,repositorio,coordenadoria,quantidade,tipo,funcao\n05/03/2026,Usuario Teste,000125/2026,SGPA,1,,recebimento',
+        { status: 200, headers: { 'content-type': 'text/csv' } }
+      )
+    );
 
     try {
       const response = await server.inject({
@@ -2996,8 +3003,9 @@ describe('HTTP server integration', () => {
         headers: { authorization: `Bearer ${token}` },
       });
 
-      expect(response.statusCode).toBe(400);
-      expect(response.json().error).toContain('gid');
+      expect(response.statusCode).toBe(200);
+      expect(response.json().importados).toBeGreaterThan(0);
+      expect(String(fetchMock.mock.calls[0]?.[0])).toContain('gid=0');
     } finally {
       database.fontesImportacao.delete('fonte-sem-gid-legada');
     }
@@ -3005,12 +3013,16 @@ describe('HTTP server integration', () => {
 
   it('mantem erro detalhado por fonte na importacao em lote', async () => {
     const token = await authenticate();
-    database.fontesImportacao.set('fonte-lote-sem-gid', {
-      id: 'fonte-lote-sem-gid',
-      nome: 'Fonte lote sem aba',
-      url: 'https://docs.google.com/spreadsheets/d/abc123/edit',
+    fetchMock.mockReset();
+    const fontesAnteriores = new Map(database.fontesImportacao);
+    database.fontesImportacao.clear();
+    database.fontesImportacao.set('fonte-lote-negada', {
+      id: 'fonte-lote-negada',
+      nome: 'Fonte lote negada',
+      url: 'https://docs.google.com/spreadsheets/d/abc123/edit#gid=0',
       tipo: 'sheets',
     });
+    fetchMock.mockResolvedValueOnce(new Response('', { status: 403 }));
 
     try {
       const response = await server.inject({
@@ -3025,14 +3037,17 @@ describe('HTTP server integration', () => {
       expect(body.resultados).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            fonte: 'Fonte lote sem aba',
+            fonte: 'Fonte lote negada',
             sucesso: false,
-            erro: expect.stringContaining('gid'),
+            erro: expect.stringContaining('Acesso negado'),
           }),
         ])
       );
     } finally {
-      database.fontesImportacao.delete('fonte-lote-sem-gid');
+      database.fontesImportacao.clear();
+      for (const [id, fonte] of fontesAnteriores) {
+        database.fontesImportacao.set(id, fonte);
+      }
     }
   });
 
