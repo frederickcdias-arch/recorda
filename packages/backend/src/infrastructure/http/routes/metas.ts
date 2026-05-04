@@ -761,15 +761,17 @@ export function createMetasRoutes(): FastifyPluginAsync {
           // Validar sequência de etapas (não pode pular etapas)
           const etapaAtual = sequenciaEtapas[body.etapa];
           if (etapaAtual && etapaAtual.anterior) {
-            // Verificar se a etapa anterior já foi cumprida para este repositório+coordenadoria
+            // Verificar se a etapa anterior já foi cumprida para este repositório GED
+            // Busca em todos os repositórios com o mesmo id_repositorio_ged para capturar
+            // registros importados do legado (que podem ter orgao/projeto diferentes)
             const etapaAnteriorExiste = await server.database.query(
-              `SELECT id
-               FROM producao_repositorio
-               WHERE repositorio_id = $1
-                 AND etapa = $2
-                 AND COALESCE(marcadores->>'coordenadoria', '') = $3
+              `SELECT pr.id
+               FROM producao_repositorio pr
+               JOIN repositorios r ON r.id_repositorio_recorda = pr.repositorio_id
+               WHERE r.id_repositorio_ged = $1
+                 AND pr.etapa = $2
                LIMIT 1`,
-              [repositorioId, etapaAtual.anterior, coordenadoriaMarcador]
+              [repoId, etapaAtual.anterior]
             );
 
             if (etapaAnteriorExiste.rows.length === 0) {

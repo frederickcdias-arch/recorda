@@ -57,6 +57,7 @@ export function LancarProducaoPage(): JSX.Element {
     { value: 'DIGITALIZACAO', label: 'Digitalização P/B' },
     { value: 'DIGITALIZACAO', label: 'Digitalização Colorida' },
     { value: 'CONFERENCIA', label: 'Conferência' },
+    { value: 'RECONFERENCIA', label: 'Reconferência' },
     { value: 'MONTAGEM', label: 'Montagem' },
     { value: 'CONTROLE_QUALIDADE', label: 'Controle de Qualidade' },
     { value: 'ENTREGA', label: 'Entrega' },
