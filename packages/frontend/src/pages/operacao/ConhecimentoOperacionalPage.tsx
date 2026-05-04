@@ -54,6 +54,10 @@ const ETAPAS: EtapaFluxo[] = [
 
 type KBTab = 'documentos' | 'glossario' | 'leis';
 
+function isKBTab(value: string | null): value is KBTab {
+  return value === 'documentos' || value === 'glossario' || value === 'leis';
+}
+
 export function ConhecimentoOperacionalPage(): JSX.Element {
   const navigate = useNavigate();
   const location = useLocation();
@@ -76,7 +80,7 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
     const params = new URLSearchParams(location.search);
     const tab = params.get('tab');
     return {
-      tab: tab === 'documentos' || tab === 'glossario' || tab === 'leis' ? tab : 'documentos',
+      tab: isKBTab(tab) ? tab : 'documentos',
       busca: params.get('busca') ?? '',
       categoria: params.get('categoria') ?? '',
       etapa: params.get('etapa') ?? '',
