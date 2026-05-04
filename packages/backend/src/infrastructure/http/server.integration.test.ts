@@ -539,6 +539,26 @@ function createMockDatabase(): DatabaseConnection & {
       ]);
     }
 
+    if (
+      text.includes('FROM producao_repositorio p') &&
+      text.includes('JOIN usuarios u') &&
+      text.includes('WHERE r.id_repositorio_ged = ANY($1)') &&
+      text.includes("COALESCE(p.marcadores->>'funcao', '') as funcao_marcador")
+    ) {
+      return makeResult([
+        {
+          id_repositorio_ged: '000025/2026',
+          quantidade: 1,
+          data_producao: '2026-03-05',
+          tipo_marcador: '',
+          funcao_marcador: 'recebimento',
+          coordenadoria_marcador: 'SGPA',
+          colaborador_marcador: 'Usuario Teste',
+          etapa: 'RECEBIMENTO',
+        },
+      ]);
+    }
+
     if (text.includes('FROM producao_repositorio p') && text.includes('JOIN usuarios u')) {
       return makeResult([
         {
@@ -1172,6 +1192,16 @@ function createMockDatabase(): DatabaseConnection & {
       return fonte
         ? makeResult([{ id: fonte.id, nome: fonte.nome, url: fonte.url }])
         : makeResult([]);
+    }
+    if (
+      text.includes('SELECT id, nome, url FROM fontes_importacao') &&
+      text.includes('ORDER BY nome')
+    ) {
+      return makeResult(
+        [...fontesImportacao.values()]
+          .sort((a, b) => a.nome.localeCompare(b.nome))
+          .map((f) => ({ id: f.id, nome: f.nome, url: f.url }))
+      );
     }
     if (
       text.includes('SELECT id, nome, url, tipo, criado_em, ultima_importacao_em') &&
@@ -2948,6 +2978,62 @@ describe('HTTP server integration', () => {
 
     expect(response.statusCode).toBe(400);
     expect(response.json().error).toContain('gid');
+  });
+
+  it('retorna erro claro ao importar fonte salva antiga sem gid', async () => {
+    const token = await authenticate();
+    database.fontesImportacao.set('fonte-sem-gid-legada', {
+      id: 'fonte-sem-gid-legada',
+      nome: 'Fonte legada sem aba',
+      url: 'https://docs.google.com/spreadsheets/d/abc123/edit',
+      tipo: 'sheets',
+    });
+
+    try {
+      const response = await server.inject({
+        method: 'POST',
+        url: '/operacional/fontes-importacao/fonte-sem-gid-legada/importar',
+        headers: { authorization: `Bearer ${token}` },
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(response.json().error).toContain('gid');
+    } finally {
+      database.fontesImportacao.delete('fonte-sem-gid-legada');
+    }
+  });
+
+  it('mantem erro detalhado por fonte na importacao em lote', async () => {
+    const token = await authenticate();
+    database.fontesImportacao.set('fonte-lote-sem-gid', {
+      id: 'fonte-lote-sem-gid',
+      nome: 'Fonte lote sem aba',
+      url: 'https://docs.google.com/spreadsheets/d/abc123/edit',
+      tipo: 'sheets',
+    });
+
+    try {
+      const response = await server.inject({
+        method: 'POST',
+        url: '/operacional/fontes-importacao/importar-todas',
+        headers: { authorization: `Bearer ${token}` },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      expect(body.resumo.erros).toBeGreaterThan(0);
+      expect(body.resultados).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            fonte: 'Fonte lote sem aba',
+            sucesso: false,
+            erro: expect.stringContaining('gid'),
+          }),
+        ])
+      );
+    } finally {
+      database.fontesImportacao.delete('fonte-lote-sem-gid');
+    }
   });
 
   it('marca data futura como invalida no preview de importacao', async () => {

@@ -110,7 +110,7 @@ export async function createServer(dependencies: ServerDependencies): Promise<Fa
     {
       pattern: /^\/operacional\/fontes-importacao\/[^/]+\/importar$/,
       method: 'POST',
-      limit: { max: 2, timeWindow: '1 minute' },
+      limit: { max: 30, timeWindow: '1 minute' },
     },
     {
       pattern: /^\/operacional\/importacoes-legado\//,

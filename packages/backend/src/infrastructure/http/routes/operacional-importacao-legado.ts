@@ -1,4 +1,4 @@
-import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
+import type { FastifyInstance, FastifyPluginAsync, FastifyReply } from 'fastify';
 import { createHash, randomUUID } from 'crypto';
 import { authorize } from '../middleware/auth.js';
 import { sendDatabaseError } from '../middleware/error-handler.js';
@@ -174,6 +174,36 @@ async function fetchCsvFromSourceUrl(rawUrl: string, timeoutMs = 15_000): Promis
     csvContent: await response.text(),
     contentType: response.headers.get('content-type') ?? '',
   };
+}
+
+function sendSpreadsheetFetchError(
+  reply: FastifyReply,
+  error: unknown,
+  fallbackMessage = 'Erro ao acessar planilha.'
+): FastifyReply {
+  const status = (error as { status?: number }).status;
+  if (error instanceof Error && error.name === 'AbortError') {
+    return reply.status(408).send({ error: 'Timeout ao acessar a planilha. Tente novamente.' });
+  }
+  if (status === 404) {
+    return reply.status(400).send({
+      error: 'Planilha nao encontrada. Verifique se a URL esta correta e a planilha esta publicada.',
+    });
+  }
+  if (status === 403 || status === 401) {
+    return reply.status(400).send({
+      error:
+        'Acesso negado. A planilha precisa estar publicada na web (Arquivo > Compartilhar > Publicar na Web).',
+    });
+  }
+  if (status) {
+    return reply.status(400).send({
+      error: `Erro ao acessar planilha (HTTP ${status}). Verifique se a URL esta correta.`,
+    });
+  }
+
+  const message = error instanceof Error ? error.message : fallbackMessage;
+  return reply.status(400).send({ error: message });
 }
 
 function parseImportRowsFromCsv(csvContent: string): ParsedImportRow[] {
@@ -407,7 +437,8 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
               const quantidade = (row.quantidade ?? '').toString().trim();
               const tipoVal = (row.tipo ?? '').trim().toLowerCase();
               const funcaoVal = (row.funcao ?? '').trim().toLowerCase();
-              const chave = `${data}|${colaborador}|${repo}|${quantidade}|${tipoVal}|${funcaoVal}`;
+              const coordenadoriaVal = (row.coordenadoria ?? '').trim().toLowerCase();
+              const chave = `${data}|${colaborador}|${repo}|${quantidade}|${tipoVal}|${funcaoVal}|${coordenadoriaVal}`;
               if (vistos.has(chave)) {
                 duplicadasPlanilha.push(i + 1);
                 const primeiraLinha = vistos.get(chave)!;
@@ -434,17 +465,21 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
             if (repoIds.length > 0) {
               const existentes = await server.database.query<{
                 id_repositorio_ged: string;
-                usuario_nome: string;
                 quantidade: number;
                 data_producao: string;
                 tipo_marcador: string;
+                funcao_marcador: string;
+                coordenadoria_marcador: string;
+                colaborador_marcador: string;
                 etapa: string;
               }>(
                 `SELECT r.id_repositorio_ged,
-                      u.nome as usuario_nome,
                       p.quantidade,
                       p.data_producao::text,
                       COALESCE(p.marcadores->>'tipo', '') as tipo_marcador,
+                      COALESCE(p.marcadores->>'funcao', '') as funcao_marcador,
+                      COALESCE(p.marcadores->>'coordenadoria', '') as coordenadoria_marcador,
+                      COALESCE(p.marcadores->>'colaborador_nome', u.nome) as colaborador_marcador,
                       p.etapa::text as etapa
                FROM producao_repositorio p
                JOIN repositorios r ON r.id_repositorio_recorda = p.repositorio_id
@@ -457,7 +492,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
               const existentesSet = new Set(
                 existentes.rows.map((e) => {
                   const dataStr = e.data_producao.substring(0, 10);
-                  return `${e.id_repositorio_ged.toLowerCase()}|${e.usuario_nome.toLowerCase()}|${e.quantidade}|${dataStr}|${e.tipo_marcador.toLowerCase()}|${e.etapa}`;
+                  return `${e.id_repositorio_ged.toLowerCase()}|${e.colaborador_marcador.toLowerCase()}|${e.quantidade}|${dataStr}|${e.tipo_marcador.toLowerCase()}|${e.funcao_marcador.toLowerCase()}|${e.coordenadoria_marcador.toLowerCase()}|${e.etapa}`;
                 })
               );
 
@@ -502,13 +537,16 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
                   anoRef,
                   tipoMarcador,
                   funcaoMarcador,
+                  coordenadoriaMarcador,
                 } = parsedRow.value;
                 const repo = normalizeIdRepositorioGed(repoIdentificadorRaw, anoRef);
                 const colaborador = colaboradorNome.toLowerCase();
                 const tipoVal = tipoMarcador.toLowerCase();
+                const funcaoVal = funcaoMarcador.toLowerCase();
+                const coordenadoriaVal = coordenadoriaMarcador.toLowerCase();
                 const etapaVal = funcaoToEtapaVal(funcaoMarcador);
 
-                const chave = `${repo.toLowerCase()}|${colaborador}|${quantidade}|${dataProducaoStr}|${tipoVal}|${etapaVal}`;
+                const chave = `${repo.toLowerCase()}|${colaborador}|${quantidade}|${dataProducaoStr}|${tipoVal}|${funcaoVal}|${coordenadoriaVal}|${etapaVal}`;
                 if (existentesSet.has(chave)) {
                   duplicadasBanco.push(i + 1);
                 }
@@ -1224,8 +1262,8 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
       },
       async (request, reply) => {
         try {
-          const { id } = request.params;
           const user = getCurrentUser(request);
+          const { id } = request.params;
           const result = await server.database.query<{
             id: string;
             tipo: string;
@@ -1429,31 +1467,10 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
             }
             return reply.send({ csv: fetched.csvContent, url: fetched.csvUrl });
           } catch (fetchError) {
-            const status = (fetchError as { status?: number }).status;
-            if (status === 404)
-              return reply.status(400).send({
-                error:
-                  'Planilha nao encontrada. Verifique se a URL esta correta e a planilha esta publicada.',
-              });
-            if (status === 403 || status === 401)
-              return reply.status(400).send({
-                error:
-                  'Acesso negado. A planilha precisa estar publicada na web (Arquivo > Compartilhar > Publicar na Web).',
-              });
-            if (status)
-              return reply.status(400).send({
-                error: `Erro ao acessar planilha (HTTP ${status}). Verifique se a URL esta correta.`,
-              });
-            throw fetchError;
+            return sendSpreadsheetFetchError(reply, fetchError);
           }
         } catch (error) {
-          if (error instanceof Error && error.name === 'AbortError')
-            return reply
-              .status(408)
-              .send({ error: 'Timeout ao acessar a planilha. Tente novamente.' });
-          const message =
-            error instanceof Error ? error.message : 'Erro ao buscar dados da planilha';
-          return sendDatabaseError(reply, error, message);
+          return sendSpreadsheetFetchError(reply, error, 'Erro ao buscar dados da planilha');
         }
       }
     );
@@ -1472,18 +1489,24 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
         preHandler: [server.authenticate, authorize('operador', 'administrador')],
       },
       async (_request, reply) => {
-        const result = await server.database.query<{
-          id: string;
-          nome: string;
-          url: string;
-          tipo: string;
-          criado_em: string;
-          ultima_importacao_em: string | null;
-        }>(
-          `SELECT id, nome, url, tipo, criado_em, ultima_importacao_em
-         FROM fontes_importacao ORDER BY nome`
-        );
-        return reply.send({ fontes: result.rows });
+        try {
+          const result = await server.database.query<{
+            id: string;
+            nome: string;
+            url: string;
+            tipo: string;
+            criado_em: string;
+            ultima_importacao_em: string | null;
+          }>(
+            `SELECT id, nome, url, tipo, criado_em, ultima_importacao_em
+           FROM fontes_importacao ORDER BY nome`
+          );
+          return reply.send({ fontes: result.rows });
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : 'Erro ao listar fontes de importacao';
+          return sendDatabaseError(reply, error, message);
+        }
       }
     );
 
@@ -1499,20 +1522,26 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
         preHandler: [server.authenticate, authorize('operador', 'administrador')],
       },
       async (request, reply) => {
-        const user = getCurrentUser(request);
-        const { nome, url } = request.body as { nome?: string; url?: string };
-        if (!nome?.trim() || !url?.trim()) {
-          return reply.status(400).send({ error: 'Nome e URL sao obrigatorios' });
+        try {
+          const user = getCurrentUser(request);
+          const { nome, url } = request.body as { nome?: string; url?: string };
+          if (!nome?.trim() || !url?.trim()) {
+            return reply.status(400).send({ error: 'Nome e URL sao obrigatorios' });
+          }
+          const urlValidation = ensureGoogleSheetsUrlHasExplicitGid(url);
+          if (!urlValidation.ok) {
+            return reply.status(400).send({ error: urlValidation.error });
+          }
+          const result = await server.database.query<{ id: string }>(
+            `INSERT INTO fontes_importacao (nome, url, tipo, criado_por) VALUES ($1, $2, 'sheets', $3) RETURNING id`,
+            [nome.trim(), urlValidation.value, user.id]
+          );
+          return reply.status(201).send({ id: result.rows[0]!.id });
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : 'Erro ao criar fonte de importacao';
+          return sendDatabaseError(reply, error, message);
         }
-        const urlValidation = ensureGoogleSheetsUrlHasExplicitGid(url);
-        if (!urlValidation.ok) {
-          return reply.status(400).send({ error: urlValidation.error });
-        }
-        const result = await server.database.query<{ id: string }>(
-          `INSERT INTO fontes_importacao (nome, url, tipo, criado_por) VALUES ($1, $2, 'sheets', $3) RETURNING id`,
-          [nome.trim(), urlValidation.value, user.id]
-        );
-        return reply.status(201).send({ id: result.rows[0]!.id });
       }
     );
 
@@ -1528,9 +1557,15 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
         preHandler: [server.authenticate, authorize('operador', 'administrador')],
       },
       async (request, reply) => {
-        const { id } = request.params;
-        await server.database.query('DELETE FROM fontes_importacao WHERE id = $1', [id]);
-        return reply.send({ ok: true });
+        try {
+          const { id } = request.params;
+          await server.database.query('DELETE FROM fontes_importacao WHERE id = $1', [id]);
+          return reply.send({ ok: true });
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : 'Erro ao excluir fonte de importacao';
+          return sendDatabaseError(reply, error, message);
+        }
       }
     );
     // POST /operacional/fontes-importacao/:id/validar-duplicatas - Validate duplicates before importing
@@ -1546,6 +1581,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
       },
       async (request, reply) => {
         try {
+          const user = getCurrentUser(request);
           const { id } = request.params;
 
           const fonteResult = await server.database.query<{
@@ -1558,7 +1594,12 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
           }
           const fonte = fonteResult.rows[0]!;
 
-          const fetched = await fetchCsvFromSourceUrl(fonte.url);
+          let fetched: CsvFetchResult;
+          try {
+            fetched = await fetchCsvFromSourceUrl(fonte.url);
+          } catch (error) {
+            return sendSpreadsheetFetchError(reply, error);
+          }
           if (!fetched.csvContent.trim()) {
             return reply.status(400).send({ error: 'A planilha retornou conteudo vazio.' });
           }
@@ -1649,7 +1690,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
                 }
               }
             }
-            if (!colaboradorId) colaboradorId = usuariosPorNome.values().next().value;
+            if (!colaboradorId) colaboradorId = user.id;
             const etapaImport = funcaoToEtapa(funcaoMarcador);
 
             const existente = await server.database.query<{ id: string }>(
@@ -1688,15 +1729,6 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
             duplicados: { quantidade: duplicados.length, itens: duplicados.slice(0, 10) },
           });
         } catch (error) {
-          const status = (error as { status?: number }).status;
-          if (error instanceof Error && error.name === 'AbortError') {
-            return reply
-              .status(408)
-              .send({ error: 'Timeout ao acessar a planilha. Tente novamente.' });
-          }
-          if (status) {
-            return reply.status(400).send({ error: `Erro ao acessar planilha (HTTP ${status})` });
-          }
           const message =
             error instanceof Error ? error.message : 'Erro ao validar duplicatas da fonte';
           return sendDatabaseError(reply, error, message);
@@ -1926,18 +1958,19 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
         preHandler: [server.authenticate, authorize('operador', 'administrador')],
       },
       async (request, reply) => {
-        const startedAt = new Date();
-        const { id } = request.params;
+        try {
+          const startedAt = new Date();
+          const { id } = request.params;
 
-        // 1. Fetch the saved source
-        const fonteResult = await server.database.query<{ id: string; nome: string; url: string }>(
-          `SELECT id, nome, url FROM fontes_importacao WHERE id = $1`,
-          [id]
-        );
-        if (fonteResult.rows.length === 0) {
-          return reply.status(404).send({ error: 'Fonte de importacao nao encontrada' });
-        }
-        const fonte = fonteResult.rows[0]!;
+          // 1. Fetch the saved source
+          const fonteResult = await server.database.query<{ id: string; nome: string; url: string }>(
+            `SELECT id, nome, url FROM fontes_importacao WHERE id = $1`,
+            [id]
+          );
+          if (fonteResult.rows.length === 0) {
+            return reply.status(404).send({ error: 'Fonte de importacao nao encontrada' });
+          }
+          const fonte = fonteResult.rows[0]!;
 
         // 2. Fetch CSV and parse rows from source
         let registros: ParsedImportRow[] = [];
@@ -1948,14 +1981,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
           }
           registros = parseImportRowsFromCsv(fetched.csvContent);
         } catch (error) {
-          const status = (error as { status?: number }).status;
-          if (error instanceof Error && error.name === 'AbortError') {
-            return reply.status(408).send({ error: 'Timeout ao acessar a planilha.' });
-          }
-          if (status) {
-            return reply.status(400).send({ error: `Erro ao acessar planilha (HTTP ${status})` });
-          }
-          throw error;
+          return sendSpreadsheetFetchError(reply, error);
         }
 
         if (registros.length === 0) {
@@ -2303,17 +2329,23 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
           ]
         );
 
-        return reply.send({
-          fonte: fonte.nome,
-          totalPlanilha: registros.length,
-          importados: sucesso,
-          inseridos,
-          atualizados,
-          ignorados,
-          duplicados,
-          erros: erros.length,
-          detalhesErros: erros.slice(0, 20),
-        });
+          return reply.send({
+            fonte: fonte.nome,
+            totalPlanilha: registros.length,
+            importados: sucesso,
+            inseridos,
+            atualizados,
+            ignorados,
+            duplicados,
+            erros: erros.length,
+            detalhesErros: erros.slice(0, 20),
+          });
+        } catch (error) {
+          request.log.error({ err: error, fonteId: request.params.id }, 'Erro ao importar fonte');
+          const message =
+            error instanceof Error ? error.message : 'Erro ao importar fonte de producao';
+          return sendDatabaseError(reply, error, message);
+        }
       }
     );
 
@@ -2329,16 +2361,17 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
         preHandler: [server.authenticate, authorize('operador', 'administrador')],
       },
       async (request, reply) => {
-        const user = getCurrentUser(request);
-        const startedAt = new Date();
+        try {
+          const user = getCurrentUser(request);
+          const startedAt = new Date();
 
-        // 1. Get all saved sources
-        const fontesResult = await server.database.query<{ id: string; nome: string; url: string }>(
-          `SELECT id, nome, url FROM fontes_importacao ORDER BY nome`
-        );
-        if (fontesResult.rows.length === 0) {
-          return reply.status(400).send({ error: 'Nenhuma fonte de importacao cadastrada.' });
-        }
+          // 1. Get all saved sources
+          const fontesResult = await server.database.query<{ id: string; nome: string; url: string }>(
+            `SELECT id, nome, url FROM fontes_importacao ORDER BY nome`
+          );
+          if (fontesResult.rows.length === 0) {
+            return reply.status(400).send({ error: 'Nenhuma fonte de importacao cadastrada.' });
+          }
 
         const fontes = fontesResult.rows;
         const resultados: Array<{
@@ -2368,8 +2401,10 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
             if (injected.statusCode >= 400) {
               let message = `Falha ao importar fonte (HTTP ${injected.statusCode})`;
               try {
-                const parsed = injected.json() as { error?: string };
-                if (parsed?.error) message = parsed.error;
+                const parsed = injected.json() as { error?: string; code?: string };
+                if (parsed?.error) {
+                  message = parsed.code ? `${parsed.error} (${parsed.code})` : parsed.error;
+                }
               } catch {
                 // ignore parsing error
               }
@@ -2407,8 +2442,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
             });
             totalErros++;
 
-            // Log do erro para debug
-            console.error(`Erro ao importar fonte ${fonte.nome}:`, error);
+            request.log.error({ err: error, fonteId: fonte.id }, 'Erro ao importar fonte no lote');
           }
         }
 
@@ -2445,15 +2479,21 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
           ]
         );
 
-        return reply.send({
-          total: fontes.length,
-          resultados,
-          resumo: {
-            importados: totalImportados,
-            duplicados: totalDuplicados,
-            erros: totalErros,
-          },
-        });
+          return reply.send({
+            total: fontes.length,
+            resultados,
+            resumo: {
+              importados: totalImportados,
+              duplicados: totalDuplicados,
+              erros: totalErros,
+            },
+          });
+        } catch (error) {
+          request.log.error({ err: error }, 'Erro ao importar todas as fontes');
+          const message =
+            error instanceof Error ? error.message : 'Erro ao importar todas as fontes';
+          return sendDatabaseError(reply, error, message);
+        }
       }
     );
   };
