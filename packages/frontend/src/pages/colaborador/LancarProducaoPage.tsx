@@ -128,10 +128,13 @@ export function LancarProducaoPage(): JSX.Element {
       });
       await queryClient.invalidateQueries({ queryKey: ['meu-historico'] });
     } catch (error) {
-      setMensagem({
-        tipo: 'error',
-        texto: error instanceof Error ? error.message : 'Erro ao registrar produção',
-      });
+      const apiError = error as { message?: string; error?: string };
+      const texto =
+        apiError.message ||
+        apiError.error ||
+        (error instanceof Error ? error.message : null) ||
+        'Erro ao registrar produção';
+      setMensagem({ tipo: 'error', texto });
     } finally {
       setSalvando(false);
     }

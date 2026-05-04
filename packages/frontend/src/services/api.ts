@@ -34,6 +34,7 @@ interface FetchWithAuthInit extends RequestInit {
 
 interface ApiError {
   error: string;
+  message?: string;
   code?: string;
   status: number;
 }
@@ -97,6 +98,7 @@ class ApiService {
       const errorData = await response.json().catch(() => ({}));
       throw {
         error: errorData.error || `Erro ${response.status}`,
+        message: errorData.message,
         code: errorData.code,
         status: response.status,
       } as ApiError;
