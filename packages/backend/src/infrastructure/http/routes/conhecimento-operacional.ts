@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { authorize } from '../middleware/auth.js';
+import { type EtapaFluxo, getCurrentUser } from './operacional-helpers.js';
 
-type Perfil = 'operador' | 'administrador';
 type KBCategoria =
   | 'MANUAIS'
   | 'PROCEDIMENTOS_ETAPA'
@@ -11,15 +11,6 @@ type KBCategoria =
   | 'ATUALIZACOES_PROCESSO';
 type KBAcesso = 'OPERADOR_ADMIN' | 'ADMIN';
 type KBStatus = 'ATIVO' | 'INATIVO';
-type EtapaFluxo =
-  | 'RECEBIMENTO'
-  | 'PREPARACAO'
-  | 'DIGITALIZACAO'
-  | 'CONFERENCIA'
-  | 'RECONFERENCIA'
-  | 'MONTAGEM'
-  | 'CONTROLE_QUALIDADE'
-  | 'ENTREGA';
 
 function normalizeEtapas(value: unknown): EtapaFluxo[] {
   if (Array.isArray(value)) {
@@ -42,14 +33,6 @@ function normalizeEtapas(value: unknown): EtapaFluxo[] {
       .filter((item): item is EtapaFluxo => item.length > 0);
   }
   return [];
-}
-
-function getCurrentUser(request: { user?: unknown }): { id: string; perfil: Perfil } {
-  const user = request.user as { id: string; perfil: Perfil } | undefined;
-  if (!user?.id) {
-    throw new Error('Usuario autenticado nao encontrado');
-  }
-  return user;
 }
 
 export function createConhecimentoOperacionalRoutes(): FastifyPluginAsync {

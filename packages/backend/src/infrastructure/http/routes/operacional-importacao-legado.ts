@@ -19,6 +19,52 @@ import { SYSTEM_TIMEZONE } from '../../../domain/producao/producao-metrics.js';
 
 const PROJETO_IMPORTACAO_PRODUCAO = 'IMPORTACAO_PRODUCAO';
 
+const VALID_ETAPAS: EtapaFluxo[] = [
+  'RECEBIMENTO',
+  'PREPARACAO',
+  'DIGITALIZACAO',
+  'CONFERENCIA',
+  'RECONFERENCIA',
+  'MONTAGEM',
+  'CONTROLE_QUALIDADE',
+  'ENTREGA',
+];
+
+const ETAPA_STATUS_MAP: Record<string, StatusRepositorio> = {
+  RECEBIMENTO: 'RECEBIDO',
+  PREPARACAO: 'EM_PREPARACAO',
+  DIGITALIZACAO: 'EM_DIGITALIZACAO',
+  CONFERENCIA: 'EM_CONFERENCIA',
+  RECONFERENCIA: 'EM_CONFERENCIA',
+  MONTAGEM: 'EM_MONTAGEM',
+  CONTROLE_QUALIDADE: 'EM_CQ',
+  ENTREGA: 'EM_ENTREGA',
+};
+
+/**
+ * Mapeia a coluna "funcao" de planilhas legadas para o enum EtapaFluxo.
+ * Reconferência DEVE ser testada antes de Conferência para evitar falso-positivo.
+ * @param funcao   Texto livre da coluna função/etapa na planilha
+ * @param fallbackRaw  Valor de fallback (string) quando não há correspondência
+ */
+function funcaoToEtapa(funcao: string, fallbackRaw?: string): EtapaFluxo {
+  const f = funcao
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+  if (f.includes('receb')) return 'RECEBIMENTO';
+  if (f.includes('prepar')) return 'PREPARACAO';
+  if (f.includes('digital')) return 'DIGITALIZACAO';
+  if (f.includes('reconfer')) return 'RECONFERENCIA';
+  if (f.includes('confer')) return 'CONFERENCIA';
+  if (f.includes('montag')) return 'MONTAGEM';
+  if (f.includes('qualidade') || f.includes('cq')) return 'CONTROLE_QUALIDADE';
+  if (f.includes('entreg')) return 'ENTREGA';
+  const fallback = (fallbackRaw ?? 'RECEBIMENTO').toUpperCase() as EtapaFluxo;
+  return VALID_ETAPAS.includes(fallback) ? fallback : 'RECEBIMENTO';
+}
+
 interface ParsedAndValidatedImportRow {
   repoIdentificadorRaw: string;
   colaboradorNome: string;
@@ -302,42 +348,6 @@ function parseImportRowsFromCsv(csvContent: string): ParsedImportRow[] {
  */
 export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
   return async (server: FastifyInstance): Promise<void> => {
-    const validEtapas: EtapaFluxo[] = [
-      'RECEBIMENTO',
-      'PREPARACAO',
-      'DIGITALIZACAO',
-      'CONFERENCIA',
-      'MONTAGEM',
-      'CONTROLE_QUALIDADE',
-      'ENTREGA',
-    ];
-    const etapaStatusMap: Record<string, StatusRepositorio> = {
-      RECEBIMENTO: 'RECEBIDO',
-      PREPARACAO: 'EM_PREPARACAO',
-      DIGITALIZACAO: 'EM_DIGITALIZACAO',
-      CONFERENCIA: 'EM_CONFERENCIA',
-      MONTAGEM: 'EM_MONTAGEM',
-      CONTROLE_QUALIDADE: 'EM_CQ',
-      ENTREGA: 'EM_ENTREGA',
-    };
-    const funcaoToEtapa = (funcao: string, fallbackRaw?: string): EtapaFluxo => {
-      const f = funcao
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .toLowerCase()
-        .trim();
-      if (f.includes('receb')) return 'RECEBIMENTO';
-      if (f.includes('prepar')) return 'PREPARACAO';
-      if (f.includes('digital')) return 'DIGITALIZACAO';
-      if (f.includes('reconfer')) return 'RECONFERENCIA';
-      if (f.includes('confer')) return 'CONFERENCIA';
-      if (f.includes('montag')) return 'MONTAGEM';
-      if (f.includes('qualidade') || f.includes('cq')) return 'CONTROLE_QUALIDADE';
-      if (f.includes('entreg')) return 'ENTREGA';
-      const fallback = (fallbackRaw ?? 'RECEBIMENTO').toUpperCase() as EtapaFluxo;
-      return validEtapas.includes(fallback) ? fallback : 'RECEBIMENTO';
-    };
-
     // POST /operacional/importacoes-legado/validar - Validar duplicidades antes de importar
     server.post(
       '/operacional/importacoes-legado/validar',
@@ -500,33 +510,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
                 })
               );
 
-              // Reuse funcaoToEtapa mapping for validation
-              const validEtapas: EtapaFluxo[] = [
-                'RECEBIMENTO',
-                'PREPARACAO',
-                'DIGITALIZACAO',
-                'CONFERENCIA',
-                'MONTAGEM',
-                'CONTROLE_QUALIDADE',
-                'ENTREGA',
-              ];
-              const funcaoToEtapaVal = (funcao: string): EtapaFluxo => {
-                const f = funcao
-                  .normalize('NFD')
-                  .replace(/[\u0300-\u036f]/g, '')
-                  .toLowerCase()
-                  .trim();
-                if (f.includes('receb')) return 'RECEBIMENTO';
-                if (f.includes('prepar')) return 'PREPARACAO';
-                if (f.includes('digital')) return 'DIGITALIZACAO';
-                if (f.includes('reconfer')) return 'RECONFERENCIA';
-                if (f.includes('confer')) return 'CONFERENCIA';
-                if (f.includes('montag')) return 'MONTAGEM';
-                if (f.includes('qualidade') || f.includes('cq')) return 'CONTROLE_QUALIDADE';
-                if (f.includes('entreg')) return 'ENTREGA';
-                const fallback = (body.etapa ?? 'RECEBIMENTO').toUpperCase() as EtapaFluxo;
-                return validEtapas.includes(fallback) ? fallback : 'RECEBIMENTO';
-              };
+              // funcaoToEtapa is defined at module level
 
               for (let i = 0; i < registros.length; i++) {
                 const row = registros[i] as Record<string, string | undefined>;
@@ -549,7 +533,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
                 const tipoVal = tipoMarcador.toLowerCase();
                 const funcaoVal = funcaoMarcador.toLowerCase();
                 const coordenadoriaVal = coordenadoriaMarcador.toLowerCase();
-                const etapaVal = funcaoToEtapaVal(funcaoMarcador);
+                const etapaVal = funcaoToEtapa(funcaoMarcador, body.etapa);
 
                 const chave = `${repo.toLowerCase()}|${colaborador}|${quantidade}|${dataProducaoStr}|${tipoVal}|${funcaoVal}|${coordenadoriaVal}|${etapaVal}`;
                 if (existentesSet.has(chave)) {
@@ -843,7 +827,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
                 coordenadoriaMarcador,
               } = parsedRow.value;
               const etapaImport = funcaoToEtapa(funcaoMarcador, body.etapa);
-              const statusImport = etapaStatusMap[etapaImport] ?? 'RECEBIDO';
+              const statusImport = ETAPA_STATUS_MAP[etapaImport] ?? 'RECEBIDO';
 
               // Resolver usuario pelo nome do colaborador
               let colaboradorId = usuariosPorNome.get(colaboradorNome.toLowerCase());
@@ -1625,23 +1609,6 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
             usuariosPorNome.set(u.nome.toLowerCase().trim(), u.id);
           }
 
-          const funcaoToEtapa = (funcao: string): string => {
-            const f = funcao
-              .normalize('NFD')
-              .replace(/[\u0300-\u036f]/g, '')
-              .toLowerCase()
-              .trim();
-            if (f.includes('receb')) return 'RECEBIMENTO';
-            if (f.includes('prepar')) return 'PREPARACAO';
-            if (f.includes('digital')) return 'DIGITALIZACAO';
-            if (f.includes('reconfer')) return 'RECONFERENCIA';
-            if (f.includes('confer')) return 'CONFERENCIA';
-            if (f.includes('montag')) return 'MONTAGEM';
-            if (f.includes('qualidade') || f.includes('cq')) return 'CONTROLE_QUALIDADE';
-            if (f.includes('entreg')) return 'ENTREGA';
-            return 'RECEBIMENTO';
-          };
-
           const novos: Array<{ linha: number; dados: ParsedImportRow; motivo: string }> = [];
           const duplicados: Array<{ linha: number; dados: ParsedImportRow; motivo: string }> = [];
 
@@ -2001,31 +1968,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
           //    but inline it here to auto-skip instead of prompting
           const user = getCurrentUser(request);
 
-          const etapaStatusMap: Record<string, StatusRepositorio> = {
-            RECEBIMENTO: 'RECEBIDO',
-            PREPARACAO: 'EM_PREPARACAO',
-            DIGITALIZACAO: 'EM_DIGITALIZACAO',
-            CONFERENCIA: 'EM_CONFERENCIA',
-            MONTAGEM: 'EM_MONTAGEM',
-            CONTROLE_QUALIDADE: 'EM_CQ',
-            ENTREGA: 'EM_ENTREGA',
-          };
-          const funcaoToEtapa = (funcao: string): EtapaFluxo => {
-            const f = funcao
-              .normalize('NFD')
-              .replace(/[\u0300-\u036f]/g, '')
-              .toLowerCase()
-              .trim();
-            if (f.includes('receb')) return 'RECEBIMENTO';
-            if (f.includes('prepar')) return 'PREPARACAO';
-            if (f.includes('digital')) return 'DIGITALIZACAO';
-            if (f.includes('reconfer')) return 'RECONFERENCIA';
-            if (f.includes('confer')) return 'CONFERENCIA';
-            if (f.includes('montag')) return 'MONTAGEM';
-            if (f.includes('qualidade') || f.includes('cq')) return 'CONTROLE_QUALIDADE';
-            if (f.includes('entreg')) return 'ENTREGA';
-            return 'RECEBIMENTO';
-          };
+          // ETAPA_STATUS_MAP and funcaoToEtapa are defined at module level
 
           const usuariosResult = await server.database.query<{ id: string; nome: string }>(
             `SELECT id, nome FROM usuarios WHERE ativo = TRUE`
@@ -2082,7 +2025,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
                 coordenadoriaMarcador,
               } = parsedRow.value;
               const etapaImport = funcaoToEtapa(funcaoMarcador);
-              const statusImport = etapaStatusMap[etapaImport] ?? 'RECEBIDO';
+              const statusImport = ETAPA_STATUS_MAP[etapaImport] ?? 'RECEBIDO';
 
               // Resolve collaborator
               let colaboradorId = usuariosPorNome.get(colaboradorNome.toLowerCase());

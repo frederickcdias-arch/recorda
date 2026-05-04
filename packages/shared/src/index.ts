@@ -17,3 +17,6 @@ export * from './entities/operacional.js';
 export * from './api/auth.js';
 export * from './api/pagination.js';
 export * from './api/responses.js';
+
+// Utilitários
+export * from './utils/repositorio.js';

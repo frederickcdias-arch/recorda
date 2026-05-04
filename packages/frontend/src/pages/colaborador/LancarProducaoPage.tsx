@@ -11,36 +11,7 @@ import {
   useCriarOrgaoRecebimento,
 } from '../../hooks/useQueries';
 import { useToastHelpers } from '../../components/ui/Toast';
-
-/**
- * Normaliza id_repositorio_ged para formato padrão: 000000/YYYY
- * Exemplos:
- *   "16/2025"       -> "000016/2025"
- *   "000500 / 2025" -> "000500/2025"
- *   "500/2025"      -> "000500/2025"
- *   "216"           -> "000216/2025" (usa ano atual)
- */
-function normalizeIdRepositorioGed(raw: string, anoReferencia?: number): string {
-  const limpo = raw.replace(/\s/g, '').trim();
-  if (!limpo) return '';
-
-  let numero: string;
-  let ano: string;
-
-  if (limpo.includes('/')) {
-    const parts = limpo.split('/');
-    numero = parts[0] ?? '';
-    ano = parts[1] ?? '';
-  } else {
-    numero = limpo;
-    ano = String(anoReferencia ?? new Date().getFullYear());
-  }
-
-  const numeroPadded = numero.replace(/^0+/, '').padStart(6, '0');
-  const anoFinal = ano.length === 2 ? `20${ano}` : ano;
-
-  return `${numeroPadded}/${anoFinal}`;
-}
+import { normalizeIdRepositorioGed } from '@recorda/shared';
 
 function validarQuantidade(value: string): number | null {
   const trimmed = value.trim();

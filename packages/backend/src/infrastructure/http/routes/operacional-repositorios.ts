@@ -14,38 +14,9 @@ import {
   extractOCRPreview,
   loadRepositorio,
 } from './operacional-helpers.js';
+import { normalizeIdRepositorioGed } from '@recorda/shared';
 
-/**
- * Normaliza id_repositorio_ged para formato padrão: 000000/YYYY
- * Exemplos:
- *   "16/2025"       -> "000016/2025"
- *   "000500 / 2025" -> "000500/2025"
- *   "500/2025"      -> "000500/2025"
- *   "216"           -> "000216/{anoReferencia}" (usa ano da data de referência)
- */
-export function normalizeIdRepositorioGed(raw: string, anoReferencia?: number): string {
-  const limpo = raw.replace(/\s/g, '').trim();
-  if (!limpo) return '';
-
-  let numero: string;
-  let ano: string;
-
-  if (limpo.includes('/')) {
-    const parts = limpo.split('/');
-    numero = parts[0] ?? '';
-    ano = parts[1] ?? '';
-  } else {
-    numero = limpo;
-    ano = String(anoReferencia ?? new Date().getFullYear());
-  }
-
-  // Pad número para 6 dígitos
-  const numeroPadded = numero.replace(/^0+/, '').padStart(6, '0');
-  // Garantir ano com 4 dígitos
-  const anoFinal = ano.length === 2 ? `20${ano}` : ano;
-
-  return `${numeroPadded}/${anoFinal}`;
-}
+export { normalizeIdRepositorioGed };
 
 export function createOperacionalRepositoriosRoutes(): FastifyPluginAsync {
   return async (server: FastifyInstance): Promise<void> => {

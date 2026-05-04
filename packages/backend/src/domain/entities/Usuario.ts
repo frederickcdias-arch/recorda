@@ -7,7 +7,7 @@ export interface UsuarioProps {
   id: string;
   nome: string;
   email: string;
-  perfil: 'operador' | 'administrador';
+  perfil: 'colaborador' | 'operador' | 'administrador';
   coordenadoriaId?: string;
   ativo: boolean;
   ultimoAcesso?: Date;
@@ -36,8 +36,8 @@ export class Usuario {
     if (!this.isValidEmail(props.email)) {
       throw new Error('Email inválido');
     }
-    if (!['operador', 'administrador'].includes(props.perfil)) {
-      throw new Error('Perfil deve ser "operador" ou "administrador"');
+    if (!['colaborador', 'operador', 'administrador'].includes(props.perfil)) {
+      throw new Error('Perfil deve ser "colaborador", "operador" ou "administrador"');
     }
   }
 
@@ -56,7 +56,7 @@ export class Usuario {
   get email(): string {
     return this.props.email;
   }
-  get perfil(): 'operador' | 'administrador' {
+  get perfil(): 'colaborador' | 'operador' | 'administrador' {
     return this.props.perfil;
   }
   get coordenadoriaId(): string | undefined {
@@ -77,7 +77,8 @@ export class Usuario {
 
   // Business rules
   temPermissao(permissao: string): boolean {
-    const permissoesDoPerfil = {
+    const permissoesDoPerfil: Record<string, string[]> = {
+      colaborador: ['visualizar_dashboard'],
       operador: [
         'visualizar_dashboard',
         'gerar_relatorios',
@@ -93,7 +94,7 @@ export class Usuario {
         'gerenciar_usuarios',
       ],
     };
-    return permissoesDoPerfil[this.props.perfil].includes(permissao);
+    return (permissoesDoPerfil[this.props.perfil] ?? []).includes(permissao);
   }
 
   podeGerenciarUsuarios(): boolean {
