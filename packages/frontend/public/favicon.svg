@@ -1,18 +1,38 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Recorda">
   <defs>
-    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#4A9FD4"/>
-      <stop offset="100%" style="stop-color:#1E5A8C"/>
+    <linearGradient id="bg" x1="96" y1="64" x2="416" y2="448" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#38bdf8"/>
+      <stop offset="0.48" stop-color="#2563eb"/>
+      <stop offset="1" stop-color="#0f3f8c"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="172" y1="128" x2="340" y2="384" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#dbeafe"/>
     </linearGradient>
   </defs>
-  <circle cx="50" cy="50" r="48" fill="url(#bgGrad)"/>
-  <!-- Documento/caixa estilizada -->
-  <g fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-    <!-- Base da caixa -->
-    <path d="M25 65 L50 78 L75 65 L75 40 L50 27 L25 40 Z"/>
-    <!-- Linhas horizontais (documentos) -->
-    <path d="M30 52 L50 62 L70 52"/>
-    <path d="M30 44 L50 54 L70 44"/>
-    <path d="M30 36 L50 46 L70 36"/>
-  </g>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <path
+    d="M126 205 256 135l130 70-130 70-130-70Z"
+    fill="none"
+    stroke="url(#accent)"
+    stroke-width="34"
+    stroke-linejoin="round"
+  />
+  <path
+    d="M126 250 256 320l130-70M126 304l130 70 130-70"
+    fill="none"
+    stroke="#ffffff"
+    stroke-width="34"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <path
+    d="M126 205v99l130 70 130-70v-99"
+    fill="none"
+    stroke="#ffffff"
+    stroke-width="34"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    opacity="0.94"
+  />
 </svg>

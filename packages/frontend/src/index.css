@@ -37,6 +37,14 @@ canvas {
   -webkit-overflow-scrolling: touch;
 }
 
+@media (max-width: 767px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
 body {
   font-family: var(--font-family-base);
   font-size: var(--font-size-base);

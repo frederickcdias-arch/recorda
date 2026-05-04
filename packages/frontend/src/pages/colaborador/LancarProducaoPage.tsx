@@ -72,7 +72,7 @@ export function LancarProducaoPage(): JSX.Element {
     etapa: '',
     funcao: '',
     coordenadoria: '',
-    quantidade: '1',
+    quantidade: '',
     tipo: '',
   });
 
@@ -151,7 +151,7 @@ export function LancarProducaoPage(): JSX.Element {
         etapa: '',
         funcao: '',
         coordenadoria: '',
-        quantidade: '1',
+        quantidade: '',
         tipo: '',
       });
       await queryClient.invalidateQueries({ queryKey: ['meu-historico'] });
@@ -292,6 +292,7 @@ export function LancarProducaoPage(): JSX.Element {
                 pattern="[0-9]*"
                 enterKeyHint="done"
                 inputSize="lg"
+                required
                 value={formData.quantidade}
                 onFocus={(e) => e.currentTarget.select()}
                 onChange={(e) =>
