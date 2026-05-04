@@ -329,6 +329,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
       if (f.includes('receb')) return 'RECEBIMENTO';
       if (f.includes('prepar')) return 'PREPARACAO';
       if (f.includes('digital')) return 'DIGITALIZACAO';
+      if (f.includes('reconfer')) return 'RECONFERENCIA';
       if (f.includes('confer')) return 'CONFERENCIA';
       if (f.includes('montag')) return 'MONTAGEM';
       if (f.includes('qualidade') || f.includes('cq')) return 'CONTROLE_QUALIDADE';
@@ -518,6 +519,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
                 if (f.includes('receb')) return 'RECEBIMENTO';
                 if (f.includes('prepar')) return 'PREPARACAO';
                 if (f.includes('digital')) return 'DIGITALIZACAO';
+                if (f.includes('reconfer')) return 'RECONFERENCIA';
                 if (f.includes('confer')) return 'CONFERENCIA';
                 if (f.includes('montag')) return 'MONTAGEM';
                 if (f.includes('qualidade') || f.includes('cq')) return 'CONTROLE_QUALIDADE';
@@ -1632,6 +1634,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
             if (f.includes('receb')) return 'RECEBIMENTO';
             if (f.includes('prepar')) return 'PREPARACAO';
             if (f.includes('digital')) return 'DIGITALIZACAO';
+            if (f.includes('reconfer')) return 'RECONFERENCIA';
             if (f.includes('confer')) return 'CONFERENCIA';
             if (f.includes('montag')) return 'MONTAGEM';
             if (f.includes('qualidade') || f.includes('cq')) return 'CONTROLE_QUALIDADE';
@@ -2016,6 +2019,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
             if (f.includes('receb')) return 'RECEBIMENTO';
             if (f.includes('prepar')) return 'PREPARACAO';
             if (f.includes('digital')) return 'DIGITALIZACAO';
+            if (f.includes('reconfer')) return 'RECONFERENCIA';
             if (f.includes('confer')) return 'CONFERENCIA';
             if (f.includes('montag')) return 'MONTAGEM';
             if (f.includes('qualidade') || f.includes('cq')) return 'CONTROLE_QUALIDADE';

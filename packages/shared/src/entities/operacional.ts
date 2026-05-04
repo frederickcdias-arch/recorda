@@ -7,6 +7,7 @@ export type EtapaFluxo =
   | 'PREPARACAO'
   | 'DIGITALIZACAO'
   | 'CONFERENCIA'
+  | 'RECONFERENCIA'
   | 'MONTAGEM'
   | 'CONTROLE_QUALIDADE'
   | 'ENTREGA';

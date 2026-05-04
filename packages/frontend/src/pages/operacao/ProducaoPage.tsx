@@ -26,6 +26,7 @@ const ETAPA_LABELS: Record<string, string> = {
   PREPARACAO: 'Preparação',
   DIGITALIZACAO: 'Digitalização',
   CONFERENCIA: 'Conferência',
+  RECONFERENCIA: 'Reconferência',
   MONTAGEM: 'Montagem',
   CONTROLE_QUALIDADE: 'Controle de Qualidade',
   ENTREGA: 'Entrega',
