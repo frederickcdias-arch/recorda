@@ -155,6 +155,7 @@ export function ProducaoPage(): JSX.Element {
   });
   const dados = producaoQuery.data ?? null;
   const carregando = producaoQuery.isLoading;
+  const atualizando = producaoQuery.isFetching && !producaoQuery.isLoading;
   const erro = producaoQuery.error
     ? {
         message: 'Erro ao carregar Registros de Produção',
@@ -349,7 +350,12 @@ export function ProducaoPage(): JSX.Element {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Produção</h1>
-            <p className="text-gray-500 mt-1">{totalFormatado} Registros de Produção</p>
+            <p className="text-gray-500 mt-1">
+              {totalFormatado} Registros de Produção
+              {atualizando && (
+                <span className="ml-2 text-xs text-blue-500 animate-pulse">Atualizando...</span>
+              )}
+            </p>
           </div>
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
             {isAdmin && (
@@ -464,7 +470,7 @@ export function ProducaoPage(): JSX.Element {
 
         {/* Tabela */}
         <Card>
-          <div className="space-y-3 md:hidden">
+          <div className={`space-y-3 md:hidden${atualizando ? ' opacity-60' : ''}`}>
             {!dados || dados.registros.length === 0 ? (
               <div className="rounded-lg border border-dashed border-gray-200 px-4 py-8 text-center text-sm text-gray-500">
                 {carregando ? 'Carregando...' : 'Nenhum registro encontrado.'}
@@ -515,7 +521,7 @@ export function ProducaoPage(): JSX.Element {
             )}
           </div>
 
-          <div className="hidden overflow-x-auto md:block">
+          <div className={`hidden overflow-x-auto md:block${atualizando ? ' opacity-60' : ''}`}>
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>

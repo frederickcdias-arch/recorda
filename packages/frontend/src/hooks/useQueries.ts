@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { api } from '../services/api';
 import type { StatusRepositorio, EtapaFluxo } from '@recorda/shared';
 
@@ -1145,6 +1145,7 @@ export function useProducao(params: {
 
   return useQuery({
     queryKey: queryKeys.producao(queryParams),
+    placeholderData: keepPreviousData,
     queryFn: () => {
       const qs = new URLSearchParams();
       for (const [k, v] of Object.entries(queryParams)) qs.set(k, String(v));
