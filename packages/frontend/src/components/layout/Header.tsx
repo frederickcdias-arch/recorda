@@ -1,5 +1,4 @@
 import { Icon } from '../ui/Icon';
-import { useAuth } from '../../contexts/AuthContext';
 
 interface HeaderProps {
   onMenuToggle: () => void;
@@ -45,8 +44,6 @@ export function Header({ onMenuToggle, title }: HeaderProps): JSX.Element {
       )}
 
       <div className="flex-1" />
-
-      <HeaderUser />
     </header>
   );
 }
@@ -54,29 +51,4 @@ export function Header({ onMenuToggle, title }: HeaderProps): JSX.Element {
 function buildBreadcrumbs(title?: string): string[] {
   if (!title) return ['Recorda'];
   return title.split(' - ').map((s) => s.trim());
-}
-
-function HeaderUser(): JSX.Element {
-  const { usuario } = useAuth();
-  const nome = usuario?.nome ?? 'Usuário';
-  const initials = nome
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0]?.toUpperCase() ?? '')
-    .join('');
-
-  return (
-    <div className="flex items-center gap-2.5">
-      <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-semibold select-none">
-        {initials || 'U'}
-      </div>
-      <div className="hidden sm:block text-right">
-        <p className="text-sm font-medium text-gray-900 leading-tight">{nome}</p>
-        {usuario?.perfil && (
-          <p className="text-[11px] text-gray-400 leading-tight capitalize">{usuario.perfil}</p>
-        )}
-      </div>
-    </div>
-  );
 }
