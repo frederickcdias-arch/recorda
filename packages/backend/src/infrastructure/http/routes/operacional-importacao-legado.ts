@@ -901,7 +901,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
                 // Buscar ou criar checklist CONCLUIDO para satisfazer o trigger de validacao
                 const existingChecklist = await server.database.query<{ id: string }>(
                   `SELECT id FROM checklists
-                 WHERE repositorio_id = $1 AND etapa = $2
+                 WHERE repositorio_id = $1 AND etapa = $2 AND status = 'CONCLUIDO'
                  LIMIT 1`,
                   [repositorioId, etapaImport]
                 );
@@ -2226,7 +2226,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
 
               // Find or create checklist (must be CONCLUIDO to satisfy production trigger)
               const existingChecklist = await server.database.query<{ id: string }>(
-                `SELECT id FROM checklists WHERE repositorio_id = $1 AND etapa = $2 LIMIT 1`,
+                `SELECT id FROM checklists WHERE repositorio_id = $1 AND etapa = $2 AND status = 'CONCLUIDO' LIMIT 1`,
                 [repositorioId, etapaImport]
               );
               let checklistId = existingChecklist.rows[0]?.id ?? '';

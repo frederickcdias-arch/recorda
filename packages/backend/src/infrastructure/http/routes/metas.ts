@@ -623,8 +623,8 @@ export function createMetasRoutes(): FastifyPluginAsync {
 
           if (!checklistId) {
             const createChecklistResult = await server.database.query(
-              `INSERT INTO checklists (repositorio_id, etapa, status, usuario_id)
-               VALUES ($1, $2, 'CONCLUIDO', $3)
+              `INSERT INTO checklists (repositorio_id, etapa, status, responsavel_id, data_conclusao, ativo)
+               VALUES ($1, $2, 'CONCLUIDO', $3, NOW(), FALSE)
                RETURNING id`,
               [repositorioId, body.etapa, user.id]
             );

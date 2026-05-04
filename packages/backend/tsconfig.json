@@ -9,6 +9,7 @@
     "lib": ["ES2022"],
     "types": ["node"],
     "baseUrl": ".",
+    "ignoreDeprecations": "6.0",
     "paths": {
       "@recorda/shared": ["../shared/dist/index.d.ts"]
     }
