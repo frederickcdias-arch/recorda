@@ -39,7 +39,7 @@ export function AppLayout(): JSX.Element {
   }, [pageTitle]);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-gray-50 flex">
       {/* Sidebar - Desktop */}
       <div className="hidden md:flex">
         <Sidebar
@@ -63,10 +63,10 @@ export function AppLayout(): JSX.Element {
       )}
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 max-w-full overflow-x-hidden">
         <Header onMenuToggle={() => setMobileMenuOpen(true)} title={pageTitle} />
-        <main className="flex-1 overflow-auto p-4 pb-24 md:p-6 md:pb-6">
-          <div key={location.pathname} className="animate-fade-in-up">
+        <main className="flex-1 min-w-0 max-w-full overflow-y-auto overflow-x-hidden p-4 pb-24 md:p-6 md:pb-6">
+          <div key={location.pathname} className="min-w-0 max-w-full animate-fade-in-up">
             <Outlet />
           </div>
         </main>

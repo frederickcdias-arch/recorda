@@ -435,7 +435,8 @@ export function createMetasRoutes(): FastifyPluginAsync {
                  WHEN LOWER(COALESCE(NULLIF(TRIM(pr.marcadores->>'tipo'), ''), '')) LIKE '%caix%' THEN 'Caixas'
                  WHEN COALESCE(NULLIF(TRIM(pr.marcadores->>'tipo'), ''), '') = '' THEN 'Não informado'
                  ELSE TRIM(pr.marcadores->>'tipo')
-               END AS tipo_label
+               END AS tipo_label,
+               UPPER(COALESCE(NULLIF(TRIM(pr.marcadores->>'coordenadoria'), ''), NULLIF(TRIM(r.orgao), ''), 'NAO INFORMADO')) AS coordenadoria_label
              FROM producao_repositorio pr
              JOIN repositorios r ON r.id_repositorio_recorda = pr.repositorio_id
              WHERE ${where}

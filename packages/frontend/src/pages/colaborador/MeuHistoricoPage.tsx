@@ -15,6 +15,7 @@ interface ProducaoItem {
   data_producao: string;
   etapa: string;
   etapa_label?: string;
+  coordenadoria_label?: string;
   tipo_label?: string;
   quantidade: number;
   id_repositorio_ged: string;
@@ -321,6 +322,9 @@ export function MeuHistoricoPage(): JSX.Element {
                     Repositório
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Coordenadoria
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Etapa
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
@@ -331,7 +335,7 @@ export function MeuHistoricoPage(): JSX.Element {
               <tbody className="bg-white divide-y divide-gray-200">
                 {producoes.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="px-6 py-12 text-center text-gray-500">
+                    <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
                       <Icon name="inbox" className="w-12 h-12 mx-auto mb-4 text-gray-300" />
                       <p>Nenhuma produção encontrada</p>
                       {temFiltros ? (
@@ -346,6 +350,8 @@ export function MeuHistoricoPage(): JSX.Element {
                 ) : (
                   producoes.map((p) => {
                     const label = p.etapa_label ?? p.etapa;
+                    const coordenadoria =
+                      p.coordenadoria_label ?? p.marcadores?.coordenadoria ?? 'NAO INFORMADO';
                     const cor = getEtapaCor(label);
                     return (
                       <tr key={p.id} className="hover:bg-gray-50">
@@ -353,6 +359,9 @@ export function MeuHistoricoPage(): JSX.Element {
                           {formatDateBR(p.data_producao)}
                         </td>
                         <td className="px-6 py-4 font-medium text-gray-900">{p.id_repositorio_ged}</td>
+                        <td className="px-6 py-4 text-sm font-medium text-gray-700">
+                          {coordenadoria.trim().toUpperCase()}
+                        </td>
                         <td className="px-6 py-4">
                           <span className={`px-2 py-1 text-xs rounded-full ${cor.bg} ${cor.text}`}>
                             {label}

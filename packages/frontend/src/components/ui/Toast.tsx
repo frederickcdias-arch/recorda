@@ -109,9 +109,9 @@ function ToastItem({ toast, onRemove }: ToastItemProps): JSX.Element {
     <div
       className={`
         ${styles.container}
-        border rounded-lg shadow-lg p-4 min-w-[320px] max-w-[420px]
+        border rounded-lg shadow-lg p-4 w-full
         transition-all duration-200
-        ${isExiting ? 'opacity-0 translate-x-4' : 'opacity-100 translate-x-0'}
+        ${isExiting ? 'opacity-0 translate-y-2' : 'opacity-100 translate-y-0'}
       `}
       role="alert"
     >
@@ -147,7 +147,7 @@ function ToastContainer({ toasts, onRemove }: ToastContainerProps): JSX.Element 
 
   return (
     <div
-      className="fixed bottom-4 right-4 z-[var(--z-toast)] flex flex-col gap-2"
+      className="fixed bottom-4 left-4 right-4 z-[var(--z-toast)] flex flex-col gap-2 sm:left-auto sm:w-[420px]"
       aria-live="assertive"
       aria-atomic="true"
     >

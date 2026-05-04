@@ -186,7 +186,11 @@ export function useOrgaosRecebimento() {
     queryKey: queryKeys.orgaosRecebimento,
     queryFn: () => api.get<{ itens: SelectOption[] }>('/operacional/orgaos-recebimento'),
     staleTime: 5 * 60_000,
-    select: (data) => data.itens ?? [],
+    select: (data) =>
+      (data.itens ?? []).map((item) => ({
+        ...item,
+        nome: item.nome.trim().toUpperCase(),
+      })),
   });
 }
 
@@ -806,7 +810,9 @@ export function useCriarOrgaoRecebimento() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (nome: string) =>
-      api.post<{ id: string; nome: string }>('/operacional/orgaos-recebimento', { nome }),
+      api.post<{ id: string; nome: string }>('/operacional/orgaos-recebimento', {
+        nome: nome.trim().toUpperCase(),
+      }),
     onSuccess: () => void qc.invalidateQueries({ queryKey: queryKeys.orgaosRecebimento }),
   });
 }

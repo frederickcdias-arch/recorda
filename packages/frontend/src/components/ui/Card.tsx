@@ -39,7 +39,7 @@ export function Card({
   return (
     <div
       className={`
-        rounded-xl transition-all duration-150
+        min-w-0 max-w-full rounded-xl transition-all duration-150
         ${variantClasses[variant]}
         ${paddingClasses[padding]}
         ${hover || isClickable ? 'hover:shadow-md hover:border-[var(--color-gray-300)]' : ''}

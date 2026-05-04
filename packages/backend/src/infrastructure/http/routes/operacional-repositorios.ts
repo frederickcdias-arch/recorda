@@ -166,12 +166,12 @@ export function createOperacionalRepositoriosRoutes(): FastifyPluginAsync {
         try {
           const result = await server.database.query(
             `WITH unidades_config AS (
-             SELECT id::text AS id, TRIM(nome) AS nome
+             SELECT id::text AS id, UPPER(TRIM(nome)) AS nome
              FROM unidades_recebimento
              WHERE ativo = TRUE AND TRIM(nome) <> ''
            ),
            unidades_historico AS (
-             SELECT DISTINCT md5(LOWER(TRIM(orgao))) AS id, TRIM(orgao) AS nome
+             SELECT DISTINCT md5(LOWER(TRIM(orgao))) AS id, UPPER(TRIM(orgao)) AS nome
              FROM repositorios
              WHERE orgao IS NOT NULL
                AND TRIM(orgao) <> ''
@@ -180,7 +180,7 @@ export function createOperacionalRepositoriosRoutes(): FastifyPluginAsync {
            unidades_legado AS (
              SELECT DISTINCT
                md5(LOWER(TRIM(p.marcadores->>'coordenadoria'))) AS id,
-               TRIM(p.marcadores->>'coordenadoria') AS nome
+               UPPER(TRIM(p.marcadores->>'coordenadoria')) AS nome
              FROM producao_repositorio p
              WHERE TRIM(COALESCE(p.marcadores->>'coordenadoria', '')) <> ''
            ),
@@ -194,11 +194,11 @@ export function createOperacionalRepositoriosRoutes(): FastifyPluginAsync {
            unidades_dedup AS (
              SELECT MIN(id) AS id, MIN(nome) AS nome
              FROM unidades_uniao
-             GROUP BY LOWER(TRIM(nome))
+             GROUP BY UPPER(TRIM(nome))
            )
            SELECT id, nome
            FROM unidades_dedup
-           ORDER BY LOWER(nome) ASC`
+           ORDER BY nome ASC`
           );
           return reply.send({ itens: result.rows });
         } catch (error) {
@@ -206,7 +206,7 @@ export function createOperacionalRepositoriosRoutes(): FastifyPluginAsync {
           if (message.includes('unidades_recebimento')) {
             const fallbackResult = await server.database.query(
               `WITH unidades_historico AS (
-                 SELECT DISTINCT md5(LOWER(TRIM(orgao))) AS id, TRIM(orgao) AS nome
+                 SELECT DISTINCT md5(LOWER(TRIM(orgao))) AS id, UPPER(TRIM(orgao)) AS nome
                  FROM repositorios
                  WHERE orgao IS NOT NULL
                    AND TRIM(orgao) <> ''
@@ -215,7 +215,7 @@ export function createOperacionalRepositoriosRoutes(): FastifyPluginAsync {
                unidades_legado AS (
                  SELECT DISTINCT
                    md5(LOWER(TRIM(p.marcadores->>'coordenadoria'))) AS id,
-                   TRIM(p.marcadores->>'coordenadoria') AS nome
+                   UPPER(TRIM(p.marcadores->>'coordenadoria')) AS nome
                  FROM producao_repositorio p
                  WHERE TRIM(COALESCE(p.marcadores->>'coordenadoria', '')) <> ''
                ),
@@ -226,8 +226,8 @@ export function createOperacionalRepositoriosRoutes(): FastifyPluginAsync {
                )
                SELECT MIN(id) AS id, MIN(nome) AS nome
                FROM unidades_uniao
-               GROUP BY LOWER(TRIM(nome))
-               ORDER BY LOWER(MIN(nome)) ASC`
+               GROUP BY UPPER(TRIM(nome))
+               ORDER BY MIN(nome) ASC`
             );
             return reply.send({ itens: fallbackResult.rows });
           }
@@ -260,13 +260,14 @@ export function createOperacionalRepositoriosRoutes(): FastifyPluginAsync {
         try {
           const user = getCurrentUser(request);
           const { nome } = request.body as { nome: string };
+          const nomeNormalizado = nome.trim().toUpperCase();
           const result = await server.database.query(
             `INSERT INTO unidades_recebimento (nome, criado_por)
            VALUES ($1, $2)
            ON CONFLICT (LOWER(TRIM(nome))) WHERE ativo = TRUE
            DO UPDATE SET nome = EXCLUDED.nome
            RETURNING id, nome`,
-            [nome, user.id]
+            [nomeNormalizado, user.id]
           );
           return reply.status(201).send(result.rows[0]);
         } catch (error) {

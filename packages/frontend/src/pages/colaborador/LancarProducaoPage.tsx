@@ -92,14 +92,14 @@ export function LancarProducaoPage(): JSX.Element {
   ];
 
   const handleCriarCoordenadoriaRapida = async () => {
-    const nomeCoordenadoria = novaCoordenadoriaInput.trim();
+    const nomeCoordenadoria = novaCoordenadoriaInput.trim().toUpperCase();
     if (!nomeCoordenadoria) return;
 
     const existente = coordenadoriasOptions.find(
       (c) => c.nome.trim().toLowerCase() === nomeCoordenadoria.toLowerCase()
     );
     if (existente) {
-      setFormData((prev) => ({ ...prev, coordenadoria: existente.nome }));
+      setFormData((prev) => ({ ...prev, coordenadoria: existente.nome.trim().toUpperCase() }));
       setNovaCoordenadoriaInput('');
       toast.success('Coordenadoria já existente e selecionada.');
       return;
@@ -108,7 +108,7 @@ export function LancarProducaoPage(): JSX.Element {
     try {
       setSalvando(true);
       const created = await createCoordenadoria.mutateAsync(nomeCoordenadoria);
-      setFormData((prev) => ({ ...prev, coordenadoria: created.nome }));
+      setFormData((prev) => ({ ...prev, coordenadoria: created.nome.trim().toUpperCase() }));
       setNovaCoordenadoriaInput('');
       toast.success('Coordenadoria cadastrada e selecionada com sucesso.');
       if (coordenadoriasQuery.refetch) await coordenadoriasQuery.refetch();
@@ -139,7 +139,7 @@ export function LancarProducaoPage(): JSX.Element {
         repositorio: formData.repositorio,
         etapa: formData.etapa,
         funcao: formData.funcao || undefined,
-        coordenadoria: formData.coordenadoria || undefined,
+        coordenadoria: formData.coordenadoria.trim().toUpperCase() || undefined,
         quantidade,
         tipo: formData.tipo || undefined,
       });
@@ -246,7 +246,12 @@ export function LancarProducaoPage(): JSX.Element {
                 <select
                   className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
                   value={formData.coordenadoria}
-                  onChange={(e) => setFormData((p) => ({ ...p, coordenadoria: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((p) => ({
+                      ...p,
+                      coordenadoria: e.target.value.trim().toUpperCase(),
+                    }))
+                  }
                 >
                   <option value="">— Selecione —</option>
                   {coordenadoriasOptions.map((coordenadoria) => (
@@ -260,7 +265,7 @@ export function LancarProducaoPage(): JSX.Element {
                     className="flex-1 px-3 py-2 border rounded-lg text-sm"
                     placeholder="Nova coordenadoria..."
                     value={novaCoordenadoriaInput}
-                    onChange={(e) => setNovaCoordenadoriaInput(e.target.value)}
+                    onChange={(e) => setNovaCoordenadoriaInput(e.target.value.toUpperCase())}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         e.preventDefault();
@@ -282,11 +287,19 @@ export function LancarProducaoPage(): JSX.Element {
 
               <Input
                 label="Quantidade"
-                type="number"
-                min="1"
-                step="1"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                enterKeyHint="done"
+                inputSize="lg"
                 value={formData.quantidade}
-                onChange={(e) => setFormData((p) => ({ ...p, quantidade: e.target.value }))}
+                onFocus={(e) => e.currentTarget.select()}
+                onChange={(e) =>
+                  setFormData((p) => ({
+                    ...p,
+                    quantidade: e.target.value.replace(/\D/g, ''),
+                  }))
+                }
               />
 
               <div>
