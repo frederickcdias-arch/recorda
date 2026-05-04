@@ -681,15 +681,19 @@ export function createMetasRoutes(): FastifyPluginAsync {
           }
           const dataProducao = body.data;
 
-          // Sequência obrigatória de etapas
+          // Sequência obrigatória de etapas (apenas dependências explícitas):
+          // - Digitalização depende de Preparação
+          // - Conferência depende de Digitalização
+          // - Reconferência depende de Conferência
+          // - Montagem depende de Conferência (pode vir direto da Conferência ou após Reconferência)
           const sequenciaEtapas: Record<string, { ordem: number; anterior?: string }> = {
             RECEBIMENTO: { ordem: 1 },
-            PREPARACAO: { ordem: 2, anterior: 'RECEBIMENTO' },
+            PREPARACAO: { ordem: 2 },
             DIGITALIZACAO: { ordem: 3, anterior: 'PREPARACAO' },
             CONFERENCIA: { ordem: 4, anterior: 'DIGITALIZACAO' },
             RECONFERENCIA: { ordem: 5, anterior: 'CONFERENCIA' },
-            MONTAGEM: { ordem: 6, anterior: 'RECONFERENCIA' },
-            ATENDIMENTO: { ordem: 7, anterior: 'MONTAGEM' },
+            MONTAGEM: { ordem: 6, anterior: 'CONFERENCIA' },
+            ATENDIMENTO: { ordem: 7 },
           };
 
           // Bloquear quando a mesma etapa já foi importada do legado para o repositório/coordenadoria.
