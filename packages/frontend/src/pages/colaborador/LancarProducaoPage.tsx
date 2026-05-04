@@ -328,13 +328,25 @@ export function LancarProducaoPage(): JSX.Element {
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <h3 className="font-semibold text-blue-900 mb-2">📋 Instruções</h3>
           <ul className="text-sm text-blue-800 space-y-1">
-            <li>• <strong>Data:</strong> Data da produção (padrão: hoje)</li>
-            <li>• <strong>Repositório:</strong> ID do repositório trabalhado (obrigatório)</li>
-            <li>• <strong>Etapa:</strong> Etapa do fluxo de trabalho (obrigatório)</li>
-            <li>• <strong>Coordenadoria:</strong> Unidade/coordenadoria responsável</li>
-            <li>• <strong>Quantidade:</strong> Número de itens processados</li>
-            <li>• <strong>Tipo:</strong> Informação adicional (opcional)</li>
-            <li>• Consulte seu histórico em "Meu Histórico"</li>
+            <li>
+              • <strong>Data:</strong> Data da produção (padrão: hoje)
+            </li>
+            <li>
+              • <strong>Repositório:</strong> ID do repositório trabalhado (obrigatório)
+            </li>
+            <li>
+              • <strong>Etapa:</strong> Etapa do fluxo de trabalho (obrigatório)
+            </li>
+            <li>
+              • <strong>Coordenadoria:</strong> Unidade/coordenadoria responsável
+            </li>
+            <li>
+              • <strong>Quantidade:</strong> Número de itens processados
+            </li>
+            <li>
+              • <strong>Tipo:</strong> Informação adicional (opcional)
+            </li>
+            <li>• Consulte seu histórico em &quot;Meu Histórico&quot;</li>
           </ul>
         </div>
       </div>

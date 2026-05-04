@@ -341,7 +341,12 @@ function createMockDatabase(): DatabaseConnection & {
     ) {
       const seen = new Map<string, { id: string; nome: string }>();
       for (const repo of repositorios.values()) {
-        if (String(repo.projeto ?? '').trim().toUpperCase() === 'LEGADO') continue;
+        if (
+          String(repo.projeto ?? '')
+            .trim()
+            .toUpperCase() === 'LEGADO'
+        )
+          continue;
         if (
           text.includes("projeto NOT IN ('LEGADO', $1)") &&
           String(repo.projeto ?? '').trim() === String(params?.[0] ?? '')

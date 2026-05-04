@@ -11,7 +11,12 @@ test.describe('Producao', () => {
     await page.getByRole('link', { name: /^Painel$/i }).click();
     await page.waitForLoadState('networkidle');
     await expect(page).toHaveURL(/\/producao$/);
-    await expect(page.getByRole('main').getByText(/Nenhum registro encontrado|Produ..o/i).first()).toBeVisible({
+    await expect(
+      page
+        .getByRole('main')
+        .getByText(/Nenhum registro encontrado|Produ..o/i)
+        .first()
+    ).toBeVisible({
       timeout: 10_000,
     });
   });
@@ -21,7 +26,12 @@ test.describe('Producao', () => {
     await page.getByRole('link', { name: /Importar Produ..o/i }).click();
     await page.waitForLoadState('networkidle');
     await expect(page).toHaveURL(/\/producao\/importar$/);
-    await expect(page.getByRole('main').getByText(/Importar Produ..o/i).first()).toBeVisible({
+    await expect(
+      page
+        .getByRole('main')
+        .getByText(/Importar Produ..o/i)
+        .first()
+    ).toBeVisible({
       timeout: 10_000,
     });
   });
@@ -45,7 +55,12 @@ test.describe('Base de conhecimento operacional', () => {
     await page.getByRole('link', { name: /Conhecimento/i }).click();
     await page.waitForLoadState('networkidle');
     await expect(page).toHaveURL(/\/operacao\/conhecimento$/);
-    await expect(page.getByRole('main').getByText(/Manual de Recebimento|Conhecimento/i).first()).toBeVisible({
+    await expect(
+      page
+        .getByRole('main')
+        .getByText(/Manual de Recebimento|Conhecimento/i)
+        .first()
+    ).toBeVisible({
       timeout: 10_000,
     });
   });

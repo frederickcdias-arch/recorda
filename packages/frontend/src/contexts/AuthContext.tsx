@@ -33,9 +33,7 @@ interface AuthContextData {
 const AuthContext = createContext<AuthContextData | undefined>(undefined);
 
 const PERMISSOES_POR_PERFIL: Record<PerfilUsuario, PermissaoTipo[]> = {
-  colaborador: [
-    'visualizar_dashboard',
-  ],
+  colaborador: ['visualizar_dashboard'],
   operador: [
     'visualizar_dashboard',
     'gerar_relatorios',

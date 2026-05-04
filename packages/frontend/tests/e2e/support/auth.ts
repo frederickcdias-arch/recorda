@@ -2,10 +2,9 @@ import type { Page } from '@playwright/test';
 import { installApiMocks } from './mockApi';
 
 export const ADMIN_EMAIL_CANDIDATES = (
-  process.env.E2E_ADMIN_EMAIL?.split(',').map((email) => email.trim()).filter(Boolean) ?? [
-    'admin@recorda.local',
-    'admin@recorda.com',
-  ]
+  process.env.E2E_ADMIN_EMAIL?.split(',')
+    .map((email) => email.trim())
+    .filter(Boolean) ?? ['admin@recorda.local', 'admin@recorda.com']
 ).filter((email, index, emails) => emails.indexOf(email) === index);
 
 export const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD ?? 'admin123';

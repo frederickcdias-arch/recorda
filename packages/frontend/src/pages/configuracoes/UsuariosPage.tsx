@@ -64,7 +64,10 @@ export function UsuariosPage(): JSX.Element {
       email: usuario.email,
       nome: usuario.nome,
       senha: '',
-      perfil: usuario.papel === 'ADMIN' ? 'administrador' : usuario.papel.toLowerCase() as 'colaborador' | 'operador' | 'administrador',
+      perfil:
+        usuario.papel === 'ADMIN'
+          ? 'administrador'
+          : (usuario.papel.toLowerCase() as 'colaborador' | 'operador' | 'administrador'),
     });
     setModalAberto(true);
   };
@@ -228,7 +231,9 @@ export function UsuariosPage(): JSX.Element {
         {modalAberto && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fade-in">
             <div className="bg-white rounded-xl p-6 max-w-md w-full shadow-2xl animate-scale-in">
-              <h3 className="text-lg font-semibold mb-4">{usuarioEditando ? 'Editar Usuário' : 'Novo Usuário'}</h3>
+              <h3 className="text-lg font-semibold mb-4">
+                {usuarioEditando ? 'Editar Usuário' : 'Novo Usuário'}
+              </h3>
               <div className="space-y-4">
                 <Input
                   label="Nome"
@@ -250,7 +255,7 @@ export function UsuariosPage(): JSX.Element {
                 />
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Papel</label>
-  <select
+                  <select
                     value={formData.perfil}
                     onChange={(e) =>
                       setFormData((p) => ({

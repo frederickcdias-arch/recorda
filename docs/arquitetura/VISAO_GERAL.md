@@ -131,11 +131,13 @@ packages/backend/src/
 ### Padrões Utilizados
 
 #### 1. Clean Architecture
+
 - **Domain** não depende de nada
 - **Application** depende de Domain
 - **Infrastructure** depende de Application e Domain
 
 #### 2. Dependency Injection
+
 ```typescript
 // Inversão de dependência
 class UsuarioService {
@@ -144,6 +146,7 @@ class UsuarioService {
 ```
 
 #### 3. Repository Pattern
+
 ```typescript
 interface UsuarioRepository {
   findById(id: string): Promise<Usuario | null>;
@@ -153,14 +156,14 @@ interface UsuarioRepository {
 
 ### Principais Tecnologias
 
-| Tecnologia | Uso |
-|------------|-----|
-| **Fastify** | Framework HTTP (rápido e performático) |
-| **Zod** | Validação de schemas |
-| **JWT** | Autenticação stateless |
-| **PostgreSQL** | Banco de dados relacional |
-| **Vitest** | Testes unitários |
-| **TypeScript** | Tipagem estática |
+| Tecnologia     | Uso                                    |
+| -------------- | -------------------------------------- |
+| **Fastify**    | Framework HTTP (rápido e performático) |
+| **Zod**        | Validação de schemas                   |
+| **JWT**        | Autenticação stateless                 |
+| **PostgreSQL** | Banco de dados relacional              |
+| **Vitest**     | Testes unitários                       |
+| **TypeScript** | Tipagem estática                       |
 
 ---
 
@@ -210,12 +213,13 @@ packages/frontend/src/
 ### Gerenciamento de Estado
 
 #### React Query (Server State)
+
 ```typescript
 // Cache automático, refetch, invalidação
 export function useProducao() {
   return useQuery({
     queryKey: ['producao'],
-    queryFn: () => api.get('/producao')
+    queryFn: () => api.get('/producao'),
   });
 }
 
@@ -225,12 +229,13 @@ export function useLancarProducao() {
     mutationFn: (data) => api.post('/producao/lancar-direto', data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['producao'] });
-    }
+    },
   });
 }
 ```
 
 #### Context API (Client State)
+
 ```typescript
 // Estado global de autenticação
 const AuthContext = createContext<AuthContextType>(null!);
@@ -243,14 +248,14 @@ export function AuthProvider({ children }) {
 
 ### Principais Tecnologias
 
-| Tecnologia | Uso |
-|------------|-----|
-| **React 18** | Biblioteca UI |
-| **Vite** | Build tool (rápido) |
-| **React Query** | Server state management |
-| **React Router** | Roteamento |
-| **TailwindCSS** | Estilização utility-first |
-| **Playwright** | Testes E2E |
+| Tecnologia       | Uso                       |
+| ---------------- | ------------------------- |
+| **React 18**     | Biblioteca UI             |
+| **Vite**         | Build tool (rápido)       |
+| **React Query**  | Server state management   |
+| **React Router** | Roteamento                |
+| **TailwindCSS**  | Estilização utility-first |
+| **Playwright**   | Testes E2E                |
 
 ---
 
@@ -306,6 +311,7 @@ export function AuthProvider({ children }) {
 ### Migrações
 
 Todas as mudanças de schema são versionadas em:
+
 ```
 db/migrations/
 ├── 001_initial.sql
@@ -318,13 +324,13 @@ db/migrations/
 
 ```sql
 -- Performance de queries
-CREATE INDEX idx_producao_usuario_data 
+CREATE INDEX idx_producao_usuario_data
   ON producao_repositorio(usuario_id, data_producao DESC);
 
-CREATE INDEX idx_producao_repositorio_etapa 
+CREATE INDEX idx_producao_repositorio_etapa
   ON producao_repositorio(repositorio_id, etapa);
 
-CREATE INDEX idx_repositorios_projeto_ged 
+CREATE INDEX idx_repositorios_projeto_ged
   ON repositorios(projeto, id_repositorio_ged);
 ```
 
@@ -335,14 +341,16 @@ CREATE INDEX idx_repositorios_projeto_ged
 ### Camadas de Segurança
 
 #### 1. Autenticação (JWT)
+
 ```typescript
 // Token com expiração
 const token = jwt.sign({ userId, perfil }, SECRET, {
-  expiresIn: '24h'
+  expiresIn: '24h',
 });
 ```
 
 #### 2. Autorização (RBAC)
+
 ```typescript
 // Middleware de autorização
 function authorize(...perfisPermitidos: Perfil[]) {
@@ -355,15 +363,17 @@ function authorize(...perfisPermitidos: Perfil[]) {
 ```
 
 #### 3. Validação de Dados (Zod)
+
 ```typescript
 // Schema de validação rigoroso
 const schema = z.object({
   repositorio: z.string().min(1).max(100),
-  quantidade: z.number().int().min(1)
+  quantidade: z.number().int().min(1),
 });
 ```
 
 #### 4. SQL Injection Protection
+
 ```typescript
 // SEMPRE usar prepared statements
 await database.query(
@@ -378,21 +388,23 @@ await database.query(
 ```
 
 #### 5. Proteção de Cabeçalhos (Helmet)
+
 ```typescript
 // Security headers automáticos
 app.register(helmet, {
   contentSecurityPolicy: true,
   xssFilter: true,
-  noSniff: true
+  noSniff: true,
 });
 ```
 
 #### 6. Rate Limiting
+
 ```typescript
 // Limitar requisições por IP
 app.register(rateLimit, {
   max: 100,
-  timeWindow: '1 minute'
+  timeWindow: '1 minute',
 });
 ```
 
@@ -413,11 +425,13 @@ CREATE TRIGGER audit_producao_repositorio
 ### Horizontal Scaling
 
 #### Backend
+
 - ✅ Stateless (JWT, sem sessões)
 - ✅ Pool de conexões PostgreSQL
 - ✅ Pronto para múltiplas instâncias
 
 #### Frontend
+
 - ✅ PWA (cache offline)
 - ✅ CDN-ready (assets estáticos)
 - ✅ Code splitting automático
@@ -425,6 +439,7 @@ CREATE TRIGGER audit_producao_repositorio
 ### Vertical Scaling
 
 #### Database
+
 - ✅ Índices otimizados
 - ✅ Queries preparadas
 - ✅ Connection pooling
@@ -436,8 +451,8 @@ CREATE TRIGGER audit_producao_repositorio
 queryClient.setDefaultOptions({
   queries: {
     staleTime: 5 * 60 * 1000, // 5 minutos
-    cacheTime: 10 * 60 * 1000 // 10 minutos
-  }
+    cacheTime: 10 * 60 * 1000, // 10 minutos
+  },
 });
 ```
 
@@ -448,34 +463,34 @@ queryClient.setDefaultOptions({
 ```
 1. Cliente (Browser)
    ↓ POST /api/producao/lancar-direto
-   
+
 2. Fastify Server
    ↓ Middleware: CORS, Helmet, Rate Limit
-   
+
 3. Auth Middleware
    ↓ Verifica JWT
    ↓ Extrai usuário
-   
+
 4. Authorization Middleware
    ↓ Verifica perfil permitido
-   
+
 5. Validation Middleware (Zod)
    ↓ Valida schema do body
-   
+
 6. Route Handler
    ↓ Lógica de negócio
    ↓ Validação de duplicatas
    ↓ Validação de sequência
-   
+
 7. Database (PostgreSQL)
    ↓ Prepared statements
    ↓ Transactions
    ↓ Triggers de auditoria
-   
+
 8. Response
    ↓ JSON padronizado
    ↓ Status HTTP apropriado
-   
+
 9. Cliente (Browser)
    ↓ React Query atualiza cache
    ↓ UI re-renderiza
@@ -486,18 +501,20 @@ queryClient.setDefaultOptions({
 ## 📊 Métricas e Monitoramento
 
 ### Logs Estruturados (Pino)
+
 ```typescript
 request.log.info({ userId, action: 'lancar-producao' });
 request.log.error({ error, context: 'database-query' });
 ```
 
 ### Health Checks
+
 ```typescript
 app.get('/health', async () => {
   return {
     status: 'ok',
     database: await checkDatabaseConnection(),
-    uptime: process.uptime()
+    uptime: process.uptime(),
   };
 });
 ```
@@ -507,11 +524,13 @@ app.get('/health', async () => {
 ## 🚀 Performance
 
 ### Backend
+
 - **Response time médio:** < 100ms
 - **Throughput:** 1000+ req/s (single instance)
 - **Database queries:** < 50ms (com índices)
 
 ### Frontend
+
 - **First Contentful Paint:** < 1.5s
 - **Time to Interactive:** < 3.5s
 - **Lighthouse Score:** 90+
@@ -528,7 +547,7 @@ app.get('/health', async () => {
 ---
 
 **Próximos Passos:**
+
 - Leia [Banco de Dados](DATABASE.md) para detalhes do schema
 - Veja [API Reference](API.md) para documentação de endpoints
 - Consulte [Segurança](../auditorias/seguranca/AUDITORIA_SEGURANCA_PRODUCAO.md) para auditoria completa
-

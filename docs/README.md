@@ -15,32 +15,32 @@ Organização atual:
 
 ## Índice Mestre
 
-| Documento | Finalidade | Status |
-|---|---|---|
-| `regras-de-negocio/NUMEROS_E_METRICAS.md` | Regra oficial dos números e métricas | Atual |
-| `regras-de-negocio/TIMEZONE.md` | Timezone oficial do sistema | Atual |
-| `regras-de-negocio/IMPORTACAO_LEGADO.md` | Regras da importação legada | Atual |
-| `regras-de-negocio/DOMINIO.md` | Conceitos centrais de domínio | Atual |
-| `padroes/PADRAO_NUMEROS_RECORDA.md` | Padrão obrigatório para evolução de números | Atual |
-| `arquitetura/VISAO_GERAL.md` | Arquitetura geral do sistema | Atual |
-| `arquitetura/API.md` | Referência técnica de rotas | Atual |
-| `arquitetura/DESIGN_SYSTEM.md` | Guia visual e padrões de interface | Atual |
-| `operacao/COMO_RODAR_LOCAL.md` | Setup e execução local | Atual |
-| `operacao/DEPLOY.md` | Deploy e publicação | Atual |
-| `operacao/TESTES.md` | Comandos e estratégia de testes | Atual |
-| `operacao/PRE_PRODUCAO.md` | Checklist pré-produção | Atual |
-| `operacao/LIMITACOES.md` | Limitações conhecidas | Atual |
-| `operacao/PERFIL_COLABORADOR.md` | Fluxo funcional do colaborador | Atual |
-| `auditorias/numeros/AUDITORIA_NUMEROS_RECORDA.md` | Auditoria original dos números | Histórico válido |
-| `auditorias/numeros/CORRECAO_NUMEROS_RECORDA.md` | Correção aplicada nos números | Histórico válido |
-| `auditorias/numeros/VALIDACAO_NUMEROS_RECORDA.md` | Validação pós-correção | Histórico válido |
-| `auditorias/numeros/FECHAMENTO_RESSALVAS_NUMEROS_RECORDA.md` | Fechamento final das ressalvas | Histórico válido |
-| `auditorias/seguranca/AUDITORIA_SEGURANCA_PRODUCAO.md` | Auditoria de segurança no fluxo de produção | Histórico válido |
-| `auditorias/seguranca/SECURITY_REVIEW.md` | Revisão de segurança complementar | Histórico válido |
-| `auditorias/organizacao/ORGANIZACAO_RAIZ_E_DOCS_RECORDA.md` | Relatório da reorganização da raiz e da documentação | Histórico válido |
-| `archive/antigos/*` | Documentos antigos de referência histórica | Arquivado |
-| `archive/diagnosticos-superados/*` | Auditorias e diagnósticos superados | Arquivado |
-| `archive/nao-utilizados/*` | Artefatos preservados por segurança, sem uso atual | Arquivado |
+| Documento                                                    | Finalidade                                           | Status           |
+| ------------------------------------------------------------ | ---------------------------------------------------- | ---------------- |
+| `regras-de-negocio/NUMEROS_E_METRICAS.md`                    | Regra oficial dos números e métricas                 | Atual            |
+| `regras-de-negocio/TIMEZONE.md`                              | Timezone oficial do sistema                          | Atual            |
+| `regras-de-negocio/IMPORTACAO_LEGADO.md`                     | Regras da importação legada                          | Atual            |
+| `regras-de-negocio/DOMINIO.md`                               | Conceitos centrais de domínio                        | Atual            |
+| `padroes/PADRAO_NUMEROS_RECORDA.md`                          | Padrão obrigatório para evolução de números          | Atual            |
+| `arquitetura/VISAO_GERAL.md`                                 | Arquitetura geral do sistema                         | Atual            |
+| `arquitetura/API.md`                                         | Referência técnica de rotas                          | Atual            |
+| `arquitetura/DESIGN_SYSTEM.md`                               | Guia visual e padrões de interface                   | Atual            |
+| `operacao/COMO_RODAR_LOCAL.md`                               | Setup e execução local                               | Atual            |
+| `operacao/DEPLOY.md`                                         | Deploy e publicação                                  | Atual            |
+| `operacao/TESTES.md`                                         | Comandos e estratégia de testes                      | Atual            |
+| `operacao/PRE_PRODUCAO.md`                                   | Checklist pré-produção                               | Atual            |
+| `operacao/LIMITACOES.md`                                     | Limitações conhecidas                                | Atual            |
+| `operacao/PERFIL_COLABORADOR.md`                             | Fluxo funcional do colaborador                       | Atual            |
+| `auditorias/numeros/AUDITORIA_NUMEROS_RECORDA.md`            | Auditoria original dos números                       | Histórico válido |
+| `auditorias/numeros/CORRECAO_NUMEROS_RECORDA.md`             | Correção aplicada nos números                        | Histórico válido |
+| `auditorias/numeros/VALIDACAO_NUMEROS_RECORDA.md`            | Validação pós-correção                               | Histórico válido |
+| `auditorias/numeros/FECHAMENTO_RESSALVAS_NUMEROS_RECORDA.md` | Fechamento final das ressalvas                       | Histórico válido |
+| `auditorias/seguranca/AUDITORIA_SEGURANCA_PRODUCAO.md`       | Auditoria de segurança no fluxo de produção          | Histórico válido |
+| `auditorias/seguranca/SECURITY_REVIEW.md`                    | Revisão de segurança complementar                    | Histórico válido |
+| `auditorias/organizacao/ORGANIZACAO_RAIZ_E_DOCS_RECORDA.md`  | Relatório da reorganização da raiz e da documentação | Histórico válido |
+| `archive/antigos/*`                                          | Documentos antigos de referência histórica           | Arquivado        |
+| `archive/diagnosticos-superados/*`                           | Auditorias e diagnósticos superados                  | Arquivado        |
+| `archive/nao-utilizados/*`                                   | Artefatos preservados por segurança, sem uso atual   | Arquivado        |
 
 ## Navegação Recomendada
 

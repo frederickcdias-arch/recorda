@@ -558,9 +558,7 @@ export function ImportarProducaoPage(): JSX.Element {
                         <p className="text-gray-600">
                           Planilha: <strong>{item.dataOriginal || '-'}</strong>
                         </p>
-                        <p
-                          className={item.status === 'valido' ? 'text-green-700' : 'text-red-700'}
-                        >
+                        <p className={item.status === 'valido' ? 'text-green-700' : 'text-red-700'}>
                           Sistema:{' '}
                           <strong>
                             {item.dataNormalizada ? formatDateBR(item.dataNormalizada) : '-'}

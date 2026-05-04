@@ -376,7 +376,9 @@ export const authRoutes = fp(async (server: FastifyInstance): Promise<void> => {
       }
 
       if (!['colaborador', 'operador', 'administrador'].includes(perfil)) {
-        return reply.status(400).send({ error: 'Perfil inválido. Use colaborador, operador ou administrador.' });
+        return reply
+          .status(400)
+          .send({ error: 'Perfil inválido. Use colaborador, operador ou administrador.' });
       }
 
       try {
@@ -468,7 +470,13 @@ export const authRoutes = fp(async (server: FastifyInstance): Promise<void> => {
   // PUT /auth/usuarios/:id - Editar usuário (apenas administrador)
   server.put<{
     Params: { id: string };
-    Body: { nome?: string; email?: string; perfil?: string; coordenadoriaId?: string; senha?: string };
+    Body: {
+      nome?: string;
+      email?: string;
+      perfil?: string;
+      coordenadoriaId?: string;
+      senha?: string;
+    };
   }>(
     '/auth/usuarios/:id',
     {

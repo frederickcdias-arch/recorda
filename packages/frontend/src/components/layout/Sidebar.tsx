@@ -275,12 +275,15 @@ export function Sidebar({ collapsed, onToggle, onMobileClose }: SidebarProps): J
                 .filter(Boolean)
                 .slice(0, 2)
                 .map((w: string) => w[0]?.toUpperCase() ?? '')
-                .join('')
-                || 'U'}
+                .join('') || 'U'}
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate leading-tight">{usuario.nome}</p>
-              <p className="text-xs text-gray-400 truncate leading-tight capitalize">{usuario.perfil}</p>
+              <p className="text-sm font-medium text-gray-900 truncate leading-tight">
+                {usuario.nome}
+              </p>
+              <p className="text-xs text-gray-400 truncate leading-tight capitalize">
+                {usuario.perfil}
+              </p>
             </div>
           </div>
         )}

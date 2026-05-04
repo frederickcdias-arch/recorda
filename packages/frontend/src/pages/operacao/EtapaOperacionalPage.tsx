@@ -960,8 +960,8 @@ export function EtapaOperacionalPage(): JSX.Element {
                         Etiquetas de localização
                       </h2>
                       <p className="mt-1 text-sm text-gray-600">
-                        Envie vários PDFs de etiquetas para o sistema agrupar 4 por folha, em
-                        layout vertical: 1, 2, 3 e 4 na primeira folha; 5, 6, 7 e 8 na segunda.
+                        Envie vários PDFs de etiquetas para o sistema agrupar 4 por folha, em layout
+                        vertical: 1, 2, 3 e 4 na primeira folha; 5, 6, 7 e 8 na segunda.
                       </p>
                     </div>
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
@@ -2469,7 +2469,9 @@ export function EtapaOperacionalPage(): JSX.Element {
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in">
             <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl h-[85vh] flex flex-col overflow-hidden animate-scale-in">
               <div className="px-6 py-4 border-b flex items-center justify-between shrink-0">
-                <h3 className="text-lg font-semibold text-gray-900">Pré-visualização das Etiquetas</h3>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Pré-visualização das Etiquetas
+                </h3>
                 <div className="flex gap-2">
                   <Button
                     size="sm"

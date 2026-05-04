@@ -314,8 +314,13 @@ export function useRegisterUsuario() {
 export function useUpdateUsuario() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data: { id: string; nome?: string; email?: string; perfil?: string; senha?: string }) =>
-      api.put(`/auth/usuarios/${data.id}`, data),
+    mutationFn: (data: {
+      id: string;
+      nome?: string;
+      email?: string;
+      perfil?: string;
+      senha?: string;
+    }) => api.put(`/auth/usuarios/${data.id}`, data),
     onSuccess: () => void qc.invalidateQueries({ queryKey: queryKeys.usuarios }),
   });
 }

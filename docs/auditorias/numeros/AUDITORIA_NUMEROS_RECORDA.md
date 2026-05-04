@@ -47,62 +47,63 @@ Limitações objetivas desta auditoria:
 
 ## 3. Mapa geral de telas auditadas
 
-| Tela | Rota | Principais números visíveis | Fonte principal |
-|---|---|---|---|
-| Dashboard Admin | `/dashboard` | produção do mês, repositórios ativos, usuários ativos, produção por etapa, status, retrabalho CQ | `/dashboard` |
-| Dashboard Colaborador | `/dashboard` | total de registros, quantidade total, últimos 7 dias, produção por etapa/tipo | `/producao/meu-historico` |
-| Meu Histórico | `/minha-producao/historico` | totais, último registro, produção por etapa, paginação, quantidades por linha | `/producao/meu-historico` |
-| Lançar Produção | `/minha-producao/lancar` | quantidade informada no lançamento | `/producao/lancar-direto` |
-| Produção Operacional | `/producao` | total de registros, quantidades por linha, paginação, filtros por data | `/operacional/producao` |
-| Fila Operacional | `/operacao/:etapa` | contadores por status, total geral, total de processos, checklist preenchido, aging em segundos/dias | `/operacional/repositorios` e rotas auxiliares |
-| Recebimento Avulsos | painel | paginação, volume atual/total, quantidade de processos/apensos | `/operacional/recebimento-avulsos` |
-| Controle de Qualidade | painel | total, aprovados, reprovados, pendentes, total de repositórios em CQ | rotas CQ |
-| Relatórios Gerenciais | `/relatorios/gerenciais` | totais por etapa, total caixas, total imagens, total por coordenadoria/colaborador | `/relatorios` |
-| Exportações | `/relatorios/exportacoes` | preview de totais, quantidades operacionais, contagem de registros | `/relatorios`, `/relatorios/operacional` |
-| Importar Produção | `/producao/importar` | total de registros, válidos, duplicados, inseridos, atualizados, ignorados, erros | rotas de importação legado |
-| Auditoria | `/auditoria/*` | paginação, totais por tabela/operação/data | `/auditoria` |
-| Administração | `/configuracoes/admin` | total processado em recontagem, data/hora atual | rotas admin |
-| Vincular Produções | `/configuracoes/vincular-producoes` | total produções, repositórios, preview, total registros, quantidade total | rotas admin |
-| Conhecimento Operacional | `/operacao/conhecimento` | contadores por aba, ordem/versão | rotas conhecimento |
+| Tela                     | Rota                                | Principais números visíveis                                                                          | Fonte principal                                |
+| ------------------------ | ----------------------------------- | ---------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| Dashboard Admin          | `/dashboard`                        | produção do mês, repositórios ativos, usuários ativos, produção por etapa, status, retrabalho CQ     | `/dashboard`                                   |
+| Dashboard Colaborador    | `/dashboard`                        | total de registros, quantidade total, últimos 7 dias, produção por etapa/tipo                        | `/producao/meu-historico`                      |
+| Meu Histórico            | `/minha-producao/historico`         | totais, último registro, produção por etapa, paginação, quantidades por linha                        | `/producao/meu-historico`                      |
+| Lançar Produção          | `/minha-producao/lancar`            | quantidade informada no lançamento                                                                   | `/producao/lancar-direto`                      |
+| Produção Operacional     | `/producao`                         | total de registros, quantidades por linha, paginação, filtros por data                               | `/operacional/producao`                        |
+| Fila Operacional         | `/operacao/:etapa`                  | contadores por status, total geral, total de processos, checklist preenchido, aging em segundos/dias | `/operacional/repositorios` e rotas auxiliares |
+| Recebimento Avulsos      | painel                              | paginação, volume atual/total, quantidade de processos/apensos                                       | `/operacional/recebimento-avulsos`             |
+| Controle de Qualidade    | painel                              | total, aprovados, reprovados, pendentes, total de repositórios em CQ                                 | rotas CQ                                       |
+| Relatórios Gerenciais    | `/relatorios/gerenciais`            | totais por etapa, total caixas, total imagens, total por coordenadoria/colaborador                   | `/relatorios`                                  |
+| Exportações              | `/relatorios/exportacoes`           | preview de totais, quantidades operacionais, contagem de registros                                   | `/relatorios`, `/relatorios/operacional`       |
+| Importar Produção        | `/producao/importar`                | total de registros, válidos, duplicados, inseridos, atualizados, ignorados, erros                    | rotas de importação legado                     |
+| Auditoria                | `/auditoria/*`                      | paginação, totais por tabela/operação/data                                                           | `/auditoria`                                   |
+| Administração            | `/configuracoes/admin`              | total processado em recontagem, data/hora atual                                                      | rotas admin                                    |
+| Vincular Produções       | `/configuracoes/vincular-producoes` | total produções, repositórios, preview, total registros, quantidade total                            | rotas admin                                    |
+| Conhecimento Operacional | `/operacao/conhecimento`            | contadores por aba, ordem/versão                                                                     | rotas conhecimento                             |
 
 ## 4. Inventário completo de números encontrados
 
-| ID | Tela | Rota | Componente | Número exibido | Significado | Origem | Status | Risco |
-|---|---|---|---|---|---|---|---|---|
-| N001 | Dashboard Admin | `/dashboard` | cards principais | `producaoTotal` | produção do mês | `SUM(producao_repositorio.quantidade)` | Parcialmente correto | Alto |
-| N002 | Dashboard Admin | `/dashboard` | card | `processosAtivos` | repositórios com produção | `COUNT(DISTINCT repositorio_id)` | Parcialmente correto | Alto |
-| N003 | Dashboard Admin | `/dashboard` | card | `processosNovosHoje` | repositórios com produção hoje | `COUNT(DISTINCT repositorio_id)` com data | Suspeito | Alto |
-| N004 | Dashboard Admin | `/dashboard` | card | `colaboradoresAtivos` | usuários ativos | `COUNT(*) FROM usuarios WHERE ativo` | Correto | Médio |
-| N005 | Dashboard Admin | `/dashboard` | gráfico/lista | `producaoPorEtapa.valor` | soma por etapa/função | agregação backend | Parcialmente correto | Alto |
-| N006 | Dashboard Admin | `/dashboard` | lista | `statusRecebimento.valor` | importados hoje, registros no mês, importações com erro | agregações distintas | Parcialmente correto | Alto |
-| N007 | Dashboard Admin | `/dashboard` | lista | `retrabalhoCQ.total` | reprovações por motivo | `COUNT(*) lotes_controle_qualidade_itens` | Correto | Médio |
-| N008 | Dashboard Colaborador | `/dashboard` | cards | `total` | total de registros do usuário | `/producao/meu-historico` | Correto | Médio |
-| N009 | Dashboard Colaborador | `/dashboard` | cards | `totalQuantidade` | soma das quantidades do usuário | `/producao/meu-historico` | Correto | Médio |
-| N010 | Dashboard Colaborador | `/dashboard` | cards | `registrosUltimos7Dias`, `quantidadeUltimos7Dias` | atividade recente | `/producao/meu-historico` | Suspeito | Alto |
-| N011 | Meu Histórico | `/minha-producao/historico` | cards/tabela | total, totalQuantidade, paginação | histórico filtrado do usuário | `/producao/meu-historico` | Correto | Médio |
-| N012 | Meu Histórico | `/minha-producao/historico` | card | último registro | data do primeiro item retornado | frontend sobre lista ordenada | Parcialmente correto | Médio |
-| N013 | Produção Operacional | `/producao` | header/tabela/paginação | total e quantidades | registros operacionais filtrados | `/operacional/producao` | Parcialmente correto | Alto |
-| N014 | Fila Operacional | `/operacao/:etapa` | summary cards/badges | `contadores`, `totalGeral` | fila por status/etapa | `/operacional/repositorios` | Parcialmente correto | Alto |
-| N015 | Fila Operacional | `/operacao/:etapa` | badges | `total_processos`, `total_relatorios` | documentação/relatórios por repositório | CTEs backend | Correto | Médio |
-| N016 | Fila Operacional | `/operacao/:etapa` | checklist progress | `preenchidos/totalItens` | progresso do checklist | frontend sobre itens carregados | Correto | Baixo |
-| N017 | Recebimento | `/operacao/recebimento` | processos/apensos | `volume_atual/volume_total` | controle documental | recebimento processual | Parcialmente correto | Médio |
-| N018 | CQ | `/operacao/controle-qualidade` | resumo | total, aprovados, reprovados, pendentes | situação do CQ | rotas CQ | Parcialmente correto | Médio |
-| N019 | Relatórios Gerenciais | `/relatorios/gerenciais` | tabelas e cards | total por etapa, caixas, imagens, colaboradores, coordenadorias | agregação consolidada | `/relatorios` | Parcialmente correto | Crítico |
-| N020 | Exportações | `/relatorios/exportacoes` | preview gerencial | totais do relatório | `/relatorios` | Parcialmente correto | Crítico |
-| N021 | Exportações | `/relatorios/exportacoes` | preview operacional | quantidade por linha e contagem de registros | `/relatorios/operacional` | Parcialmente correto | Alto |
-| N022 | Importar Produção | `/producao/importar` | preview importação | total, válidos, duplicados, inseridos, atualizados, ignorados, erros | validação/importação legado | rotas importação | Suspeito | Crítico |
-| N023 | Importar Produção | `/producao/importar` | histórico | total_registros, sucesso, erro | `importacoes_legado_operacional` | Correto | Médio |
-| N024 | Auditoria | `/auditoria/*` | paginação/estatísticas | total, totalPaginas, totais por operação/tabela/data | tabela `auditoria` | Correto | Médio |
-| N025 | Admin | `/configuracoes/admin` | feedback | total processado na recontagem | consulta admin | Suspeito | Médio |
-| N026 | Vincular Produções | `/configuracoes/vincular-producoes` | cards/tabelas | total produções, total repositórios, quantidade_total | rotas admin | Parcialmente correto | Médio |
-| N027 | Conhecimento Operacional | `/operacao/conhecimento` | tabs | contagem por aba | frontend sobre arrays carregados | Correto | Baixo |
-| N028 | Diversas telas | várias | datas/horas | datas em pt-BR | backend + frontend | Parcialmente correto | Alto |
+| ID   | Tela                     | Rota                                | Componente              | Número exibido                                                       | Significado                                             | Origem                                    | Status               | Risco   |
+| ---- | ------------------------ | ----------------------------------- | ----------------------- | -------------------------------------------------------------------- | ------------------------------------------------------- | ----------------------------------------- | -------------------- | ------- |
+| N001 | Dashboard Admin          | `/dashboard`                        | cards principais        | `producaoTotal`                                                      | produção do mês                                         | `SUM(producao_repositorio.quantidade)`    | Parcialmente correto | Alto    |
+| N002 | Dashboard Admin          | `/dashboard`                        | card                    | `processosAtivos`                                                    | repositórios com produção                               | `COUNT(DISTINCT repositorio_id)`          | Parcialmente correto | Alto    |
+| N003 | Dashboard Admin          | `/dashboard`                        | card                    | `processosNovosHoje`                                                 | repositórios com produção hoje                          | `COUNT(DISTINCT repositorio_id)` com data | Suspeito             | Alto    |
+| N004 | Dashboard Admin          | `/dashboard`                        | card                    | `colaboradoresAtivos`                                                | usuários ativos                                         | `COUNT(*) FROM usuarios WHERE ativo`      | Correto              | Médio   |
+| N005 | Dashboard Admin          | `/dashboard`                        | gráfico/lista           | `producaoPorEtapa.valor`                                             | soma por etapa/função                                   | agregação backend                         | Parcialmente correto | Alto    |
+| N006 | Dashboard Admin          | `/dashboard`                        | lista                   | `statusRecebimento.valor`                                            | importados hoje, registros no mês, importações com erro | agregações distintas                      | Parcialmente correto | Alto    |
+| N007 | Dashboard Admin          | `/dashboard`                        | lista                   | `retrabalhoCQ.total`                                                 | reprovações por motivo                                  | `COUNT(*) lotes_controle_qualidade_itens` | Correto              | Médio   |
+| N008 | Dashboard Colaborador    | `/dashboard`                        | cards                   | `total`                                                              | total de registros do usuário                           | `/producao/meu-historico`                 | Correto              | Médio   |
+| N009 | Dashboard Colaborador    | `/dashboard`                        | cards                   | `totalQuantidade`                                                    | soma das quantidades do usuário                         | `/producao/meu-historico`                 | Correto              | Médio   |
+| N010 | Dashboard Colaborador    | `/dashboard`                        | cards                   | `registrosUltimos7Dias`, `quantidadeUltimos7Dias`                    | atividade recente                                       | `/producao/meu-historico`                 | Suspeito             | Alto    |
+| N011 | Meu Histórico            | `/minha-producao/historico`         | cards/tabela            | total, totalQuantidade, paginação                                    | histórico filtrado do usuário                           | `/producao/meu-historico`                 | Correto              | Médio   |
+| N012 | Meu Histórico            | `/minha-producao/historico`         | card                    | último registro                                                      | data do primeiro item retornado                         | frontend sobre lista ordenada             | Parcialmente correto | Médio   |
+| N013 | Produção Operacional     | `/producao`                         | header/tabela/paginação | total e quantidades                                                  | registros operacionais filtrados                        | `/operacional/producao`                   | Parcialmente correto | Alto    |
+| N014 | Fila Operacional         | `/operacao/:etapa`                  | summary cards/badges    | `contadores`, `totalGeral`                                           | fila por status/etapa                                   | `/operacional/repositorios`               | Parcialmente correto | Alto    |
+| N015 | Fila Operacional         | `/operacao/:etapa`                  | badges                  | `total_processos`, `total_relatorios`                                | documentação/relatórios por repositório                 | CTEs backend                              | Correto              | Médio   |
+| N016 | Fila Operacional         | `/operacao/:etapa`                  | checklist progress      | `preenchidos/totalItens`                                             | progresso do checklist                                  | frontend sobre itens carregados           | Correto              | Baixo   |
+| N017 | Recebimento              | `/operacao/recebimento`             | processos/apensos       | `volume_atual/volume_total`                                          | controle documental                                     | recebimento processual                    | Parcialmente correto | Médio   |
+| N018 | CQ                       | `/operacao/controle-qualidade`      | resumo                  | total, aprovados, reprovados, pendentes                              | situação do CQ                                          | rotas CQ                                  | Parcialmente correto | Médio   |
+| N019 | Relatórios Gerenciais    | `/relatorios/gerenciais`            | tabelas e cards         | total por etapa, caixas, imagens, colaboradores, coordenadorias      | agregação consolidada                                   | `/relatorios`                             | Parcialmente correto | Crítico |
+| N020 | Exportações              | `/relatorios/exportacoes`           | preview gerencial       | totais do relatório                                                  | `/relatorios`                                           | Parcialmente correto                      | Crítico              |
+| N021 | Exportações              | `/relatorios/exportacoes`           | preview operacional     | quantidade por linha e contagem de registros                         | `/relatorios/operacional`                               | Parcialmente correto                      | Alto                 |
+| N022 | Importar Produção        | `/producao/importar`                | preview importação      | total, válidos, duplicados, inseridos, atualizados, ignorados, erros | validação/importação legado                             | rotas importação                          | Suspeito             | Crítico |
+| N023 | Importar Produção        | `/producao/importar`                | histórico               | total_registros, sucesso, erro                                       | `importacoes_legado_operacional`                        | Correto                                   | Médio                |
+| N024 | Auditoria                | `/auditoria/*`                      | paginação/estatísticas  | total, totalPaginas, totais por operação/tabela/data                 | tabela `auditoria`                                      | Correto                                   | Médio                |
+| N025 | Admin                    | `/configuracoes/admin`              | feedback                | total processado na recontagem                                       | consulta admin                                          | Suspeito                                  | Médio                |
+| N026 | Vincular Produções       | `/configuracoes/vincular-producoes` | cards/tabelas           | total produções, total repositórios, quantidade_total                | rotas admin                                             | Parcialmente correto                      | Médio                |
+| N027 | Conhecimento Operacional | `/operacao/conhecimento`            | tabs                    | contagem por aba                                                     | frontend sobre arrays carregados                        | Correto                                   | Baixo                |
+| N028 | Diversas telas           | várias                              | datas/horas             | datas em pt-BR                                                       | backend + frontend                                      | Parcialmente correto                      | Alto                 |
 
 ## 5. Análise detalhada por tela
 
 ### 5.1 Tela: Dashboard Admin
 
 #### Número: Produção do Mês
+
 - Local: card "Produção do Mês".
 - Arquivo: `packages/frontend/src/pages/Dashboard.tsx`.
 - Componente: `DashboardContent`.
@@ -118,6 +119,7 @@ Limitações objetivas desta auditoria:
 - Recomendação: unificar definição de produção entre dashboard, relatórios e histórico.
 
 #### Número: Repositórios Ativos / Importados Hoje
+
 - Local: cards e status.
 - Arquivo: `packages/frontend/src/pages/Dashboard.tsx`.
 - Origem: `/dashboard`.
@@ -131,6 +133,7 @@ Limitações objetivas desta auditoria:
 ### 5.2 Tela: Dashboard Colaborador
 
 #### Número: Total de Registros / Quantidade Total
+
 - Local: cards "Minhas Estatísticas".
 - Arquivo: `packages/frontend/src/pages/Dashboard.tsx`.
 - Componente: `DashboardColaborador`.
@@ -143,6 +146,7 @@ Limitações objetivas desta auditoria:
 - Recomendação: falhar explicitamente quando payload vier incompleto.
 
 #### Número: Últimos 7 dias
+
 - Local: cards de atividade recente.
 - Origem: backend.
 - Regra de cálculo: usa `CURRENT_DATE - INTERVAL '7 days'` sem `AT TIME ZONE 'America/Cuiaba'`.
@@ -154,6 +158,7 @@ Limitações objetivas desta auditoria:
 ### 5.3 Tela: Meu Histórico
 
 #### Número: Último Registro
+
 - Local: card "Último Registro".
 - Arquivo: `packages/frontend/src/pages/colaborador/MeuHistoricoPage.tsx`.
 - Origem: primeiro item da lista paginada.
@@ -164,6 +169,7 @@ Limitações objetivas desta auditoria:
 - Recomendação: backend deveria devolver `ultimoRegistro` global.
 
 #### Número: Paginação e totais
+
 - Origem: `/producao/meu-historico`.
 - Regra de cálculo: `COUNT(*)` + `Math.ceil(total / limite)`.
 - Validação: correta.
@@ -173,6 +179,7 @@ Limitações objetivas desta auditoria:
 ### 5.4 Tela: Produção Operacional
 
 #### Número: Total de registros de produção
+
 - Local: header e paginação.
 - Arquivo: `packages/frontend/src/pages/operacao/ProducaoPage.tsx`.
 - Origem: `/operacional/producao`.
@@ -186,6 +193,7 @@ Limitações objetivas desta auditoria:
 ### 5.5 Tela: Fila Operacional
 
 #### Número: Contadores por status e total geral
+
 - Local: summary cards e filtros.
 - Arquivo: `packages/frontend/src/pages/operacao/EtapaOperacionalPage.tsx`.
 - Origem: `/operacional/repositorios`.
@@ -197,6 +205,7 @@ Limitações objetivas desta auditoria:
 - Recomendação: explicitar visualmente que a fila operacional exclui legados/importações.
 
 #### Número: Total de processos / relatórios por repositório
+
 - Local: badges nos cards.
 - Origem: CTEs `proc_count` e `rel_count`.
 - Validação: coerente com o local da tela.
@@ -206,6 +215,7 @@ Limitações objetivas desta auditoria:
 ### 5.6 Tela: Recebimento / Avulsos
 
 #### Número: Volume atual / volume total
+
 - Local: processos e apensos.
 - Origem: `recebimento_processos` e `recebimento_apensos`.
 - Regra de cálculo: valores persistidos, exibidos como fração.
@@ -216,6 +226,7 @@ Limitações objetivas desta auditoria:
 ### 5.7 Tela: Controle de Qualidade
 
 #### Número: Total / aprovados / reprovados / pendentes
+
 - Local: resumo do painel CQ.
 - Arquivo: `packages/frontend/src/pages/operacao/ControleQualidadePanel.tsx`.
 - Origem: rotas CQ.
@@ -227,6 +238,7 @@ Limitações objetivas desta auditoria:
 ### 5.8 Tela: Relatórios Gerenciais
 
 #### Número: Resumo por etapa / total caixas / total imagens
+
 - Local: tabela principal.
 - Arquivo: `packages/frontend/src/pages/relatorios/RelatoriosGerenciaisPage.tsx`.
 - Origem: `GET /relatorios`.
@@ -242,6 +254,7 @@ Limitações objetivas desta auditoria:
 - Recomendação: consolidar por identificadores estáveis (`usuario_id`, `coordenadoria_id`) e documentar exclusões.
 
 #### Número: Produção por colaborador
+
 - Regra de cálculo: frontend volta a agregar linhas do relatório por `nome + etapa`.
 - Problemas encontrados: dupla agregação backend + frontend aumenta risco de divergência e colisão homônima.
 - Risco: Alto.
@@ -249,6 +262,7 @@ Limitações objetivas desta auditoria:
 ### 5.9 Tela: Exportações
 
 #### Número: Preview operacional
+
 - Local: modal de preview.
 - Arquivo: `packages/frontend/src/pages/relatorios/ExportacoesPage.tsx`.
 - Origem: `/relatorios/operacional`.
@@ -258,6 +272,7 @@ Limitações objetivas desta auditoria:
 - Risco: Médio.
 
 #### Número: Totais do preview gerencial
+
 - Origem: `/relatorios`.
 - Problemas encontrados: frontend usa `toSafeNumber`, mascarando `null`, `undefined` e erro de contrato como `0`.
 - Risco: Alto.
@@ -265,6 +280,7 @@ Limitações objetivas desta auditoria:
 ### 5.10 Tela: Importar Produção
 
 #### Número: Total, válidos, duplicados, inseridos, atualizados, ignorados, erros
+
 - Local: preview, resumo por fonte e histórico.
 - Arquivo: `packages/frontend/src/pages/producao/ImportarProducaoPage.tsx`.
 - Origem: rotas de importação legado.
@@ -285,6 +301,7 @@ Limitações objetivas desta auditoria:
 ### 5.11 Tela: Auditoria
 
 #### Número: Totais por operação, tabela e data
+
 - Local: estatísticas e paginação.
 - Origem: tabela `auditoria`.
 - Validação: coerente.
@@ -432,18 +449,18 @@ Status: Suspeito.
 
 ## 13. Divergências encontradas
 
-| ID | Local | Esperado | Encontrado | Causa provável | Risco | Prioridade |
-|---|---|---|---|---|---|---|
-| D001 | Dashboard vs Histórico do colaborador | mesma definição de produção | dashboard exclui legados de `RECEBIMENTO`/`CQ`; histórico não exclui | regras SQL diferentes | Crítico | P0 |
-| D002 | Relatórios gerenciais vs histórico | mesma produção consolidada por período | relatórios excluem `RECEBIMENTO` e `CONTROLE_QUALIDADE` | regra de negócio implícita não documentada | Crítico | P0 |
-| D003 | Importação vs histórico/relatórios | mesma data de produção | importação compara com `America/Sao_Paulo`; telas filtram com `America/Cuiaba` | timezone inconsistente | Crítico | P0 |
-| D004 | Dashboard "Repositórios Ativos" | contar repositórios ativos do fluxo | conta repositórios com produção | label visual divergente do SQL | Alto | P1 |
-| D005 | Último registro em Meu Histórico | último registro global do usuário | primeiro item da página atual | cálculo frontend sobre lista paginada | Médio | P2 |
-| D006 | Falha de payload numérico | erro explícito | fallback para `0` em várias telas | `toSafeNumber` / `?? 0` | Alto | P1 |
-| D007 | Quantidade inválida em importação | rejeição | normalização automática para `1` | parser permissivo | Crítico | P0 |
-| D008 | Data inválida em importação | rejeição | fallback para data atual | parser permissivo | Crítico | P0 |
-| D009 | Histórico de erros de importação | evidência completa | respostas truncadas (`slice(0,20/50)`) | simplificação de payload | Médio | P2 |
-| D010 | Auditoria de importação | triggers/retention normais | importação usa `session_replication_role='replica'` | tentativa de contornar triggers | Crítico | P0 |
+| ID   | Local                                 | Esperado                               | Encontrado                                                                     | Causa provável                             | Risco   | Prioridade |
+| ---- | ------------------------------------- | -------------------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------ | ------- | ---------- |
+| D001 | Dashboard vs Histórico do colaborador | mesma definição de produção            | dashboard exclui legados de `RECEBIMENTO`/`CQ`; histórico não exclui           | regras SQL diferentes                      | Crítico | P0         |
+| D002 | Relatórios gerenciais vs histórico    | mesma produção consolidada por período | relatórios excluem `RECEBIMENTO` e `CONTROLE_QUALIDADE`                        | regra de negócio implícita não documentada | Crítico | P0         |
+| D003 | Importação vs histórico/relatórios    | mesma data de produção                 | importação compara com `America/Sao_Paulo`; telas filtram com `America/Cuiaba` | timezone inconsistente                     | Crítico | P0         |
+| D004 | Dashboard "Repositórios Ativos"       | contar repositórios ativos do fluxo    | conta repositórios com produção                                                | label visual divergente do SQL             | Alto    | P1         |
+| D005 | Último registro em Meu Histórico      | último registro global do usuário      | primeiro item da página atual                                                  | cálculo frontend sobre lista paginada      | Médio   | P2         |
+| D006 | Falha de payload numérico             | erro explícito                         | fallback para `0` em várias telas                                              | `toSafeNumber` / `?? 0`                    | Alto    | P1         |
+| D007 | Quantidade inválida em importação     | rejeição                               | normalização automática para `1`                                               | parser permissivo                          | Crítico | P0         |
+| D008 | Data inválida em importação           | rejeição                               | fallback para data atual                                                       | parser permissivo                          | Crítico | P0         |
+| D009 | Histórico de erros de importação      | evidência completa                     | respostas truncadas (`slice(0,20/50)`)                                         | simplificação de payload                   | Médio   | P2         |
+| D010 | Auditoria de importação               | triggers/retention normais             | importação usa `session_replication_role='replica'`                            | tentativa de contornar triggers            | Crítico | P0         |
 
 ## 14. Riscos críticos
 

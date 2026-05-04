@@ -42,23 +42,21 @@ interface MeuHistoricoResponse {
 }
 
 const etapaCores: Record<string, { bg: string; text: string }> = {
-  'Recebimento': { bg: 'bg-purple-50', text: 'text-purple-700' },
-  'Preparação': { bg: 'bg-amber-50', text: 'text-amber-700' },
-  'Preparacao': { bg: 'bg-amber-50', text: 'text-amber-700' },
-  'Digitalização': { bg: 'bg-cyan-50', text: 'text-cyan-700' },
-  'Digitalizacao': { bg: 'bg-cyan-50', text: 'text-cyan-700' },
-  'Conferência': { bg: 'bg-green-50', text: 'text-green-700' },
-  'Conferencia': { bg: 'bg-green-50', text: 'text-green-700' },
-  'Montagem': { bg: 'bg-orange-50', text: 'text-orange-700' },
-  'Reconferência': { bg: 'bg-rose-50', text: 'text-rose-700' },
-  'Reconferencia': { bg: 'bg-rose-50', text: 'text-rose-700' },
-  'Entrega': { bg: 'bg-emerald-50', text: 'text-emerald-700' },
+  Recebimento: { bg: 'bg-purple-50', text: 'text-purple-700' },
+  Preparação: { bg: 'bg-amber-50', text: 'text-amber-700' },
+  Preparacao: { bg: 'bg-amber-50', text: 'text-amber-700' },
+  Digitalização: { bg: 'bg-cyan-50', text: 'text-cyan-700' },
+  Digitalizacao: { bg: 'bg-cyan-50', text: 'text-cyan-700' },
+  Conferência: { bg: 'bg-green-50', text: 'text-green-700' },
+  Conferencia: { bg: 'bg-green-50', text: 'text-green-700' },
+  Montagem: { bg: 'bg-orange-50', text: 'text-orange-700' },
+  Reconferência: { bg: 'bg-rose-50', text: 'text-rose-700' },
+  Reconferencia: { bg: 'bg-rose-50', text: 'text-rose-700' },
+  Entrega: { bg: 'bg-emerald-50', text: 'text-emerald-700' },
 };
 
 function getEtapaCor(etapa: string): { bg: string; text: string } {
-  const found = Object.keys(etapaCores).find((k) =>
-    etapa.toLowerCase().includes(k.toLowerCase())
-  );
+  const found = Object.keys(etapaCores).find((k) => etapa.toLowerCase().includes(k.toLowerCase()));
   return etapaCores[found ?? ''] ?? { bg: 'bg-blue-50', text: 'text-blue-700' };
 }
 
@@ -121,7 +119,8 @@ export function MeuHistoricoPage(): JSX.Element {
 
   const { data, error, isError, isLoading, refetch } = useQuery({
     queryKey: ['meu-historico', pagina, etapaFiltro, dataInicio, dataFim],
-    queryFn: () => api.get<MeuHistoricoResponse>(`/producao/meu-historico?${queryParams.toString()}`),
+    queryFn: () =>
+      api.get<MeuHistoricoResponse>(`/producao/meu-historico?${queryParams.toString()}`),
   });
 
   const producoes = data?.producoes ?? [];
@@ -143,7 +142,8 @@ export function MeuHistoricoPage(): JSX.Element {
   const errorInfo = isError
     ? {
         message: 'Não foi possível carregar os números agora. Tente novamente em instantes.',
-        details: error instanceof Error ? error.message : 'Falha ao carregar o histórico do colaborador.',
+        details:
+          error instanceof Error ? error.message : 'Falha ao carregar o histórico do colaborador.',
         action: {
           label: 'Tentar novamente',
           onClick: () => {
@@ -166,9 +166,7 @@ export function MeuHistoricoPage(): JSX.Element {
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Meu Histórico</h1>
-          <p className="text-gray-500 mt-1">
-            Acompanhe sua produção - {usuario?.nome}
-          </p>
+          <p className="text-gray-500 mt-1">Acompanhe sua produção - {usuario?.nome}</p>
         </div>
 
         {/* Stats */}
@@ -190,7 +188,9 @@ export function MeuHistoricoPage(): JSX.Element {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-500">Quantidade Total</p>
-                  <p className="text-2xl font-bold text-gray-900">{formatCriticalNumber(totalQuantidade)}</p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {formatCriticalNumber(totalQuantidade)}
+                  </p>
                 </div>
                 <Icon name="bar-chart" className="w-8 h-8 text-green-600" />
               </div>
@@ -203,9 +203,7 @@ export function MeuHistoricoPage(): JSX.Element {
                 <div>
                   <p className="text-sm text-gray-500">Último Registro</p>
                   <p className="text-lg font-bold text-gray-900">
-                    {producoes[0]?.data_producao
-                      ? formatDateBR(producoes[0].data_producao)
-                      : '-'}
+                    {producoes[0]?.data_producao ? formatDateBR(producoes[0].data_producao) : '-'}
                   </p>
                 </div>
                 <Icon name="calendar" className="w-8 h-8 text-purple-600" />
@@ -219,9 +217,7 @@ export function MeuHistoricoPage(): JSX.Element {
           <div className="p-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-4">
               <h2 className="text-lg font-semibold text-gray-900">Produção por Etapa</h2>
-              <p className="text-xs text-gray-500">
-                Mesmos filtros aplicados à tabela abaixo
-              </p>
+              <p className="text-xs text-gray-500">Mesmos filtros aplicados à tabela abaixo</p>
             </div>
 
             {producaoPorEtapa.length === 0 ? (
@@ -273,7 +269,10 @@ export function MeuHistoricoPage(): JSX.Element {
                 <input
                   type="date"
                   value={dataInicio}
-                  onChange={(e) => { setDataInicio(e.target.value); setPagina(1); }}
+                  onChange={(e) => {
+                    setDataInicio(e.target.value);
+                    setPagina(1);
+                  }}
                   className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                 />
               </div>
@@ -282,7 +281,10 @@ export function MeuHistoricoPage(): JSX.Element {
                 <input
                   type="date"
                   value={dataFim}
-                  onChange={(e) => { setDataFim(e.target.value); setPagina(1); }}
+                  onChange={(e) => {
+                    setDataFim(e.target.value);
+                    setPagina(1);
+                  }}
                   className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                 />
               </div>
@@ -290,12 +292,17 @@ export function MeuHistoricoPage(): JSX.Element {
                 <label className="block text-xs font-medium text-gray-500 mb-1">Etapa</label>
                 <select
                   value={etapaFiltro}
-                  onChange={(e) => { setEtapaFiltro(e.target.value); setPagina(1); }}
+                  onChange={(e) => {
+                    setEtapaFiltro(e.target.value);
+                    setPagina(1);
+                  }}
                   className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                 >
                   <option value="">Todas</option>
                   {etapasDisponiveis.map((e) => (
-                    <option key={e} value={e}>{e}</option>
+                    <option key={e} value={e}>
+                      {e}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -355,10 +362,10 @@ export function MeuHistoricoPage(): JSX.Element {
                     const cor = getEtapaCor(label);
                     return (
                       <tr key={p.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 text-gray-900">
-                          {formatDateBR(p.data_producao)}
+                        <td className="px-6 py-4 text-gray-900">{formatDateBR(p.data_producao)}</td>
+                        <td className="px-6 py-4 font-medium text-gray-900">
+                          {p.id_repositorio_ged}
                         </td>
-                        <td className="px-6 py-4 font-medium text-gray-900">{p.id_repositorio_ged}</td>
                         <td className="px-6 py-4 text-sm font-medium text-gray-700">
                           {coordenadoria.trim().toUpperCase()}
                         </td>
@@ -382,7 +389,7 @@ export function MeuHistoricoPage(): JSX.Element {
           {totalPaginas > 1 ? (
             <div className="flex items-center justify-between border-t border-gray-200 px-6 py-3">
               <p className="text-sm text-gray-500">
-                Mostrando {((pagina - 1) * limite) + 1}-{Math.min(pagina * limite, total ?? 0)} de{' '}
+                Mostrando {(pagina - 1) * limite + 1}-{Math.min(pagina * limite, total ?? 0)} de{' '}
                 <span className="font-medium">{formatCriticalNumber(total)}</span> registros
               </p>
               <div className="flex gap-2">

@@ -24,6 +24,7 @@
 ### Objetivo
 
 Permitir que **colaboradores** lancem sua produção diária diretamente no sistema, com:
+
 - ✅ Interface simplificada
 - ✅ Validação rigorosa de dados
 - ✅ Prevenção de duplicatas
@@ -33,11 +34,11 @@ Permitir que **colaboradores** lancem sua produção diária diretamente no sist
 
 ### Usuários do Sistema
 
-| Perfil | Acesso | Funcionalidades |
-|--------|--------|-----------------|
-| **Colaborador** | Limitado | Lançar produção, ver histórico próprio |
-| **Operador** | Médio | Fluxo operacional + importação |
-| **Administrador** | Completo | Tudo + painel admin + relatórios |
+| Perfil            | Acesso   | Funcionalidades                        |
+| ----------------- | -------- | -------------------------------------- |
+| **Colaborador**   | Limitado | Lançar produção, ver histórico próprio |
+| **Operador**      | Médio    | Fluxo operacional + importação         |
+| **Administrador** | Completo | Tudo + painel admin + relatórios       |
 
 ---
 
@@ -208,14 +209,14 @@ Tabelas principais:
 
 #### Campos do Formulário
 
-| Campo | Tipo | Validação | Obrigatório |
-|-------|------|-----------|-------------|
-| **Data** | Date | YYYY-MM-DD, não futuro | ✅ |
-| **Repositório** | Text | Min 1, max 100 chars | ✅ |
-| **Etapa** | Select | Enum: 9 opções | ✅ |
-| **Coordenadoria** | Select + Input | Select existente ou criar nova | ⚠️ |
-| **Quantidade** | Number | >= 1, inteiro | ✅ |
-| **Tipo** | Select | "Imagens" ou "Caixas" | ⚠️ |
+| Campo             | Tipo           | Validação                      | Obrigatório |
+| ----------------- | -------------- | ------------------------------ | ----------- |
+| **Data**          | Date           | YYYY-MM-DD, não futuro         | ✅          |
+| **Repositório**   | Text           | Min 1, max 100 chars           | ✅          |
+| **Etapa**         | Select         | Enum: 9 opções                 | ✅          |
+| **Coordenadoria** | Select + Input | Select existente ou criar nova | ⚠️          |
+| **Quantidade**    | Number         | >= 1, inteiro                  | ✅          |
+| **Tipo**          | Select         | "Imagens" ou "Caixas"          | ⚠️          |
 
 #### Funcionalidade de Coordenadoria
 
@@ -232,6 +233,7 @@ Tabelas principais:
 ```
 
 **Comportamento:**
+
 - ✅ Se coordenadoria já existe → seleciona automaticamente
 - ✅ Se não existe → cria e seleciona
 - ✅ Toast de sucesso/erro
@@ -244,24 +246,33 @@ Tabelas principais:
 
 ```typescript
 export const lancarProducaoColaboradorSchema = z.object({
-  data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  data: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
   repositorio: z.string().min(1).max(100),
   etapa: z.enum([
-    'RECEBIMENTO', 'PREPARACAO', 'DIGITALIZACAO',
-    'CONFERENCIA', 'RECONFERENCIA', 'MONTAGEM',
-    'ATENDIMENTO', 'CONTROLE_QUALIDADE', 'ENTREGA'
+    'RECEBIMENTO',
+    'PREPARACAO',
+    'DIGITALIZACAO',
+    'CONFERENCIA',
+    'RECONFERENCIA',
+    'MONTAGEM',
+    'ATENDIMENTO',
+    'CONTROLE_QUALIDADE',
+    'ENTREGA',
   ]),
   funcao: z.string().max(200).optional(),
   coordenadoria: z.string().max(200).optional(),
-  quantidade: z.union([
-    z.number().int().min(1),
-    z.string().transform(val => parseInt(val) || 1)
-  ]).optional(),
+  quantidade: z
+    .union([z.number().int().min(1), z.string().transform((val) => parseInt(val) || 1)])
+    .optional(),
   tipo: z.string().max(100).optional(),
 });
 ```
 
 **Proteções:**
+
 - ✅ Data: formato rigoroso YYYY-MM-DD
 - ✅ Repositório: não vazio, máximo 100 caracteres
 - ✅ Etapa: apenas valores do enum
@@ -275,6 +286,7 @@ export const lancarProducaoColaboradorSchema = z.object({
 **Lógica:** Bloqueia se TODOS os critérios forem idênticos na MESMA etapa.
 
 **Critérios de Duplicata:**
+
 1. usuario_id (mesmo colaborador)
 2. repositorio_id (mesmo repositório)
 3. data_producao (mesma data)
@@ -286,6 +298,7 @@ export const lancarProducaoColaboradorSchema = z.object({
 9. marcadores->>'origem' = 'SISTEMA'
 
 **Query de Verificação:**
+
 ```sql
 SELECT id, quantidade FROM producao_repositorio
 WHERE usuario_id = $1
@@ -299,6 +312,7 @@ WHERE usuario_id = $1
 ```
 
 **Resposta se Duplicata:**
+
 ```json
 HTTP 409 Conflict
 {
@@ -319,6 +333,7 @@ HTTP 409 Conflict
 ### 4. Validação de Sequência de Etapas
 
 **Sequência Obrigatória:**
+
 ```
 1. RECEBIMENTO      → sempre permitido (etapa inicial)
 2. PREPARACAO       → requer RECEBIMENTO
@@ -330,6 +345,7 @@ HTTP 409 Conflict
 ```
 
 **Lógica de Validação:**
+
 ```typescript
 const sequenciaEtapas = {
   RECEBIMENTO: { ordem: 1 },
@@ -353,6 +369,7 @@ if (etapaAnteriorExiste.rows.length === 0) {
 ```
 
 **Resposta se Pular Etapa:**
+
 ```json
 HTTP 422 Unprocessable Entity
 {
@@ -375,6 +392,7 @@ HTTP 422 Unprocessable Entity
 **Comportamento:** Igual à importação legada.
 
 **Lógica:**
+
 1. Busca repositório existente por `id_repositorio_ged + orgao + projeto`
 2. Se não existir → cria automaticamente
 3. Define `status_atual` baseado na etapa (mapeamento)
@@ -382,6 +400,7 @@ HTTP 422 Unprocessable Entity
 5. Usa `ON CONFLICT` para evitar duplicatas de criação
 
 **Mapeamento de Status:**
+
 ```typescript
 const etapaStatusMap = {
   RECEBIMENTO: 'RECEBIDO',
@@ -397,11 +416,12 @@ const etapaStatusMap = {
 ```
 
 **Query de Criação:**
+
 ```sql
-INSERT INTO repositorios 
+INSERT INTO repositorios
   (id_repositorio_ged, orgao, projeto, status_atual, etapa_atual)
 VALUES ($1, $2, 'IMPORTACAO_PRODUCAO', $status, $etapa)
-ON CONFLICT (id_repositorio_ged, orgao, projeto) DO UPDATE 
+ON CONFLICT (id_repositorio_ged, orgao, projeto) DO UPDATE
   SET id_repositorio_ged = EXCLUDED.id_repositorio_ged
 RETURNING id_repositorio_recorda
 ```
@@ -413,13 +433,15 @@ RETURNING id_repositorio_recorda
 **Comportamento:** Cria checklist CONCLUÍDO automaticamente.
 
 **Lógica:**
+
 1. Busca checklist existente (mesmo repositório + etapa)
 2. Se não existir → cria com status 'CONCLUIDO'
 3. Define `ativo = FALSE` e `data_conclusao = NOW()`
 
 **Query de Criação:**
+
 ```sql
-INSERT INTO checklists 
+INSERT INTO checklists
   (repositorio_id, etapa, status, usuario_id, ativo, data_conclusao)
 VALUES ($1, $2, 'CONCLUIDO', $3, FALSE, CURRENT_TIMESTAMP)
 RETURNING id
@@ -434,6 +456,7 @@ RETURNING id
 **Estrutura do Campo `marcadores`:**
 
 **Colaborador (SISTEMA):**
+
 ```json
 {
   "funcao": "Digitalizador",
@@ -444,6 +467,7 @@ RETURNING id
 ```
 
 **Importação (LEGADO):**
+
 ```json
 {
   "funcao": "Digitalizador",
@@ -456,6 +480,7 @@ RETURNING id
 ```
 
 **Diferenças:**
+
 - ✅ `origem`: 'SISTEMA' vs 'LEGADO'
 - ✅ `importacao_exec_id`: apenas em importações
 - ✅ `colaborador_nome`: apenas em importações (nome da planilha)
@@ -467,6 +492,7 @@ RETURNING id
 **Funcionalidade:** Click no cabeçalho da tabela ordena crescente/decrescente.
 
 **Colunas Ordenáveis:**
+
 - Data
 - Colaborador
 - Repositório
@@ -477,20 +503,23 @@ RETURNING id
 - Origem
 
 **Indicador Visual:**
+
 - Coluna ativa: seta azul (↑ crescente, ↓ decrescente)
 - Coluna inativa: seta cinza
 
 **Estado:**
+
 ```typescript
 const [sortColumn, setSortColumn] = useState<SortColumn | null>(null);
 const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 ```
 
 **Ordenação em Memória:**
+
 ```typescript
 const registrosOrdenados = useMemo(() => {
   if (!sortColumn) return dados?.registros ?? [];
-  
+
   return [...dados.registros].sort((a, b) => {
     // Lógica de comparação por coluna
     if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
@@ -578,10 +607,12 @@ Conforme auditoria em `AUDITORIA_SEGURANCA_PRODUCAO.md`.
 ### Caso 1: Lançamento Normal (Fluxo Feliz)
 
 **Cenário:**
+
 - Colaborador João quer lançar produção de DIGITALIZACAO
 - Repositório 150/2026 CINF já passou por RECEBIMENTO e PREPARACAO
 
 **Passos:**
+
 1. João preenche formulário:
    - Data: 15/04/2026
    - Repositório: 150/2026
@@ -611,10 +642,12 @@ Conforme auditoria em `AUDITORIA_SEGURANCA_PRODUCAO.md`.
 ### Caso 2: Tentativa de Duplicata
 
 **Cenário:**
+
 - João já lançou DIGITALIZACAO do 150/2026 CINF hoje
 - Tenta lançar novamente (mesmo dia, mesma quantidade)
 
 **Passos:**
+
 1. João preenche formulário (idêntico ao anterior)
 2. Click "Registrar Produção"
 3. Sistema detecta duplicata
@@ -629,10 +662,12 @@ Conforme auditoria em `AUDITORIA_SEGURANCA_PRODUCAO.md`.
 ### Caso 3: Pulo de Etapa
 
 **Cenário:**
+
 - Repositório 150/2026 CINF está em PREPARACAO
 - João tenta lançar CONFERENCIA (pulando DIGITALIZACAO)
 
 **Passos:**
+
 1. João preenche:
    - Etapa: CONFERENCIA
    - Repositório: 150/2026
@@ -657,10 +692,12 @@ Conforme auditoria em `AUDITORIA_SEGURANCA_PRODUCAO.md`.
 ### Caso 4: Coordenadorias Paralelas
 
 **Cenário:**
+
 - Repositório 150/2026 existe em CINF e CEE
 - São processos independentes
 
 **Fluxo:**
+
 ```
 150/2026 CINF                     150/2026 CEE
 ├─ RECEBIMENTO   (15/04) ✅      ├─ RECEBIMENTO   (15/04) ✅
@@ -675,10 +712,12 @@ Conforme auditoria em `AUDITORIA_SEGURANCA_PRODUCAO.md`.
 ### Caso 5: Complemento de Produção
 
 **Cenário:**
+
 - João lançou 10 imagens de DIGITALIZACAO pela manhã
 - À tarde, ele lançou mais 5 imagens (complemento)
 
 **Fluxo:**
+
 ```
 150/2026 CINF - DIGITALIZACAO
 ├─ 10:00 → 10 imagens  ✅ (primeiro lançamento)
@@ -704,7 +743,7 @@ describe('lancarProducaoColaboradorSchema', () => {
       data: '2026-04-15',
       repositorio: '150/2026',
       etapa: 'DIGITALIZACAO',
-      quantidade: 10
+      quantidade: 10,
     };
     expect(() => lancarProducaoColaboradorSchema.parse(data)).not.toThrow();
   });
@@ -713,7 +752,7 @@ describe('lancarProducaoColaboradorSchema', () => {
     const data = {
       data: '15/04/2026', // formato errado
       repositorio: '150/2026',
-      etapa: 'DIGITALIZACAO'
+      etapa: 'DIGITALIZACAO',
     };
     expect(() => lancarProducaoColaboradorSchema.parse(data)).toThrow();
   });
@@ -722,7 +761,7 @@ describe('lancarProducaoColaboradorSchema', () => {
     const data = {
       repositorio: '150/2026',
       etapa: 'DIGITALIZACAO',
-      quantidade: -1
+      quantidade: -1,
     };
     expect(() => lancarProducaoColaboradorSchema.parse(data)).toThrow();
   });
@@ -730,7 +769,7 @@ describe('lancarProducaoColaboradorSchema', () => {
   it('deve rejeitar etapa inválida', () => {
     const data = {
       repositorio: '150/2026',
-      etapa: 'ETAPA_INVALIDA'
+      etapa: 'ETAPA_INVALIDA',
     };
     expect(() => lancarProducaoColaboradorSchema.parse(data)).toThrow();
   });
@@ -738,7 +777,7 @@ describe('lancarProducaoColaboradorSchema', () => {
   it('deve rejeitar repositório vazio', () => {
     const data = {
       repositorio: '',
-      etapa: 'DIGITALIZACAO'
+      etapa: 'DIGITALIZACAO',
     };
     expect(() => lancarProducaoColaboradorSchema.parse(data)).toThrow();
   });
@@ -746,7 +785,7 @@ describe('lancarProducaoColaboradorSchema', () => {
   it('deve rejeitar strings muito longas', () => {
     const data = {
       repositorio: 'x'.repeat(101), // > 100 chars
-      etapa: 'DIGITALIZACAO'
+      etapa: 'DIGITALIZACAO',
     };
     expect(() => lancarProducaoColaboradorSchema.parse(data)).toThrow();
   });
@@ -780,8 +819,8 @@ describe('POST /producao/lancar-direto', () => {
         etapa: 'DIGITALIZACAO',
         coordenadoria: 'CINF',
         quantidade: 10,
-        tipo: 'Imagens'
-      }
+        tipo: 'Imagens',
+      },
     });
 
     expect(response.statusCode).toBe(201);
@@ -797,8 +836,8 @@ describe('POST /producao/lancar-direto', () => {
       payload: {
         repositorio: '200/2026',
         etapa: 'PREPARACAO',
-        quantidade: 5
-      }
+        quantidade: 5,
+      },
     });
 
     // Tentativa de duplicata
@@ -809,8 +848,8 @@ describe('POST /producao/lancar-direto', () => {
       payload: {
         repositorio: '200/2026',
         etapa: 'PREPARACAO',
-        quantidade: 5
-      }
+        quantidade: 5,
+      },
     });
 
     expect(response.statusCode).toBe(409);
@@ -825,8 +864,8 @@ describe('POST /producao/lancar-direto', () => {
       payload: {
         repositorio: '300/2026',
         etapa: 'PREPARACAO',
-        quantidade: 10
-      }
+        quantidade: 10,
+      },
     });
 
     const response = await app.inject({
@@ -836,8 +875,8 @@ describe('POST /producao/lancar-direto', () => {
       payload: {
         repositorio: '300/2026',
         etapa: 'PREPARACAO',
-        quantidade: 15 // diferente
-      }
+        quantidade: 15, // diferente
+      },
     });
 
     expect(response.statusCode).toBe(201);
@@ -853,8 +892,8 @@ describe('POST /producao/lancar-direto', () => {
         repositorio: '400/2026',
         etapa: 'RECEBIMENTO',
         coordenadoria: 'CINF',
-        quantidade: 1
-      }
+        quantidade: 1,
+      },
     });
 
     // Tenta pular para DIGITALIZACAO (falta PREPARACAO)
@@ -866,8 +905,8 @@ describe('POST /producao/lancar-direto', () => {
         repositorio: '400/2026',
         etapa: 'DIGITALIZACAO',
         coordenadoria: 'CINF',
-        quantidade: 1
-      }
+        quantidade: 1,
+      },
     });
 
     expect(response.statusCode).toBe(422);
@@ -884,8 +923,8 @@ describe('POST /producao/lancar-direto', () => {
         repositorio: '500/2026',
         etapa: 'RECEBIMENTO',
         coordenadoria: 'CINF',
-        quantidade: 10
-      }
+        quantidade: 10,
+      },
     });
 
     // CEE (mesmo repositório, coordenadoria diferente)
@@ -897,8 +936,8 @@ describe('POST /producao/lancar-direto', () => {
         repositorio: '500/2026',
         etapa: 'RECEBIMENTO',
         coordenadoria: 'CEE',
-        quantidade: 10
-      }
+        quantidade: 10,
+      },
     });
 
     expect(response1.statusCode).toBe(201);
@@ -909,7 +948,7 @@ describe('POST /producao/lancar-direto', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/api/producao/lancar-direto',
-      payload: { repositorio: '600/2026', etapa: 'RECEBIMENTO' }
+      payload: { repositorio: '600/2026', etapa: 'RECEBIMENTO' },
     });
 
     expect(response.statusCode).toBe(401);
@@ -923,12 +962,12 @@ describe('POST /producao/lancar-direto', () => {
       payload: {
         repositorio: '999/2026',
         etapa: 'RECEBIMENTO',
-        quantidade: 1
-      }
+        quantidade: 1,
+      },
     });
 
     expect(response.statusCode).toBe(201);
-    
+
     // Verifica que repositório foi criado
     const repo = await database.query(
       `SELECT * FROM repositorios WHERE id_repositorio_ged = '999/2026'`
@@ -944,8 +983,8 @@ describe('POST /producao/lancar-direto', () => {
       payload: {
         repositorio: '888/2026',
         etapa: 'RECEBIMENTO',
-        quantidade: 1
-      }
+        quantidade: 1,
+      },
     });
 
     const checklist = await database.query(
@@ -955,7 +994,7 @@ describe('POST /producao/lancar-direto', () => {
          WHERE id_repositorio_ged = '888/2026'
        ) AND etapa = 'RECEBIMENTO'`
     );
-    
+
     expect(checklist.rows.length).toBeGreaterThan(0);
     expect(checklist.rows[0].status).toBe('CONCLUIDO');
   });
@@ -983,26 +1022,26 @@ test.describe('Lançamento de Produção - Colaborador', () => {
 
   test('deve lançar produção com sucesso', async ({ page }) => {
     await page.goto('/colaborador/lancar-producao');
-    
+
     await page.fill('input[name="data"]', '2026-04-15');
     await page.fill('input[name="repositorio"]', '150/2026');
     await page.selectOption('select[name="etapa"]', 'DIGITALIZACAO');
     await page.selectOption('select[name="coordenadoria"]', 'CINF');
     await page.fill('input[name="quantidade"]', '10');
     await page.selectOption('select[name="tipo"]', 'Imagens');
-    
+
     await page.click('button:has-text("Registrar Produção")');
-    
+
     await expect(page.locator('.toast-success')).toContainText('Produção registrada com sucesso');
   });
 
   test('deve criar nova coordenadoria', async ({ page }) => {
     await page.goto('/colaborador/lancar-producao');
-    
+
     const novoNome = `COORD_TEST_${Date.now()}`;
     await page.fill('input[placeholder="Nova coordenadoria..."]', novoNome);
     await page.click('button:has-text("Adicionar")');
-    
+
     await expect(page.locator('.toast-success')).toContainText('Coordenadoria cadastrada');
     await expect(page.locator('select[name="coordenadoria"]')).toContainText(novoNome);
   });
@@ -1015,31 +1054,31 @@ test.describe('Lançamento de Produção - Colaborador', () => {
     await page.fill('input[name="quantidade"]', '5');
     await page.click('button:has-text("Registrar Produção")');
     await expect(page.locator('.toast-success')).toBeVisible();
-    
+
     // Tentativa de duplicata
     await page.fill('input[name="repositorio"]', '200/2026');
     await page.selectOption('select[name="etapa"]', 'PREPARACAO');
     await page.fill('input[name="quantidade"]', '5');
     await page.click('button:has-text("Registrar Produção")');
-    
+
     await expect(page.locator('.toast-error')).toContainText('Produção duplicada');
   });
 
   test('deve mostrar erro de sequência', async ({ page }) => {
     await page.goto('/colaborador/lancar-producao');
-    
+
     await page.fill('input[name="repositorio"]', '300/2026');
     await page.selectOption('select[name="etapa"]', 'CONFERENCIA');
     await page.fill('input[name="quantidade"]', '1');
     await page.click('button:has-text("Registrar Produção")');
-    
+
     await expect(page.locator('.toast-error')).toContainText('Sequência de etapas inválida');
   });
 
   test('deve validar campos obrigatórios', async ({ page }) => {
     await page.goto('/colaborador/lancar-producao');
     await page.click('button:has-text("Registrar Produção")');
-    
+
     // HTML5 validation deve prevenir submit
     const isInvalid = await page.locator('input[name="repositorio"]:invalid').count();
     expect(isInvalid).toBeGreaterThan(0);
@@ -1056,7 +1095,7 @@ test.describe('Painel Admin - Visualização de Produções', () => {
 
   test('deve exibir produções de colaboradores', async ({ page }) => {
     await page.goto('/operacao/producao');
-    
+
     // Verifica que badges de origem aparecem
     await expect(page.locator('text=Sistema')).toBeVisible();
     await expect(page.locator('text=Legado')).toBeVisible();
@@ -1064,17 +1103,17 @@ test.describe('Painel Admin - Visualização de Produções', () => {
 
   test('deve ordenar por coluna', async ({ page }) => {
     await page.goto('/operacao/producao');
-    
+
     // Click no cabeçalho "Quantidade"
     await page.click('th:has-text("Qtd")');
-    
+
     // Verifica que seta de ordenação aparece
     await expect(page.locator('th:has-text("Qtd") svg')).toBeVisible();
   });
 
   test('deve filtrar por origem', async ({ page }) => {
     await page.goto('/operacao/producao');
-    
+
     // (Se houver filtro de origem implementado no futuro)
     // await page.selectOption('select[name="origem"]', 'sistema');
     // await expect(page.locator('text=Legado')).not.toBeVisible();
@@ -1159,17 +1198,19 @@ test.describe('Painel Admin - Visualização de Produções', () => {
 **Sintoma:** Sistema bloqueia produção que não é duplicata.
 
 **Causas Possíveis:**
+
 1. Mesmo colaborador já lançou exatamente isso hoje
 2. Data do navegador diferente do servidor
 3. Coordenadoria salva com espaços extras
 
 **Solução:**
+
 ```sql
 -- Verificar registros existentes
 SELECT * FROM producao_repositorio
 WHERE usuario_id = 'uuid-do-colaborador'
   AND repositorio_id IN (
-    SELECT id_repositorio_recorda FROM repositorios 
+    SELECT id_repositorio_recorda FROM repositorios
     WHERE id_repositorio_ged = '150/2026'
   )
   AND (data_producao AT TIME ZONE 'America/Cuiaba')::date = CURRENT_DATE
@@ -1183,11 +1224,13 @@ WHERE usuario_id = 'uuid-do-colaborador'
 **Sintoma:** Sistema diz que falta etapa anterior, mas ela foi lançada.
 
 **Causas Possíveis:**
+
 1. Coordenadoria diferente (CINF vs CEE)
 2. Repositório escrito diferente (espaços, capitalização)
 3. Etapa anterior foi de outro colaborador (mas isso é permitido)
 
 **Solução:**
+
 ```sql
 -- Verificar etapa anterior
 SELECT * FROM producao_repositorio p
@@ -1208,6 +1251,7 @@ Se não retornar nada → realmente falta a etapa.
 **Causa:** React Query não invalidou cache.
 
 **Solução:**
+
 ```typescript
 // Após criar coordenadoria
 await queryClient.invalidateQueries({ queryKey: ['orgaos-recebimento'] });
@@ -1220,10 +1264,12 @@ await queryClient.invalidateQueries({ queryKey: ['orgaos-recebimento'] });
 **Sintoma:** Colaborador lançou produção mas não aparece para admin.
 
 **Causas Possíveis:**
+
 1. Filtro de origem excluindo 'SISTEMA'
 2. Query antiga sem `origem IN ('LEGADO', 'SISTEMA')`
 
 **Solução:**
+
 ```sql
 -- Query correta
 SELECT * FROM producao_repositorio
@@ -1241,6 +1287,7 @@ WHERE COALESCE(marcadores->>'origem', '') = 'LEGADO';
 **Sintoma:** POST retorna 500 Internal Server Error.
 
 **Debug:**
+
 ```bash
 # Ver logs do backend
 docker logs recorda-backend -f
@@ -1250,6 +1297,7 @@ request.log.error(error);
 ```
 
 **Causas Comuns:**
+
 - Constraint violada (quantidade negativa)
 - Foreign key inválida (usuário deletado)
 - Trigger de banco falhando
@@ -1258,18 +1306,19 @@ request.log.error(error);
 
 ## 📚 Documentos Relacionados
 
-| Documento | Descrição |
-|-----------|-----------|
-| `ANALISE_FLUXO_COLABORADOR.md` | Análise inicial de problemas |
+| Documento                         | Descrição                           |
+| --------------------------------- | ----------------------------------- |
+| `ANALISE_FLUXO_COLABORADOR.md`    | Análise inicial de problemas        |
 | `AUDITORIA_SEGURANCA_PRODUCAO.md` | Auditoria de segurança (nota 10/10) |
-| `VALIDACAO_FLUXO_ETAPAS.md` | Detalhes de sequência de etapas |
-| `SISTEMA_COLABORADOR_COMPLETO.md` | Este documento (overview) |
+| `VALIDACAO_FLUXO_ETAPAS.md`       | Detalhes de sequência de etapas     |
+| `SISTEMA_COLABORADOR_COMPLETO.md` | Este documento (overview)           |
 
 ---
 
 ## ✅ Checklist de Implementação
 
 ### Frontend
+
 - ✅ `LancarProducaoPage.tsx` criada
 - ✅ Campo Coordenadoria com select + criar
 - ✅ Campo Tipo com opções fixas
@@ -1278,6 +1327,7 @@ request.log.error(error);
 - ✅ Ordenação de colunas no painel admin
 
 ### Backend
+
 - ✅ Endpoint `POST /producao/lancar-direto`
 - ✅ Schema Zod com validações rigorosas
 - ✅ Middleware de autenticação
@@ -1290,12 +1340,14 @@ request.log.error(error);
 - ✅ Marcador `origem: 'SISTEMA'`
 
 ### Banco de Dados
+
 - ✅ Tabela `producao_repositorio` com marcadores JSONB
 - ✅ Triggers de auditoria
 - ✅ Constraints de integridade
 - ✅ Índices de performance
 
 ### Segurança
+
 - ✅ SQL injection: 0 vulnerabilidades
 - ✅ Validação de inputs
 - ✅ Autenticação JWT
@@ -1304,6 +1356,7 @@ request.log.error(error);
 - ✅ Nota de segurança: 10/10
 
 ### Documentação
+
 - ✅ Análise de fluxo
 - ✅ Auditoria de segurança
 - ✅ Validação de etapas
@@ -1311,6 +1364,7 @@ request.log.error(error);
 - ✅ Plano de testes
 
 ### Testes
+
 - ⚠️ **Pendente:** Testes unitários
 - ⚠️ **Pendente:** Testes de integração
 - ⚠️ **Pendente:** Testes E2E
@@ -1328,6 +1382,7 @@ request.log.error(error);
 - ⚠️ Testes automatizados pendentes
 
 **Próximos Passos:**
+
 1. Implementar testes automatizados (unit + E2E)
 2. Testar em ambiente de homologação
 3. Deploy em produção

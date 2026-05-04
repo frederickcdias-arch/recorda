@@ -119,7 +119,11 @@ export async function installApiMocks(page: Page): Promise<void> {
       });
     }
 
-    if (path.startsWith('/auth/usuarios/') && path.endsWith('/toggle-ativo') && method === 'PATCH') {
+    if (
+      path.startsWith('/auth/usuarios/') &&
+      path.endsWith('/toggle-ativo') &&
+      method === 'PATCH'
+    ) {
       return json(route, 200, { ok: true });
     }
 
@@ -213,7 +217,10 @@ export async function installApiMocks(page: Page): Promise<void> {
       });
     }
 
-    if (/^\/operacional\/repositorios\/[^/]+\/recebimento-processos$/.test(path) && method === 'GET') {
+    if (
+      /^\/operacional\/repositorios\/[^/]+\/recebimento-processos$/.test(path) &&
+      method === 'GET'
+    ) {
       return json(route, 200, {
         processos: [],
       });

@@ -218,9 +218,7 @@ export function ExportacoesPage(): JSX.Element {
             etapa: r.etapa ?? '',
             funcao: r.funcao ?? '',
             repositorio: r.repositorio ?? '',
-            quantidade: Number.isFinite(Number(r.quantidade))
-              ? Number(r.quantidade)
-              : Number.NaN,
+            quantidade: Number.isFinite(Number(r.quantidade)) ? Number(r.quantidade) : Number.NaN,
           }))
         );
       }

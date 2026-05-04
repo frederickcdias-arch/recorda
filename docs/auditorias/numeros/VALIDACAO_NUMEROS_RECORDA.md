@@ -5,6 +5,7 @@
 A validação foi feita por leitura estática do código corrigido, comparação com `AUDITORIA_NUMEROS_RECORDA.md` e `CORRECAO_NUMEROS_RECORDA.md`, buscas globais por regras antigas e tentativa de execução dos comandos de teste.
 
 O fluxo crítico auditado ficou coerente:
+
 - regra central de `producao_contabilizada` existe e está sendo reutilizada nas rotas principais;
 - timezone oficial `America/Cuiaba` está aplicado no fluxo principal;
 - importação legada passou a validar quantidade e data de forma rígida;
@@ -18,6 +19,7 @@ Persistem ressalvas fora do fluxo principal e não foi possível executar a suí
 Classificação final: **Aprovado com ressalvas**
 
 Motivo:
+
 - P0 do escopo auditado estão resolvidos no código.
 - P1 principais estão resolvidos.
 - Há resíduos secundários fora do miolo auditado.
@@ -49,6 +51,7 @@ Motivo:
 ## 5. Testes executados
 
 Comandos tentados:
+
 - `npm test`
 - `npm run typecheck`
 - `npm run lint`
@@ -69,10 +72,12 @@ ou externo, um programa operável ou um arquivo em lotes.
 ```
 
 Evidência:
+
 - os wrappers [vitest.cmd](/c:/projects/recorda/node_modules/.bin/vitest.cmd), [tsc.cmd](/c:/projects/recorda/node_modules/.bin/tsc.cmd) e [eslint.cmd](/c:/projects/recorda/node_modules/.bin/eslint.cmd) chamam `node` explicitamente.
 - `where.exe node` e `where.exe npm` não localizaram binários.
 
 Como executar localmente:
+
 1. Garantir Node 20+ no `PATH`.
 2. Na raiz do monorepo, rodar:
    - `npm test`
@@ -84,15 +89,18 @@ Como executar localmente:
 ## 7. Busca por regras antigas
 
 Status:
+
 - **Fluxo crítico aprovado**.
 - Não encontrei duplicação manual divergente da regra de produção nos arquivos principais auditados.
 
 Uso confirmado da regra central:
+
 - [dashboard.ts](/c:/projects/recorda/packages/backend/src/infrastructure/http/routes/dashboard.ts)
 - [metas.ts](/c:/projects/recorda/packages/backend/src/infrastructure/http/routes/metas.ts)
 - [relatorios.ts](/c:/projects/recorda/packages/backend/src/infrastructure/http/routes/relatorios.ts)
 
 Observação:
+
 - [operacional-helpers.ts](/c:/projects/recorda/packages/backend/src/infrastructure/http/routes/operacional-helpers.ts) não aplica regra de produção; ele só expõe helpers utilitários.
 
 ## 8. Busca por timezone antigo
@@ -116,10 +124,12 @@ Ocorrências classificadas:
   - Impacto: serviço de segurança, fora do fluxo de números em tela auditado.
 
 Sobre `CURRENT_DATE`:
+
 - Não restou uso em `dashboard.ts`, `metas.ts`, `relatorios.ts` ou `operacional-importacao-legado.ts`.
 - No fluxo crítico auditado, a migração foi concluída.
 
 Sobre `new Date()`, `Date.now()`, `toLocaleDateString`, `toLocaleString`:
+
 - Há muitas ocorrências no repositório fora do escopo crítico.
 - No fluxo crítico principal:
   - comparações simples de período no frontend com `new Date(dataInicio) > new Date(dataFim)` em [RelatoriosGerenciaisPage.tsx](/c:/projects/recorda/packages/frontend/src/pages/relatorios/RelatoriosGerenciaisPage.tsx) e [ExportacoesPage.tsx](/c:/projects/recorda/packages/frontend/src/pages/relatorios/ExportacoesPage.tsx)
@@ -132,6 +142,7 @@ Sobre `new Date()`, `Date.now()`, `toLocaleDateString`, `toLocaleString`:
 ## 9. Busca por fallbacks numéricos perigosos
 
 Arquivos críticos validados:
+
 - [number.ts](/c:/projects/recorda/packages/frontend/src/utils/number.ts): correto.
 - [Dashboard.tsx](/c:/projects/recorda/packages/frontend/src/pages/Dashboard.tsx): correto no tratamento principal; `?? 0` restante só é usado para largura visual do gráfico.
 - [MeuHistoricoPage.tsx](/c:/projects/recorda/packages/frontend/src/pages/colaborador/MeuHistoricoPage.tsx): correto nos cards; `total ?? 0` restante só é usado na frase de paginação.
@@ -140,6 +151,7 @@ Arquivos críticos validados:
 - [ExportacoesPage.tsx](/c:/projects/recorda/packages/frontend/src/pages/relatorios/ExportacoesPage.tsx): correto para renderização crítica; preview operacional converte inválido para `NaN`, que depois vira `—`.
 
 Ocorrências sensíveis restantes:
+
 - [components/dashboard/Dashboard.tsx](/c:/projects/recorda/packages/frontend/src/components/dashboard/Dashboard.tsx): `const value = data.value || 0;`
   - Classificação: suspeita.
   - Impacto: componente secundário, fora da tela principal auditada, mas ainda mascara ausência como zero.
@@ -155,6 +167,7 @@ Ocorrências sensíveis restantes:
 Status: **validada por análise estática**
 
 Confirmado:
+
 - quantidade vazia: rejeitada.
 - quantidade textual: rejeitada.
 - quantidade decimal: rejeitada.
@@ -170,10 +183,12 @@ Confirmado:
 - linha inválida não entra no fluxo de update.
 
 Mensagens confirmadas em [importacao-legado.ts](/c:/projects/recorda/packages/backend/src/domain/producao/importacao-legado.ts):
+
 - `Quantidade inválida. Informe um número inteiro maior que zero.`
 - `Data de produção inválida. Corrija a data na planilha antes de importar.`
 
 Ressalva:
+
 - Na rota `validar-duplicatas` em [operacional-importacao-legado.ts](/c:/projects/recorda/packages/backend/src/infrastructure/http/routes/operacional-importacao-legado.ts), linhas inválidas entram como `novos` com `motivo` de erro em vez de aparecerem em uma estrutura formal de inválidos. A validação existe, mas a UX dessa rota secundária não está tão consistente quanto o preview principal.
 
 ## 11. Validação da regra de produção contabilizada
@@ -181,11 +196,13 @@ Ressalva:
 Status: **validada**
 
 Definição central em [producao-metrics.ts](/c:/projects/recorda/packages/backend/src/domain/producao/producao-metrics.ts):
+
 - origem `SISTEMA`: incluída.
 - origem `LEGADO`: incluída.
 - etapas `RECEBIMENTO` e `CONTROLE_QUALIDADE`: excluídas apenas quando `origem = LEGADO`.
 
 Uso confirmado:
+
 - dashboard operacional
 - desempenho/meta
 - meu histórico
@@ -201,12 +218,14 @@ Não encontrei outra query divergente duplicando essa regra manualmente nos arqu
 Status: **parcialmente validado**
 
 Confirmado:
+
 - `0` real permanece `0`.
 - dado ausente nos cards críticos vira `—`.
 - payload inválido deixa de aparecer como `0` nas telas críticas corrigidas.
 - não há mais `toSafeNumber` nas páginas críticas auditadas.
 
 Ressalvas:
+
 - [Dashboard.tsx](/c:/projects/recorda/packages/frontend/src/pages/Dashboard.tsx) do colaborador não exibe estado de erro explícito; evita zero falso, mas em falha de API tende a cair em ausência visual e não em feedback de erro.
 - [MeuHistoricoPage.tsx](/c:/projects/recorda/packages/frontend/src/pages/colaborador/MeuHistoricoPage.tsx) segue o mesmo padrão: evita número falso, mas não mostra erro explícito de contrato/API.
 - [LancarProducaoPage.tsx](/c:/projects/recorda/packages/frontend/src/pages/colaborador/LancarProducaoPage.tsx) ainda tem fallback local de quantidade para `1`.
@@ -218,6 +237,7 @@ Checklist sugerido:
 ### Importação
 
 Testar planilha com:
+
 - quantidade vazia
 - quantidade `0`
 - quantidade `-1`
@@ -228,6 +248,7 @@ Testar planilha com:
 - `11-21`
 
 Resultado esperado:
+
 - a linha aparece como inválida no preview;
 - a linha não é importada;
 - a mensagem de erro é clara.
@@ -235,6 +256,7 @@ Resultado esperado:
 ### Consistência entre telas
 
 Comparar o mesmo período em:
+
 - Dashboard Admin
 - Dashboard Colaborador
 - Meu Histórico
@@ -243,16 +265,19 @@ Comparar o mesmo período em:
 - Exportações
 
 Confirmar:
+
 - quando o escopo for equivalente, os totais batem;
 - `Repositórios com Produção` não é lido como “ativos por status”.
 
 ### Timezone
 
 Criar ou localizar registros próximos da virada do dia em Cuiabá:
+
 - `23:50` `America/Cuiaba`
 - `00:10` `America/Cuiaba`
 
 Confirmar:
+
 - “hoje” respeita Cuiabá;
 - “últimos 7 dias” respeita Cuiabá;
 - “mês atual” respeita Cuiabá;

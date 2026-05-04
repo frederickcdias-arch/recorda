@@ -39,7 +39,8 @@ export function createAdminRoutes(): FastifyPluginAsync {
 
           return reply.send(result.rows);
         } catch (error) {
-          const message = error instanceof Error ? error.message : 'Erro ao buscar colaboradores do legado';
+          const message =
+            error instanceof Error ? error.message : 'Erro ao buscar colaboradores do legado';
           return reply.status(500).send({ error: message });
         }
       }
@@ -77,7 +78,8 @@ export function createAdminRoutes(): FastifyPluginAsync {
 
           return reply.send(result.rows);
         } catch (error) {
-          const message = error instanceof Error ? error.message : 'Erro ao buscar usuários colaboradores';
+          const message =
+            error instanceof Error ? error.message : 'Erro ao buscar usuários colaboradores';
           return reply.status(500).send({ error: message });
         }
       }
@@ -134,8 +136,8 @@ export function createAdminRoutes(): FastifyPluginAsync {
           const totalProducoes = Number(countResult.rows[0]?.total ?? 0);
 
           if (totalProducoes === 0) {
-            return reply.status(404).send({ 
-              error: 'Nenhuma produção encontrada para este colaborador no sistema legado' 
+            return reply.status(404).send({
+              error: 'Nenhuma produção encontrada para este colaborador no sistema legado',
             });
           }
 
@@ -151,12 +153,15 @@ export function createAdminRoutes(): FastifyPluginAsync {
 
           const vinculadas = updateResult.rowCount ?? 0;
 
-          request.log.info({
-            admin: adminUser.id,
-            colaboradorLegado: colaboradorNomeLegado,
-            usuarioId,
-            vinculadas,
-          }, 'Produções legadas vinculadas a colaborador');
+          request.log.info(
+            {
+              admin: adminUser.id,
+              colaboradorLegado: colaboradorNomeLegado,
+              usuarioId,
+              vinculadas,
+            },
+            'Produções legadas vinculadas a colaborador'
+          );
 
           return reply.send({
             sucesso: true,
@@ -188,7 +193,8 @@ export function createAdminRoutes(): FastifyPluginAsync {
         try {
           const { colaboradorNome, usuarioId } = request.params;
 
-          const result = await server.database.query(`
+          const result = await server.database.query(
+            `
             SELECT 
               pr.data_producao::date as data,
               pr.etapa,
@@ -202,7 +208,9 @@ export function createAdminRoutes(): FastifyPluginAsync {
             GROUP BY pr.data_producao::date, pr.etapa
             ORDER BY pr.data_producao::date DESC, pr.etapa
             LIMIT 100
-          `, [decodeURIComponent(colaboradorNome)]);
+          `,
+            [decodeURIComponent(colaboradorNome)]
+          );
 
           const userResult = await server.database.query(
             `SELECT nome, email FROM usuarios WHERE id = $1`,

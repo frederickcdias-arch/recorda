@@ -356,9 +356,7 @@ const GaugeWidget: React.FC<{ widget: DashboardWidget; data: any }> = ({ widget,
           />
         </div>
         <div className="mt-2 text-center">
-          <span className="text-2xl font-bold text-gray-900">
-            {formatCriticalNumber(value)}
-          </span>
+          <span className="text-2xl font-bold text-gray-900">{formatCriticalNumber(value)}</span>
           <span className="text-sm text-gray-500 ml-1">/ {max}</span>
         </div>
       </div>

@@ -8,11 +8,7 @@ import {
   importacaoLegadoRecebimentoSchema,
   importacaoLegadoProducaoSchema,
 } from '../schemas/operacional.js';
-import {
-  type EtapaFluxo,
-  type StatusRepositorio,
-  getCurrentUser,
-} from './operacional-helpers.js';
+import { type EtapaFluxo, type StatusRepositorio, getCurrentUser } from './operacional-helpers.js';
 import { normalizeIdRepositorioGed } from './operacional-repositorios.js';
 import {
   type ValidationResult,
@@ -193,7 +189,8 @@ function sendSpreadsheetFetchError(
   }
   if (status === 404) {
     return reply.status(400).send({
-      error: 'Planilha nao encontrada. Verifique se a URL esta correta e a planilha esta publicada.',
+      error:
+        'Planilha nao encontrada. Verifique se a URL esta correta e a planilha esta publicada.',
     });
   }
   if (status === 403 || status === 401) {
@@ -936,7 +933,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
                   etapa: string;
                   marcadores: Record<string, unknown>;
                 }>(
-                 `SELECT id, quantidade, checklist_id, etapa::text as etapa, marcadores
+                  `SELECT id, quantidade, checklist_id, etapa::text as etapa, marcadores
                  FROM producao_repositorio
                  WHERE usuario_id = $1
                    AND repositorio_id = $2
@@ -985,7 +982,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
                   const inserted = await server.database.query<{ id: string }>(
                     `INSERT INTO producao_repositorio (
                      repositorio_id, etapa, checklist_id, usuario_id, quantidade, marcadores, data_producao
-                   ) VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7)
+                   ) VALUES ($1, $2, $3, $4, $5, $6::jsonb, ($7::date)::timestamp AT TIME ZONE '${SYSTEM_TIMEZONE}')
                    RETURNING id`,
                     [
                       repositorioId,
@@ -1969,209 +1966,212 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
           const { id } = request.params;
 
           // 1. Fetch the saved source
-          const fonteResult = await server.database.query<{ id: string; nome: string; url: string }>(
-            `SELECT id, nome, url FROM fontes_importacao WHERE id = $1`,
-            [id]
-          );
+          const fonteResult = await server.database.query<{
+            id: string;
+            nome: string;
+            url: string;
+          }>(`SELECT id, nome, url FROM fontes_importacao WHERE id = $1`, [id]);
           if (fonteResult.rows.length === 0) {
             return reply.status(404).send({ error: 'Fonte de importacao nao encontrada' });
           }
           const fonte = fonteResult.rows[0]!;
 
-        // 2. Fetch CSV and parse rows from source
-        let registros: ParsedImportRow[] = [];
-        try {
-          const fetched = await fetchCsvFromSourceUrl(fonte.url, 15_000, false);
-          if (!fetched.csvContent.trim()) {
-            return reply.status(400).send({ error: 'A planilha retornou conteudo vazio.' });
-          }
-          registros = parseImportRowsFromCsv(fetched.csvContent);
-        } catch (error) {
-          return sendSpreadsheetFetchError(reply, error);
-        }
-
-        if (registros.length === 0) {
-          return reply
-            .status(400)
-            .send({ error: 'Nenhum registro valido encontrado na planilha.' });
-        }
-
-        // 4. Import with auto-skip duplicates - delegate to the existing producao import handler logic
-        //    but inline it here to auto-skip instead of prompting
-        const user = getCurrentUser(request);
-
-        const etapaStatusMap: Record<string, StatusRepositorio> = {
-          RECEBIMENTO: 'RECEBIDO',
-          PREPARACAO: 'EM_PREPARACAO',
-          DIGITALIZACAO: 'EM_DIGITALIZACAO',
-          CONFERENCIA: 'EM_CONFERENCIA',
-          MONTAGEM: 'EM_MONTAGEM',
-          CONTROLE_QUALIDADE: 'EM_CQ',
-          ENTREGA: 'EM_ENTREGA',
-        };
-        const funcaoToEtapa = (funcao: string): EtapaFluxo => {
-          const f = funcao
-            .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '')
-            .toLowerCase()
-            .trim();
-          if (f.includes('receb')) return 'RECEBIMENTO';
-          if (f.includes('prepar')) return 'PREPARACAO';
-          if (f.includes('digital')) return 'DIGITALIZACAO';
-          if (f.includes('confer')) return 'CONFERENCIA';
-          if (f.includes('montag')) return 'MONTAGEM';
-          if (f.includes('qualidade') || f.includes('cq')) return 'CONTROLE_QUALIDADE';
-          if (f.includes('entreg')) return 'ENTREGA';
-          return 'RECEBIMENTO';
-        };
-
-        const usuariosResult = await server.database.query<{ id: string; nome: string }>(
-          `SELECT id, nome FROM usuarios WHERE ativo = TRUE`
-        );
-        const usuariosPorNome = new Map<string, string>();
-        for (const u of usuariosResult.rows) {
-          usuariosPorNome.set(u.nome.toLowerCase().trim(), u.id);
-        }
-
-        let sucesso = 0;
-        let inseridos = 0;
-        let atualizados = 0;
-        let ignorados = 0;
-        let duplicados = 0;
-        const importacaoExecId = randomUUID();
-        const insertedProducaoIds: string[] = [];
-        const updatedSnapshots: Array<{
-          id: string;
-          quantidade: number;
-          checklist_id: string | null;
-          etapa: string;
-          marcadores: Record<string, unknown>;
-        }> = [];
-        const importacaoFonteHashes: string[] = [];
-        const erros: Array<{ linha: number; erro: string; dados?: Record<string, unknown> }> = [];
-
-        await server.database.query('BEGIN');
-        try {
-          const lockResult = await server.database.query<{ acquired: boolean }>(
-            `SELECT pg_try_advisory_xact_lock(hashtext($1)) AS acquired`,
-            [`importacao_fonte:${fonte.id}`]
-          );
-          if (!lockResult.rows[0]?.acquired) {
-            throw new Error('Importacao desta fonte ja esta em execucao. Tente novamente.');
-          }
-
-          for (let idx = 0; idx < registros.length; idx++) {
-            const row = registros[idx]!;
-            const linha = idx + 1;
-            const parsedRow = parseImportRowStrict(row);
-            if (!parsedRow.ok) {
-              erros.push({ linha, erro: parsedRow.error, dados: { ...row } });
-              continue;
+          // 2. Fetch CSV and parse rows from source
+          let registros: ParsedImportRow[] = [];
+          try {
+            const fetched = await fetchCsvFromSourceUrl(fonte.url, 15_000, false);
+            if (!fetched.csvContent.trim()) {
+              return reply.status(400).send({ error: 'A planilha retornou conteudo vazio.' });
             }
-            const {
-              repoIdentificadorRaw,
-              colaboradorNome,
-              quantidade,
-              dataProducaoStr,
-              dataOriginalRaw,
-              anoRef,
-              tipoMarcador,
-              funcaoMarcador,
-              coordenadoriaMarcador,
-            } = parsedRow.value;
-            const etapaImport = funcaoToEtapa(funcaoMarcador);
-            const statusImport = etapaStatusMap[etapaImport] ?? 'RECEBIDO';
+            registros = parseImportRowsFromCsv(fetched.csvContent);
+          } catch (error) {
+            return sendSpreadsheetFetchError(reply, error);
+          }
 
-            // Resolve collaborator
-            let colaboradorId = usuariosPorNome.get(colaboradorNome.toLowerCase());
-            if (!colaboradorId) {
-              for (const [nome, uid] of usuariosPorNome.entries()) {
-                if (
-                  nome.includes(colaboradorNome.toLowerCase()) ||
-                  colaboradorNome.toLowerCase().includes(nome)
-                ) {
-                  colaboradorId = uid;
-                  break;
+          if (registros.length === 0) {
+            return reply
+              .status(400)
+              .send({ error: 'Nenhum registro valido encontrado na planilha.' });
+          }
+
+          // 4. Import with auto-skip duplicates - delegate to the existing producao import handler logic
+          //    but inline it here to auto-skip instead of prompting
+          const user = getCurrentUser(request);
+
+          const etapaStatusMap: Record<string, StatusRepositorio> = {
+            RECEBIMENTO: 'RECEBIDO',
+            PREPARACAO: 'EM_PREPARACAO',
+            DIGITALIZACAO: 'EM_DIGITALIZACAO',
+            CONFERENCIA: 'EM_CONFERENCIA',
+            MONTAGEM: 'EM_MONTAGEM',
+            CONTROLE_QUALIDADE: 'EM_CQ',
+            ENTREGA: 'EM_ENTREGA',
+          };
+          const funcaoToEtapa = (funcao: string): EtapaFluxo => {
+            const f = funcao
+              .normalize('NFD')
+              .replace(/[\u0300-\u036f]/g, '')
+              .toLowerCase()
+              .trim();
+            if (f.includes('receb')) return 'RECEBIMENTO';
+            if (f.includes('prepar')) return 'PREPARACAO';
+            if (f.includes('digital')) return 'DIGITALIZACAO';
+            if (f.includes('confer')) return 'CONFERENCIA';
+            if (f.includes('montag')) return 'MONTAGEM';
+            if (f.includes('qualidade') || f.includes('cq')) return 'CONTROLE_QUALIDADE';
+            if (f.includes('entreg')) return 'ENTREGA';
+            return 'RECEBIMENTO';
+          };
+
+          const usuariosResult = await server.database.query<{ id: string; nome: string }>(
+            `SELECT id, nome FROM usuarios WHERE ativo = TRUE`
+          );
+          const usuariosPorNome = new Map<string, string>();
+          for (const u of usuariosResult.rows) {
+            usuariosPorNome.set(u.nome.toLowerCase().trim(), u.id);
+          }
+
+          let sucesso = 0;
+          let inseridos = 0;
+          let atualizados = 0;
+          let ignorados = 0;
+          let duplicados = 0;
+          const importacaoExecId = randomUUID();
+          const insertedProducaoIds: string[] = [];
+          const updatedSnapshots: Array<{
+            id: string;
+            quantidade: number;
+            checklist_id: string | null;
+            etapa: string;
+            marcadores: Record<string, unknown>;
+          }> = [];
+          const importacaoFonteHashes: string[] = [];
+          const erros: Array<{ linha: number; erro: string; dados?: Record<string, unknown> }> = [];
+
+          await server.database.query('BEGIN');
+          try {
+            const lockResult = await server.database.query<{ acquired: boolean }>(
+              `SELECT pg_try_advisory_xact_lock(hashtext($1)) AS acquired`,
+              [`importacao_fonte:${fonte.id}`]
+            );
+            if (!lockResult.rows[0]?.acquired) {
+              throw new Error('Importacao desta fonte ja esta em execucao. Tente novamente.');
+            }
+
+            for (let idx = 0; idx < registros.length; idx++) {
+              const row = registros[idx]!;
+              const linha = idx + 1;
+              const parsedRow = parseImportRowStrict(row);
+              if (!parsedRow.ok) {
+                erros.push({ linha, erro: parsedRow.error, dados: { ...row } });
+                continue;
+              }
+              const {
+                repoIdentificadorRaw,
+                colaboradorNome,
+                quantidade,
+                dataProducaoStr,
+                dataOriginalRaw,
+                anoRef,
+                tipoMarcador,
+                funcaoMarcador,
+                coordenadoriaMarcador,
+              } = parsedRow.value;
+              const etapaImport = funcaoToEtapa(funcaoMarcador);
+              const statusImport = etapaStatusMap[etapaImport] ?? 'RECEBIDO';
+
+              // Resolve collaborator
+              let colaboradorId = usuariosPorNome.get(colaboradorNome.toLowerCase());
+              if (!colaboradorId) {
+                for (const [nome, uid] of usuariosPorNome.entries()) {
+                  if (
+                    nome.includes(colaboradorNome.toLowerCase()) ||
+                    colaboradorNome.toLowerCase().includes(nome)
+                  ) {
+                    colaboradorId = uid;
+                    break;
+                  }
                 }
               }
-            }
-            if (!colaboradorId) colaboradorId = user.id;
+              if (!colaboradorId) colaboradorId = user.id;
 
-            const repoIdentificador = normalizeIdRepositorioGed(repoIdentificadorRaw, anoRef);
-            const orgaoRepositorio = coordenadoriaMarcador || 'NAO INFORMADO';
+              const repoIdentificador = normalizeIdRepositorioGed(repoIdentificadorRaw, anoRef);
+              const orgaoRepositorio = coordenadoriaMarcador || 'NAO INFORMADO';
 
-            try {
-              // Find or create repo
-              const repoResult = await server.database.query<{ id_repositorio_recorda: string }>(
-                `SELECT id_repositorio_recorda
+              try {
+                // Find or create repo
+                const repoResult = await server.database.query<{ id_repositorio_recorda: string }>(
+                  `SELECT id_repositorio_recorda
                FROM repositorios
                WHERE id_repositorio_ged = $1
                  AND orgao = $2
                  AND projeto = $3`,
-                [repoIdentificador, orgaoRepositorio, PROJETO_IMPORTACAO_PRODUCAO]
-              );
-              let repositorioId = repoResult.rows[0]?.id_repositorio_recorda ?? '';
-              if (!repositorioId) {
-                const createdRepo = await server.database.query<{ id_repositorio_recorda: string }>(
-                  `INSERT INTO repositorios (id_repositorio_ged, orgao, projeto, status_atual, etapa_atual)
+                  [repoIdentificador, orgaoRepositorio, PROJETO_IMPORTACAO_PRODUCAO]
+                );
+                let repositorioId = repoResult.rows[0]?.id_repositorio_recorda ?? '';
+                if (!repositorioId) {
+                  const createdRepo = await server.database.query<{
+                    id_repositorio_recorda: string;
+                  }>(
+                    `INSERT INTO repositorios (id_repositorio_ged, orgao, projeto, status_atual, etapa_atual)
                  VALUES ($1, $2, $3, $4, $5)
                  ON CONFLICT (id_repositorio_ged, orgao, projeto) DO UPDATE SET id_repositorio_ged = EXCLUDED.id_repositorio_ged
                  RETURNING id_repositorio_recorda`,
-                  [
-                    repoIdentificador,
-                    orgaoRepositorio,
-                    PROJETO_IMPORTACAO_PRODUCAO,
-                    statusImport,
-                    etapaImport,
-                  ]
-                );
-                repositorioId = createdRepo.rows[0]?.id_repositorio_recorda ?? '';
-              }
+                    [
+                      repoIdentificador,
+                      orgaoRepositorio,
+                      PROJETO_IMPORTACAO_PRODUCAO,
+                      statusImport,
+                      etapaImport,
+                    ]
+                  );
+                  repositorioId = createdRepo.rows[0]?.id_repositorio_recorda ?? '';
+                }
 
-              // Check for duplicate - auto-skip with comprehensive comparison
-              const colaboradorNomeMarcador = (colaboradorNome || '').trim();
-              const idempotencyHash = buildImportRowHash({
-                fonteId: fonte.id,
-                repositorioGed: repoIdentificador,
-                repositorioId,
-                colaboradorId,
-                colaboradorNome: colaboradorNomeMarcador,
-                etapa: etapaImport,
-                data: dataProducaoStr,
-                quantidade,
-                tipo: tipoMarcador,
-                funcao: funcaoMarcador,
-                coordenadoria: coordenadoriaMarcador,
-              });
-              const idemExistente = await server.database.query<{ id: string }>(
-                `SELECT id FROM importacao_fontes_linhas
+                // Check for duplicate - auto-skip with comprehensive comparison
+                const colaboradorNomeMarcador = (colaboradorNome || '').trim();
+                const idempotencyHash = buildImportRowHash({
+                  fonteId: fonte.id,
+                  repositorioGed: repoIdentificador,
+                  repositorioId,
+                  colaboradorId,
+                  colaboradorNome: colaboradorNomeMarcador,
+                  etapa: etapaImport,
+                  data: dataProducaoStr,
+                  quantidade,
+                  tipo: tipoMarcador,
+                  funcao: funcaoMarcador,
+                  coordenadoria: coordenadoriaMarcador,
+                });
+                const idemExistente = await server.database.query<{ id: string }>(
+                  `SELECT id FROM importacao_fontes_linhas
                WHERE fonte_id = $1 AND chave_hash = $2
                LIMIT 1`,
-                [fonte.id, idempotencyHash]
-              );
-              if (idemExistente.rows.length > 0) {
-                duplicados++;
-                ignorados++;
-                continue;
-              }
-              const marcadores = JSON.stringify({
-                origem: 'LEGADO',
-                importacao_exec_id: importacaoExecId,
-                funcao: funcaoMarcador,
-                tipo: tipoMarcador,
-                coordenadoria: coordenadoriaMarcador,
-                colaborador_nome: colaboradorNome,
-                data_original: dataOriginalRaw,
-              });
+                  [fonte.id, idempotencyHash]
+                );
+                if (idemExistente.rows.length > 0) {
+                  duplicados++;
+                  ignorados++;
+                  continue;
+                }
+                const marcadores = JSON.stringify({
+                  origem: 'LEGADO',
+                  importacao_exec_id: importacaoExecId,
+                  funcao: funcaoMarcador,
+                  tipo: tipoMarcador,
+                  coordenadoria: coordenadoriaMarcador,
+                  colaborador_nome: colaboradorNome,
+                  data_original: dataOriginalRaw,
+                });
 
-              const existente = await server.database.query<{
-                id: string;
-                quantidade: number;
-                checklist_id: string | null;
-                etapa: string;
-                marcadores: Record<string, unknown>;
-              }>(
-                `SELECT id, quantidade, checklist_id, etapa::text as etapa, marcadores
+                const existente = await server.database.query<{
+                  id: string;
+                  quantidade: number;
+                  checklist_id: string | null;
+                  etapa: string;
+                  marcadores: Record<string, unknown>;
+                }>(
+                  `SELECT id, quantidade, checklist_id, etapa::text as etapa, marcadores
                FROM producao_repositorio
                WHERE usuario_id = $1 AND repositorio_id = $2 AND (data_producao AT TIME ZONE '${SYSTEM_TIMEZONE}')::date = $3::date
                  AND etapa = $4
@@ -2181,159 +2181,159 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
                  AND COALESCE(marcadores->>'coordenadoria', '') = $7
                  AND COALESCE(marcadores->>'colaborador_nome', '') = $8
                LIMIT 1`,
-                [
-                  colaboradorId,
-                  repositorioId,
-                  dataProducaoStr,
-                  etapaImport,
-                  tipoMarcador,
-                  funcaoMarcador,
-                  coordenadoriaMarcador,
-                  colaboradorNomeMarcador,
-                ]
-              );
+                  [
+                    colaboradorId,
+                    repositorioId,
+                    dataProducaoStr,
+                    etapaImport,
+                    tipoMarcador,
+                    funcaoMarcador,
+                    coordenadoriaMarcador,
+                    colaboradorNomeMarcador,
+                  ]
+                );
 
-              if (existente.rows.length > 0) {
-                if (Number(existente.rows[0]!.quantidade) === quantidade) {
-                  duplicados++;
-                  ignorados++;
-                  continue;
-                }
-                updatedSnapshots.push({
-                  id: existente.rows[0]!.id,
-                  quantidade: Number(existente.rows[0]!.quantidade),
-                  checklist_id: existente.rows[0]!.checklist_id,
-                  etapa: existente.rows[0]!.etapa,
-                  marcadores: existente.rows[0]!.marcadores ?? {},
-                });
-                await server.database.query(
-                  `UPDATE producao_repositorio
+                if (existente.rows.length > 0) {
+                  if (Number(existente.rows[0]!.quantidade) === quantidade) {
+                    duplicados++;
+                    ignorados++;
+                    continue;
+                  }
+                  updatedSnapshots.push({
+                    id: existente.rows[0]!.id,
+                    quantidade: Number(existente.rows[0]!.quantidade),
+                    checklist_id: existente.rows[0]!.checklist_id,
+                    etapa: existente.rows[0]!.etapa,
+                    marcadores: existente.rows[0]!.marcadores ?? {},
+                  });
+                  await server.database.query(
+                    `UPDATE producao_repositorio
                  SET quantidade = $1, marcadores = $2::jsonb, etapa = $4
                  WHERE id = $3`,
-                  [quantidade, marcadores, existente.rows[0]!.id, etapaImport]
-                );
-                await server.database.query(
-                  `INSERT INTO importacao_fontes_linhas (fonte_id, chave_hash, linha)
+                    [quantidade, marcadores, existente.rows[0]!.id, etapaImport]
+                  );
+                  await server.database.query(
+                    `INSERT INTO importacao_fontes_linhas (fonte_id, chave_hash, linha)
                  VALUES ($1, $2, $3)
                  ON CONFLICT (fonte_id, chave_hash) DO NOTHING`,
+                    [fonte.id, idempotencyHash, linha]
+                  );
+                  importacaoFonteHashes.push(idempotencyHash);
+                  atualizados++;
+                  sucesso++;
+                  continue;
+                }
+
+                // Find or create checklist (must be CONCLUIDO to satisfy production trigger)
+                const existingChecklist = await server.database.query<{ id: string }>(
+                  `SELECT id FROM checklists WHERE repositorio_id = $1 AND etapa = $2 AND status = 'CONCLUIDO' LIMIT 1`,
+                  [repositorioId, etapaImport]
+                );
+                let checklistId = existingChecklist.rows[0]?.id ?? '';
+                if (!checklistId) {
+                  const checklistResult = await server.database.query<{ id: string }>(
+                    `INSERT INTO checklists (repositorio_id, etapa, status, observacao, responsavel_id, ativo, data_conclusao)
+                 VALUES ($1, $2, 'CONCLUIDO', 'Importacao legada', $3, FALSE, CURRENT_TIMESTAMP) RETURNING id`,
+                    [repositorioId, etapaImport, colaboradorId]
+                  );
+                  checklistId = checklistResult.rows[0]?.id ?? '';
+                }
+
+                const inserted = await server.database.query<{ id: string }>(
+                  `INSERT INTO producao_repositorio (
+                 repositorio_id, etapa, checklist_id, usuario_id, quantidade, marcadores, data_producao
+               ) VALUES ($1, $2, $3, $4, $5, $6::jsonb, ($7::date)::timestamp AT TIME ZONE '${SYSTEM_TIMEZONE}')
+               RETURNING id`,
+                  [
+                    repositorioId,
+                    etapaImport,
+                    checklistId,
+                    colaboradorId,
+                    quantidade,
+                    marcadores,
+                    dataProducaoStr,
+                  ]
+                );
+                const insertedId = inserted.rows[0]?.id;
+                if (insertedId) insertedProducaoIds.push(insertedId);
+                await server.database.query(
+                  `INSERT INTO importacao_fontes_linhas (fonte_id, chave_hash, linha)
+               VALUES ($1, $2, $3)
+               ON CONFLICT (fonte_id, chave_hash) DO NOTHING`,
                   [fonte.id, idempotencyHash, linha]
                 );
                 importacaoFonteHashes.push(idempotencyHash);
-                atualizados++;
+                inseridos++;
                 sucesso++;
-                continue;
+              } catch (error) {
+                erros.push({
+                  linha,
+                  erro: error instanceof Error ? error.message : 'Erro desconhecido',
+                  dados: {
+                    repositorio: repoIdentificadorRaw,
+                    colaborador: colaboradorNome,
+                    funcao: row.funcao,
+                    tipo: row.tipo,
+                    data_original: dataOriginalRaw,
+                    data: dataProducaoStr,
+                    quantidade,
+                  },
+                });
               }
-
-              // Find or create checklist (must be CONCLUIDO to satisfy production trigger)
-              const existingChecklist = await server.database.query<{ id: string }>(
-                `SELECT id FROM checklists WHERE repositorio_id = $1 AND etapa = $2 AND status = 'CONCLUIDO' LIMIT 1`,
-                [repositorioId, etapaImport]
-              );
-              let checklistId = existingChecklist.rows[0]?.id ?? '';
-              if (!checklistId) {
-                const checklistResult = await server.database.query<{ id: string }>(
-                  `INSERT INTO checklists (repositorio_id, etapa, status, observacao, responsavel_id, ativo, data_conclusao)
-                 VALUES ($1, $2, 'CONCLUIDO', 'Importacao legada', $3, FALSE, CURRENT_TIMESTAMP) RETURNING id`,
-                  [repositorioId, etapaImport, colaboradorId]
-                );
-                checklistId = checklistResult.rows[0]?.id ?? '';
-              }
-
-              const inserted = await server.database.query<{ id: string }>(
-                `INSERT INTO producao_repositorio (
-                 repositorio_id, etapa, checklist_id, usuario_id, quantidade, marcadores, data_producao
-               ) VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7)
-               RETURNING id`,
-                [
-                  repositorioId,
-                  etapaImport,
-                  checklistId,
-                  colaboradorId,
-                  quantidade,
-                  marcadores,
-                  dataProducaoStr,
-                ]
-              );
-              const insertedId = inserted.rows[0]?.id;
-              if (insertedId) insertedProducaoIds.push(insertedId);
-              await server.database.query(
-                `INSERT INTO importacao_fontes_linhas (fonte_id, chave_hash, linha)
-               VALUES ($1, $2, $3)
-               ON CONFLICT (fonte_id, chave_hash) DO NOTHING`,
-                [fonte.id, idempotencyHash, linha]
-              );
-              importacaoFonteHashes.push(idempotencyHash);
-              inseridos++;
-              sucesso++;
-            } catch (error) {
-              erros.push({
-                linha,
-                erro: error instanceof Error ? error.message : 'Erro desconhecido',
-                dados: {
-                  repositorio: repoIdentificadorRaw,
-                  colaborador: colaboradorNome,
-                  funcao: row.funcao,
-                  tipo: row.tipo,
-                  data_original: dataOriginalRaw,
-                  data: dataProducaoStr,
-                  quantidade,
-                },
-              });
             }
+
+            await server.database.query('COMMIT');
+          } catch (innerError) {
+            await server.database.query('ROLLBACK');
+            throw innerError;
           }
 
-          await server.database.query('COMMIT');
-        } catch (innerError) {
-          await server.database.query('ROLLBACK');
-          throw innerError;
-        }
+          // Update last import timestamp
+          await server.database.query(
+            `UPDATE fontes_importacao SET ultima_importacao_em = NOW() WHERE id = $1`,
+            [id]
+          );
 
-        // Update last import timestamp
-        await server.database.query(
-          `UPDATE fontes_importacao SET ultima_importacao_em = NOW() WHERE id = $1`,
-          [id]
-        );
-
-        // Log the import
-        const finishedAt = new Date();
-        const detalhesImportacao = {
-          importacao_exec_id: importacaoExecId,
-          fonte: { id: fonte.id, nome: fonte.nome, url: fonte.url },
-          rollback: {
-            insertedProducaoIds,
-            updatedSnapshots,
-            fonteId: fonte.id,
-            importacaoFonteHashes: [...new Set(importacaoFonteHashes)],
-          },
-          periodo_execucao: {
-            iniciado_em: startedAt.toISOString(),
-            finalizado_em: finishedAt.toISOString(),
-            duracao_ms: finishedAt.getTime() - startedAt.getTime(),
-          },
-          contadores: {
-            total_planilha: registros.length,
-            sucesso,
-            inseridos,
-            atualizados,
-            ignorados,
-            duplicados,
-            erros: erros.length,
-          },
-          erros_amostra: erros.slice(0, 50),
-        };
-        await server.database.query(
-          `INSERT INTO importacoes_legado_operacional (
+          // Log the import
+          const finishedAt = new Date();
+          const detalhesImportacao = {
+            importacao_exec_id: importacaoExecId,
+            fonte: { id: fonte.id, nome: fonte.nome, url: fonte.url },
+            rollback: {
+              insertedProducaoIds,
+              updatedSnapshots,
+              fonteId: fonte.id,
+              importacaoFonteHashes: [...new Set(importacaoFonteHashes)],
+            },
+            periodo_execucao: {
+              iniciado_em: startedAt.toISOString(),
+              finalizado_em: finishedAt.toISOString(),
+              duracao_ms: finishedAt.getTime() - startedAt.getTime(),
+            },
+            contadores: {
+              total_planilha: registros.length,
+              sucesso,
+              inseridos,
+              atualizados,
+              ignorados,
+              duplicados,
+              erros: erros.length,
+            },
+            erros_amostra: erros.slice(0, 50),
+          };
+          await server.database.query(
+            `INSERT INTO importacoes_legado_operacional (
            tipo, total_registros, registros_sucesso, registros_erro, detalhes_erros, usuario_destino_id, executado_por
          ) VALUES ('PRODUCAO', $1, $2, $3, $4::jsonb, $5, $6)`,
-          [
-            registros.length,
-            sucesso,
-            erros.length,
-            JSON.stringify(detalhesImportacao),
-            user.id,
-            user.id,
-          ]
-        );
+            [
+              registros.length,
+              sucesso,
+              erros.length,
+              JSON.stringify(detalhesImportacao),
+              user.id,
+              user.id,
+            ]
+          );
 
           return reply.send({
             fonte: fonte.nome,
@@ -2372,118 +2372,123 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
           const startedAt = new Date();
 
           // 1. Get all saved sources
-          const fontesResult = await server.database.query<{ id: string; nome: string; url: string }>(
-            `SELECT id, nome, url FROM fontes_importacao ORDER BY nome`
-          );
+          const fontesResult = await server.database.query<{
+            id: string;
+            nome: string;
+            url: string;
+          }>(`SELECT id, nome, url FROM fontes_importacao ORDER BY nome`);
           if (fontesResult.rows.length === 0) {
             return reply.status(400).send({ error: 'Nenhuma fonte de importacao cadastrada.' });
           }
 
-        const fontes = fontesResult.rows;
-        const resultados: Array<{
-          fonte: string;
-          importados: number;
-          duplicados: number;
-          erros: number;
-          sucesso: boolean;
-          erro?: string;
-          erros_amostra?: Array<{ linha: number; erro: string }>;
-        }> = [];
-        let totalImportados = 0;
-        let totalDuplicados = 0;
-        let totalErros = 0;
+          const fontes = fontesResult.rows;
+          const resultados: Array<{
+            fonte: string;
+            importados: number;
+            duplicados: number;
+            erros: number;
+            sucesso: boolean;
+            erro?: string;
+            erros_amostra?: Array<{ linha: number; erro: string }>;
+          }> = [];
+          let totalImportados = 0;
+          let totalDuplicados = 0;
+          let totalErros = 0;
 
-        // 2. Import each source usando o mesmo fluxo da rota individual /:id/importar
-        for (const fonte of fontes) {
-          try {
-            const injected = await server.inject({
-              method: 'POST',
-              url: `/operacional/fontes-importacao/${fonte.id}/importar`,
-              headers: {
-                authorization: request.headers.authorization ?? '',
-              },
-            });
+          // 2. Import each source usando o mesmo fluxo da rota individual /:id/importar
+          for (const fonte of fontes) {
+            try {
+              const injected = await server.inject({
+                method: 'POST',
+                url: `/operacional/fontes-importacao/${fonte.id}/importar`,
+                headers: {
+                  authorization: request.headers.authorization ?? '',
+                },
+              });
 
-            if (injected.statusCode >= 400) {
-              let message = `Falha ao importar fonte (HTTP ${injected.statusCode})`;
-              try {
-                const parsed = injected.json() as { error?: string; code?: string };
-                if (parsed?.error) {
-                  message = parsed.code ? `${parsed.error} (${parsed.code})` : parsed.error;
+              if (injected.statusCode >= 400) {
+                let message = `Falha ao importar fonte (HTTP ${injected.statusCode})`;
+                try {
+                  const parsed = injected.json() as { error?: string; code?: string };
+                  if (parsed?.error) {
+                    message = parsed.code ? `${parsed.error} (${parsed.code})` : parsed.error;
+                  }
+                } catch {
+                  // ignore parsing error
                 }
-              } catch {
-                // ignore parsing error
+                throw new Error(message);
               }
-              throw new Error(message);
+
+              const importResult = injected.json() as {
+                importados: number;
+                duplicados: number;
+                erros: number;
+                detalhesErros?: Array<{ linha: number; erro: string }>;
+              };
+
+              resultados.push({
+                fonte: fonte.nome,
+                importados: Number(importResult.importados ?? 0),
+                duplicados: Number(importResult.duplicados ?? 0),
+                erros: Number(importResult.erros ?? 0),
+                sucesso: importResult.erros === 0,
+                erros_amostra: importResult.detalhesErros ?? [],
+              });
+
+              totalImportados += Number(importResult.importados ?? 0);
+              totalDuplicados += Number(importResult.duplicados ?? 0);
+              totalErros += Number(importResult.erros ?? 0);
+            } catch (error) {
+              const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+              resultados.push({
+                fonte: fonte.nome,
+                importados: 0,
+                duplicados: 0,
+                erros: 1,
+                sucesso: false,
+                erro: errorMessage,
+              });
+              totalErros++;
+
+              request.log.error(
+                { err: error, fonteId: fonte.id },
+                'Erro ao importar fonte no lote'
+              );
             }
-
-            const importResult = injected.json() as {
-              importados: number;
-              duplicados: number;
-              erros: number;
-              detalhesErros?: Array<{ linha: number; erro: string }>;
-            };
-
-            resultados.push({
-              fonte: fonte.nome,
-              importados: Number(importResult.importados ?? 0),
-              duplicados: Number(importResult.duplicados ?? 0),
-              erros: Number(importResult.erros ?? 0),
-              sucesso: importResult.erros === 0,
-              erros_amostra: importResult.detalhesErros ?? [],
-            });
-
-            totalImportados += Number(importResult.importados ?? 0);
-            totalDuplicados += Number(importResult.duplicados ?? 0);
-            totalErros += Number(importResult.erros ?? 0);
-          } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-            resultados.push({
-              fonte: fonte.nome,
-              importados: 0,
-              duplicados: 0,
-              erros: 1,
-              sucesso: false,
-              erro: errorMessage,
-            });
-            totalErros++;
-
-            request.log.error({ err: error, fonteId: fonte.id }, 'Erro ao importar fonte no lote');
           }
-        }
 
-        // 3. Log the bulk import
-        const finishedAt = new Date();
-        const detalhesBulk = {
-          periodo_execucao: {
-            iniciado_em: startedAt.toISOString(),
-            finalizado_em: finishedAt.toISOString(),
-            duracao_ms: finishedAt.getTime() - startedAt.getTime(),
-          },
-          resumo: {
-            fontes: fontes.length,
-            importados: totalImportados,
-            duplicados: totalDuplicados,
-            erros: totalErros,
-          },
-          resultados,
-        };
+          // 3. Log the bulk import
+          const finishedAt = new Date();
+          const detalhesBulk = {
+            periodo_execucao: {
+              iniciado_em: startedAt.toISOString(),
+              finalizado_em: finishedAt.toISOString(),
+              duracao_ms: finishedAt.getTime() - startedAt.getTime(),
+            },
+            resumo: {
+              fontes: fontes.length,
+              importados: totalImportados,
+              duplicados: totalDuplicados,
+              erros: totalErros,
+            },
+            resultados,
+          };
 
-        const totalRegistrosLog = totalImportados + totalErros;
-        await server.database.query(
-          `INSERT INTO importacoes_legado_operacional (
+          const totalRegistrosLog = totalImportados + totalErros;
+          await server.database.query(
+            `INSERT INTO importacoes_legado_operacional (
            tipo, total_registros, registros_sucesso, registros_erro, detalhes_erros, usuario_destino_id, executado_por
          )
          VALUES ('PRODUCAO_BULK', $1, $2, $3, $4::jsonb, $5, $6)`,
-          [
-            totalRegistrosLog,
-            totalImportados,
-            totalErros,
-            JSON.stringify(detalhesBulk),
-            user.id,
-            user.id,
-          ]
-        );
+            [
+              totalRegistrosLog,
+              totalImportados,
+              totalErros,
+              JSON.stringify(detalhesBulk),
+              user.id,
+              user.id,
+            ]
+          );
 
           return reply.send({
             total: fontes.length,

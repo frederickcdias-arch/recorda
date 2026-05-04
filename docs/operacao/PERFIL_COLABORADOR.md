@@ -25,6 +25,7 @@ ALTER TYPE perfil_usuario ADD VALUE IF NOT EXISTS 'colaborador';
 Adiciona o valor 'colaborador' ao enum existente `perfil_usuario`.
 
 **Executar migration:**
+
 ```bash
 # Aplicar em desenvolvimento
 psql -U postgres -d recorda < db/migrations/066_add_perfil_colaborador.sql
@@ -50,6 +51,7 @@ export type PerfilUsuario = 'colaborador' | 'operador' | 'administrador';
 **Autenticação:** Requerida (colaborador, operador ou administrador)
 
 **Query Parameters:**
+
 - `dataInicio` (opcional): Data início no formato YYYY-MM-DD
 - `dataFim` (opcional): Data fim no formato YYYY-MM-DD
 - `etapa` (opcional): Filtrar por etapa específica
@@ -57,6 +59,7 @@ export type PerfilUsuario = 'colaborador' | 'operador' | 'administrador';
 - `pagina` (opcional, padrão: 1): Número da página
 
 **Resposta:**
+
 ```json
 {
   "producoes": [
@@ -78,6 +81,7 @@ export type PerfilUsuario = 'colaborador' | 'operador' | 'administrador';
 ```
 
 **Exemplo de uso:**
+
 ```bash
 curl -X GET "http://localhost:3000/producao/meu-historico?dataInicio=2025-08-01&limite=20" \
   -H "Authorization: Bearer {token}"
@@ -90,6 +94,7 @@ curl -X GET "http://localhost:3000/producao/meu-historico?dataInicio=2025-08-01&
 **Autenticação:** Requerida (apenas administrador)
 
 **Body:**
+
 ```json
 {
   "usuarioId": "uuid-do-usuario"
@@ -97,6 +102,7 @@ curl -X GET "http://localhost:3000/producao/meu-historico?dataInicio=2025-08-01&
 ```
 
 **Resposta:**
+
 ```json
 {
   "message": "Produção vinculada com sucesso",
@@ -105,6 +111,7 @@ curl -X GET "http://localhost:3000/producao/meu-historico?dataInicio=2025-08-01&
 ```
 
 **Exemplo de uso:**
+
 ```bash
 curl -X PATCH "http://localhost:3000/producao/{id}/vincular-usuario" \
   -H "Authorization: Bearer {admin-token}" \
@@ -117,6 +124,7 @@ curl -X PATCH "http://localhost:3000/producao/{id}/vincular-usuario" \
 As seguintes rotas agora aceitam perfil **colaborador**:
 
 #### Produção e Histórico
+
 - ✅ `GET /producao/metas` - Visualizar metas de produção
 - ✅ `GET /producao/desempenho` - Visualizar indicadores (todos os usuários)
 - ✅ `GET /producao/mapeamentos` - Listar templates
@@ -124,6 +132,7 @@ As seguintes rotas agora aceitam perfil **colaborador**:
 - ✅ `GET /producao/meu-historico` - **NOVO** - Ver próprio histórico
 
 #### Apenas Admin
+
 - 🔒 `PATCH /producao/:id/vincular-usuario` - **NOVO** - Vincular produção a usuário
 
 ## 👥 Hierarquia de Perfis
@@ -144,21 +153,22 @@ As seguintes rotas agora aceitam perfil **colaborador**:
 
 ### Permissões por Perfil
 
-| Funcionalidade | Colaborador | Operador | Admin |
-|----------------|:-----------:|:--------:|:-----:|
-| Lançar produção própria | ✅ | ✅ | ✅ |
-| Ver próprio histórico | ✅ | ✅ | ✅ |
-| Ver histórico de outros | ❌ | ✅ | ✅ |
-| Importar planilhas | ❌ | ✅ | ✅ |
-| Gerenciar repositórios | ❌ | ✅ | ✅ |
-| Vincular produções | ❌ | ❌ | ✅ |
-| Gerenciar usuários | ❌ | ❌ | ✅ |
+| Funcionalidade          | Colaborador | Operador | Admin |
+| ----------------------- | :---------: | :------: | :---: |
+| Lançar produção própria |     ✅      |    ✅    |  ✅   |
+| Ver próprio histórico   |     ✅      |    ✅    |  ✅   |
+| Ver histórico de outros |     ❌      |    ✅    |  ✅   |
+| Importar planilhas      |     ❌      |    ✅    |  ✅   |
+| Gerenciar repositórios  |     ❌      |    ✅    |  ✅   |
+| Vincular produções      |     ❌      |    ❌    |  ✅   |
+| Gerenciar usuários      |     ❌      |    ❌    |  ✅   |
 
 ## 📝 Fluxo de Uso
 
 ### 1. Criar Colaborador como Usuário
 
 **Opção A - Interface Admin:**
+
 ```
 1. Admin acessa Gerenciar Usuários
 2. Clica em "Novo Usuário"
@@ -172,6 +182,7 @@ As seguintes rotas agora aceitam perfil **colaborador**:
 ```
 
 **Opção B - API:**
+
 ```bash
 POST /usuarios
 {
@@ -235,15 +246,17 @@ O sistema de importação existente (`POST /operacional/importacoes-legado/produ
 ### Migração de Dados Existentes
 
 **Colaboradores antigos na tabela `colaboradores`:**
+
 - Continuam existindo normalmente
 - **NÃO têm login automaticamente**
 - Admin precisa criar usuário correspondente manualmente
 
 **Para migrar em lote:**
+
 ```sql
 -- Exemplo: criar usuários para colaboradores existentes
 INSERT INTO usuarios (nome, email, senha_hash, perfil, coordenadoria_id, ativo)
-SELECT 
+SELECT
   c.nome,
   COALESCE(c.email, LOWER(REPLACE(c.nome, ' ', '.')) || '@empresa.com'),
   '$2b$10$defaulthash...', -- Hash padrão temporário
@@ -265,6 +278,7 @@ WHERE c.email IS NOT NULL
 ## 🧪 Testes Sugeridos
 
 ### 1. Criar Usuário Colaborador
+
 ```bash
 POST /usuarios
 {
@@ -276,6 +290,7 @@ POST /usuarios
 ```
 
 ### 2. Login e Obter Token
+
 ```bash
 POST /auth/login
 {
@@ -285,6 +300,7 @@ POST /auth/login
 ```
 
 ### 3. Registrar Produção
+
 ```bash
 POST /operacional/repositorios/{id}/producao
 Authorization: Bearer {token-colaborador}
@@ -296,12 +312,14 @@ Authorization: Bearer {token-colaborador}
 ```
 
 ### 4. Ver Próprio Histórico
+
 ```bash
 GET /producao/meu-historico
 Authorization: Bearer {token-colaborador}
 ```
 
 ### 5. Tentar Vincular (deve falhar)
+
 ```bash
 PATCH /producao/{id}/vincular-usuario
 Authorization: Bearer {token-colaborador}
@@ -319,20 +337,26 @@ Authorization: Bearer {token-colaborador}
 ## 🐛 Troubleshooting
 
 ### Erro: "Perfil colaborador não existe"
+
 **Solução:** Executar migration `066_add_perfil_colaborador.sql`
 
 ### Erro: TypeScript não reconhece tipo 'colaborador'
+
 **Solução:** Reiniciar servidor TypeScript após atualizar `auth.ts`
 
 ### Colaborador não consegue lançar produção
+
 **Verificar:**
+
 1. Token JWT válido
 2. Perfil = 'colaborador' no banco
 3. Usuário ativo = true
 4. Checklist existe e está aberto
 
 ### Histórico vazio para colaborador
+
 **Verificar:**
+
 1. Produções têm `usuario_id` do colaborador
 2. Não há filtro de data muito restritivo
 3. Usuário está ativo no sistema
@@ -340,6 +364,7 @@ Authorization: Bearer {token-colaborador}
 ## 📞 Suporte
 
 Para dúvidas ou problemas, consulte:
+
 - Documentação completa: `/docs`
 - Logs do sistema: `/logs`
 - API Swagger: `http://localhost:3000/documentation`

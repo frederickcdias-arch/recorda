@@ -6,7 +6,7 @@ describe('Schema de Validação: lancarProducaoColaboradorSchema', () => {
     it('deve aceitar dados mínimos válidos', () => {
       const dados = {
         repositorio: '150/2026',
-        etapa: 'DIGITALIZACAO' as const
+        etapa: 'DIGITALIZACAO' as const,
       };
       const resultado = lancarProducaoColaboradorSchema.safeParse(dados);
       expect(resultado.success).toBe(true);
@@ -20,7 +20,7 @@ describe('Schema de Validação: lancarProducaoColaboradorSchema', () => {
         funcao: 'Digitalizador',
         coordenadoria: 'CINF',
         quantidade: 10,
-        tipo: 'Imagens'
+        tipo: 'Imagens',
       };
       const resultado = lancarProducaoColaboradorSchema.safeParse(dados);
       expect(resultado.success).toBe(true);
@@ -30,7 +30,7 @@ describe('Schema de Validação: lancarProducaoColaboradorSchema', () => {
       const dados = {
         repositorio: '150/2026',
         etapa: 'DIGITALIZACAO' as const,
-        quantidade: '10'
+        quantidade: '10',
       };
       const resultado = lancarProducaoColaboradorSchema.safeParse(dados);
       expect(resultado.success).toBe(true);
@@ -49,10 +49,10 @@ describe('Schema de Validação: lancarProducaoColaboradorSchema', () => {
         'MONTAGEM',
         'ATENDIMENTO',
         'CONTROLE_QUALIDADE',
-        'ENTREGA'
+        'ENTREGA',
       ] as const;
 
-      etapasValidas.forEach(etapa => {
+      etapasValidas.forEach((etapa) => {
         const dados = { repositorio: '150/2026', etapa };
         const resultado = lancarProducaoColaboradorSchema.safeParse(dados);
         expect(resultado.success).toBe(true);
@@ -63,7 +63,7 @@ describe('Schema de Validação: lancarProducaoColaboradorSchema', () => {
       const dados = {
         data: '2026-04-15',
         repositorio: '150/2026',
-        etapa: 'DIGITALIZACAO' as const
+        etapa: 'DIGITALIZACAO' as const,
       };
       const resultado = lancarProducaoColaboradorSchema.safeParse(dados);
       expect(resultado.success).toBe(true);
@@ -72,7 +72,7 @@ describe('Schema de Validação: lancarProducaoColaboradorSchema', () => {
     it('deve aceitar campos opcionais vazios', () => {
       const dados = {
         repositorio: '150/2026',
-        etapa: 'DIGITALIZACAO' as const
+        etapa: 'DIGITALIZACAO' as const,
       };
       const resultado = lancarProducaoColaboradorSchema.safeParse(dados);
       expect(resultado.success).toBe(true);
@@ -81,7 +81,7 @@ describe('Schema de Validação: lancarProducaoColaboradorSchema', () => {
     it('deve aceitar repositório de tamanho médio', () => {
       const dados = {
         repositorio: '000150/2026',
-        etapa: 'DIGITALIZACAO' as const
+        etapa: 'DIGITALIZACAO' as const,
       };
       const resultado = lancarProducaoColaboradorSchema.safeParse(dados);
       expect(resultado.success).toBe(true);
@@ -93,7 +93,7 @@ describe('Schema de Validação: lancarProducaoColaboradorSchema', () => {
       const dados = {
         data: '15/04/2026',
         repositorio: '150/2026',
-        etapa: 'DIGITALIZACAO' as const
+        etapa: 'DIGITALIZACAO' as const,
       };
       const resultado = lancarProducaoColaboradorSchema.safeParse(dados);
       expect(resultado.success).toBe(false);
@@ -103,7 +103,7 @@ describe('Schema de Validação: lancarProducaoColaboradorSchema', () => {
       const dados = {
         data: '2026/04/15',
         repositorio: '150/2026',
-        etapa: 'DIGITALIZACAO' as const
+        etapa: 'DIGITALIZACAO' as const,
       };
       const resultado = lancarProducaoColaboradorSchema.safeParse(dados);
       expect(resultado.success).toBe(false);
@@ -113,7 +113,7 @@ describe('Schema de Validação: lancarProducaoColaboradorSchema', () => {
       const dados = {
         data: '15-04-2026',
         repositorio: '150/2026',
-        etapa: 'DIGITALIZACAO' as const
+        etapa: 'DIGITALIZACAO' as const,
       };
       const resultado = lancarProducaoColaboradorSchema.safeParse(dados);
       expect(resultado.success).toBe(false);
@@ -123,7 +123,7 @@ describe('Schema de Validação: lancarProducaoColaboradorSchema', () => {
       const dados = {
         data: 'invalido',
         repositorio: '150/2026',
-        etapa: 'DIGITALIZACAO' as const
+        etapa: 'DIGITALIZACAO' as const,
       };
       const resultado = lancarProducaoColaboradorSchema.safeParse(dados);
       expect(resultado.success).toBe(false);
@@ -132,7 +132,7 @@ describe('Schema de Validação: lancarProducaoColaboradorSchema', () => {
     it('deve rejeitar repositório vazio', () => {
       const dados = {
         repositorio: '',
-        etapa: 'DIGITALIZACAO' as const
+        etapa: 'DIGITALIZACAO' as const,
       };
       const resultado = lancarProducaoColaboradorSchema.safeParse(dados);
       expect(resultado.success).toBe(false);
@@ -141,7 +141,7 @@ describe('Schema de Validação: lancarProducaoColaboradorSchema', () => {
     it('deve rejeitar repositório muito longo (>100 chars)', () => {
       const dados = {
         repositorio: 'x'.repeat(101),
-        etapa: 'DIGITALIZACAO' as const
+        etapa: 'DIGITALIZACAO' as const,
       };
       const resultado = lancarProducaoColaboradorSchema.safeParse(dados);
       expect(resultado.success).toBe(false);
@@ -150,7 +150,7 @@ describe('Schema de Validação: lancarProducaoColaboradorSchema', () => {
     it('deve rejeitar etapa inválida', () => {
       const dados = {
         repositorio: '150/2026',
-        etapa: 'ETAPA_INVALIDA'
+        etapa: 'ETAPA_INVALIDA',
       };
       const resultado = lancarProducaoColaboradorSchema.safeParse(dados);
       expect(resultado.success).toBe(false);
@@ -160,7 +160,7 @@ describe('Schema de Validação: lancarProducaoColaboradorSchema', () => {
       const dados = {
         repositorio: '150/2026',
         etapa: 'DIGITALIZACAO' as const,
-        quantidade: -1
+        quantidade: -1,
       };
       const resultado = lancarProducaoColaboradorSchema.safeParse(dados);
       expect(resultado.success).toBe(false);
@@ -170,7 +170,7 @@ describe('Schema de Validação: lancarProducaoColaboradorSchema', () => {
       const dados = {
         repositorio: '150/2026',
         etapa: 'DIGITALIZACAO' as const,
-        quantidade: 0
+        quantidade: 0,
       };
       const resultado = lancarProducaoColaboradorSchema.safeParse(dados);
       expect(resultado.success).toBe(false);
@@ -180,7 +180,7 @@ describe('Schema de Validação: lancarProducaoColaboradorSchema', () => {
       const dados = {
         repositorio: '150/2026',
         etapa: 'DIGITALIZACAO' as const,
-        quantidade: 10.5
+        quantidade: 10.5,
       };
       const resultado = lancarProducaoColaboradorSchema.safeParse(dados);
       expect(resultado.success).toBe(false);
@@ -190,7 +190,7 @@ describe('Schema de Validação: lancarProducaoColaboradorSchema', () => {
       const dados = {
         repositorio: '150/2026',
         etapa: 'DIGITALIZACAO' as const,
-        funcao: 'x'.repeat(201)
+        funcao: 'x'.repeat(201),
       };
       const resultado = lancarProducaoColaboradorSchema.safeParse(dados);
       expect(resultado.success).toBe(false);
@@ -200,7 +200,7 @@ describe('Schema de Validação: lancarProducaoColaboradorSchema', () => {
       const dados = {
         repositorio: '150/2026',
         etapa: 'DIGITALIZACAO' as const,
-        coordenadoria: 'x'.repeat(201)
+        coordenadoria: 'x'.repeat(201),
       };
       const resultado = lancarProducaoColaboradorSchema.safeParse(dados);
       expect(resultado.success).toBe(false);
@@ -210,7 +210,7 @@ describe('Schema de Validação: lancarProducaoColaboradorSchema', () => {
       const dados = {
         repositorio: '150/2026',
         etapa: 'DIGITALIZACAO' as const,
-        tipo: 'x'.repeat(101)
+        tipo: 'x'.repeat(101),
       };
       const resultado = lancarProducaoColaboradorSchema.safeParse(dados);
       expect(resultado.success).toBe(false);
@@ -220,7 +220,7 @@ describe('Schema de Validação: lancarProducaoColaboradorSchema', () => {
       const dados = {
         repositorio: '150/2026',
         etapa: 'DIGITALIZACAO' as const,
-        quantidade: 'abc'
+        quantidade: 'abc',
       };
       const resultado = lancarProducaoColaboradorSchema.safeParse(dados);
       expect(resultado.success).toBe(false);
@@ -228,7 +228,7 @@ describe('Schema de Validação: lancarProducaoColaboradorSchema', () => {
 
     it('deve rejeitar sem campo obrigatório repositorio', () => {
       const dados = {
-        etapa: 'DIGITALIZACAO' as const
+        etapa: 'DIGITALIZACAO' as const,
       };
       const resultado = lancarProducaoColaboradorSchema.safeParse(dados);
       expect(resultado.success).toBe(false);
@@ -236,7 +236,7 @@ describe('Schema de Validação: lancarProducaoColaboradorSchema', () => {
 
     it('deve rejeitar sem campo obrigatório etapa', () => {
       const dados = {
-        repositorio: '150/2026'
+        repositorio: '150/2026',
       };
       const resultado = lancarProducaoColaboradorSchema.safeParse(dados);
       expect(resultado.success).toBe(false);
@@ -248,7 +248,7 @@ describe('Schema de Validação: lancarProducaoColaboradorSchema', () => {
       const dados = {
         repositorio: '150/2026',
         etapa: 'DIGITALIZACAO' as const,
-        quantidade: '10'
+        quantidade: '10',
       };
       const resultado = lancarProducaoColaboradorSchema.safeParse(dados);
       expect(resultado.success).toBe(true);
@@ -262,7 +262,7 @@ describe('Schema de Validação: lancarProducaoColaboradorSchema', () => {
       const dados = {
         repositorio: '150/2026',
         etapa: 'DIGITALIZACAO' as const,
-        quantidade: 10
+        quantidade: 10,
       };
       const resultado = lancarProducaoColaboradorSchema.safeParse(dados);
       expect(resultado.success).toBe(true);

@@ -33,6 +33,7 @@
 **Bloqueado:** Não pode lançar a mesma produção duas vezes na mesma etapa.
 
 **Critérios de duplicata (todos devem ser idênticos):**
+
 - ✅ Mesmo colaborador
 - ✅ Mesmo repositório
 - ✅ Mesma data
@@ -43,6 +44,7 @@
 - ✅ Mesma coordenadoria
 
 **Exemplo Bloqueado:**
+
 ```
 ❌ 150/2026 CINF - Preparação - 10 unidades (já lançado)
 ❌ 150/2026 CINF - Preparação - 10 unidades (DUPLICATA BLOQUEADA)
@@ -55,6 +57,7 @@
 **Permitido:** O mesmo repositório pode estar em múltiplas etapas.
 
 **Exemplos Permitidos:**
+
 ```
 ✅ 150/2026 CINF - Preparação    (lançado)
 ✅ 150/2026 CINF - Digitalização (PERMITIDO - etapa diferente)
@@ -68,6 +71,7 @@
 **Permitido:** 150/2026 pode existir na CINF e na CEE simultaneamente.
 
 **Exemplos Permitidos:**
+
 ```
 ✅ 150/2026 CINF - Preparação (lançado)
 ✅ 150/2026 CEE  - Preparação (PERMITIDO - coordenadoria diferente)
@@ -86,6 +90,7 @@
 **Exemplos:**
 
 #### ✅ Sequência Correta
+
 ```
 1. 150/2026 CINF - Recebimento   ✅ (primeira etapa, sempre permitida)
 2. 150/2026 CINF - Preparação    ✅ (tem RECEBIMENTO)
@@ -94,6 +99,7 @@
 ```
 
 #### ❌ Sequência Incorreta (Pula Etapa)
+
 ```
 1. 150/2026 CINF - Recebimento   ✅ (OK)
 2. 150/2026 CINF - Preparação    ✅ (OK)
@@ -102,6 +108,7 @@
 ```
 
 #### ❌ Sequência Incorreta (Sem Etapa Inicial)
+
 ```
 1. 150/2026 CINF - Digitalização ❌ BLOQUEADO!
    Erro: "Não é possível lançar produção na etapa DIGITALIZACAO sem ter passado pela etapa PREPARACAO primeiro."
@@ -114,6 +121,7 @@
 ### Verificação de Etapa Anterior
 
 **Query SQL:**
+
 ```sql
 SELECT id
 FROM producao_repositorio
@@ -124,6 +132,7 @@ LIMIT 1
 ```
 
 **Validação:**
+
 - Se não encontrar registro da etapa anterior → **BLOQUEIA**
 - Se encontrar → **PERMITE** lançamento
 
@@ -227,24 +236,24 @@ const etapaStatusMap = {
   PREPARACAO: 'EM_PREPARACAO',
   DIGITALIZACAO: 'EM_DIGITALIZACAO',
   CONFERENCIA: 'EM_CONFERENCIA',
-  RECONFERENCIA: 'EM_CONFERENCIA',      // Mesmo status
+  RECONFERENCIA: 'EM_CONFERENCIA', // Mesmo status
   MONTAGEM: 'EM_MONTAGEM',
-  ATENDIMENTO: 'EM_ENTREGA',            // Novo
+  ATENDIMENTO: 'EM_ENTREGA', // Novo
   CONTROLE_QUALIDADE: 'AGUARDANDO_CQ_LOTE',
   ENTREGA: 'EM_ENTREGA',
-}
+};
 ```
 
 ---
 
 ## 🔒 Códigos HTTP de Resposta
 
-| Status | Código | Descrição |
-|--------|--------|-----------|
-| **Sucesso** | 201 Created | Produção lançada com sucesso |
-| **Duplicata** | 409 Conflict | Já existe produção idêntica na mesma etapa |
-| **Sequência Inválida** | 422 Unprocessable Entity | Tentou pular etapa obrigatória |
-| **Erro Servidor** | 500 Internal Server Error | Erro inesperado |
+| Status                 | Código                    | Descrição                                  |
+| ---------------------- | ------------------------- | ------------------------------------------ |
+| **Sucesso**            | 201 Created               | Produção lançada com sucesso               |
+| **Duplicata**          | 409 Conflict              | Já existe produção idêntica na mesma etapa |
+| **Sequência Inválida** | 422 Unprocessable Entity  | Tentou pular etapa obrigatória             |
+| **Erro Servidor**      | 500 Internal Server Error | Erro inesperado                            |
 
 ---
 
@@ -269,16 +278,19 @@ const etapaStatusMap = {
 ## 🚀 Benefícios
 
 ### Integridade de Dados
+
 - ✅ Previne duplicatas acidentais
 - ✅ Garante sequência lógica do processo
 - ✅ Rastreabilidade completa
 
 ### UX
+
 - ✅ Mensagens claras de erro
 - ✅ Detalhes para correção
 - ✅ Sequência completa informada
 
 ### Gestão
+
 - ✅ Processos padronizados
 - ✅ Controle de fluxo
 - ✅ Dados confiáveis para relatórios
@@ -301,6 +313,7 @@ const etapaStatusMap = {
 **Arquivo:** `packages/backend/src/infrastructure/http/routes/metas.ts`
 
 **Sequência de Validações:**
+
 1. Validação de schema (Zod)
 2. Autenticação (JWT)
 3. Autorização (perfil)
@@ -309,6 +322,7 @@ const etapaStatusMap = {
 6. Inserção no banco
 
 **Performance:**
+
 - ✅ 2 queries adicionais (duplicata + etapa anterior)
 - ✅ Queries indexadas
 - ✅ Impacto mínimo (<50ms)

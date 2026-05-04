@@ -51,7 +51,15 @@ export function ProducaoPage(): JSX.Element {
   const [buscaDebounced, setBuscaDebounced] = useState('');
 
   // Ordenação
-  type SortColumn = 'data' | 'colaborador' | 'repositorio' | 'funcao' | 'tipo' | 'quantidade' | 'coordenadoria' | 'origem';
+  type SortColumn =
+    | 'data'
+    | 'colaborador'
+    | 'repositorio'
+    | 'funcao'
+    | 'tipo'
+    | 'quantidade'
+    | 'coordenadoria'
+    | 'origem';
   type SortDirection = 'asc' | 'desc';
   const [sortColumn, setSortColumn] = useState<SortColumn | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
@@ -123,7 +131,17 @@ export function ProducaoPage(): JSX.Element {
         { replace: true }
       );
     }
-  }, [pagina, etapa, colaborador, dataInicio, dataFim, busca, location.pathname, location.search, navigate]);
+  }, [
+    pagina,
+    etapa,
+    colaborador,
+    dataInicio,
+    dataFim,
+    busca,
+    location.pathname,
+    location.search,
+    navigate,
+  ]);
 
   const producaoQuery = useProducao({
     pagina,
@@ -290,14 +308,17 @@ export function ProducaoPage(): JSX.Element {
     align?: 'left' | 'right' | 'center';
   }) => {
     const isActive = sortColumn === column;
-    const alignClass = align === 'right' ? 'text-right' : align === 'center' ? 'text-center' : 'text-left';
+    const alignClass =
+      align === 'right' ? 'text-right' : align === 'center' ? 'text-center' : 'text-left';
 
     return (
       <th
         className={`px-3 py-2.5 ${alignClass} text-xs font-semibold text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none transition-colors`}
         onClick={() => handleSort(column)}
       >
-        <div className={`flex items-center gap-1 ${align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : 'justify-start'}`}>
+        <div
+          className={`flex items-center gap-1 ${align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : 'justify-start'}`}
+        >
           <span>{children}</span>
           <span className="inline-flex flex-col">
             {isActive && sortDirection === 'asc' && (
@@ -453,9 +474,7 @@ export function ProducaoPage(): JSX.Element {
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-sm font-semibold text-gray-900">{reg.colaborador_nome}</p>
-                      <p className="text-xs text-gray-500">
-                        {formatDateBR(reg.data_producao)}
-                      </p>
+                      <p className="text-xs text-gray-500">{formatDateBR(reg.data_producao)}</p>
                     </div>
                     <span className="text-sm font-semibold text-gray-900 tabular-nums">
                       {formatCriticalNumber(reg.quantidade)}
@@ -504,9 +523,13 @@ export function ProducaoPage(): JSX.Element {
                   <SortableHeader column="repositorio">Repositório</SortableHeader>
                   <SortableHeader column="funcao">Função</SortableHeader>
                   <SortableHeader column="tipo">Unidade</SortableHeader>
-                  <SortableHeader column="quantidade" align="right">Qtd</SortableHeader>
+                  <SortableHeader column="quantidade" align="right">
+                    Qtd
+                  </SortableHeader>
                   <SortableHeader column="coordenadoria">Coord.</SortableHeader>
-                  <SortableHeader column="origem" align="center">Origem</SortableHeader>
+                  <SortableHeader column="origem" align="center">
+                    Origem
+                  </SortableHeader>
                   {isAdmin && (
                     <th className="px-3 py-2.5 text-center text-xs font-semibold text-gray-500 uppercase">
                       Ações

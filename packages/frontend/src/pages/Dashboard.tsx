@@ -75,22 +75,22 @@ interface MeuHistoricoResponse {
 }
 
 const etapaCores: Record<string, { bg: string; text: string; bar: string }> = {
-  'Recebimento': { bg: 'bg-purple-50', text: 'text-purple-700', bar: 'bg-purple-500' },
-  'Preparação': { bg: 'bg-amber-50', text: 'text-amber-700', bar: 'bg-amber-500' },
-  'Preparacao': { bg: 'bg-amber-50', text: 'text-amber-700', bar: 'bg-amber-500' },
-  'Digitalização': { bg: 'bg-cyan-50', text: 'text-cyan-700', bar: 'bg-cyan-500' },
-  'Digitalizacao': { bg: 'bg-cyan-50', text: 'text-cyan-700', bar: 'bg-cyan-500' },
-  'Conferência': { bg: 'bg-green-50', text: 'text-green-700', bar: 'bg-green-500' },
-  'Conferencia': { bg: 'bg-green-50', text: 'text-green-700', bar: 'bg-green-500' },
-  'Montagem': { bg: 'bg-orange-50', text: 'text-orange-700', bar: 'bg-orange-500' },
-  'Reconferência': { bg: 'bg-rose-50', text: 'text-rose-700', bar: 'bg-rose-500' },
-  'Reconferencia': { bg: 'bg-rose-50', text: 'text-rose-700', bar: 'bg-rose-500' },
-  'Entrega': { bg: 'bg-emerald-50', text: 'text-emerald-700', bar: 'bg-emerald-500' },
+  Recebimento: { bg: 'bg-purple-50', text: 'text-purple-700', bar: 'bg-purple-500' },
+  Preparação: { bg: 'bg-amber-50', text: 'text-amber-700', bar: 'bg-amber-500' },
+  Preparacao: { bg: 'bg-amber-50', text: 'text-amber-700', bar: 'bg-amber-500' },
+  Digitalização: { bg: 'bg-cyan-50', text: 'text-cyan-700', bar: 'bg-cyan-500' },
+  Digitalizacao: { bg: 'bg-cyan-50', text: 'text-cyan-700', bar: 'bg-cyan-500' },
+  Conferência: { bg: 'bg-green-50', text: 'text-green-700', bar: 'bg-green-500' },
+  Conferencia: { bg: 'bg-green-50', text: 'text-green-700', bar: 'bg-green-500' },
+  Montagem: { bg: 'bg-orange-50', text: 'text-orange-700', bar: 'bg-orange-500' },
+  Reconferência: { bg: 'bg-rose-50', text: 'text-rose-700', bar: 'bg-rose-500' },
+  Reconferencia: { bg: 'bg-rose-50', text: 'text-rose-700', bar: 'bg-rose-500' },
+  Entrega: { bg: 'bg-emerald-50', text: 'text-emerald-700', bar: 'bg-emerald-500' },
 };
 
 const tipoCores: Record<string, { bg: string; text: string; icon: string }> = {
-  'Imagens': { bg: 'bg-blue-50', text: 'text-blue-700', icon: 'image' },
-  'Caixas': { bg: 'bg-amber-50', text: 'text-amber-700', icon: 'box' },
+  Imagens: { bg: 'bg-blue-50', text: 'text-blue-700', icon: 'image' },
+  Caixas: { bg: 'bg-amber-50', text: 'text-amber-700', icon: 'box' },
   'Não informado': { bg: 'bg-gray-50', text: 'text-gray-500', icon: 'help-circle' },
 };
 
@@ -98,7 +98,9 @@ function getEtapaCor(etapa: string): { bg: string; text: string; bar: string } {
   const normalizada = Object.keys(etapaCores).find((k) =>
     etapa.toLowerCase().includes(k.toLowerCase())
   );
-  return etapaCores[normalizada ?? ''] ?? { bg: 'bg-blue-50', text: 'text-blue-700', bar: 'bg-blue-500' };
+  return (
+    etapaCores[normalizada ?? ''] ?? { bg: 'bg-blue-50', text: 'text-blue-700', bar: 'bg-blue-500' }
+  );
 }
 
 function getTipoCor(tipo: string): { bg: string; text: string; icon: string } {
@@ -145,7 +147,10 @@ function DashboardColaborador(): JSX.Element {
         loading={false}
         error={{
           message: 'Não foi possível carregar os números agora. Tente novamente em instantes.',
-          details: error instanceof Error ? error.message : 'Falha ao carregar o dashboard do colaborador.',
+          details:
+            error instanceof Error
+              ? error.message
+              : 'Falha ao carregar o dashboard do colaborador.',
           action: {
             label: 'Tentar novamente',
             onClick: () => {
@@ -210,11 +215,14 @@ function DashboardColaborador(): JSX.Element {
                   <div key={item.etapa} className="group">
                     <div className="flex items-center justify-between text-sm mb-1.5">
                       <div className="flex items-center gap-2">
-                        <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${cor.bg} ${cor.text}`}>
+                        <span
+                          className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${cor.bg} ${cor.text}`}
+                        >
                           {item.etapa}
                         </span>
                         <span className="text-gray-400 text-xs">
-                          {item.registros.toLocaleString('pt-BR')} registro{item.registros !== 1 ? 's' : ''}
+                          {item.registros.toLocaleString('pt-BR')} registro
+                          {item.registros !== 1 ? 's' : ''}
                         </span>
                       </div>
                       <span className="font-semibold text-gray-900">
@@ -224,7 +232,9 @@ function DashboardColaborador(): JSX.Element {
                     <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
                       <div
                         className={`h-full ${cor.bar} rounded-full transition-all duration-700`}
-                        style={{ width: `${Math.max((item.quantidade / maxQuantidadeEtapa) * 100, 2)}%` }}
+                        style={{
+                          width: `${Math.max((item.quantidade / maxQuantidadeEtapa) * 100, 2)}%`,
+                        }}
                       />
                     </div>
                   </div>
@@ -255,7 +265,8 @@ function DashboardColaborador(): JSX.Element {
                       <div className="flex-1 min-w-0">
                         <p className={`text-sm font-semibold ${cor.text}`}>{item.tipo}</p>
                         <p className="text-xs text-gray-500">
-                          {item.registros.toLocaleString('pt-BR')} registro{item.registros !== 1 ? 's' : ''}
+                          {item.registros.toLocaleString('pt-BR')} registro
+                          {item.registros !== 1 ? 's' : ''}
                         </p>
                       </div>
                       <div className="text-right">
@@ -338,7 +349,8 @@ function DashboardColaborador(): JSX.Element {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {producoesRecentes.map((p) => {
                     const label = p.etapa_label ?? p.etapa;
-                    const coordenadoria = p.coordenadoria_label ?? p.marcadores?.coordenadoria ?? '—';
+                    const coordenadoria =
+                      p.coordenadoria_label ?? p.marcadores?.coordenadoria ?? '—';
                     const cor = getEtapaCor(label);
                     return (
                       <tr key={p.id} className="hover:bg-gray-50">
@@ -348,9 +360,7 @@ function DashboardColaborador(): JSX.Element {
                         <td className="px-6 py-4 text-sm font-medium text-gray-900">
                           {p.id_repositorio_ged}
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-700">
-                          {coordenadoria}
-                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-700">{coordenadoria}</td>
                         <td className="px-6 py-4">
                           <span className={`px-2 py-1 text-xs rounded-full ${cor.bg} ${cor.text}`}>
                             {label}

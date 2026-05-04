@@ -13,7 +13,7 @@ Vincular produções antigas (importadas do sistema legado) aos usuários colabo
 Execute esta query para ver quais colaboradores têm produções registradas:
 
 ```sql
-SELECT 
+SELECT
   DISTINCT TRIM(marcadores->>'colaborador_nome') as colaborador_nome,
   COUNT(*) as total_producoes
 FROM producao_repositorio
@@ -24,6 +24,7 @@ ORDER BY total_producoes DESC;
 ```
 
 **Resultado esperado:**
+
 ```
 colaborador_nome    | total_producoes
 --------------------+----------------
@@ -40,6 +41,7 @@ Pedro Oliveira      | 750
 Para cada colaborador identificado acima, crie um usuário:
 
 **Via Interface (Recomendado):**
+
 1. Acesse: **Configurações → Usuários**
 2. Clique em **"Novo Usuário"**
 3. Preencha:
@@ -50,6 +52,7 @@ Para cada colaborador identificado acima, crie um usuário:
 4. Anote o **ID do usuário** criado (aparece na URL ou nos detalhes)
 
 **Via SQL (Alternativa):**
+
 ```sql
 INSERT INTO usuarios (nome, email, senha_hash, perfil, ativo)
 VALUES (
@@ -74,7 +77,7 @@ VALUES (
 -- - 'João Silva' pelo nome do colaborador
 -- - '[UUID_DO_USUARIO]' pelo ID do usuário criado (formato: 550e8400-e29b-41d4-a716-446655440001)
 
-SELECT 
+SELECT
   pr.id,
   pr.data_producao::date,
   pr.etapa,
@@ -91,6 +94,7 @@ WHERE LOWER(TRIM(pr.marcadores->>'colaborador_nome')) = LOWER('João Silva')
 ```
 
 **Verifique:**
+
 - O número de registros encontrados bate com o esperado?
 - O nome do colaborador está correto?
 - O novo usuário é o correto?
@@ -107,6 +111,7 @@ WHERE LOWER(TRIM(marcadores->>'colaborador_nome')) = LOWER('João Silva')
 ```
 
 **Resultado esperado:**
+
 ```
 UPDATE 1250
 ```
@@ -118,7 +123,7 @@ UPDATE 1250
 #### 4.1. Verificar total de produções vinculadas
 
 ```sql
-SELECT 
+SELECT
   u.nome as colaborador,
   u.email,
   COUNT(pr.id) as total_producoes,
@@ -173,7 +178,7 @@ WHERE LOWER(TRIM(marcadores->>'colaborador_nome')) = LOWER('João Silva')
 -- Resultado: UPDATE 1250
 
 -- 4. Validar
-SELECT 
+SELECT
   u.nome,
   COUNT(pr.id) as producoes
 FROM usuarios u
@@ -190,6 +195,7 @@ GROUP BY u.nome;
 ### Problema 1: Nome com variações
 
 **Sintoma:** O colaborador aparece com nomes diferentes no legado:
+
 - "João Silva"
 - "Joao Silva" (sem acento)
 - "JOÃO SILVA"
@@ -255,6 +261,7 @@ WHERE LOWER(TRIM(marcadores->>'colaborador_nome')) = LOWER('João Silva')
 ## 🆘 Suporte
 
 Se encontrar problemas:
+
 1. Verifique os logs do sistema
 2. Execute as queries de validação (Passo 4)
 3. Consulte a seção "Problemas Comuns"

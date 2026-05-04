@@ -94,7 +94,13 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
     setCategoria(filtrosUrl.categoria);
     setEtapaFiltro(filtrosUrl.etapa);
     setSelectedId(filtrosUrl.documento);
-  }, [filtrosUrl.busca, filtrosUrl.categoria, filtrosUrl.documento, filtrosUrl.etapa, filtrosUrl.tab]);
+  }, [
+    filtrosUrl.busca,
+    filtrosUrl.categoria,
+    filtrosUrl.documento,
+    filtrosUrl.etapa,
+    filtrosUrl.tab,
+  ]);
 
   useEffect(() => {
     const params = new URLSearchParams();

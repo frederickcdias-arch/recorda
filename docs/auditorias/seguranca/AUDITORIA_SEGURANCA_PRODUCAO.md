@@ -7,14 +7,14 @@
 
 ## 📊 Resumo Executivo
 
-| Categoria | Status | Nota |
-|-----------|--------|------|
-| **Validação de Dados** | ✅ APROVADO | 9/10 |
-| **SQL Injection** | ✅ APROVADO | 10/10 |
+| Categoria                    | Status      | Nota  |
+| ---------------------------- | ----------- | ----- |
+| **Validação de Dados**       | ✅ APROVADO | 9/10  |
+| **SQL Injection**            | ✅ APROVADO | 10/10 |
 | **Autenticação/Autorização** | ✅ APROVADO | 10/10 |
-| **Integridade de Dados** | ✅ APROVADO | 10/10 |
-| **Auditoria** | ✅ APROVADO | 10/10 |
-| **Consistência** | ✅ APROVADO | 9/10 |
+| **Integridade de Dados**     | ✅ APROVADO | 10/10 |
+| **Auditoria**                | ✅ APROVADO | 10/10 |
+| **Consistência**             | ✅ APROVADO | 9/10  |
 
 **STATUS GERAL:** ✅ **SISTEMA SEGURO E PROTEGIDO**
 
@@ -30,10 +30,18 @@
 export const lancarProducaoColaboradorSchema = z.object({
   data: z.string().optional(),
   repositorio: z.string().min(1, 'ID do repositório é obrigatório'), // ✅ Validado
-  etapa: z.enum([
-    'RECEBIMENTO', 'PREPARACAO', 'DIGITALIZACAO', 
-    'CONFERENCIA', 'MONTAGEM', 'CONTROLE_QUALIDADE', 'ENTREGA'
-  ], { message: 'Etapa é obrigatória' }), // ✅ Enum restrito
+  etapa: z.enum(
+    [
+      'RECEBIMENTO',
+      'PREPARACAO',
+      'DIGITALIZACAO',
+      'CONFERENCIA',
+      'MONTAGEM',
+      'CONTROLE_QUALIDADE',
+      'ENTREGA',
+    ],
+    { message: 'Etapa é obrigatória' }
+  ), // ✅ Enum restrito
   funcao: z.string().optional(),
   coordenadoria: z.string().optional(),
   quantidade: z.union([z.number(), z.string()]).optional(),
@@ -42,6 +50,7 @@ export const lancarProducaoColaboradorSchema = z.object({
 ```
 
 **Middleware de Validação:**
+
 ```typescript
 preHandler: [
   server.authenticate,                              // ✅ Autenticado
@@ -51,6 +60,7 @@ preHandler: [
 ```
 
 **Proteções Aplicadas:**
+
 - ✅ Schema Zod valida tipos e formatos
 - ✅ Etapa restrita a enum (previne valores inválidos)
 - ✅ Repositório obrigatório (min 1 caractere)
@@ -69,6 +79,7 @@ preHandler: [
    - ✅ Normaliza ID de repositório
 
 2. **Validação de Colaboradores:**
+
    ```typescript
    if (!colaboradorNome) {
      erros.push({ linha, erro: 'Coluna colaborador e obrigatoria' });
@@ -78,12 +89,13 @@ preHandler: [
 3. **Validação de Duplicatas:**
    ```typescript
    SELECT ... FROM producao_repositorio
-   WHERE usuario_id = $1 AND repositorio_id = $2 
-     AND data = $3 AND etapa = $4 
+   WHERE usuario_id = $1 AND repositorio_id = $2
+     AND data = $3 AND etapa = $4
      AND tipo = $5 AND funcao = $6
    ```
 
 **Proteções Aplicadas:**
+
 - ✅ Validação linha por linha
 - ✅ Rollback em caso de erro (transação)
 - ✅ Sanitização de inputs (trim, normalização)
@@ -96,28 +108,37 @@ preHandler: [
 ### ✅ Todas as Queries Usam Prepared Statements
 
 **Endpoint Colaborador:**
+
 ```typescript
 await server.database.query(
   `INSERT INTO producao_repositorio 
    (repositorio_id, etapa, checklist_id, usuario_id, quantidade, marcadores, data_producao)
    VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7)
    RETURNING *`,
-  [repositorioId, body.etapa, checklistId, user.id, quantidade, 
-   JSON.stringify(marcadores), body.data || new Date().toISOString()]
+  [
+    repositorioId,
+    body.etapa,
+    checklistId,
+    user.id,
+    quantidade,
+    JSON.stringify(marcadores),
+    body.data || new Date().toISOString(),
+  ]
 );
 ```
 
 **Endpoint Importação:**
+
 ```typescript
 await server.database.query(
   `INSERT INTO producao_repositorio (...)
    VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7)`,
-  [repositorioId, etapaImport, checklistId, colaboradorId, 
-   quantidade, marcadores, dataProducaoStr]
+  [repositorioId, etapaImport, checklistId, colaboradorId, quantidade, marcadores, dataProducaoStr]
 );
 ```
 
 **Verificação:**
+
 - ✅ **100% das queries** usam placeholders `$1, $2, ...`
 - ✅ Nenhuma concatenação de strings
 - ✅ Casting seguro para JSONB (`$6::jsonb`)
@@ -130,6 +151,7 @@ await server.database.query(
 ### ✅ Endpoint Colaborador
 
 **Middleware de Segurança:**
+
 ```typescript
 preHandler: [
   server.authenticate,                              // JWT válido obrigatório
@@ -139,6 +161,7 @@ preHandler: [
 ```
 
 **Proteções:**
+
 - ✅ Token JWT obrigatório
 - ✅ Apenas perfis autorizados
 - ✅ Usuário extraído do token (`getCurrentUser`)
@@ -149,14 +172,16 @@ preHandler: [
 ### ✅ Endpoint Importação
 
 **Middleware de Segurança:**
+
 ```typescript
 preHandler: [
   server.authenticate,
-  authorize('administrador', 'operador'),  // Apenas admin/operador
-]
+  authorize('administrador', 'operador'), // Apenas admin/operador
+];
 ```
 
 **Proteções:**
+
 - ✅ Restrito a administradores e operadores
 - ✅ Colaboradores NÃO podem importar
 - ✅ Segregação de funções correta
@@ -179,26 +204,27 @@ CREATE TABLE producao_repositorio (
   quantidade INTEGER NOT NULL DEFAULT 1,
   marcadores JSONB NOT NULL DEFAULT '{}'::jsonb,
   data_producao TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  
+
   -- CONSTRAINTS DE INTEGRIDADE
   CONSTRAINT fk_producao_repositorio
     FOREIGN KEY (repositorio_id) REFERENCES repositorios(id_repositorio_recorda)
     ON DELETE CASCADE,
-    
+
   CONSTRAINT fk_producao_checklist
     FOREIGN KEY (checklist_id) REFERENCES checklists(id)
     ON DELETE RESTRICT,
-    
+
   CONSTRAINT fk_producao_usuario
     FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
     ON DELETE RESTRICT,
-    
-  CONSTRAINT producao_quantidade_positive 
+
+  CONSTRAINT producao_quantidade_positive
     CHECK (quantidade > 0)  -- ✅ Previne quantidade negativa ou zero
 );
 ```
 
 **Proteções:**
+
 - ✅ Foreign Keys garantem referências válidas
 - ✅ Quantidade sempre positiva (CHECK constraint)
 - ✅ Campos NOT NULL obrigatórios
@@ -209,6 +235,7 @@ CREATE TABLE producao_repositorio (
 ### ✅ Triggers de Validação
 
 **1. Trigger: Validação de Checklist Ativo**
+
 ```sql
 CREATE TRIGGER trigger_validar_producao_com_checklist_ativo
   BEFORE INSERT ON producao_repositorio
@@ -217,6 +244,7 @@ CREATE TRIGGER trigger_validar_producao_com_checklist_ativo
 ```
 
 **Função:**
+
 ```sql
 CREATE OR REPLACE FUNCTION fn_validar_producao_com_checklist_ativo()
 RETURNS TRIGGER AS $$
@@ -240,11 +268,13 @@ $$ LANGUAGE plpgsql;
 ```
 
 **⚠️ OBSERVAÇÃO IMPORTANTE:**
+
 - Importação e colaboradores criam checklists **CONCLUÍDOS** (não ABERTOS)
 - Trigger valida checklist ABERTO e ATIVO
 - **CONFLITO POTENCIAL:** Endpoints criam checklist CONCLUIDO mas trigger exige ABERTO
 
 **SOLUÇÃO APLICADA:**
+
 - Importação desabilita trigger temporariamente: `SET LOCAL session_replication_role = 'replica'`
 - Colaboradores criam checklist CONCLUIDO
 - Sistema funciona corretamente
@@ -252,6 +282,7 @@ $$ LANGUAGE plpgsql;
 ---
 
 **2. Trigger: Auditoria**
+
 ```sql
 CREATE TRIGGER audit_producao_repositorio
   AFTER INSERT OR UPDATE OR DELETE ON producao_repositorio
@@ -259,6 +290,7 @@ CREATE TRIGGER audit_producao_repositorio
 ```
 
 **Proteções:**
+
 - ✅ Todas as operações são auditadas
 - ✅ Log automático em tabela `auditoria`
 - ✅ Rastreabilidade completa
@@ -270,20 +302,23 @@ CREATE TRIGGER audit_producao_repositorio
 ### ✅ Estrutura Idêntica de INSERT
 
 **Endpoint Colaborador:**
+
 ```typescript
-INSERT INTO producao_repositorio 
+INSERT INTO producao_repositorio
   (repositorio_id, etapa, checklist_id, usuario_id, quantidade, marcadores, data_producao)
 VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7)
 ```
 
 **Endpoint Importação:**
+
 ```typescript
-INSERT INTO producao_repositorio 
+INSERT INTO producao_repositorio
   (repositorio_id, etapa, checklist_id, usuario_id, quantidade, marcadores, data_producao)
 VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7)
 ```
 
 **Verificação:**
+
 - ✅ Mesmas colunas
 - ✅ Mesma ordem de parâmetros
 - ✅ Mesmo tipo de dados (JSONB para marcadores)
@@ -293,19 +328,21 @@ VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7)
 ### ✅ Marcadores JSONB - Estrutura Consistente
 
 **Colaborador:**
+
 ```typescript
 const marcadores = {
   funcao: body.funcao,
   tipo: body.tipo,
   coordenadoria: body.coordenadoria,
-  origem: 'SISTEMA',  // ✅ Identifica origem
+  origem: 'SISTEMA', // ✅ Identifica origem
 };
 ```
 
 **Importação:**
+
 ```typescript
 const marcadores = {
-  origem: 'LEGADO',  // ✅ Identifica origem
+  origem: 'LEGADO', // ✅ Identifica origem
   importacao_exec_id: importacaoExecId,
   funcao: row.funcao,
   tipo: row.tipo,
@@ -315,12 +352,14 @@ const marcadores = {
 ```
 
 **Campos Comuns:**
+
 - ✅ `origem` (SISTEMA vs LEGADO)
 - ✅ `funcao`
 - ✅ `tipo`
 - ✅ `coordenadoria`
 
 **Campos Específicos da Importação:**
+
 - ✅ `importacao_exec_id` (rastreabilidade)
 - ✅ `colaborador_nome` (nome da planilha)
 
@@ -331,21 +370,24 @@ const marcadores = {
 **Ambos os endpoints:**
 
 1. **Busca repositório existente:**
+
 ```sql
 SELECT id_repositorio_recorda FROM repositorios
 WHERE id_repositorio_ged = $1 AND orgao = $2 AND projeto = 'IMPORTACAO_PRODUCAO'
 ```
 
 2. **Cria se não existe:**
+
 ```sql
-INSERT INTO repositorios 
+INSERT INTO repositorios
   (id_repositorio_ged, orgao, projeto, status_atual, etapa_atual)
 VALUES ($1, $2, 'IMPORTACAO_PRODUCAO', $status, $etapa)
-ON CONFLICT (id_repositorio_ged, orgao, projeto) DO UPDATE 
+ON CONFLICT (id_repositorio_ged, orgao, projeto) DO UPDATE
   SET id_repositorio_ged = EXCLUDED.id_repositorio_ged
 ```
 
 3. **Mapeamento de Status:**
+
 ```typescript
 const etapaStatusMap = {
   RECEBIMENTO: 'RECEBIDO',
@@ -359,6 +401,7 @@ const etapaStatusMap = {
 ```
 
 **Verificação:**
+
 - ✅ Lógica 100% idêntica
 - ✅ Mesmo mapeamento de status
 - ✅ Mesmo tratamento de conflitos
@@ -370,6 +413,7 @@ const etapaStatusMap = {
 **Ambos os endpoints:**
 
 1. **Busca checklist existente:**
+
 ```sql
 SELECT id FROM checklists
 WHERE repositorio_id = $1 AND etapa = $2
@@ -377,14 +421,16 @@ LIMIT 1
 ```
 
 2. **Cria se não existe:**
+
 ```sql
-INSERT INTO checklists 
+INSERT INTO checklists
   (repositorio_id, etapa, status, observacao, responsavel_id, ativo, data_conclusao)
 VALUES ($1, $2, 'CONCLUIDO', 'Importacao legada', $3, FALSE, CURRENT_TIMESTAMP)
 RETURNING id
 ```
 
 **Verificação:**
+
 - ✅ Ambos criam checklist CONCLUIDO
 - ✅ Ambos setam `ativo = FALSE`
 - ✅ Ambos setam `data_conclusao`
@@ -397,15 +443,16 @@ RETURNING id
 ### ✅ Endpoint Colaborador
 
 **Sanitizações Aplicadas:**
+
 ```typescript
-const repoId = body.repositorio.trim();           // ✅ Remove espaços
+const repoId = body.repositorio.trim(); // ✅ Remove espaços
 const orgaoRepositorio = body.coordenadoria?.trim() || 'SGPA'; // ✅ Default
-const quantidade = typeof body.quantidade === 'string' 
-  ? parseInt(body.quantidade) || 1 
-  : body.quantidade || 1;                         // ✅ Converte e valida
+const quantidade =
+  typeof body.quantidade === 'string' ? parseInt(body.quantidade) || 1 : body.quantidade || 1; // ✅ Converte e valida
 ```
 
 **Proteções:**
+
 - ✅ `.trim()` remove espaços em branco
 - ✅ Valores default seguros
 - ✅ Conversão de tipos controlada
@@ -415,6 +462,7 @@ const quantidade = typeof body.quantidade === 'string'
 ### ✅ Endpoint Importação
 
 **Sanitizações Aplicadas:**
+
 ```typescript
 const repoIdentificadorRaw = (row.repositorio ?? '').trim();
 const colaboradorNome = (row.colaborador ?? '').trim();
@@ -425,12 +473,14 @@ const orgaoRepositorio = (row.coordenadoria ?? '').trim() || 'NAO INFORMADO';
 ```
 
 **Normalização de ID:**
+
 ```typescript
 const repoIdentificador = normalizeIdRepositorioGed(repoIdentificadorRaw, anoRef);
 // "16/25" -> "000016/2025"
 ```
 
 **Proteções:**
+
 - ✅ `.trim()` em todos os campos
 - ✅ Coalescência null (`?? ''`)
 - ✅ Normalização de formatos
@@ -443,6 +493,7 @@ const repoIdentificador = normalizeIdRepositorioGed(repoIdentificadorRaw, anoRef
 ### ✅ Tabela de Auditoria
 
 **Trigger Automático:**
+
 ```sql
 CREATE TRIGGER audit_producao_repositorio
   AFTER INSERT OR UPDATE OR DELETE ON producao_repositorio
@@ -450,6 +501,7 @@ CREATE TRIGGER audit_producao_repositorio
 ```
 
 **O Que é Auditado:**
+
 - ✅ Todas as inserções (INSERT)
 - ✅ Todas as atualizações (UPDATE)
 - ✅ Todas as exclusões (DELETE)
@@ -462,15 +514,17 @@ CREATE TRIGGER audit_producao_repositorio
 ### ✅ Marcador de Origem
 
 **Diferenciação:**
+
 ```typescript
 // Colaborador
-origem: 'SISTEMA'
+origem: 'SISTEMA';
 
 // Importação
-origem: 'LEGADO'
+origem: 'LEGADO';
 ```
 
 **Queries que Filtram por Origem:**
+
 - ✅ Relatórios incluem ambas as origens
 - ✅ Possível filtrar por origem específica
 - ✅ Limpeza de importações só afeta `origem = 'LEGADO'`
@@ -481,6 +535,7 @@ origem: 'LEGADO'
 ### ✅ ID de Execução de Importação
 
 **Rastreabilidade:**
+
 ```typescript
 const importacaoExecId = randomUUID();
 
@@ -492,6 +547,7 @@ marcadores = {
 ```
 
 **Benefícios:**
+
 - ✅ Permite rollback de importação específica
 - ✅ Rastreamento de lote
 - ✅ Facilita troubleshooting
@@ -503,20 +559,20 @@ marcadores = {
 ### ✅ Endpoint Colaborador
 
 **Tratamento de Exceções:**
+
 ```typescript
 try {
   // ... lógica de negócio
   return reply.status(201).send({ message: 'Produção registrada com sucesso' });
 } catch (error) {
-  request.log.error(error);  // ✅ Log do erro
-  const message = error instanceof Error 
-    ? error.message 
-    : 'Erro ao registrar produção';
+  request.log.error(error); // ✅ Log do erro
+  const message = error instanceof Error ? error.message : 'Erro ao registrar produção';
   return reply.status(500).send({ error: message });
 }
 ```
 
 **Proteções:**
+
 - ✅ Try-catch envolve toda a lógica
 - ✅ Log de erros para debug
 - ✅ Mensagem de erro segura (não expõe stack trace)
@@ -527,24 +583,26 @@ try {
 ### ✅ Endpoint Importação
 
 **Transação com Rollback:**
+
 ```typescript
 await server.database.query('BEGIN');
 try {
   await server.database.query(`SET LOCAL session_replication_role = 'replica'`);
-  
+
   for (let idx = 0; idx < registros.length; idx++) {
     // ... processar linha
   }
-  
+
   await server.database.query('COMMIT');
   return reply.send({ sucesso, erros, inseridos, atualizados, duplicados });
 } catch (error) {
-  await server.database.query('ROLLBACK');  // ✅ Rollback em erro
+  await server.database.query('ROLLBACK'); // ✅ Rollback em erro
   throw error;
 }
 ```
 
 **Proteções:**
+
 - ✅ Transação garante atomicidade
 - ✅ Rollback automático em erro
 - ✅ Nenhum dado corrompido em caso de falha
@@ -559,6 +617,7 @@ try {
 **Localização:** `lancarProducaoColaboradorSchema`
 
 **Problema:**
+
 ```typescript
 data: z.string().optional(),  // ⚠️ Não valida formato
 ```
@@ -568,6 +627,7 @@ data: z.string().optional(),  // ⚠️ Não valida formato
 **Recomendação:** Adicionar validação de formato YYYY-MM-DD
 
 **Correção Sugerida:**
+
 ```typescript
 data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de data inválido').optional(),
 ```
@@ -579,6 +639,7 @@ data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de data inválido').optio
 **Localização:** `fn_validar_producao_com_checklist_ativo()`
 
 **Problema:**
+
 - Trigger exige checklist ABERTO e ATIVO
 - Endpoints criam checklist CONCLUIDO
 - Importação desabilita trigger
@@ -594,11 +655,13 @@ data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de data inválido').optio
 ### Prioridade BAIXA 🟢
 
 1. **Validação de Data no Schema**
+
    ```typescript
    data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
    ```
 
 2. **Validação de Quantidade Mínima**
+
    ```typescript
    quantidade: z.union([
      z.number().min(1),
@@ -607,6 +670,7 @@ data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de data inválido').optio
    ```
 
 3. **Validação de Tamanho de Strings**
+
    ```typescript
    repositorio: z.string().min(1).max(100),
    coordenadoria: z.string().max(200).optional(),
@@ -625,6 +689,7 @@ data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de data inválido').optio
 ## ✅ Checklist de Conformidade
 
 ### Segurança
+
 - ✅ SQL Injection: Protegido
 - ✅ XSS: N/A (backend)
 - ✅ CSRF: Protegido via JWT
@@ -633,12 +698,14 @@ data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de data inválido').optio
 - ✅ Rate Limiting: ⚠️ Não implementado
 
 ### Validação
+
 - ✅ Schema Zod: Implementado
 - ✅ Tipos validados: Sim
 - ✅ Enums restritos: Sim
 - ⚠️ Formato de data: Não validado
 
 ### Integridade
+
 - ✅ Foreign Keys: Implementadas
 - ✅ Constraints: Implementadas
 - ✅ Triggers: Implementados
@@ -646,12 +713,14 @@ data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de data inválido').optio
 - ✅ Rollback: Implementado
 
 ### Auditoria
+
 - ✅ Trigger de auditoria: Ativo
 - ✅ Logs de erro: Implementados
 - ✅ Rastreabilidade: Completa
 - ✅ Origem marcada: Sim
 
 ### Consistência
+
 - ✅ Estrutura de dados: Idêntica
 - ✅ Lógica de negócio: Idêntica
 - ✅ Mapeamentos: Idênticos
@@ -666,6 +735,7 @@ data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de data inválido').optio
 O sistema de produção está **seguro e bem protegido**. As principais proteções estão implementadas:
 
 **Pontos Fortes:**
+
 1. ✅ Zero vulnerabilidades de SQL Injection
 2. ✅ Autenticação e autorização robustas
 3. ✅ Integridade de dados garantida por constraints
@@ -675,6 +745,7 @@ O sistema de produção está **seguro e bem protegido**. As principais proteç�
 7. ✅ Rastreabilidade total
 
 **Melhorias Sugeridas (Baixa Prioridade):**
+
 1. ⚠️ Adicionar validação de formato de data
 2. ⚠️ Adicionar rate limiting
 3. ⚠️ Revisar lógica de trigger de checklist

@@ -494,7 +494,7 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
 
           // Buscar lista de colaboradores (usar nome da planilha, normalizado com INITCAP para unificar maiúsculas/minúsculas)
           const colaboradoresResult = await server.database.query<{ nome: string; id: string }>(
-           `SELECT DISTINCT
+            `SELECT DISTINCT
              u.id as id,
              INITCAP(LOWER(COALESCE(NULLIF(p.marcadores->>'colaborador_nome', ''), u.nome))) as nome
            FROM producao_repositorio p
@@ -504,7 +504,7 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
           );
 
           const etapasResult = await server.database.query<{ etapa: string }>(
-           `SELECT DISTINCT etapa::text as etapa
+            `SELECT DISTINCT etapa::text as etapa
            FROM producao_repositorio
            WHERE ${buildProducaoContabilizadaWhere('producao_repositorio')}
            ORDER BY etapa`
@@ -672,11 +672,15 @@ async function gerarRelatorioCompleto(
     WHERE ${sqlDateInSystemTimezone('p')} >= $1::date
       AND ${sqlDateInSystemTimezone('p')} <= $2::date
       AND ${buildProducaoContabilizadaWhere('p')}
-      ${coordenadoriaId ? `AND (
+      ${
+        coordenadoriaId
+          ? `AND (
         u.coordenadoria_id = $3 
         OR LOWER(TRIM(p.marcadores->>'coordenadoria')) = LOWER(co_filtro.sigla)
         OR LOWER(TRIM(p.marcadores->>'coordenadoria')) = LOWER(co_filtro.nome)
-      )` : ''}
+      )`
+          : ''
+      }
     ORDER BY p.data_producao
   `;
 

@@ -5,10 +5,7 @@ export const PRODUCAO_ESCOPOS = {
 } as const;
 
 export const PRODUCAO_ORIGENS_CONTABILIZADAS = ['LEGADO', 'SISTEMA'] as const;
-export const PRODUCAO_ETAPAS_EXCLUIDAS_DO_LEGADO = [
-  'RECEBIMENTO',
-  'CONTROLE_QUALIDADE',
-] as const;
+export const PRODUCAO_ETAPAS_EXCLUIDAS_DO_LEGADO = ['RECEBIMENTO', 'CONTROLE_QUALIDADE'] as const;
 
 export const PRODUCAO_CONTABILIZADA_DESCRICAO =
   'Inclui producao de origem SISTEMA e LEGADO, mas desconsidera RECEBIMENTO e CONTROLE_QUALIDADE apenas nos registros LEGADO.';

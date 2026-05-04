@@ -8,13 +8,13 @@
 
 ## 📊 Status de Cobertura de Testes
 
-| Categoria | Status | Prioridade |
-|-----------|--------|------------|
-| **Testes Unitários Backend** | ❌ Não implementado | 🔴 Alta |
-| **Testes de Integração** | ❌ Não implementado | 🔴 Alta |
-| **Testes E2E Frontend** | ❌ Não implementado | 🟡 Média |
-| **Testes de Segurança** | ✅ Auditoria manual | 🟢 Completo |
-| **Documentação** | ✅ Completa | 🟢 Completo |
+| Categoria                    | Status              | Prioridade  |
+| ---------------------------- | ------------------- | ----------- |
+| **Testes Unitários Backend** | ❌ Não implementado | 🔴 Alta     |
+| **Testes de Integração**     | ❌ Não implementado | 🔴 Alta     |
+| **Testes E2E Frontend**      | ❌ Não implementado | 🟡 Média    |
+| **Testes de Segurança**      | ✅ Auditoria manual | 🟢 Completo |
+| **Documentação**             | ✅ Completa         | 🟢 Completo |
 
 ---
 
@@ -31,7 +31,7 @@ describe('Schema de Validação: lancarProducaoColaboradorSchema', () => {
     it('deve aceitar dados mínimos válidos', () => {
       const dados = {
         repositorio: '150/2026',
-        etapa: 'DIGITALIZACAO'
+        etapa: 'DIGITALIZACAO',
       };
       const resultado = lancarProducaoColaboradorSchema.safeParse(dados);
       expect(resultado.success).toBe(true);
@@ -45,7 +45,7 @@ describe('Schema de Validação: lancarProducaoColaboradorSchema', () => {
         funcao: 'Digitalizador',
         coordenadoria: 'CINF',
         quantidade: 10,
-        tipo: 'Imagens'
+        tipo: 'Imagens',
       };
       const resultado = lancarProducaoColaboradorSchema.safeParse(dados);
       expect(resultado.success).toBe(true);
@@ -55,7 +55,7 @@ describe('Schema de Validação: lancarProducaoColaboradorSchema', () => {
       const dados = {
         repositorio: '150/2026',
         etapa: 'DIGITALIZACAO',
-        quantidade: '10'
+        quantidade: '10',
       };
       const resultado = lancarProducaoColaboradorSchema.safeParse(dados);
       expect(resultado.success).toBe(true);
@@ -66,12 +66,18 @@ describe('Schema de Validação: lancarProducaoColaboradorSchema', () => {
 
     it('deve aceitar todas as etapas válidas', () => {
       const etapasValidas = [
-        'RECEBIMENTO', 'PREPARACAO', 'DIGITALIZACAO',
-        'CONFERENCIA', 'RECONFERENCIA', 'MONTAGEM',
-        'ATENDIMENTO', 'CONTROLE_QUALIDADE', 'ENTREGA'
+        'RECEBIMENTO',
+        'PREPARACAO',
+        'DIGITALIZACAO',
+        'CONFERENCIA',
+        'RECONFERENCIA',
+        'MONTAGEM',
+        'ATENDIMENTO',
+        'CONTROLE_QUALIDADE',
+        'ENTREGA',
       ];
 
-      etapasValidas.forEach(etapa => {
+      etapasValidas.forEach((etapa) => {
         const dados = { repositorio: '150/2026', etapa };
         const resultado = lancarProducaoColaboradorSchema.safeParse(dados);
         expect(resultado.success).toBe(true);
@@ -82,10 +88,10 @@ describe('Schema de Validação: lancarProducaoColaboradorSchema', () => {
   describe('❌ Validações que devem FALHAR', () => {
     it('deve rejeitar data em formato inválido', () => {
       const casos = [
-        { data: '15/04/2026' },  // DD/MM/YYYY
-        { data: '2026/04/15' },  // YYYY/MM/DD
-        { data: '15-04-2026' },  // DD-MM-YYYY
-        { data: 'invalido' }
+        { data: '15/04/2026' }, // DD/MM/YYYY
+        { data: '2026/04/15' }, // YYYY/MM/DD
+        { data: '15-04-2026' }, // DD-MM-YYYY
+        { data: 'invalido' },
       ];
 
       casos.forEach(({ data }) => {
@@ -102,9 +108,9 @@ describe('Schema de Validação: lancarProducaoColaboradorSchema', () => {
     });
 
     it('deve rejeitar repositório muito longo (>100 chars)', () => {
-      const dados = { 
-        repositorio: 'x'.repeat(101), 
-        etapa: 'DIGITALIZACAO' 
+      const dados = {
+        repositorio: 'x'.repeat(101),
+        etapa: 'DIGITALIZACAO',
       };
       const resultado = lancarProducaoColaboradorSchema.safeParse(dados);
       expect(resultado.success).toBe(false);
@@ -117,40 +123,40 @@ describe('Schema de Validação: lancarProducaoColaboradorSchema', () => {
     });
 
     it('deve rejeitar quantidade negativa', () => {
-      const dados = { 
-        repositorio: '150/2026', 
+      const dados = {
+        repositorio: '150/2026',
         etapa: 'DIGITALIZACAO',
-        quantidade: -1
+        quantidade: -1,
       };
       const resultado = lancarProducaoColaboradorSchema.safeParse(dados);
       expect(resultado.success).toBe(false);
     });
 
     it('deve rejeitar quantidade zero', () => {
-      const dados = { 
-        repositorio: '150/2026', 
+      const dados = {
+        repositorio: '150/2026',
         etapa: 'DIGITALIZACAO',
-        quantidade: 0
+        quantidade: 0,
       };
       const resultado = lancarProducaoColaboradorSchema.safeParse(dados);
       expect(resultado.success).toBe(false);
     });
 
     it('deve rejeitar quantidade decimal', () => {
-      const dados = { 
-        repositorio: '150/2026', 
+      const dados = {
+        repositorio: '150/2026',
         etapa: 'DIGITALIZACAO',
-        quantidade: 10.5
+        quantidade: 10.5,
       };
       const resultado = lancarProducaoColaboradorSchema.safeParse(dados);
       expect(resultado.success).toBe(false);
     });
 
     it('deve rejeitar função muito longa (>200 chars)', () => {
-      const dados = { 
-        repositorio: '150/2026', 
+      const dados = {
+        repositorio: '150/2026',
         etapa: 'DIGITALIZACAO',
-        funcao: 'x'.repeat(201)
+        funcao: 'x'.repeat(201),
       };
       const resultado = lancarProducaoColaboradorSchema.safeParse(dados);
       expect(resultado.success).toBe(false);
@@ -207,8 +213,8 @@ describe('POST /api/producao/lancar-direto', () => {
           etapa: 'RECEBIMENTO',
           coordenadoria: 'CINF',
           quantidade: 10,
-          tipo: 'Imagens'
-        }
+          tipo: 'Imagens',
+        },
       });
 
       expect(response.statusCode).toBe(201);
@@ -218,7 +224,7 @@ describe('POST /api/producao/lancar-direto', () => {
 
     it('deve criar repositório automaticamente se não existir', async () => {
       const repoId = `TEST_${Date.now()}/2026`;
-      
+
       const response = await app.inject({
         method: 'POST',
         url: '/api/producao/lancar-direto',
@@ -226,8 +232,8 @@ describe('POST /api/producao/lancar-direto', () => {
         payload: {
           repositorio: repoId,
           etapa: 'RECEBIMENTO',
-          quantidade: 1
-        }
+          quantidade: 1,
+        },
       });
 
       expect(response.statusCode).toBe(201);
@@ -243,7 +249,7 @@ describe('POST /api/producao/lancar-direto', () => {
 
     it('deve criar checklist concluído automaticamente', async () => {
       const repoId = `TEST_${Date.now()}/2026`;
-      
+
       await app.inject({
         method: 'POST',
         url: '/api/producao/lancar-direto',
@@ -251,8 +257,8 @@ describe('POST /api/producao/lancar-direto', () => {
         payload: {
           repositorio: repoId,
           etapa: 'RECEBIMENTO',
-          quantidade: 1
-        }
+          quantidade: 1,
+        },
       });
 
       const checklist = await app.database.query(
@@ -278,8 +284,8 @@ describe('POST /api/producao/lancar-direto', () => {
         payload: {
           repositorio: repoId,
           etapa: 'RECEBIMENTO',
-          quantidade: 10
-        }
+          quantidade: 10,
+        },
       });
 
       // Segundo lançamento com quantidade diferente
@@ -290,8 +296,8 @@ describe('POST /api/producao/lancar-direto', () => {
         payload: {
           repositorio: repoId,
           etapa: 'RECEBIMENTO',
-          quantidade: 15
-        }
+          quantidade: 15,
+        },
       });
 
       expect(response.statusCode).toBe(201);
@@ -309,8 +315,8 @@ describe('POST /api/producao/lancar-direto', () => {
           repositorio: repoId,
           etapa: 'RECEBIMENTO',
           coordenadoria: 'CINF',
-          quantidade: 10
-        }
+          quantidade: 10,
+        },
       });
 
       // CEE
@@ -322,8 +328,8 @@ describe('POST /api/producao/lancar-direto', () => {
           repositorio: repoId,
           etapa: 'RECEBIMENTO',
           coordenadoria: 'CEE',
-          quantidade: 10
-        }
+          quantidade: 10,
+        },
       });
 
       expect(response1.statusCode).toBe(201);
@@ -332,13 +338,18 @@ describe('POST /api/producao/lancar-direto', () => {
 
     it('deve permitir sequência correta de etapas', async () => {
       const repoId = `TEST_${Date.now()}/2026`;
-      
+
       // 1. RECEBIMENTO
       let response = await app.inject({
         method: 'POST',
         url: '/api/producao/lancar-direto',
         headers: { authorization: `Bearer ${colaboradorToken}` },
-        payload: { repositorio: repoId, etapa: 'RECEBIMENTO', coordenadoria: 'CINF', quantidade: 1 }
+        payload: {
+          repositorio: repoId,
+          etapa: 'RECEBIMENTO',
+          coordenadoria: 'CINF',
+          quantidade: 1,
+        },
       });
       expect(response.statusCode).toBe(201);
 
@@ -347,7 +358,7 @@ describe('POST /api/producao/lancar-direto', () => {
         method: 'POST',
         url: '/api/producao/lancar-direto',
         headers: { authorization: `Bearer ${colaboradorToken}` },
-        payload: { repositorio: repoId, etapa: 'PREPARACAO', coordenadoria: 'CINF', quantidade: 1 }
+        payload: { repositorio: repoId, etapa: 'PREPARACAO', coordenadoria: 'CINF', quantidade: 1 },
       });
       expect(response.statusCode).toBe(201);
 
@@ -356,7 +367,12 @@ describe('POST /api/producao/lancar-direto', () => {
         method: 'POST',
         url: '/api/producao/lancar-direto',
         headers: { authorization: `Bearer ${colaboradorToken}` },
-        payload: { repositorio: repoId, etapa: 'DIGITALIZACAO', coordenadoria: 'CINF', quantidade: 1 }
+        payload: {
+          repositorio: repoId,
+          etapa: 'DIGITALIZACAO',
+          coordenadoria: 'CINF',
+          quantidade: 1,
+        },
       });
       expect(response.statusCode).toBe(201);
     });
@@ -369,7 +385,7 @@ describe('POST /api/producao/lancar-direto', () => {
         repositorio: repoId,
         etapa: 'RECEBIMENTO',
         quantidade: 10,
-        tipo: 'Imagens'
+        tipo: 'Imagens',
       };
 
       // Primeiro lançamento
@@ -377,7 +393,7 @@ describe('POST /api/producao/lancar-direto', () => {
         method: 'POST',
         url: '/api/producao/lancar-direto',
         headers: { authorization: `Bearer ${colaboradorToken}` },
-        payload
+        payload,
       });
       expect(response1.statusCode).toBe(201);
 
@@ -386,7 +402,7 @@ describe('POST /api/producao/lancar-direto', () => {
         method: 'POST',
         url: '/api/producao/lancar-direto',
         headers: { authorization: `Bearer ${colaboradorToken}` },
-        payload
+        payload,
       });
 
       expect(response2.statusCode).toBe(409);
@@ -401,12 +417,12 @@ describe('POST /api/producao/lancar-direto', () => {
         method: 'POST',
         url: '/api/producao/lancar-direto',
         headers: { authorization: `Bearer ${colaboradorToken}` },
-        payload: { 
-          repositorio: repoId, 
-          etapa: 'RECEBIMENTO', 
+        payload: {
+          repositorio: repoId,
+          etapa: 'RECEBIMENTO',
           coordenadoria: 'CINF',
-          quantidade: 1 
-        }
+          quantidade: 1,
+        },
       });
 
       // Tenta pular para DIGITALIZACAO (sem PREPARACAO)
@@ -414,12 +430,12 @@ describe('POST /api/producao/lancar-direto', () => {
         method: 'POST',
         url: '/api/producao/lancar-direto',
         headers: { authorization: `Bearer ${colaboradorToken}` },
-        payload: { 
-          repositorio: repoId, 
-          etapa: 'DIGITALIZACAO', 
+        payload: {
+          repositorio: repoId,
+          etapa: 'DIGITALIZACAO',
           coordenadoria: 'CINF',
-          quantidade: 1 
-        }
+          quantidade: 1,
+        },
       });
 
       expect(response.statusCode).toBe(422);
@@ -431,7 +447,7 @@ describe('POST /api/producao/lancar-direto', () => {
       const response = await app.inject({
         method: 'POST',
         url: '/api/producao/lancar-direto',
-        payload: { repositorio: 'TEST/2026', etapa: 'RECEBIMENTO' }
+        payload: { repositorio: 'TEST/2026', etapa: 'RECEBIMENTO' },
       });
 
       expect(response.statusCode).toBe(401);
@@ -443,9 +459,9 @@ describe('POST /api/producao/lancar-direto', () => {
         url: '/api/producao/lancar-direto',
         headers: { authorization: `Bearer ${colaboradorToken}` },
         payload: {
-          repositorio: '',  // inválido
-          etapa: 'DIGITALIZACAO'
-        }
+          repositorio: '', // inválido
+          etapa: 'DIGITALIZACAO',
+        },
       });
 
       expect(response.statusCode).toBe(400);
@@ -455,12 +471,12 @@ describe('POST /api/producao/lancar-direto', () => {
   describe('🔒 Segurança', () => {
     it('deve marcar origem como SISTEMA', async () => {
       const repoId = `TEST_${Date.now()}/2026`;
-      
+
       await app.inject({
         method: 'POST',
         url: '/api/producao/lancar-direto',
         headers: { authorization: `Bearer ${colaboradorToken}` },
-        payload: { repositorio: repoId, etapa: 'RECEBIMENTO', quantidade: 1 }
+        payload: { repositorio: repoId, etapa: 'RECEBIMENTO', quantidade: 1 },
       });
 
       const producao = await app.database.query(
@@ -482,8 +498,8 @@ describe('POST /api/producao/lancar-direto', () => {
         payload: {
           repositorio: "'; DROP TABLE repositorios; --",
           etapa: 'RECEBIMENTO',
-          quantidade: 1
-        }
+          quantidade: 1,
+        },
       });
 
       // Deve falhar na validação (schema) ou criar repositório com nome estranho
@@ -513,14 +529,14 @@ test.describe('Sistema de Colaborador - Lançamento de Produção', () => {
     await page.fill('input[type="email"]', 'colaborador@test.com');
     await page.fill('input[type="password"]', 'senha123');
     await page.click('button[type="submit"]');
-    
+
     // Aguardar redirect para dashboard
     await page.waitForURL('**/colaborador/dashboard');
   });
 
   test('deve exibir dashboard simplificado para colaborador', async ({ page }) => {
     await expect(page.locator('h1')).toContainText('Dashboard');
-    
+
     // Verificar que opções de admin NÃO aparecem
     await expect(page.locator('text=Configurações')).not.toBeVisible();
     await expect(page.locator('text=Usuários')).not.toBeVisible();
@@ -534,9 +550,9 @@ test.describe('Sistema de Colaborador - Lançamento de Produção', () => {
 
   test('deve lançar produção com sucesso', async ({ page }) => {
     await page.goto('http://localhost:5173/colaborador/lancar-producao');
-    
+
     const repoId = `E2E_${Date.now()}/2026`;
-    
+
     // Preencher formulário
     await page.fill('input[name="data"]', '2026-04-15');
     await page.fill('input[name="repositorio"]', repoId);
@@ -544,52 +560,52 @@ test.describe('Sistema de Colaborador - Lançamento de Produção', () => {
     await page.selectOption('select[name="coordenadoria"]', { index: 1 });
     await page.fill('input[name="quantidade"]', '10');
     await page.selectOption('select[name="tipo"]', 'Imagens');
-    
+
     // Submeter
     await page.click('button:has-text("Registrar Produção")');
-    
+
     // Verificar toast de sucesso
     await expect(page.locator('.Toastify__toast--success')).toBeVisible();
     await expect(page.locator('.Toastify__toast--success')).toContainText('sucesso');
-    
+
     // Formulário deve limpar
     await expect(page.locator('input[name="repositorio"]')).toHaveValue('');
   });
 
   test('deve criar nova coordenadoria', async ({ page }) => {
     await page.goto('http://localhost:5173/colaborador/lancar-producao');
-    
+
     const novoNome = `COORD_E2E_${Date.now()}`;
-    
+
     // Preencher input de nova coordenadoria
     await page.fill('input[placeholder*="Nova coordenadoria"]', novoNome);
-    
+
     // Click no botão Adicionar
     await page.click('button:has-text("Adicionar")');
-    
+
     // Aguardar toast de sucesso
     await expect(page.locator('.Toastify__toast--success')).toBeVisible();
-    
+
     // Verificar que coordenadoria aparece no select
     const select = page.locator('select[name="coordenadoria"]');
     await expect(select).toContainText(novoNome);
-    
+
     // Verificar que está selecionada
     await expect(select).toHaveValue(novoNome);
   });
 
   test('deve mostrar erro ao tentar duplicata', async ({ page }) => {
     await page.goto('http://localhost:5173/colaborador/lancar-producao');
-    
+
     const repoId = `E2E_DUP_${Date.now()}/2026`;
     const payload = {
       data: '2026-04-15',
       repositorio: repoId,
       etapa: 'RECEBIMENTO',
       quantidade: '10',
-      tipo: 'Imagens'
+      tipo: 'Imagens',
     };
-    
+
     // Primeiro lançamento
     await page.fill('input[name="data"]', payload.data);
     await page.fill('input[name="repositorio"]', payload.repositorio);
@@ -597,10 +613,10 @@ test.describe('Sistema de Colaborador - Lançamento de Produção', () => {
     await page.fill('input[name="quantidade"]', payload.quantidade);
     await page.selectOption('select[name="tipo"]', payload.tipo);
     await page.click('button:has-text("Registrar Produção")');
-    
+
     await expect(page.locator('.Toastify__toast--success')).toBeVisible();
     await page.waitForTimeout(2000); // Aguardar toast desaparecer
-    
+
     // Segundo lançamento (duplicata)
     await page.fill('input[name="data"]', payload.data);
     await page.fill('input[name="repositorio"]', payload.repositorio);
@@ -608,7 +624,7 @@ test.describe('Sistema de Colaborador - Lançamento de Produção', () => {
     await page.fill('input[name="quantidade"]', payload.quantidade);
     await page.selectOption('select[name="tipo"]', payload.tipo);
     await page.click('button:has-text("Registrar Produção")');
-    
+
     // Verificar toast de erro
     await expect(page.locator('.Toastify__toast--error')).toBeVisible();
     await expect(page.locator('.Toastify__toast--error')).toContainText('duplicada');
@@ -616,26 +632,28 @@ test.describe('Sistema de Colaborador - Lançamento de Produção', () => {
 
   test('deve mostrar erro ao pular etapa', async ({ page }) => {
     await page.goto('http://localhost:5173/colaborador/lancar-producao');
-    
+
     const repoId = `E2E_SEQ_${Date.now()}/2026`;
-    
+
     // Tentar lançar CONFERENCIA sem etapas anteriores
     await page.fill('input[name="repositorio"]', repoId);
     await page.selectOption('select[name="etapa"]', 'CONFERENCIA');
     await page.fill('input[name="quantidade"]', '1');
     await page.click('button:has-text("Registrar Produção")');
-    
+
     // Verificar toast de erro
     await expect(page.locator('.Toastify__toast--error')).toBeVisible();
-    await expect(page.locator('.Toastify__toast--error')).toContainText('Sequência de etapas inválida');
+    await expect(page.locator('.Toastify__toast--error')).toContainText(
+      'Sequência de etapas inválida'
+    );
   });
 
   test('deve validar campos obrigatórios', async ({ page }) => {
     await page.goto('http://localhost:5173/colaborador/lancar-producao');
-    
+
     // Tentar submeter sem preencher
     await page.click('button:has-text("Registrar Produção")');
-    
+
     // HTML5 validation deve prevenir submit
     const isInvalid = await page.locator('input[name="repositorio"]:invalid').isVisible();
     expect(isInvalid).toBe(true);
@@ -652,30 +670,30 @@ test.describe('Painel Admin - Visualização de Produções de Colaboradores', (
 
   test('deve exibir produções com badge de origem', async ({ page }) => {
     await page.goto('http://localhost:5173/operacao/producao');
-    
+
     // Aguardar carregamento
     await page.waitForSelector('table');
-    
+
     // Verificar que badges aparecem
     const badgeSistema = page.locator('text=Sistema').or(page.locator('text=Fluxo'));
     const badgeLegado = page.locator('text=Legado');
-    
+
     // Pelo menos um dos badges deve estar visível
     await expect(badgeSistema.or(badgeLegado).first()).toBeVisible();
   });
 
   test('deve ordenar por coluna ao clicar no cabeçalho', async ({ page }) => {
     await page.goto('http://localhost:5173/operacao/producao');
-    
+
     await page.waitForSelector('table');
-    
+
     // Click no cabeçalho "Quantidade"
     await page.click('th:has-text("Qtd")');
-    
+
     // Verificar que ícone de ordenação aparece
     const sortIcon = page.locator('th:has-text("Qtd") svg');
     await expect(sortIcon).toBeVisible();
-    
+
     // Click novamente inverte ordem
     await page.click('th:has-text("Qtd")');
     await expect(sortIcon).toBeVisible();
@@ -683,19 +701,19 @@ test.describe('Painel Admin - Visualização de Produções de Colaboradores', (
 
   test('deve filtrar produções', async ({ page }) => {
     await page.goto('http://localhost:5173/operacao/producao');
-    
+
     await page.waitForSelector('table');
-    
+
     // Usar filtro de busca
     await page.fill('input[placeholder*="Busca"]', 'E2E');
-    
+
     // Aguardar debounce
     await page.waitForTimeout(500);
-    
+
     // Verificar que apenas resultados relevantes aparecem
     const rows = page.locator('tbody tr');
     const count = await rows.count();
-    
+
     // Se houver resultados, todos devem conter "E2E"
     if (count > 0) {
       for (let i = 0; i < count; i++) {
@@ -766,9 +784,9 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
-      exclude: ['dist/**', 'test/**', '**/*.test.ts']
-    }
-  }
+      exclude: ['dist/**', 'test/**', '**/*.test.ts'],
+    },
+  },
 });
 ```
 
@@ -848,25 +866,27 @@ export default defineConfig({
 
 ## 6️⃣ Métricas de Cobertura Esperadas
 
-| Módulo | Cobertura Alvo |
-|--------|----------------|
-| Schema Zod | 100% |
-| Endpoint lancamento | 95%+ |
-| Validações | 100% |
-| E2E crítico | 80%+ |
-| **TOTAL** | **90%+** |
+| Módulo              | Cobertura Alvo |
+| ------------------- | -------------- |
+| Schema Zod          | 100%           |
+| Endpoint lancamento | 95%+           |
+| Validações          | 100%           |
+| E2E crítico         | 80%+           |
+| **TOTAL**           | **90%+**       |
 
 ---
 
 ## 📝 Checklist de Implementação
 
 ### Setup
+
 - [ ] Configurar Vitest no backend
 - [ ] Configurar Playwright no frontend
 - [ ] Criar helpers de teste
 - [ ] Setup de banco de testes
 
 ### Testes Unitários
+
 - [ ] producao.test.ts (schema)
 - [ ] metas.test.ts (endpoint)
 - [ ] Casos de sucesso (6 testes)
@@ -874,6 +894,7 @@ export default defineConfig({
 - [ ] Casos de segurança (2 testes)
 
 ### Testes E2E
+
 - [ ] Login e navegação
 - [ ] Lançamento de produção
 - [ ] Criar coordenadoria
@@ -884,6 +905,7 @@ export default defineConfig({
 - [ ] Ordenação de colunas
 
 ### CI/CD
+
 - [ ] Adicionar testes no pipeline
 - [ ] Configurar relatórios de cobertura
 - [ ] Notificações de falha

@@ -14,6 +14,7 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 #### ✨ Adicionado
 
 **Módulo de Colaborador**
+
 - Sistema completo de lançamento de produção para colaboradores
 - Interface simplificada para lançamento diário
 - Campo Coordenadoria com select + criação rápida
@@ -24,10 +25,12 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Criação automática de repositórios e checklists
 
 **Novas Etapas**
+
 - RECONFERENCIA (entre Conferência e Montagem)
 - ATENDIMENTO (após Montagem)
 
 **Segurança**
+
 - Validação rigorosa com Zod (10/10 em auditoria)
 - Formato de data: YYYY-MM-DD obrigatório
 - Quantidade mínima: 1 (inteiro)
@@ -37,12 +40,14 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Autorização por perfil (RBAC)
 
 **Painel Admin**
+
 - Ordenação clicável em todas as colunas
 - Indicador visual de ordenação (setas)
 - Badge de diferenciação (Sistema vs Legado)
 - Inclusão de produções de colaboradores em relatórios
 
 **Testes**
+
 - 16 testes unitários de schema Zod
 - 35 testes unitários de endpoint
 - 10 testes E2E com Playwright
@@ -50,6 +55,7 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Cobertura completa de casos críticos
 
 **Documentação**
+
 - README.md atualizado
 - Arquitetura completa documentada
 - Sistema de Colaborador Completo (30 páginas)
@@ -61,17 +67,20 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 #### 🔧 Modificado
 
 **Backend**
+
 - Endpoint `/producao/lancar-direto` com validações completas
 - Queries de relatórios incluem `origem IN ('LEGADO', 'SISTEMA')`
 - Mapeamento de status por etapa atualizado
 - Marcadores JSONB com campo `origem`
 
 **Frontend**
+
 - `LancarProducaoPage.tsx` refatorada
 - `ProducaoPage.tsx` com ordenação de colunas
 - Toast helpers para feedback
 
 **Banco de Dados**
+
 - Migration 066: Perfil colaborador
 - Índices otimizados para performance
 - Triggers de auditoria completos
@@ -120,6 +129,7 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 ### [0.9.0] - 2026-03-01
 
 #### ✨ Adicionado
+
 - Sistema de fluxo operacional completo
 - Controle de qualidade com checklists
 - Metas e acompanhamento de produtividade
@@ -129,6 +139,7 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 ### [0.5.0] - 2026-02-01
 
 #### ✨ Adicionado
+
 - Sistema de autenticação com JWT
 - Gestão de usuários
 - Perfis (Administrador, Operador)
@@ -137,6 +148,7 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 ### [0.1.0] - 2026-01-01
 
 #### 🎉 Primeira Versão
+
 - Estrutura inicial do projeto
 - Setup de monorepo
 - Configuração de TypeScript
@@ -157,6 +169,7 @@ Este projeto segue o padrão [Conventional Commits](https://www.conventionalcomm
 - `chore`: Tarefas de build/config
 
 **Exemplos:**
+
 ```
 feat(colaborador): adicionar validação de sequência de etapas
 fix(relatorios): incluir origem SISTEMA nas queries
@@ -178,4 +191,3 @@ test: adicionar testes E2E para lançamento de produção
 
 **Mantido por:** Equipe Recorda  
 **Última Atualização:** 15 de Abril de 2026
-

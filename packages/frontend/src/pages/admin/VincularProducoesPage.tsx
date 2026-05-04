@@ -43,7 +43,9 @@ export function VincularProducoesPage(): JSX.Element {
   const [colaboradorSelecionado, setColaboradorSelecionado] = useState<string>('');
   const [usuarioSelecionado, setUsuarioSelecionado] = useState<string>('');
   const [mostrarPreview, setMostrarPreview] = useState(false);
-  const [mensagem, setMensagem] = useState<{ tipo: 'success' | 'error'; texto: string } | null>(null);
+  const [mensagem, setMensagem] = useState<{ tipo: 'success' | 'error'; texto: string } | null>(
+    null
+  );
 
   const { data: colaboradores, isLoading: loadingColaboradores } = useQuery({
     queryKey: ['colaboradores-legado'],
@@ -57,7 +59,7 @@ export function VincularProducoesPage(): JSX.Element {
 
   const { data: preview, isLoading: loadingPreview } = useQuery({
     queryKey: ['preview-vinculacao', colaboradorSelecionado, usuarioSelecionado],
-    queryFn: () => 
+    queryFn: () =>
       api.get<PreviewVinculacao>(
         `/admin/preview-vinculacao/${encodeURIComponent(colaboradorSelecionado)}/${usuarioSelecionado}`
       ),
@@ -76,9 +78,9 @@ export function VincularProducoesPage(): JSX.Element {
       queryClient.invalidateQueries({ queryKey: ['usuarios-colaboradores'] });
     },
     onError: (error: any) => {
-      setMensagem({ 
-        tipo: 'error', 
-        texto: error.error || 'Erro ao vincular produções' 
+      setMensagem({
+        tipo: 'error',
+        texto: error.error || 'Erro ao vincular produções',
       });
     },
   });
@@ -143,7 +145,9 @@ export function VincularProducoesPage(): JSX.Element {
                   <div className="text-center py-8 text-gray-500">
                     <Icon name="users" className="w-12 h-12 mx-auto mb-2 text-gray-300" />
                     <p className="text-sm">
-                      {loadingColaboradores ? 'Carregando...' : 'Nenhum colaborador encontrado no sistema legado'}
+                      {loadingColaboradores
+                        ? 'Carregando...'
+                        : 'Nenhum colaborador encontrado no sistema legado'}
                     </p>
                     {!loadingColaboradores && (
                       <p className="text-xs mt-1">
@@ -153,34 +157,34 @@ export function VincularProducoesPage(): JSX.Element {
                   </div>
                 ) : (
                   colaboradores.map((colab) => (
-                  <button
-                    key={colab.nome}
-                    onClick={() => {
-                      setColaboradorSelecionado(colab.nome);
-                      setMostrarPreview(false);
-                    }}
-                    className={`w-full text-left p-3 rounded-lg border transition-colors ${
-                      colaboradorSelecionado === colab.nome
-                        ? 'bg-blue-50 border-blue-500 ring-2 ring-blue-200'
-                        : 'bg-white border-gray-200 hover:bg-gray-50'
-                    }`}
-                  >
-                    <p className="font-medium text-gray-900">{colab.nome}</p>
-                    <div className="mt-1 flex flex-wrap gap-2 text-xs text-gray-600">
-                      <span className="flex items-center gap-1">
-                        <Icon name="clipboard" className="w-3 h-3" />
-                        {colab.total_producoes} produções
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Icon name="folder" className="w-3 h-3" />
-                        {colab.total_repositorios} repositórios
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {new Date(colab.primeira_producao).toLocaleDateString('pt-BR')} até{' '}
-                      {new Date(colab.ultima_producao).toLocaleDateString('pt-BR')}
-                    </p>
-                  </button>
+                    <button
+                      key={colab.nome}
+                      onClick={() => {
+                        setColaboradorSelecionado(colab.nome);
+                        setMostrarPreview(false);
+                      }}
+                      className={`w-full text-left p-3 rounded-lg border transition-colors ${
+                        colaboradorSelecionado === colab.nome
+                          ? 'bg-blue-50 border-blue-500 ring-2 ring-blue-200'
+                          : 'bg-white border-gray-200 hover:bg-gray-50'
+                      }`}
+                    >
+                      <p className="font-medium text-gray-900">{colab.nome}</p>
+                      <div className="mt-1 flex flex-wrap gap-2 text-xs text-gray-600">
+                        <span className="flex items-center gap-1">
+                          <Icon name="clipboard" className="w-3 h-3" />
+                          {colab.total_producoes} produções
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Icon name="folder" className="w-3 h-3" />
+                          {colab.total_repositorios} repositórios
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {new Date(colab.primeira_producao).toLocaleDateString('pt-BR')} até{' '}
+                        {new Date(colab.ultima_producao).toLocaleDateString('pt-BR')}
+                      </p>
+                    </button>
                   ))
                 )}
               </div>
@@ -210,40 +214,40 @@ export function VincularProducoesPage(): JSX.Element {
                 ) : (
                   usuarios.map((usuario) => (
                     <button
-                    key={usuario.id}
-                    onClick={() => {
-                      setUsuarioSelecionado(usuario.id);
-                      setMostrarPreview(false);
-                    }}
-                    disabled={!usuario.ativo}
-                    className={`w-full text-left p-3 rounded-lg border transition-colors ${
-                      usuarioSelecionado === usuario.id
-                        ? 'bg-green-50 border-green-500 ring-2 ring-green-200'
-                        : usuario.ativo
-                          ? 'bg-white border-gray-200 hover:bg-gray-50'
-                          : 'bg-gray-100 border-gray-200 opacity-50 cursor-not-allowed'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <p className="font-medium text-gray-900">{usuario.nome}</p>
-                        <p className="text-sm text-gray-600">{usuario.email}</p>
-                        {usuario.coordenadoria_nome && (
+                      key={usuario.id}
+                      onClick={() => {
+                        setUsuarioSelecionado(usuario.id);
+                        setMostrarPreview(false);
+                      }}
+                      disabled={!usuario.ativo}
+                      className={`w-full text-left p-3 rounded-lg border transition-colors ${
+                        usuarioSelecionado === usuario.id
+                          ? 'bg-green-50 border-green-500 ring-2 ring-green-200'
+                          : usuario.ativo
+                            ? 'bg-white border-gray-200 hover:bg-gray-50'
+                            : 'bg-gray-100 border-gray-200 opacity-50 cursor-not-allowed'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-900">{usuario.nome}</p>
+                          <p className="text-sm text-gray-600">{usuario.email}</p>
+                          {usuario.coordenadoria_nome && (
+                            <p className="text-xs text-gray-500 mt-1">
+                              {usuario.coordenadoria_sigla} - {usuario.coordenadoria_nome}
+                            </p>
+                          )}
                           <p className="text-xs text-gray-500 mt-1">
-                            {usuario.coordenadoria_sigla} - {usuario.coordenadoria_nome}
+                            {usuario.total_producoes_vinculadas} produções já vinculadas
                           </p>
+                        </div>
+                        {!usuario.ativo && (
+                          <span className="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded">
+                            Inativo
+                          </span>
                         )}
-                        <p className="text-xs text-gray-500 mt-1">
-                          {usuario.total_producoes_vinculadas} produções já vinculadas
-                        </p>
                       </div>
-                      {!usuario.ativo && (
-                        <span className="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded">
-                          Inativo
-                        </span>
-                      )}
-                    </div>
-                  </button>
+                    </button>
                   ))
                 )}
               </div>

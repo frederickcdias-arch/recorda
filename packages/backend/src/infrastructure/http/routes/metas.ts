@@ -254,7 +254,13 @@ export function createMetasRoutes(): FastifyPluginAsync {
       async (request, reply) => {
         try {
           const user = getCurrentUser(request);
-          const { dataInicio, dataFim, etapa, limite = 50, pagina = 1 } = request.query as {
+          const {
+            dataInicio,
+            dataFim,
+            etapa,
+            limite = 50,
+            pagina = 1,
+          } = request.query as {
             dataInicio?: string;
             dataFim?: string;
             etapa?: string;
@@ -264,7 +270,10 @@ export function createMetasRoutes(): FastifyPluginAsync {
 
           const offset = (Number(pagina) - 1) * Number(limite);
           const dataProducaoLocal = sqlDateInSystemTimezone('pr');
-          const conditions: string[] = ['pr.usuario_id = $1', buildProducaoContabilizadaWhere('pr')];
+          const conditions: string[] = [
+            'pr.usuario_id = $1',
+            buildProducaoContabilizadaWhere('pr'),
+          ];
           const params: unknown[] = [user.id];
           let idx = 2;
 
@@ -504,7 +513,9 @@ export function createMetasRoutes(): FastifyPluginAsync {
           );
 
           if (userCheck.rows.length === 0) {
-            return reply.status(404).send({ error: 'Usuário de destino não encontrado ou inativo' });
+            return reply
+              .status(404)
+              .send({ error: 'Usuário de destino não encontrado ou inativo' });
           }
 
           // Atualizar a produção
@@ -770,7 +781,7 @@ export function createMetasRoutes(): FastifyPluginAsync {
           const producaoResult = await server.database.query(
             `INSERT INTO producao_repositorio 
              (repositorio_id, etapa, checklist_id, usuario_id, quantidade, marcadores, data_producao)
-             VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7)
+             VALUES ($1, $2, $3, $4, $5, $6::jsonb, ($7::date)::timestamp AT TIME ZONE '${SYSTEM_TIMEZONE}')
              RETURNING *`,
             [
               repositorioId,
@@ -796,4 +807,3 @@ export function createMetasRoutes(): FastifyPluginAsync {
     );
   };
 }
-

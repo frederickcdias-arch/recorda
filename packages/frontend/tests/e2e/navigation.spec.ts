@@ -6,7 +6,10 @@ test.describe('Navegacao principal', () => {
     await performLogin(page);
 
     await page.getByRole('button', { name: /Opera/i }).click();
-    await page.getByRole('link', { name: /Recebimento/i }).first().click();
+    await page
+      .getByRole('link', { name: /Recebimento/i })
+      .first()
+      .click();
     await expect(page).toHaveURL(/\/operacao\/recebimento$/);
     await expect(page.getByText(/Recebimento/i).first()).toBeVisible();
 

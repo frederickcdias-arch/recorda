@@ -36,7 +36,9 @@ test.describe('Exportacoes', () => {
     await expect(page).toHaveURL(/\/relatorios\/exportacoes$/);
     await page.waitForLoadState('networkidle');
 
-    await expect(page.getByRole('main').getByRole('heading', { name: /Exporta..es/i })).toBeVisible();
+    await expect(
+      page.getByRole('main').getByRole('heading', { name: /Exporta..es/i })
+    ).toBeVisible();
     await expect(page.getByText(/Relat.rio Gerencial de Produ..o/i)).toBeVisible();
   });
 

@@ -45,16 +45,16 @@ npm run dev
 
 ## Comandos
 
-| Comando | Descrição |
-|---|---|
-| `npm run dev` | Inicia frontend e backend em modo desenvolvimento |
-| `npm run dev:backend` | Inicia apenas o backend |
-| `npm run dev:frontend` | Inicia apenas o frontend |
-| `npm run build` | Build de produção |
-| `npm run lint` | Executa ESLint |
-| `npm run format` | Formata código com Prettier |
-| `npm run typecheck` | Verifica tipos TypeScript |
-| `npm run db:bootstrap` | Prepara o banco local |
+| Comando                | Descrição                                         |
+| ---------------------- | ------------------------------------------------- |
+| `npm run dev`          | Inicia frontend e backend em modo desenvolvimento |
+| `npm run dev:backend`  | Inicia apenas o backend                           |
+| `npm run dev:frontend` | Inicia apenas o frontend                          |
+| `npm run build`        | Build de produção                                 |
+| `npm run lint`         | Executa ESLint                                    |
+| `npm run format`       | Formata código com Prettier                       |
+| `npm run typecheck`    | Verifica tipos TypeScript                         |
+| `npm run db:bootstrap` | Prepara o banco local                             |
 
 ## Testes
 

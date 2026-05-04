@@ -11,10 +11,10 @@ import {
 describe('producao-metrics', () => {
   it('usa America/Cuiaba como timezone oficial', () => {
     expect(SYSTEM_TIMEZONE).toBe('America/Cuiaba');
-    expect(sqlDateInSystemTimezone('p')).toContain("America/Cuiaba");
-    expect(sqlTodayInSystemTimezone()).toContain("America/Cuiaba");
-    expect(sqlMonthStartInSystemTimezone()).toContain("America/Cuiaba");
-    expect(sqlLastNDaysStartInSystemTimezone(7)).toContain("America/Cuiaba");
+    expect(sqlDateInSystemTimezone('p')).toContain('America/Cuiaba');
+    expect(sqlTodayInSystemTimezone()).toContain('America/Cuiaba');
+    expect(sqlMonthStartInSystemTimezone()).toContain('America/Cuiaba');
+    expect(sqlLastNDaysStartInSystemTimezone(7)).toContain('America/Cuiaba');
   });
 
   it('expõe a regra única de produção contabilizada', () => {

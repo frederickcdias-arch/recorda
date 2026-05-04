@@ -25,6 +25,7 @@ Também foi criada uma camada central de regras numéricas no backend para reduz
 Regra central: `producao_contabilizada`.
 
 Definição:
+
 - Inclui registros com origem `SISTEMA`.
 - Inclui registros com origem `LEGADO`.
 - Exclui `RECEBIMENTO` e `CONTROLE_QUALIDADE` apenas quando a origem é `LEGADO`.
@@ -36,6 +37,7 @@ Essa regra foi centralizada em `packages/backend/src/domain/producao/producao-me
 Timezone oficial adotado: `America/Cuiaba`.
 
 Aplicações feitas:
+
 - `packages/backend/src/main.ts`
 - filtros de período nas rotas de dashboard, metas/histórico e relatórios
 - utilitário `packages/frontend/src/utils/date.ts`
@@ -79,11 +81,13 @@ Aplicações feitas:
 ## 9. Testes criados ou ajustados
 
 Criados:
+
 - `packages/backend/src/domain/producao/importacao-legado.test.ts`
 - `packages/backend/src/domain/producao/producao-metrics.test.ts`
 - `packages/frontend/src/utils/number.test.ts`
 
 Cobertura adicionada:
+
 - quantidade válida vs inválida
 - data válida vs inválida
 - regra central de produção contabilizada
