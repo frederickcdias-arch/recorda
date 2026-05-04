@@ -45,9 +45,11 @@ interface ProducaoItem {
   data_producao: string;
   etapa: string;
   etapa_label?: string;
+  coordenadoria_label?: string;
   tipo_label?: string;
   quantidade: number;
   id_repositorio_ged: string;
+  marcadores?: Record<string, string>;
 }
 
 interface EtapaStats {
@@ -323,6 +325,9 @@ function DashboardColaborador(): JSX.Element {
                       Repositório
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      Coordenadoria
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                       Etapa
                     </th>
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
@@ -333,6 +338,7 @@ function DashboardColaborador(): JSX.Element {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {producoesRecentes.map((p) => {
                     const label = p.etapa_label ?? p.etapa;
+                    const coordenadoria = p.coordenadoria_label ?? p.marcadores?.coordenadoria ?? '—';
                     const cor = getEtapaCor(label);
                     return (
                       <tr key={p.id} className="hover:bg-gray-50">
@@ -341,6 +347,9 @@ function DashboardColaborador(): JSX.Element {
                         </td>
                         <td className="px-6 py-4 text-sm font-medium text-gray-900">
                           {p.id_repositorio_ged}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-700">
+                          {coordenadoria}
                         </td>
                         <td className="px-6 py-4">
                           <span className={`px-2 py-1 text-xs rounded-full ${cor.bg} ${cor.text}`}>
