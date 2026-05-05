@@ -25,6 +25,12 @@ interface ConfiguracaoProjetoInput {
 }
 
 function mapRowToConfig(row: Record<string, unknown>) {
+  const baseLogoUrl = row.logo_url as string | null;
+  const logoAtualizadoEm = row.logo_atualizado_em as Date | string | null;
+  const logoUrl =
+    baseLogoUrl && logoAtualizadoEm
+      ? `${baseLogoUrl}?v=${new Date(logoAtualizadoEm).getTime()}`
+      : (baseLogoUrl ?? '');
   return {
     id: row.id as string,
     nome: row.nome as string,
@@ -32,7 +38,7 @@ function mapRowToConfig(row: Record<string, unknown>) {
     endereco: row.endereco as string,
     telefone: row.telefone as string,
     email: row.email as string,
-    logoUrl: row.logo_url as string,
+    logoUrl,
     exibirLogoRelatorio: row.exibir_logo_relatorio as boolean,
     exibirEnderecoRelatorio: row.exibir_endereco_relatorio as boolean,
     exibirContatoRelatorio: row.exibir_contato_relatorio as boolean,
@@ -57,7 +63,7 @@ export function createConfiguracaoRoutes(): FastifyPluginAsync {
       async (_request, reply) => {
         try {
           const result = await server.database.query(
-            `SELECT id, nome, cnpj, endereco, telefone, email, logo_url,
+            `SELECT id, nome, cnpj, endereco, telefone, email, logo_url, logo_atualizado_em,
                   exibir_logo_relatorio, exibir_endereco_relatorio, exibir_contato_relatorio,
                   logo_largura_relatorio, logo_alinhamento_relatorio, logo_deslocamento_y_relatorio
            FROM configuracao_empresa LIMIT 1`
@@ -113,10 +119,10 @@ export function createConfiguracaoRoutes(): FastifyPluginAsync {
           if (existsResult.rows.length === 0) {
             const insertResult = await server.database.query(
               `INSERT INTO configuracao_empresa 
-             (nome, cnpj, endereco, telefone, email, logo_url, exibir_logo_relatorio, exibir_endereco_relatorio, exibir_contato_relatorio,
+             (nome, cnpj, endereco, telefone, email, exibir_logo_relatorio, exibir_endereco_relatorio, exibir_contato_relatorio,
               logo_largura_relatorio, logo_alinhamento_relatorio, logo_deslocamento_y_relatorio)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-             RETURNING id, nome, cnpj, endereco, telefone, email, logo_url,
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+             RETURNING id, nome, cnpj, endereco, telefone, email, logo_url, logo_atualizado_em,
                        exibir_logo_relatorio, exibir_endereco_relatorio, exibir_contato_relatorio,
                        logo_largura_relatorio, logo_alinhamento_relatorio, logo_deslocamento_y_relatorio`,
 
@@ -126,7 +132,6 @@ export function createConfiguracaoRoutes(): FastifyPluginAsync {
                 config.endereco,
                 config.telefone,
                 config.email,
-                config.logoUrl,
                 config.exibirLogoRelatorio,
                 config.exibirEnderecoRelatorio,
                 config.exibirContatoRelatorio,
@@ -143,10 +148,10 @@ export function createConfiguracaoRoutes(): FastifyPluginAsync {
           const existingId = (existsResult.rows[0] as Record<string, unknown>).id;
           const updateResult = await server.database.query(
             `UPDATE configuracao_empresa SET nome = $1, cnpj = $2, endereco = $3, telefone = $4, email = $5,
-           logo_url = $6, exibir_logo_relatorio = $7, exibir_endereco_relatorio = $8, exibir_contato_relatorio = $9,
-           logo_largura_relatorio = $10, logo_alinhamento_relatorio = $11, logo_deslocamento_y_relatorio = $12
-           WHERE id = $13
-           RETURNING id, nome, cnpj, endereco, telefone, email, logo_url,
+           exibir_logo_relatorio = $6, exibir_endereco_relatorio = $7, exibir_contato_relatorio = $8,
+           logo_largura_relatorio = $9, logo_alinhamento_relatorio = $10, logo_deslocamento_y_relatorio = $11
+           WHERE id = $12
+           RETURNING id, nome, cnpj, endereco, telefone, email, logo_url, logo_atualizado_em,
                      exibir_logo_relatorio, exibir_endereco_relatorio, exibir_contato_relatorio,
                      logo_largura_relatorio, logo_alinhamento_relatorio, logo_deslocamento_y_relatorio`,
             [
@@ -155,7 +160,6 @@ export function createConfiguracaoRoutes(): FastifyPluginAsync {
               config.endereco,
               config.telefone,
               config.email,
-              config.logoUrl,
               config.exibirLogoRelatorio,
               config.exibirEnderecoRelatorio,
               config.exibirContatoRelatorio,
@@ -212,44 +216,32 @@ export function createConfiguracaoRoutes(): FastifyPluginAsync {
           }
 
           const buffer = await data.toBuffer();
-          const uploadsDir = path.resolve('uploads', 'logos');
-          await fs.mkdir(uploadsDir, { recursive: true });
+          const logoUrl = '/configuracao/empresa/logo/arquivo';
+          const now = new Date();
 
-          // Limpar logos anteriores
-          try {
-            const files = await fs.readdir(uploadsDir);
-            for (const file of files) {
-              await fs.unlink(path.join(uploadsDir, file));
-            }
-          } catch {
-            /* ignore */
-          }
-
-          const ext = path.extname(data.filename) || '.png';
-          const filename = `logo_empresa${ext}`;
-          const filePath = path.join(uploadsDir, filename);
-          await fs.writeFile(filePath, buffer);
-
-          const logoUrl = `/configuracao/empresa/logo/arquivo`;
-
-          // Atualizar logo_url na configuração
+          // Armazena a logo no banco de dados para sobreviver a restarts do servidor
           const existsResult = await server.database.query(
             `SELECT id FROM configuracao_empresa LIMIT 1`
           );
           if (existsResult.rows.length > 0) {
             const existingId = (existsResult.rows[0] as Record<string, unknown>).id;
             await server.database.query(
-              `UPDATE configuracao_empresa SET logo_url = $1 WHERE id = $2`,
-              [logoUrl, existingId]
+              `UPDATE configuracao_empresa
+               SET logo_url = $1, logo_data = $2, logo_mime_type = $3, logo_atualizado_em = $4
+               WHERE id = $5`,
+              [logoUrl, buffer, data.mimetype, now, existingId]
             );
           } else {
             await server.database.query(
-              `INSERT INTO configuracao_empresa (nome, logo_url) VALUES ('', $1)`,
-              [logoUrl]
+              `INSERT INTO configuracao_empresa (nome, logo_url, logo_data, logo_mime_type, logo_atualizado_em)
+               VALUES ('', $1, $2, $3, $4)`,
+              [logoUrl, buffer, data.mimetype, now]
             );
           }
 
-          return reply.status(200).send({ logoUrl });
+          // Retorna URL com cache-buster para o browser buscar imagem nova
+          const versionedUrl = `${logoUrl}?v=${now.getTime()}`;
+          return reply.status(200).send({ logoUrl: versionedUrl });
         } catch (error) {
           const message = error instanceof Error ? error.message : 'Erro ao fazer upload da logo';
           return reply.status(500).send({ error: message });
@@ -269,37 +261,58 @@ export function createConfiguracaoRoutes(): FastifyPluginAsync {
       },
       async (_request, reply) => {
         try {
-          const uploadsDir = path.resolve('uploads', 'logos');
-          const files = await fs.readdir(uploadsDir);
-          const logoFile = files.find((f) => f.startsWith('logo_empresa'));
+          // Busca a logo no banco (principal) — sobrevive a restarts do servidor
+          const result = await server.database.query(
+            `SELECT logo_data, logo_mime_type FROM configuracao_empresa LIMIT 1`
+          );
 
-          if (!logoFile) {
-            return reply.status(404).send({ error: 'Logo não encontrada' });
+          if (result.rows.length > 0) {
+            const row = result.rows[0] as Record<string, unknown>;
+            const logoData = row.logo_data as Buffer | null;
+            const logoMimeType = (row.logo_mime_type as string | null) ?? 'image/png';
+
+            if (logoData) {
+              return reply
+                .header('Content-Type', logoMimeType)
+                .header('Cache-Control', 'public, max-age=31536000, immutable')
+                .header('Access-Control-Allow-Origin', '*')
+                .header('Access-Control-Allow-Methods', 'GET, OPTIONS')
+                .header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+                .header('Cross-Origin-Resource-Policy', 'cross-origin')
+                .send(logoData);
+            }
           }
 
-          const filePath = path.join(uploadsDir, logoFile);
-          const buffer = await fs.readFile(filePath);
-          const ext = path.extname(logoFile).toLowerCase();
+          // Fallback: tenta ler do filesystem (compatibilidade com uploads anteriores)
+          try {
+            const uploadsDir = path.resolve('uploads', 'logos');
+            const files = await fs.readdir(uploadsDir);
+            const logoFile = files.find((f) => f.startsWith('logo_empresa'));
 
-          const mimeTypes: Record<string, string> = {
-            '.png': 'image/png',
-            '.jpg': 'image/jpeg',
-            '.jpeg': 'image/jpeg',
-            '.svg': 'image/svg+xml',
-            '.webp': 'image/webp',
-          };
+            if (logoFile) {
+              const buffer = await fs.readFile(path.join(uploadsDir, logoFile));
+              const ext = path.extname(logoFile).toLowerCase();
+              const mimeTypes: Record<string, string> = {
+                '.png': 'image/png',
+                '.jpg': 'image/jpeg',
+                '.jpeg': 'image/jpeg',
+                '.svg': 'image/svg+xml',
+                '.webp': 'image/webp',
+              };
+              return reply
+                .header('Content-Type', mimeTypes[ext] ?? 'image/png')
+                .header('Cache-Control', 'no-cache')
+                .header('Access-Control-Allow-Origin', '*')
+                .header('Access-Control-Allow-Methods', 'GET, OPTIONS')
+                .header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+                .header('Cross-Origin-Resource-Policy', 'cross-origin')
+                .send(buffer);
+            }
+          } catch {
+            /* filesystem não disponível, ignorar */
+          }
 
-          return (
-            reply
-              .header('Content-Type', mimeTypes[ext] ?? 'image/png')
-              .header('Cache-Control', 'public, max-age=3600')
-              .header('Access-Control-Allow-Origin', '*')
-              .header('Access-Control-Allow-Methods', 'GET, OPTIONS')
-              .header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-              // Permite exibir a logo em frontend hospedado em outro domÃ­nio (ex.: Vercel).
-              .header('Cross-Origin-Resource-Policy', 'cross-origin')
-              .send(buffer)
-          );
+          return reply.status(404).send({ error: 'Logo não encontrada' });
         } catch {
           return reply.status(404).send({ error: 'Logo não encontrada' });
         }
@@ -323,23 +336,15 @@ export function createConfiguracaoRoutes(): FastifyPluginAsync {
       },
       async (_request, reply) => {
         try {
-          const uploadsDir = path.resolve('uploads', 'logos');
-          try {
-            const files = await fs.readdir(uploadsDir);
-            for (const file of files) {
-              await fs.unlink(path.join(uploadsDir, file));
-            }
-          } catch {
-            /* ignore */
-          }
-
           const existsResult = await server.database.query(
             `SELECT id FROM configuracao_empresa LIMIT 1`
           );
           if (existsResult.rows.length > 0) {
             const existingId = (existsResult.rows[0] as Record<string, unknown>).id;
             await server.database.query(
-              `UPDATE configuracao_empresa SET logo_url = '' WHERE id = $1`,
+              `UPDATE configuracao_empresa
+               SET logo_url = NULL, logo_data = NULL, logo_mime_type = NULL, logo_atualizado_em = NULL
+               WHERE id = $1`,
               [existingId]
             );
           }
