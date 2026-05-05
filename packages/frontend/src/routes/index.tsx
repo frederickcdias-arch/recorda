@@ -67,7 +67,9 @@ const MeuHistoricoPage = lazy(() =>
   import('../pages/colaborador/MeuHistoricoPage').then((m) => ({ default: m.MeuHistoricoPage }))
 );
 const VincularProducoesPage = lazy(() =>
-  import('../pages/admin/VincularProducoesPage').then((m) => ({ default: m.VincularProducoesPage }))
+  import('../pages/configuracoes/VincularProducoesPage').then((m) => ({
+    default: m.VincularProducoesPage,
+  }))
 );
 
 function PageSuspense({ children }: { children: React.ReactNode }): JSX.Element {

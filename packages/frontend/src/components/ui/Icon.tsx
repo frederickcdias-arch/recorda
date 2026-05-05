@@ -1,6 +1,8 @@
 interface IconProps {
   name: string;
   className?: string;
+  'aria-label'?: string;
+  'aria-hidden'?: boolean | 'true' | 'false';
 }
 
 const icons: Record<string, JSX.Element> = {
@@ -370,7 +372,12 @@ const icons: Record<string, JSX.Element> = {
   ),
 };
 
-export function Icon({ name, className = 'w-5 h-5' }: IconProps): JSX.Element {
+export function Icon({
+  name,
+  className = 'w-5 h-5',
+  'aria-label': ariaLabel,
+  'aria-hidden': ariaHidden,
+}: IconProps): JSX.Element {
   const iconPath = icons[name] || icons['help-circle'];
 
   return (
@@ -380,6 +387,9 @@ export function Icon({ name, className = 'w-5 h-5' }: IconProps): JSX.Element {
       stroke="currentColor"
       viewBox="0 0 24 24"
       xmlns="http://www.w3.org/2000/svg"
+      aria-label={ariaLabel}
+      aria-hidden={ariaHidden ?? (ariaLabel ? undefined : true)}
+      role={ariaLabel ? 'img' : undefined}
     >
       {iconPath}
     </svg>

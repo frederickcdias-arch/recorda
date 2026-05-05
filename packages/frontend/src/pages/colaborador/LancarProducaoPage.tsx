@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
+import { Select } from '../../components/ui/Select';
 import { PageState, ActionFeedback } from '../../components/ui/PageState';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../services/api';
@@ -55,7 +56,7 @@ export function LancarProducaoPage(): JSX.Element {
     { value: 'RECEBIMENTO', label: 'Recebimento' },
     { value: 'PREPARACAO', label: 'Preparação' },
     { value: 'DIGITALIZACAO', label: 'Digitalização P/B' },
-    { value: 'DIGITALIZACAO', label: 'Digitalização Colorida' },
+    { value: 'DIGITALIZACAO_COLORIDA', label: 'Digitalização Colorida' },
     { value: 'CONFERENCIA', label: 'Conferência' },
     { value: 'RECONFERENCIA', label: 'Reconferência' },
     { value: 'MONTAGEM', label: 'Montagem' },
@@ -167,33 +168,26 @@ export function LancarProducaoPage(): JSX.Element {
                 onChange={(e) => setFormData((p) => ({ ...p, data: e.target.value }))}
               />
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Repositório <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="Ex: 179/2025 ou 999"
-                  value={formData.repositorio}
-                  onChange={(e) => setFormData((p) => ({ ...p, repositorio: e.target.value }))}
-                  onBlur={(e) => {
-                    const formatted = normalizeIdRepositorioGed(e.target.value);
-                    if (formatted) {
-                      setFormData((p) => ({ ...p, repositorio: formatted }));
-                    }
-                  }}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Digite apenas números (ex: 999) ou formato 999/2025
-                </p>
-              </div>
+              <Input
+                label="Repositório"
+                type="text"
+                required
+                placeholder="Ex: 179/2025 ou 999"
+                value={formData.repositorio}
+                onChange={(e) => setFormData((p) => ({ ...p, repositorio: e.target.value }))}
+                onBlur={(e) => {
+                  const formatted = normalizeIdRepositorioGed(e.target.value);
+                  if (formatted) {
+                    setFormData((p) => ({ ...p, repositorio: formatted }));
+                  }
+                }}
+                helperText="Digite apenas números (ex: 999) ou formato 999/2025"
+              />
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Etapa <span className="text-red-500">*</span>
-                </label>
-                <select
+                <Select
+                  label="Etapa"
+                  required
                   value={formData.funcao}
                   onChange={(e) => {
                     const selected = etapas.find((item) => item.label === e.target.value);
@@ -203,23 +197,19 @@ export function LancarProducaoPage(): JSX.Element {
                       funcao: selected?.label ?? '',
                     }));
                   }}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                  placeholder="Selecione a etapa"
                 >
-                  <option value="">Selecione a etapa</option>
                   {etapas.map((etapa) => (
                     <option key={etapa.label} value={etapa.label}>
                       {etapa.label}
                     </option>
                   ))}
-                </select>
+                </Select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Coordenadoria
-                </label>
-                <select
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                <Select
+                  label="Coordenadoria"
                   value={formData.coordenadoria}
                   onChange={(e) =>
                     setFormData((p) => ({
@@ -227,14 +217,14 @@ export function LancarProducaoPage(): JSX.Element {
                       coordenadoria: e.target.value.trim().toUpperCase(),
                     }))
                   }
+                  placeholder="— Selecione —"
                 >
-                  <option value="">— Selecione —</option>
                   {coordenadoriasOptions.map((coordenadoria) => (
                     <option key={coordenadoria.id} value={coordenadoria.nome}>
                       {coordenadoria.nome}
                     </option>
                   ))}
-                </select>
+                </Select>
                 <div className="flex gap-1 mt-1">
                   <input
                     className="flex-1 px-3 py-2 border rounded-lg text-sm"
@@ -279,16 +269,15 @@ export function LancarProducaoPage(): JSX.Element {
               />
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
-                <select
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                <Select
+                  label="Tipo"
                   value={formData.tipo}
                   onChange={(e) => setFormData((p) => ({ ...p, tipo: e.target.value }))}
+                  placeholder="— Selecione —"
                 >
-                  <option value="">— Selecione —</option>
                   <option value="Imagens">Imagens</option>
                   <option value="Caixas">Caixas</option>
-                </select>
+                </Select>
               </div>
             </div>
 

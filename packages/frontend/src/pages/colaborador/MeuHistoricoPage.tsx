@@ -8,6 +8,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { api } from '../../services/api';
 import { formatDateBR } from '../../utils/date';
+import { getEtapaProducaoStyle } from '../../utils/etapa';
 import { formatCriticalNumber, parseFiniteNumber } from '../../utils/number';
 
 interface ProducaoItem {
@@ -39,25 +40,6 @@ interface MeuHistoricoResponse {
   etapasDisponiveis?: string[];
   pagina: number;
   totalPaginas: number;
-}
-
-const etapaCores: Record<string, { bg: string; text: string }> = {
-  Recebimento: { bg: 'bg-purple-50', text: 'text-purple-700' },
-  Preparação: { bg: 'bg-amber-50', text: 'text-amber-700' },
-  Preparacao: { bg: 'bg-amber-50', text: 'text-amber-700' },
-  Digitalização: { bg: 'bg-cyan-50', text: 'text-cyan-700' },
-  Digitalizacao: { bg: 'bg-cyan-50', text: 'text-cyan-700' },
-  Conferência: { bg: 'bg-green-50', text: 'text-green-700' },
-  Conferencia: { bg: 'bg-green-50', text: 'text-green-700' },
-  Montagem: { bg: 'bg-orange-50', text: 'text-orange-700' },
-  Reconferência: { bg: 'bg-rose-50', text: 'text-rose-700' },
-  Reconferencia: { bg: 'bg-rose-50', text: 'text-rose-700' },
-  Entrega: { bg: 'bg-emerald-50', text: 'text-emerald-700' },
-};
-
-function getEtapaCor(etapa: string): { bg: string; text: string } {
-  const found = Object.keys(etapaCores).find((k) => etapa.toLowerCase().includes(k.toLowerCase()));
-  return etapaCores[found ?? ''] ?? { bg: 'bg-blue-50', text: 'text-blue-700' };
 }
 
 function fmtDate(d: Date): string {
@@ -409,7 +391,7 @@ export function MeuHistoricoPage(): JSX.Element {
             ) : (
               <div className="space-y-3">
                 {producaoPorEtapa.map((item) => {
-                  const cor = getEtapaCor(item.etapa);
+                  const cor = getEtapaProducaoStyle(item.etapa);
                   const largura = Math.max((item.quantidade / maxQuantidadeEtapa) * 100, 2);
 
                   return (
@@ -487,7 +469,7 @@ export function MeuHistoricoPage(): JSX.Element {
                     const label = p.etapa_label ?? p.etapa;
                     const coordenadoria =
                       p.coordenadoria_label ?? p.marcadores?.coordenadoria ?? 'NAO INFORMADO';
-                    const cor = getEtapaCor(label);
+                    const cor = getEtapaProducaoStyle(label);
                     return (
                       <tr key={p.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 text-gray-900">{formatDateBR(p.data_producao)}</td>

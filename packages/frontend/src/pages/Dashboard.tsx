@@ -8,6 +8,7 @@ import { useDashboard, type DashboardData } from '../hooks/useQueries';
 import { useAuth } from '../contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../services/api';
+import { getEtapaProducaoStyle } from '../utils/etapa';
 import { formatDateBR } from '../utils/date';
 import { formatCriticalNumber, parseFiniteNumber } from '../utils/number';
 
@@ -74,34 +75,11 @@ interface MeuHistoricoResponse {
   producaoPorTipo?: TipoStats[];
 }
 
-const etapaCores: Record<string, { bg: string; text: string; bar: string }> = {
-  Recebimento: { bg: 'bg-purple-50', text: 'text-purple-700', bar: 'bg-purple-500' },
-  Preparação: { bg: 'bg-amber-50', text: 'text-amber-700', bar: 'bg-amber-500' },
-  Preparacao: { bg: 'bg-amber-50', text: 'text-amber-700', bar: 'bg-amber-500' },
-  Digitalização: { bg: 'bg-cyan-50', text: 'text-cyan-700', bar: 'bg-cyan-500' },
-  Digitalizacao: { bg: 'bg-cyan-50', text: 'text-cyan-700', bar: 'bg-cyan-500' },
-  Conferência: { bg: 'bg-green-50', text: 'text-green-700', bar: 'bg-green-500' },
-  Conferencia: { bg: 'bg-green-50', text: 'text-green-700', bar: 'bg-green-500' },
-  Montagem: { bg: 'bg-orange-50', text: 'text-orange-700', bar: 'bg-orange-500' },
-  Reconferência: { bg: 'bg-rose-50', text: 'text-rose-700', bar: 'bg-rose-500' },
-  Reconferencia: { bg: 'bg-rose-50', text: 'text-rose-700', bar: 'bg-rose-500' },
-  Entrega: { bg: 'bg-emerald-50', text: 'text-emerald-700', bar: 'bg-emerald-500' },
-};
-
 const tipoCores: Record<string, { bg: string; text: string; icon: string }> = {
   Imagens: { bg: 'bg-blue-50', text: 'text-blue-700', icon: 'image' },
   Caixas: { bg: 'bg-amber-50', text: 'text-amber-700', icon: 'box' },
   'Não informado': { bg: 'bg-gray-50', text: 'text-gray-500', icon: 'help-circle' },
 };
-
-function getEtapaCor(etapa: string): { bg: string; text: string; bar: string } {
-  const normalizada = Object.keys(etapaCores).find((k) =>
-    etapa.toLowerCase().includes(k.toLowerCase())
-  );
-  return (
-    etapaCores[normalizada ?? ''] ?? { bg: 'bg-blue-50', text: 'text-blue-700', bar: 'bg-blue-500' }
-  );
-}
 
 function getTipoCor(tipo: string): { bg: string; text: string; icon: string } {
   const normalizado = Object.keys(tipoCores).find((k) =>
@@ -210,7 +188,7 @@ function DashboardColaborador(): JSX.Element {
           ) : (
             <div className="space-y-3">
               {producaoPorEtapa.map((item) => {
-                const cor = getEtapaCor(item.etapa);
+                const cor = getEtapaProducaoStyle(item.etapa);
                 return (
                   <div key={item.etapa} className="group">
                     <div className="flex items-center justify-between text-sm mb-1.5">
@@ -351,7 +329,7 @@ function DashboardColaborador(): JSX.Element {
                     const label = p.etapa_label ?? p.etapa;
                     const coordenadoria =
                       p.coordenadoria_label ?? p.marcadores?.coordenadoria ?? '—';
-                    const cor = getEtapaCor(label);
+                    const cor = getEtapaProducaoStyle(label);
                     return (
                       <tr key={p.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 text-sm text-gray-900">
