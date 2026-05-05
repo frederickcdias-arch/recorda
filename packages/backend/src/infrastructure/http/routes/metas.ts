@@ -764,7 +764,13 @@ export function createMetasRoutes(): FastifyPluginAsync {
 
           // Validar sequência de etapas (não pode pular etapas)
           const etapaAtual = sequenciaEtapas[body.etapa];
-          if (etapaAtual && etapaAtual.anterior) {
+
+          // Repositórios /2024 são do período anterior ao método de conferência — isentos
+          // da exigência de CONFERENCIA antes de RECONFERENCIA.
+          const isRepositorio2024 = repoId.endsWith('/2024');
+          const isentoSequencia = body.etapa === 'RECONFERENCIA' && isRepositorio2024;
+
+          if (etapaAtual && etapaAtual.anterior && !isentoSequencia) {
             // Verificar se a etapa anterior já foi cumprida para este repositório GED
             // Busca em todos os repositórios com o mesmo id_repositorio_ged para capturar
             // registros importados do legado (que podem ter orgao/projeto diferentes)
