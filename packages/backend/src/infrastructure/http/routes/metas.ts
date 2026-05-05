@@ -596,6 +596,7 @@ export function createMetasRoutes(): FastifyPluginAsync {
             RECEBIMENTO: 'RECEBIDO',
             PREPARACAO: 'EM_PREPARACAO',
             DIGITALIZACAO: 'EM_DIGITALIZACAO',
+            DIGITALIZACAO_COLORIDA: 'EM_DIGITALIZACAO',
             CONFERENCIA: 'EM_CONFERENCIA',
             RECONFERENCIA: 'EM_CONFERENCIA',
             MONTAGEM: 'EM_MONTAGEM',
@@ -655,6 +656,7 @@ export function createMetasRoutes(): FastifyPluginAsync {
             RECEBIMENTO: 'Recebimento',
             PREPARACAO: 'Preparação',
             DIGITALIZACAO: 'Digitalização P/B',
+            DIGITALIZACAO_COLORIDA: 'Digitalização Colorida',
             CONFERENCIA: 'Conferência',
             RECONFERENCIA: 'Reconferência',
             MONTAGEM: 'Montagem',
@@ -686,11 +688,12 @@ export function createMetasRoutes(): FastifyPluginAsync {
           // - Conferência depende de Digitalização
           // - Reconferência depende de Conferência
           // - Montagem depende de Conferência (pode vir direto da Conferência ou após Reconferência)
-          const sequenciaEtapas: Record<string, { ordem: number; anterior?: string }> = {
+          const sequenciaEtapas: Record<string, { ordem: number; anterior?: string | string[] }> = {
             RECEBIMENTO: { ordem: 1 },
             PREPARACAO: { ordem: 2 },
             DIGITALIZACAO: { ordem: 3, anterior: 'PREPARACAO' },
-            CONFERENCIA: { ordem: 4, anterior: 'DIGITALIZACAO' },
+            DIGITALIZACAO_COLORIDA: { ordem: 3, anterior: 'PREPARACAO' },
+            CONFERENCIA: { ordem: 4, anterior: ['DIGITALIZACAO', 'DIGITALIZACAO_COLORIDA'] },
             RECONFERENCIA: { ordem: 5, anterior: 'CONFERENCIA' },
             MONTAGEM: { ordem: 6, anterior: 'CONFERENCIA' },
             ATENDIMENTO: { ordem: 7 },
@@ -774,25 +777,28 @@ export function createMetasRoutes(): FastifyPluginAsync {
             // Verificar se a etapa anterior já foi cumprida para este repositório GED
             // Busca em todos os repositórios com o mesmo id_repositorio_ged para capturar
             // registros importados do legado (que podem ter orgao/projeto diferentes)
+            const anteriores = Array.isArray(etapaAtual.anterior)
+              ? etapaAtual.anterior
+              : [etapaAtual.anterior];
             const etapaAnteriorExiste = await server.database.query(
               `SELECT pr.id
                FROM producao_repositorio pr
                JOIN repositorios r ON r.id_repositorio_recorda = pr.repositorio_id
                WHERE r.id_repositorio_ged = $1
-                 AND pr.etapa = $2
+                 AND pr.etapa = ANY($2)
                LIMIT 1`,
-              [repoId, etapaAtual.anterior]
+              [repoId, anteriores]
             );
 
             if (etapaAnteriorExiste.rows.length === 0) {
               return reply.status(422).send({
                 error: 'Sequência de etapas inválida',
-                message: `Não é possível lançar produção na etapa ${body.etapa} sem ter passado pela etapa ${etapaAtual.anterior} primeiro.`,
+                message: `Não é possível lançar produção na etapa ${body.etapa} sem ter passado pela etapa ${anteriores.join(' ou ')} primeiro.`,
                 detalhes: {
                   repositorio: repoId,
                   coordenadoria: coordenadoriaMarcador || 'SGPA',
                   etapaAtual: body.etapa,
-                  etapaAnteriorNecessaria: etapaAtual.anterior,
+                  etapaAnteriorNecessaria: anteriores,
                   sequenciaCompleta: Object.keys(sequenciaEtapas),
                 },
               });

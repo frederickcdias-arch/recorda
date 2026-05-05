@@ -20,6 +20,7 @@ export const lancarProducaoColaboradorSchema = z.object({
       'RECEBIMENTO',
       'PREPARACAO',
       'DIGITALIZACAO',
+      'DIGITALIZACAO_COLORIDA',
       'CONFERENCIA',
       'RECONFERENCIA',
       'MONTAGEM',
