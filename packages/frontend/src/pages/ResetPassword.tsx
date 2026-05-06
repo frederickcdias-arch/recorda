@@ -26,8 +26,8 @@ export function ResetPasswordPage(): JSX.Element {
       return;
     }
 
-    if (novaSenha.length < 6) {
-      setMensagem({ tipo: 'error', texto: 'A senha deve ter pelo menos 6 caracteres.' });
+    if (novaSenha.length < 8) {
+      setMensagem({ tipo: 'error', texto: 'A senha deve ter pelo menos 8 caracteres.' });
       return;
     }
 

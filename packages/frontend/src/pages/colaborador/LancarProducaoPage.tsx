@@ -165,6 +165,7 @@ export function LancarProducaoPage(): JSX.Element {
                 label="Data"
                 type="date"
                 value={formData.data}
+                max={new Date().toISOString().split('T')[0]}
                 onChange={(e) => setFormData((p) => ({ ...p, data: e.target.value }))}
               />
 

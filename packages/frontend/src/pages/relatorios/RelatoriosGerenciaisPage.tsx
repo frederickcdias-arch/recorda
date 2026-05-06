@@ -318,6 +318,7 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
             <input
               type="date"
               value={dataInicio}
+              max={dataFim || undefined}
               onChange={(e) => setDataInicio(e.target.value)}
               className="w-full h-9 px-3 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
@@ -327,6 +328,7 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
             <input
               type="date"
               value={dataFim}
+              min={dataInicio || undefined}
               onChange={(e) => setDataFim(e.target.value)}
               className="w-full h-9 px-3 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />

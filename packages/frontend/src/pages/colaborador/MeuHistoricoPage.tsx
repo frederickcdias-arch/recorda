@@ -275,6 +275,7 @@ export function MeuHistoricoPage(): JSX.Element {
                 <input
                   type="date"
                   value={dataInicio}
+                  max={dataFim || undefined}
                   onChange={(e) => {
                     setDataInicio(e.target.value);
                     setPagina(1);
@@ -287,6 +288,7 @@ export function MeuHistoricoPage(): JSX.Element {
                 <input
                   type="date"
                   value={dataFim}
+                  min={dataInicio || undefined}
                   onChange={(e) => {
                     setDataFim(e.target.value);
                     setPagina(1);

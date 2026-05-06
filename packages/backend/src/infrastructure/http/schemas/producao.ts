@@ -6,6 +6,10 @@ export const lancarProducaoColaboradorSchema = z.object({
   data: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, 'Data deve estar no formato YYYY-MM-DD')
+    .refine(
+      (val) => val <= new Date().toISOString().split('T')[0],
+      'Data não pode ser futura'
+    )
     .optional(),
 
   // ID GED do repositório - tamanho máximo 100 caracteres

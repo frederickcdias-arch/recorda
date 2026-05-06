@@ -440,6 +440,7 @@ export function ProducaoPage(): JSX.Element {
               <input
                 type="date"
                 value={dataInicio}
+                max={dataFim || undefined}
                 onChange={(e) => setDataInicio(e.target.value)}
                 className="w-full h-11 sm:h-9 px-2 text-sm border rounded-lg"
               />
@@ -449,6 +450,7 @@ export function ProducaoPage(): JSX.Element {
               <input
                 type="date"
                 value={dataFim}
+                min={dataInicio || undefined}
                 onChange={(e) => setDataFim(e.target.value)}
                 className="w-full h-11 sm:h-9 px-2 text-sm border rounded-lg"
               />
