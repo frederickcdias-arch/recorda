@@ -1,10 +1,24 @@
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import type { PerfilUsuario } from '@recorda/shared';
 import { useAuth } from '../../contexts/AuthContext';
+import { useToastHelpers } from '../ui/Toast';
 
 interface RoleRouteProps {
   allowedProfiles: PerfilUsuario[];
   children: React.ReactNode;
+}
+
+function AccessDeniedRedirect(): JSX.Element {
+  const toast = useToastHelpers();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    toast.warning('Acesso negado', 'Você não tem permissão para acessar esta página.');
+    navigate('/dashboard', { replace: true });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return <></>;
 }
 
 export function RoleRoute({ allowedProfiles, children }: RoleRouteProps): JSX.Element {
@@ -20,7 +34,7 @@ export function RoleRoute({ allowedProfiles, children }: RoleRouteProps): JSX.El
   }
 
   if (!allowedProfiles.includes(usuario.perfil)) {
-    return <Navigate to="/dashboard" replace />;
+    return <AccessDeniedRedirect />;
   }
 
   return <>{children}</>;

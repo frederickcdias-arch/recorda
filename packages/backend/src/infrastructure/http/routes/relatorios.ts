@@ -314,9 +314,13 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
             LEFT JOIN coordenadorias co ON co.id = u.coordenadoria_id
             ${where}
             ORDER BY p.data_producao DESC, colaborador
+            LIMIT 50001
           `,
             params
           );
+
+          const truncated = result.rows.length > 50000;
+          const rows = truncated ? result.rows.slice(0, 50000) : result.rows;
 
           const ExcelJS = (await import('exceljs')).default;
           const workbook = new ExcelJS.Workbook();
@@ -336,7 +340,7 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
             { header: 'Origem', key: 'origem', width: 10 },
           ];
 
-          for (const row of result.rows) {
+          for (const row of rows) {
             const r = row as Record<string, unknown>;
             sheet.addRow({
               data: r.data_producao
@@ -362,11 +366,11 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
           // Summary row
           const totalRow = sheet.addRow({
             data: '',
-            colaborador: `Total: ${result.rows.length} registros`,
+            colaborador: `Total: ${rows.length} registros${truncated ? ' (exportação limitada a 50.000 linhas)' : ''}`,
             etapa: '',
             funcao: '',
             repositorio: '',
-            quantidade: result.rows.reduce(
+            quantidade: rows.reduce(
               (sum, r) => sum + Number((r as Record<string, unknown>).quantidade ?? 0),
               0
             ),
@@ -387,6 +391,7 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
               'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
             )
             .header('Content-Disposition', `attachment; filename="${filename}"`)
+            .header('X-Truncated', truncated ? 'true' : 'false')
             .send(Buffer.from(buffer));
         } catch (error) {
           const message =

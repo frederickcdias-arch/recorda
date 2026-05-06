@@ -224,6 +224,21 @@ export function createOperacionalCQRoutes(): FastifyPluginAsync {
           };
           const user = getCurrentUser(request);
 
+          // Verificar se o lote ainda está ABERTO antes de auditar
+          const loteCheck = await server.database.query(
+            `SELECT status FROM lotes_controle_qualidade WHERE id = $1`,
+            [id]
+          );
+          if (!loteCheck.rows[0]) {
+            return reply.status(404).send({ error: 'Lote de CQ não encontrado' });
+          }
+          if (loteCheck.rows[0].status !== 'ABERTO') {
+            return reply.status(409).send({
+              error: 'Lote de CQ já fechado',
+              message: 'Não é possível registrar resultado em um lote já fechado.',
+            });
+          }
+
           const result = await server.database.query(
             `UPDATE lotes_controle_qualidade_itens
            SET resultado = $3,

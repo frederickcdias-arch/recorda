@@ -124,10 +124,10 @@ export function ResetPasswordPage(): JSX.Element {
                   placeholder="••••••••"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                   required
-                  minLength={6}
+                  minLength={8}
                   disabled={carregando}
                 />
-                <p className="text-xs text-gray-400 mt-1">Mínimo de 6 caracteres</p>
+                <p className="text-xs text-gray-400 mt-1">Mínimo de 8 caracteres</p>
               </div>
 
               <div>
@@ -145,7 +145,7 @@ export function ResetPasswordPage(): JSX.Element {
                   placeholder="••••••••"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                   required
-                  minLength={6}
+                  minLength={8}
                   disabled={carregando}
                 />
               </div>
