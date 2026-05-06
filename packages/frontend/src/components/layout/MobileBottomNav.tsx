@@ -66,7 +66,7 @@ export function MobileBottomNav(): JSX.Element {
   };
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+    <nav aria-label="Navegação principal" className="fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
       <ul className={`grid ${colsClass[visibleItems.length] ?? 'grid-cols-4'}`}>
         {visibleItems.map((item) => (
           <li key={item.id}>

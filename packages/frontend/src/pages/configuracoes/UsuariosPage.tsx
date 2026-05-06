@@ -3,6 +3,7 @@ import { Icon } from '../../components/ui/Icon';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Input } from '../../components/ui/Input';
+import { Select } from '../../components/ui/Select';
 import { PageState, ActionFeedback } from '../../components/ui/PageState';
 import {
   useUsuarios,
@@ -273,23 +274,20 @@ export function UsuariosPage(): JSX.Element {
                   onChange={(e) => setFormData((p) => ({ ...p, senha: e.target.value }))}
                   required={!usuarioEditando}
                 />
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Papel</label>
-                  <select
-                    value={formData.perfil}
-                    onChange={(e) =>
-                      setFormData((p) => ({
-                        ...p,
-                        perfil: e.target.value as 'colaborador' | 'operador' | 'administrador',
-                      }))
-                    }
-                    className="w-full px-3 py-2 border rounded-lg"
-                  >
-                    <option value="colaborador">Colaborador</option>
-                    <option value="operador">Operador</option>
-                    <option value="administrador">Administrador</option>
-                  </select>
-                </div>
+                <Select
+                  label="Papel"
+                  value={formData.perfil}
+                  onChange={(e) =>
+                    setFormData((p) => ({
+                      ...p,
+                      perfil: e.target.value as 'colaborador' | 'operador' | 'administrador',
+                    }))
+                  }
+                >
+                  <option value="colaborador">Colaborador</option>
+                  <option value="operador">Operador</option>
+                  <option value="administrador">Administrador</option>
+                </Select>
               </div>
               <div className="flex gap-3 justify-end mt-6">
                 <Button variant="secondary" onClick={() => setModalAberto(false)}>
