@@ -80,12 +80,19 @@ function MenuItemComponent({
           {!collapsed && (
             <>
               <span className="flex-1 text-left">{item.label}</span>
-              <Icon name={expanded ? 'chevron-down' : 'chevron-right'} className="w-4 h-4" />
+              <Icon
+                name="chevron-right"
+                className={`w-4 h-4 transition-transform duration-300 ${expanded ? 'rotate-90' : ''}`}
+              />
             </>
           )}
         </button>
-        {!collapsed && expanded && (
-          <div className="mt-1 space-y-1">
+        {!collapsed && (
+          <div
+            className={`mt-1 space-y-1 overflow-hidden transition-all duration-300 ${
+              expanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+            }`}
+          >
             {item.children!.map((child) => (
               <MenuItemComponent
                 key={child.id}
@@ -152,7 +159,7 @@ function MenuSectionComponent({
 
   return (
     <div>
-      <button
+        <button
         onClick={() => setExpanded(!expanded)}
         title={collapsed ? section.label : undefined}
         className={`w-full flex items-center gap-3 px-3 py-3 sm:py-2.5 rounded-lg transition-colors touch-manipulation ${
@@ -164,14 +171,18 @@ function MenuSectionComponent({
           <>
             <span className="flex-1 text-left font-medium">{section.label}</span>
             <Icon
-              name={expanded ? 'chevron-down' : 'chevron-right'}
-              className="w-4 h-4 transition-transform duration-150"
+              name="chevron-right"
+              className={`w-4 h-4 transition-transform duration-300 ${expanded ? 'rotate-90' : ''}`}
             />
           </>
         )}
       </button>
-      {!collapsed && expanded && (
-        <div className="mt-1 ml-2 space-y-1 border-l-2 border-gray-200 pl-2">
+      {!collapsed && (
+        <div
+          className={`ml-2 space-y-1 border-l-2 border-gray-200 pl-2 overflow-hidden transition-all duration-300 ${
+            expanded ? 'max-h-[500px] opacity-100 mt-1' : 'max-h-0 opacity-0 mt-0'
+          }`}
+        >
           {section.items.map((item) => (
             <MenuItemComponent
               key={item.id}

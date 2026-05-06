@@ -73,7 +73,7 @@ export function MobileBottomNav(): JSX.Element {
             <NavLink
               to={item.path}
               className={({ isActive }) =>
-                `flex min-h-[60px] flex-col items-center justify-center gap-1 px-1 ${
+                `flex min-h-[60px] flex-col items-center justify-center gap-1 px-1 transition-colors duration-150 active:scale-90 ${
                   isActive ? 'text-blue-700' : 'text-gray-500'
                 }`
               }

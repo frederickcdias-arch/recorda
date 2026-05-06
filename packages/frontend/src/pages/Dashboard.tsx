@@ -1,4 +1,5 @@
 ﻿import { useNavigate } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
 import { Icon } from '../components/ui/Icon';
 import { PageState } from '../components/ui';
 import { SkeletonCards } from '../components/ui/Skeleton';
@@ -15,22 +16,46 @@ import { formatCriticalNumber, parseFiniteNumber } from '../utils/number';
 interface StatCardProps {
   title: string;
   value: string;
+  rawValue?: number;
   icon: string;
   subtitle?: string;
   onClick?: () => void;
+  index?: number;
 }
 
-function StatCard({ title, value, icon, subtitle, onClick }: StatCardProps): JSX.Element {
+function useCountUp(target: number, duration = 700): number {
+  const [count, setCount] = useState(0);
+  const rafRef = useRef<number>(0);
+  useEffect(() => {
+    if (target === 0) { setCount(0); return; }
+    const start = performance.now();
+    const tick = (now: number) => {
+      const p = Math.min((now - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - p, 3);
+      setCount(Math.round(eased * target));
+      if (p < 1) rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [target, duration]);
+  return count;
+}
+
+function StatCard({ title, value, rawValue, icon, subtitle, onClick, index = 0 }: StatCardProps): JSX.Element {
+  const animated = useCountUp(rawValue ?? 0);
+  const displayValue = rawValue !== undefined ? animated.toLocaleString('pt-BR') : value;
+
   return (
     <button
       type="button"
       onClick={onClick}
-      className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 w-full text-left hover:border-blue-200 hover:shadow-md transition"
+      style={{ animationDelay: `${index * 75}ms` }}
+      className="animate-fade-in-up [animation-fill-mode:both] bg-white rounded-xl p-6 shadow-sm border border-gray-100 w-full text-left hover:border-blue-200 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 active:scale-[0.98]"
     >
       <div className="flex items-start justify-between">
         <div>
           <p className="text-sm font-medium text-gray-500">{title}</p>
-          <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
+          <p className="text-2xl font-bold text-gray-900 mt-1">{displayValue}</p>
           {subtitle ? <p className="text-sm mt-2 text-blue-600">{subtitle}</p> : null}
         </div>
         <div className="p-3 rounded-lg bg-blue-50 text-blue-600">
@@ -156,24 +181,32 @@ function DashboardColaborador(): JSX.Element {
           <StatCard
             title="Total de Registros"
             value={formatCriticalNumber(totalProducoes)}
+            rawValue={totalProducoes}
             icon="clipboard"
+            index={0}
           />
           <StatCard
             title="Quantidade Total"
             value={formatCriticalNumber(totalQuantidade)}
+            rawValue={totalQuantidade}
             icon="bar-chart"
+            index={1}
           />
           <StatCard
             title="Registros (7 dias)"
             value={formatCriticalNumber(registrosUltimos7Dias)}
+            rawValue={registrosUltimos7Dias}
             icon="calendar"
             subtitle="registros"
+            index={2}
           />
           <StatCard
             title="Quantidade (7 dias)"
             value={formatCriticalNumber(quantidadeUltimos7Dias)}
+            rawValue={quantidadeUltimos7Dias}
             icon="trending-up"
             subtitle="produzidos"
+            index={3}
           />
         </div>
       </section>
@@ -384,13 +417,16 @@ function DashboardContent({ data }: { data: DashboardData }): JSX.Element {
           <StatCard
             title="Produção do Mês"
             value={formatCriticalNumber(producaoTotal)}
+            rawValue={producaoTotal ?? 0}
             icon="bar-chart"
             subtitle={data.stats.producaoTrend !== '0%' ? data.stats.producaoTrend : undefined}
             onClick={() => navigate('/producao')}
+            index={0}
           />
           <StatCard
             title="Repositórios com Produção"
             value={formatCriticalNumber(processosAtivos)}
+            rawValue={processosAtivos ?? 0}
             icon="folder"
             subtitle={
               typeof processosNovosHoje === 'number' && processosNovosHoje > 0
@@ -398,12 +434,15 @@ function DashboardContent({ data }: { data: DashboardData }): JSX.Element {
                 : undefined
             }
             onClick={() => navigate('/producao')}
+            index={1}
           />
           <StatCard
             title="Usuários Ativos"
             value={formatCriticalNumber(colaboradoresAtivos)}
+            rawValue={colaboradoresAtivos ?? 0}
             icon="users"
             onClick={() => navigate('/producao')}
+            index={2}
           />
         </div>
       </section>

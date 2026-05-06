@@ -103,6 +103,7 @@ export function Button({
         rounded-lg transition-all duration-150 ease-in-out
         touch-manipulation
         focus:outline-none
+        active:scale-[0.97]
         disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none
         ${variantClasses[variant]}
         ${iconOnly ? iconOnlySizeClasses[size] : sizeClasses[size]}

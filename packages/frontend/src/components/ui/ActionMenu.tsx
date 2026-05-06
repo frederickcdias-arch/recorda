@@ -16,12 +16,21 @@ interface ActionMenuProps {
 
 export function ActionMenu({ items, disabled = false }: ActionMenuProps): JSX.Element {
   const [open, setOpen] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
   const btnRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState({ top: 0, left: 0 });
 
   const visibleItems = items.filter((item) => !item.hidden);
   const visibleCount = visibleItems.length;
+
+  const closeMenu = useCallback(() => {
+    setIsClosing(true);
+    setTimeout(() => {
+      setOpen(false);
+      setIsClosing(false);
+    }, 130);
+  }, []);
 
   const updatePosition = useCallback(() => {
     if (!btnRef.current) return;
@@ -43,10 +52,10 @@ export function ActionMenu({ items, disabled = false }: ActionMenuProps): JSX.El
       const target = e.target as Node;
       if (btnRef.current?.contains(target)) return;
       if (menuRef.current?.contains(target)) return;
-      setOpen(false);
+      closeMenu();
     }
     function handleScroll(): void {
-      setOpen(false);
+      closeMenu();
     }
     document.addEventListener('mousedown', handleClickOutside);
     window.addEventListener('scroll', handleScroll, true);
@@ -54,7 +63,7 @@ export function ActionMenu({ items, disabled = false }: ActionMenuProps): JSX.El
       document.removeEventListener('mousedown', handleClickOutside);
       window.removeEventListener('scroll', handleScroll, true);
     };
-  }, [open, updatePosition]);
+  }, [open, updatePosition, closeMenu]);
 
   if (visibleCount === 0) return <span />;
 
@@ -64,7 +73,7 @@ export function ActionMenu({ items, disabled = false }: ActionMenuProps): JSX.El
         ref={btnRef}
         type="button"
         className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors disabled:opacity-40"
-        onClick={() => setOpen((p) => !p)}
+      onClick={() => setOpen((p) => !p)}
         disabled={disabled}
         aria-label="Ações"
       >
@@ -73,11 +82,13 @@ export function ActionMenu({ items, disabled = false }: ActionMenuProps): JSX.El
         </svg>
       </button>
 
-      {open
+      {(open || isClosing)
         ? createPortal(
             <div
               ref={menuRef}
-              className="fixed z-[9999] w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 max-h-[calc(100vh-16px)] overflow-auto"
+              className={`fixed z-[9999] w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 max-h-[calc(100vh-16px)] overflow-auto origin-top-right ${
+                isClosing ? 'animate-scale-out' : 'animate-fade-in-down'
+              }`}
               style={{ top: pos.top, left: Math.max(pos.left, 8) }}
             >
               {visibleItems.map((item, i) => (
@@ -90,7 +101,7 @@ export function ActionMenu({ items, disabled = false }: ActionMenuProps): JSX.El
                       : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'
                   } disabled:opacity-40 disabled:cursor-not-allowed`}
                   onClick={() => {
-                    setOpen(false);
+                    closeMenu();
                     item.onClick();
                   }}
                   disabled={item.disabled}

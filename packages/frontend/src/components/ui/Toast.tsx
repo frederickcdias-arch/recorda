@@ -87,9 +87,15 @@ interface ToastItemProps {
 }
 
 function ToastItem({ toast, onRemove }: ToastItemProps): JSX.Element {
+  const [isVisible, setIsVisible] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
   const styles = variantStyles[toast.variant];
   const duration = toast.duration ?? 5000;
+
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => setIsVisible(true));
+    return () => cancelAnimationFrame(raf);
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -111,7 +117,7 @@ function ToastItem({ toast, onRemove }: ToastItemProps): JSX.Element {
         ${styles.container}
         border rounded-lg shadow-lg p-4 w-full
         transition-all duration-200
-        ${isExiting ? 'opacity-0 translate-y-2' : 'opacity-100 translate-y-0'}
+        ${!isVisible || isExiting ? 'opacity-0 translate-y-4' : 'opacity-100 translate-y-0'}
       `}
       role="alert"
     >

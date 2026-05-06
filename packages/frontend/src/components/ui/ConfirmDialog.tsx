@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Button } from './Button';
 import type { ConfirmDialogState } from '../../hooks/useConfirmDialog';
 
@@ -14,7 +15,17 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps): JSX.Element | null {
-  if (!state.open) return null;
+  const [isClosing, setIsClosing] = useState(false);
+
+  if (!state.open && !isClosing) return null;
+
+  const handleCancel = () => {
+    setIsClosing(true);
+    setTimeout(() => {
+      setIsClosing(false);
+      onCancel();
+    }, 200);
+  };
 
   const variantStyles = {
     danger: 'text-gray-900',
@@ -25,14 +36,18 @@ export function ConfirmDialog({
   const buttonVariant = state.variant === 'danger' ? 'danger' : 'primary';
 
   return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 animate-fade-in">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 animate-scale-in">
+    <div className={`fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 ${
+      isClosing ? 'animate-fade-out' : 'animate-fade-in'
+    }`}>
+      <div className={`bg-white rounded-xl shadow-xl w-full max-w-md p-6 ${
+        isClosing ? 'animate-scale-out' : 'animate-scale-in'
+      }`}>
         <h3 className={`text-lg font-semibold ${variantStyles[state.variant]} mb-2`}>
           {state.title}
         </h3>
         <p className="text-sm text-gray-600 mb-6">{state.message}</p>
         <div className="flex justify-end gap-3">
-          <Button variant="secondary" onClick={onCancel} disabled={loading}>
+          <Button variant="secondary" onClick={handleCancel} disabled={loading}>
             Cancelar
           </Button>
           <Button variant={buttonVariant} onClick={onConfirm} loading={loading}>

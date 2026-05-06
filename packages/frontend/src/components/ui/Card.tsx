@@ -42,8 +42,8 @@ export function Card({
         min-w-0 max-w-full rounded-xl transition-all duration-150
         ${variantClasses[variant]}
         ${paddingClasses[padding]}
-        ${hover || isClickable ? 'hover:shadow-md hover:border-[var(--color-gray-300)]' : ''}
-        ${isClickable ? 'cursor-pointer' : ''}
+        ${hover || isClickable ? 'hover:shadow-md hover:border-[var(--color-gray-300)] hover:-translate-y-0.5' : ''}
+        ${isClickable ? 'cursor-pointer active:scale-[0.99]' : ''}
         ${className}
       `}
       onClick={onClick}
