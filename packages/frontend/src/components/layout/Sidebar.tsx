@@ -263,38 +263,38 @@ export function Sidebar({ collapsed, onToggle, onMobileClose }: SidebarProps): J
             onNavigate={onMobileClose}
           />
         ))}
-      </nav>
 
-      {/* Usuário e Logout */}
-      <div className="p-3 border-t border-gray-200">
-        {!collapsed && usuario && (
-          <div className="flex items-center gap-3 px-3 py-2 mb-1">
-            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-semibold select-none flex-shrink-0">
-              {usuario.nome
-                .split(' ')
-                .filter(Boolean)
-                .slice(0, 2)
-                .map((w: string) => w[0]?.toUpperCase() ?? '')
-                .join('') || 'U'}
+        {/* Usuário e Logout */}
+        <div className="pt-1 mt-1 border-t border-gray-200">
+          {!collapsed && usuario && (
+            <div className="flex items-center gap-3 px-3 py-2">
+              <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-semibold select-none flex-shrink-0">
+                {usuario.nome
+                  .split(' ')
+                  .filter(Boolean)
+                  .slice(0, 2)
+                  .map((w: string) => w[0]?.toUpperCase() ?? '')
+                  .join('') || 'U'}
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-gray-900 truncate leading-tight">
+                  {usuario.nome}
+                </p>
+                <p className="text-xs text-gray-400 truncate leading-tight capitalize">
+                  {usuario.perfil}
+                </p>
+              </div>
             </div>
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate leading-tight">
-                {usuario.nome}
-              </p>
-              <p className="text-xs text-gray-400 truncate leading-tight capitalize">
-                {usuario.perfil}
-              </p>
-            </div>
-          </div>
-        )}
-        <button
-          onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors"
-        >
-          <Icon name="logout" className="w-5 h-5 flex-shrink-0" />
-          {!collapsed && <span className="font-medium">Sair</span>}
-        </button>
-      </div>
+          )}
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors"
+          >
+            <Icon name="logout" className="w-5 h-5 flex-shrink-0" />
+            {!collapsed && <span className="font-medium">Sair</span>}
+          </button>
+        </div>
+      </nav>
     </aside>
   );
 }
