@@ -5,6 +5,7 @@ import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { PageState } from '../../components/ui/PageState';
 import { useAuditoria, useQueryClient } from '../../hooks/useQueries';
+import { Pagination } from '../../components/ui/Pagination';
 
 type AuditoriaCategoria = 'importacoes' | 'ocr' | 'correcoes' | 'acoes';
 
@@ -71,6 +72,7 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
   const [dataFim, setDataFim] = useState(dataFimPadrao);
   const [pagina, setPagina] = useState(1);
   const [expandido, setExpandido] = useState<string | null>(null);
+  const [copiadoId, setCopiadoId] = useState<string | null>(null);
 
   const filtrosUrl = useMemo(() => {
     const params = new URLSearchParams(location.search);
@@ -158,7 +160,17 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
       }
     : null;
 
+  const temFiltroAtivo = !!(filtroTabela || filtroOperacao ||
+    dataInicio !== dataInicioPadrao || dataFim !== dataFimPadrao);
+
   const invalidate = () => void queryClient.invalidateQueries({ queryKey: ['auditoria'] });
+
+  const handleCopiar = (id: string, content: unknown) => {
+    void navigator.clipboard.writeText(JSON.stringify(content, null, 2)).then(() => {
+      setCopiadoId(id);
+      setTimeout(() => setCopiadoId((prev) => (prev === id ? null : prev)), 1500);
+    });
+  };
 
   const formatarData = (data: string) => {
     return new Date(data).toLocaleString('pt-BR');
@@ -193,6 +205,24 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
       documentos_ocr: 'Documentos OCR',
       importacoes: 'Importações',
       usuarios: 'Usuários',
+      repositorios: 'Repositórios',
+      recebimento_processos: 'Processos de Recebimento',
+      recebimento_apensos: 'Apensos de Recebimento',
+      recebimento_volumes: 'Volumes de Recebimento',
+      recebimento_apenso_volumes: 'Volumes de Apenso',
+      recebimento_documentos: 'Documentos de Recebimento',
+      checklists: 'Checklists',
+      checklist_itens: 'Itens de Checklist',
+      importacoes_legado_operacional: 'Importações Legado',
+      registros_importados: 'Registros Importados',
+      registros_producao: 'Registros de Produção',
+      configuracao_empresa: 'Configuração da Empresa',
+      fontes_dados: 'Fontes de Dados',
+      fontes_dados_api: 'Fontes de Dados API',
+      recebimentos: 'Recebimentos',
+      glossario: 'Glossário',
+      artigos: 'Artigos',
+      artigos_tags: 'Tags de Artigos',
     };
     return nomes[tabela] || tabela;
   };
@@ -230,6 +260,7 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
                 <input
                   type="date"
                   value={dataInicio}
+                  max={dataFim || undefined}
                   onChange={(e) => {
                     setDataInicio(e.target.value);
                     setPagina(1);
@@ -242,12 +273,20 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
                 <input
                   type="date"
                   value={dataFim}
+                  min={dataInicio || undefined}
                   onChange={(e) => {
                     setDataFim(e.target.value);
                     setPagina(1);
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+                    dataInicio && dataFim && dataFim < dataInicio
+                      ? 'border-red-400 focus:ring-red-200'
+                      : 'border-gray-300'
+                  }`}
                 />
+                {dataInicio && dataFim && dataFim < dataInicio && (
+                  <p className="text-xs text-red-600 mt-1">Data fim deve ser após a data início</p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Tabela</label>
@@ -306,8 +345,16 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
             {logs.length === 0 ? (
               <div className="text-center py-12 text-gray-500">
                 <Icon name="shield" className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                <p className="text-lg font-medium">Nenhum Log encontrado</p>
-                <p className="text-sm">Ajuste os filtros ou aguarde novas ações no sistema</p>
+                <p className="text-lg font-medium">
+                  {temFiltroAtivo
+                    ? 'Nenhum resultado para os filtros aplicados'
+                    : 'Nenhum log registrado'}
+                </p>
+                <p className="text-sm">
+                  {temFiltroAtivo
+                    ? 'Tente ampliar o intervalo de datas ou remover filtros'
+                    : 'As ações do sistema aparecerão aqui conforme forem realizadas'}
+                </p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -330,13 +377,26 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
                               {log.operacao === 'DELETE' && 'Registro excluído'}
                               {' • '}
                               ID: {log.registro_id.substring(0, 8)}...
+                              {log.usuario_id && (
+                                <span
+                                  className="ml-1"
+                                  title={`Usuário ID: ${log.usuario_id}`}
+                                >
+                                  {' • '}
+                                  <Icon name="user" className="w-3 h-3 inline -mt-0.5" />
+                                  {' '}{log.usuario_id.substring(0, 8)}...
+                                </span>
+                              )}
                             </p>
                           </div>
                           <div className="text-right">
                             <p className="text-sm text-gray-500">{formatarData(log.criado_em)}</p>
                             <button
+                              type="button"
+                              aria-expanded={expandido === log.id}
+                              aria-controls={`detalhes-${log.id}`}
                               onClick={() => setExpandido(expandido === log.id ? null : log.id)}
-                              className="text-xs text-blue-600 hover:text-blue-800"
+                              className="text-xs text-blue-600 hover:text-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
                             >
                               {expandido === log.id ? 'Ocultar detalhes' : 'Ver detalhes'}
                             </button>
@@ -344,7 +404,7 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
                         </div>
 
                         {expandido === log.id && (
-                          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div id={`detalhes-${log.id}`} className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                             {log.dados_antigos && Object.keys(log.dados_antigos).length > 0 && (
                               <div>
                                 <div className="flex items-center justify-between mb-2">
@@ -352,17 +412,14 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
                                     Dados Anteriores
                                   </p>
                                   <button
+                                    type="button"
                                     className="text-xs text-blue-600 hover:text-blue-800 font-medium"
-                                    onClick={() =>
-                                      void navigator.clipboard.writeText(
-                                        JSON.stringify(log.dados_antigos, null, 2)
-                                      )
-                                    }
+                                    onClick={() => handleCopiar(`${log.id}-antigos`, log.dados_antigos)}
                                   >
-                                    Copiar
+                                    {copiadoId === `${log.id}-antigos` ? '✓ Copiado' : 'Copiar'}
                                   </button>
                                 </div>
-                                <pre className="text-xs bg-gray-50 p-3 rounded-lg overflow-auto max-h-40">
+                                <pre className="text-xs bg-gray-50 p-3 rounded-lg overflow-auto max-h-64">
                                   {JSON.stringify(log.dados_antigos, null, 2)}
                                 </pre>
                               </div>
@@ -372,17 +429,14 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
                                 <div className="flex items-center justify-between mb-2">
                                   <p className="text-xs font-medium text-gray-500">Dados Novos</p>
                                   <button
+                                    type="button"
                                     className="text-xs text-blue-600 hover:text-blue-800 font-medium"
-                                    onClick={() =>
-                                      void navigator.clipboard.writeText(
-                                        JSON.stringify(log.dados_novos, null, 2)
-                                      )
-                                    }
+                                    onClick={() => handleCopiar(`${log.id}-novos`, log.dados_novos)}
                                   >
-                                    Copiar
+                                    {copiadoId === `${log.id}-novos` ? '✓ Copiado' : 'Copiar'}
                                   </button>
                                 </div>
-                                <pre className="text-xs bg-blue-50 p-3 rounded-lg overflow-auto max-h-40">
+                                <pre className="text-xs bg-blue-50 p-3 rounded-lg overflow-auto max-h-64">
                                   {JSON.stringify(log.dados_novos, null, 2)}
                                 </pre>
                               </div>
@@ -399,28 +453,13 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
 
           {/* Paginação */}
           {totalPaginas > 1 && (
-            <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-              <p className="text-sm text-gray-500">
-                Página {pagina} de {totalPaginas}
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  disabled={pagina === 1}
-                  onClick={() => setPagina((p) => p - 1)}
-                >
-                  Anterior
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  disabled={pagina === totalPaginas}
-                  onClick={() => setPagina((p) => p + 1)}
-                >
-                  Próxima
-                </Button>
-              </div>
+            <div className="px-6 py-4 border-t border-gray-200">
+              <Pagination
+                pagina={pagina}
+                totalPaginas={totalPaginas}
+                onChange={setPagina}
+                disabled={carregando}
+              />
             </div>
           )}
         </Card>
