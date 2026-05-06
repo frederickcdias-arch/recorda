@@ -28,6 +28,7 @@ export const STORAGE_KEYS = {
 
 // Perfis de usuário
 export const USER_PROFILES = {
+  COLABORADOR: 'colaborador',
   OPERADOR: 'operador',
   ADMINISTRADOR: 'administrador',
 } as const;
