@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Icon } from '../../components/ui/Icon';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -77,6 +77,10 @@ export function UsuariosPage(): JSX.Element {
       setMensagem({ tipo: 'error', texto: 'Preencha todos os campos obrigatórios' });
       return;
     }
+    if (formData.senha && formData.senha.length < 8) {
+      setMensagem({ tipo: 'error', texto: 'A senha deve ter no mínimo 8 caracteres' });
+      return;
+    }
     setSalvando(true);
     try {
       if (usuarioEditando) {
@@ -126,6 +130,15 @@ export function UsuariosPage(): JSX.Element {
   const erroComAcao = erro
     ? { ...erro, action: { label: 'Tentar novamente', onClick: invalidate } }
     : null;
+
+  useEffect(() => {
+    if (!modalAberto) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setModalAberto(false);
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [modalAberto]);
 
   return (
     <PageState loading={carregando} loadingMessage="Carregando..." error={erroComAcao}>
@@ -203,6 +216,7 @@ export function UsuariosPage(): JSX.Element {
                           <button
                             onClick={() => handleAbrirModalEditar(u)}
                             className="text-blue-600 hover:text-blue-800"
+                            aria-label={`Editar usuário ${u.nome}`}
                             title="Editar usuário"
                           >
                             <Icon name="edit" className="w-4 h-4" />
@@ -214,6 +228,7 @@ export function UsuariosPage(): JSX.Element {
                                 ? 'text-gray-400 hover:text-gray-700'
                                 : 'text-green-600 hover:text-green-800'
                             }
+                            aria-label={u.ativo ? `Desativar usuário ${u.nome}` : `Ativar usuário ${u.nome}`}
                             title={u.ativo ? 'Desativar usuário' : 'Ativar usuário'}
                           >
                             <Icon name={u.ativo ? 'x' : 'check'} className="w-4 h-4" />
@@ -229,25 +244,30 @@ export function UsuariosPage(): JSX.Element {
         </Card>
 
         {modalAberto && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fade-in">
+          <div
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fade-in"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="modal-usuario-titulo"
+          >
             <div className="bg-white rounded-xl p-6 max-w-md w-full shadow-2xl animate-scale-in">
-              <h3 className="text-lg font-semibold mb-4">
+              <h3 id="modal-usuario-titulo" className="text-lg font-semibold mb-4">
                 {usuarioEditando ? 'Editar Usuário' : 'Novo Usuário'}
               </h3>
               <div className="space-y-4">
                 <Input
-                  label="Nome"
+                  label="Nome *"
                   value={formData.nome}
                   onChange={(e) => setFormData((p) => ({ ...p, nome: e.target.value }))}
                 />
                 <Input
-                  label="Email"
+                  label="Email *"
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))}
                 />
                 <Input
-                  label={usuarioEditando ? 'Senha (deixe em branco para manter)' : 'Senha'}
+                  label={usuarioEditando ? 'Senha (deixe em branco para manter)' : 'Senha * (mínimo 8 caracteres)'}
                   type="password"
                   value={formData.senha}
                   onChange={(e) => setFormData((p) => ({ ...p, senha: e.target.value }))}

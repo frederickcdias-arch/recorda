@@ -245,6 +245,8 @@ export function ProjetosPage(): JSX.Element {
                               size="sm"
                               icon="edit"
                               onClick={() => handleEditar(projeto)}
+                              disabled
+                              title="Edição em desenvolvimento"
                             >
                               Editar
                             </Button>
@@ -253,6 +255,8 @@ export function ProjetosPage(): JSX.Element {
                               size="sm"
                               icon={'pause'}
                               onClick={() => handleToggleAtivo()}
+                              disabled
+                              title="Toggle em desenvolvimento"
                             >
                               Desativar
                             </Button>
@@ -261,6 +265,8 @@ export function ProjetosPage(): JSX.Element {
                               size="sm"
                               icon="trash"
                               onClick={() => handleExcluir(projeto.id)}
+                              disabled
+                              title="Exclusão em desenvolvimento"
                               className="text-red-600 hover:text-red-700"
                             >
                               Excluir

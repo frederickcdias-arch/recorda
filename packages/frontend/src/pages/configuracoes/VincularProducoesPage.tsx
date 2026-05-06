@@ -47,12 +47,12 @@ export function VincularProducoesPage(): JSX.Element {
     null
   );
 
-  const { data: colaboradores, isLoading: loadingColaboradores } = useQuery({
+  const { data: colaboradores, isLoading: loadingColaboradores, error: erroColaboradores } = useQuery({
     queryKey: ['colaboradores-legado'],
     queryFn: () => api.get<ColaboradorLegado[]>('/admin/colaboradores-legado'),
   });
 
-  const { data: usuarios, isLoading: loadingUsuarios } = useQuery({
+  const { data: usuarios, isLoading: loadingUsuarios, error: erroUsuarios } = useQuery({
     queryKey: ['usuarios-colaboradores'],
     queryFn: () => api.get<UsuarioColaborador[]>('/admin/usuarios-colaboradores'),
   });
@@ -120,12 +120,21 @@ export function VincularProducoesPage(): JSX.Element {
                 : 'bg-red-50 text-red-800 border border-red-200'
             }`}
           >
-            <div className="flex items-center gap-2">
-              <Icon
-                name={mensagem.tipo === 'success' ? 'check-circle' : 'alert-circle'}
-                className="w-5 h-5"
-              />
-              <p className="font-medium">{mensagem.texto}</p>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Icon
+                  name={mensagem.tipo === 'success' ? 'check-circle' : 'alert-circle'}
+                  className="w-5 h-5 flex-shrink-0"
+                />
+                <p className="font-medium">{mensagem.texto}</p>
+              </div>
+              <button
+                onClick={() => setMensagem(null)}
+                className="text-current opacity-60 hover:opacity-100"
+                aria-label="Fechar"
+              >
+                <Icon name="x" className="w-4 h-4" />
+              </button>
             </div>
           </div>
         )}
@@ -141,7 +150,13 @@ export function VincularProducoesPage(): JSX.Element {
               </div>
 
               <div className="space-y-2 max-h-96 overflow-y-auto">
-                {!colaboradores || colaboradores.length === 0 ? (
+                {erroColaboradores ? (
+                  <div className="text-center py-8 text-red-500">
+                    <Icon name="alert-circle" className="w-10 h-10 mx-auto mb-2" />
+                    <p className="text-sm font-medium">Erro ao carregar colaboradores</p>
+                    <p className="text-xs mt-1">Recarregue a página para tentar novamente</p>
+                  </div>
+                ) : !colaboradores || colaboradores.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
                     <Icon name="users" className="w-12 h-12 mx-auto mb-2 text-gray-300" />
                     <p className="text-sm">
@@ -160,7 +175,7 @@ export function VincularProducoesPage(): JSX.Element {
                     <button
                       key={colab.nome}
                       onClick={() => {
-                        setColaboradorSelecionado(colab.nome);
+                        setColaboradorSelecionado(colab.nome === colaboradorSelecionado ? '' : colab.nome);
                         setMostrarPreview(false);
                       }}
                       className={`w-full text-left p-3 rounded-lg border transition-colors ${
@@ -199,7 +214,13 @@ export function VincularProducoesPage(): JSX.Element {
               </div>
 
               <div className="space-y-2 max-h-96 overflow-y-auto">
-                {!usuarios || usuarios.length === 0 ? (
+                {erroUsuarios ? (
+                  <div className="text-center py-8 text-red-500">
+                    <Icon name="alert-circle" className="w-10 h-10 mx-auto mb-2" />
+                    <p className="text-sm font-medium">Erro ao carregar usuários</p>
+                    <p className="text-xs mt-1">Recarregue a página para tentar novamente</p>
+                  </div>
+                ) : !usuarios || usuarios.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
                     <Icon name="user" className="w-12 h-12 mx-auto mb-2 text-gray-300" />
                     <p className="text-sm">
@@ -216,7 +237,7 @@ export function VincularProducoesPage(): JSX.Element {
                     <button
                       key={usuario.id}
                       onClick={() => {
-                        setUsuarioSelecionado(usuario.id);
+                        setUsuarioSelecionado(usuario.id === usuarioSelecionado ? '' : usuario.id);
                         setMostrarPreview(false);
                       }}
                       disabled={!usuario.ativo}

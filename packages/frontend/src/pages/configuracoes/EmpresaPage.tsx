@@ -128,6 +128,16 @@ export function EmpresaPage(): JSX.Element {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    const MAX_SIZE = 5 * 1024 * 1024;
+    if (file.size > MAX_SIZE) {
+      setMensagem({
+        tipo: 'error',
+        texto: `Arquivo muito grande (${(file.size / 1024 / 1024).toFixed(1)} MB). O tamanho máximo é 5 MB.`,
+      });
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
     setUploadingLogo(true);
     setMensagem(null);
 
@@ -377,14 +387,14 @@ export function EmpresaPage(): JSX.Element {
 
             <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
               <p className="text-sm font-semibold text-gray-900 mb-3">
-                PrÃ©-visualizaÃ§Ã£o no relatÃ³rio
+                Pré-visualização no relatório
               </p>
               <div className="mx-auto w-full max-w-[720px] rounded-md bg-white border border-gray-200 px-8 py-6">
                 <div className="relative h-24">
                   {config.exibirLogoRelatorio && logoSrc && !logoLoadError ? (
                     <img
                       src={logoSrc}
-                      alt="PrÃ©-visualizaÃ§Ã£o da logo"
+                      alt="Pré-visualização da logo"
                       className="absolute max-h-20 object-contain"
                       style={{
                         width: `${config.logoLarguraRelatorio}px`,
@@ -399,13 +409,13 @@ export function EmpresaPage(): JSX.Element {
                     />
                   ) : (
                     <div className="absolute inset-0 flex items-center justify-center text-xs text-gray-400">
-                      Sem logo no cabeÃ§alho
+                      Sem logo no cabeçalho
                     </div>
                   )}
                 </div>
                 <div className="h-[3px] bg-blue-800 mt-1" />
                 <p className="mt-3 text-center text-[11px] text-gray-500">
-                  CabeÃ§alho simulado em A4
+                  Cabeçalho simulado em A4
                 </p>
               </div>
             </div>
