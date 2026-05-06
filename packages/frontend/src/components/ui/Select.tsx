@@ -20,8 +20,8 @@ interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
 
 const sizeClasses: Record<SelectSize, string> = {
   sm: 'h-8 pl-3 pr-8 text-sm',
-  md: 'h-9 pl-3.5 pr-9 text-sm',
-  lg: 'h-10 pl-4 pr-10 text-base',
+  md: 'h-11 sm:h-9 pl-3.5 pr-9 text-sm',
+  lg: 'h-11 sm:h-10 pl-4 pr-10 text-base',
 };
 
 const chevronPositionClasses: Record<SelectSize, string> = {

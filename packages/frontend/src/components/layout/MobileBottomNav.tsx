@@ -79,7 +79,7 @@ export function MobileBottomNav(): JSX.Element {
               }
             >
               <Icon name={item.icon} className="h-5 w-5" />
-              <span className="text-[11px] font-medium leading-none">{item.label}</span>
+              <span className="text-xs font-medium leading-none">{item.label}</span>
             </NavLink>
           </li>
         ))}

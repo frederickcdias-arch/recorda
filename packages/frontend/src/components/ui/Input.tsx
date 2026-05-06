@@ -16,8 +16,8 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 
 const sizeClasses: Record<InputSize, string> = {
   sm: 'h-8 px-3 text-sm',
-  md: 'h-9 px-3.5 text-sm',
-  lg: 'h-10 px-4 text-base',
+  md: 'h-11 sm:h-9 px-3.5 text-sm',
+  lg: 'h-11 sm:h-10 px-4 text-base',
 };
 
 const iconPaddingClasses: Record<InputSize, { left: string; right: string }> = {

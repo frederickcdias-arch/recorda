@@ -402,7 +402,7 @@ export function ProducaoPage(): JSX.Element {
                 placeholder="Nome, repositório, tipo..."
                 value={busca}
                 onChange={(e) => setBusca(e.target.value)}
-                className="w-full h-9 px-3 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full h-11 sm:h-9 px-3 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
             <div>
@@ -410,7 +410,7 @@ export function ProducaoPage(): JSX.Element {
               <select
                 value={etapa}
                 onChange={(e) => setEtapa(e.target.value)}
-                className="w-full h-9 px-2 text-sm border rounded-lg"
+                className="w-full h-11 sm:h-9 px-2 text-sm border rounded-lg"
               >
                 <option value="">Todas</option>
                 {(dados?.filtros.etapas ?? []).map((e) => (
@@ -425,7 +425,7 @@ export function ProducaoPage(): JSX.Element {
               <select
                 value={colaborador}
                 onChange={(e) => setColaborador(e.target.value)}
-                className="w-full h-9 px-2 text-sm border rounded-lg"
+                className="w-full h-11 sm:h-9 px-2 text-sm border rounded-lg"
               >
                 <option value="">Todos</option>
                 {(dados?.filtros.colaboradores ?? []).map((c) => (
@@ -441,7 +441,7 @@ export function ProducaoPage(): JSX.Element {
                 type="date"
                 value={dataInicio}
                 onChange={(e) => setDataInicio(e.target.value)}
-                className="w-full h-9 px-2 text-sm border rounded-lg"
+                className="w-full h-11 sm:h-9 px-2 text-sm border rounded-lg"
               />
             </div>
             <div>
@@ -450,7 +450,7 @@ export function ProducaoPage(): JSX.Element {
                 type="date"
                 value={dataFim}
                 onChange={(e) => setDataFim(e.target.value)}
-                className="w-full h-9 px-2 text-sm border rounded-lg"
+                className="w-full h-11 sm:h-9 px-2 text-sm border rounded-lg"
               />
             </div>
           </div>
@@ -463,7 +463,7 @@ export function ProducaoPage(): JSX.Element {
                 setDataFim('');
                 setBusca('');
               }}
-              className="mt-3 text-xs text-blue-600 hover:text-blue-800 font-medium"
+              className="mt-3 text-xs text-blue-600 hover:text-blue-800 font-medium touch-manipulation min-h-[44px] sm:min-h-0 flex items-center"
             >
               Limpar Filtros
             </button>
@@ -591,7 +591,7 @@ export function ProducaoPage(): JSX.Element {
                         <td className="px-3 py-2 text-center">
                           <button
                             onClick={() => void handleExcluir(reg.id)}
-                            className="text-gray-400 hover:text-gray-700 p-1"
+                            className="text-gray-400 hover:text-gray-700 p-2 rounded"
                             title="Excluir Registro"
                           >
                             <Icon name="trash" className="w-4 h-4" />
