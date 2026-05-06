@@ -324,14 +324,19 @@ export function ProducaoPage(): JSX.Element {
           className={`flex items-center gap-1 ${align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : 'justify-start'}`}
         >
           <span>{children}</span>
-          <span className="inline-flex flex-col">
+          <span className="inline-flex flex-col leading-none">
             {isActive && sortDirection === 'asc' && (
               <Icon name="chevron-up" className="w-3 h-3 text-blue-600" />
             )}
             {isActive && sortDirection === 'desc' && (
               <Icon name="chevron-down" className="w-3 h-3 text-blue-600" />
             )}
-            {!isActive && <Icon name="chevron-up" className="w-3 h-3 text-gray-300" />}
+            {!isActive && (
+              <>
+                <Icon name="chevron-up" className="w-2.5 h-2.5 text-gray-300 -mb-0.5" />
+                <Icon name="chevron-down" className="w-2.5 h-2.5 text-gray-300" />
+              </>
+            )}
           </span>
         </div>
       </th>
@@ -382,6 +387,11 @@ export function ProducaoPage(): JSX.Element {
             >
               Exportar Excel
             </Button>
+            {(!dataInicio || !dataFim) && (
+              <p className="text-xs text-gray-400 text-center sm:text-right">
+                Informe o período para exportar
+              </p>
+            )}
           </div>
         </div>
 
@@ -477,7 +487,27 @@ export function ProducaoPage(): JSX.Element {
           <div className={`space-y-3 md:hidden${atualizando ? ' opacity-60' : ''}`}>
             {!dados || dados.registros.length === 0 ? (
               <div className="rounded-lg border border-dashed border-gray-200 px-4 py-8 text-center text-sm text-gray-500">
-                {carregando ? 'Carregando...' : 'Nenhum registro encontrado.'}
+                {carregando ? (
+                  'Carregando...'
+                ) : etapa || colaborador || dataInicio || dataFim || busca ? (
+                  <div className="space-y-2">
+                    <p>Nenhum registro encontrado para os filtros aplicados.</p>
+                    <button
+                      onClick={() => {
+                        setEtapa('');
+                        setColaborador('');
+                        setDataInicio('');
+                        setDataFim('');
+                        setBusca('');
+                      }}
+                      className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                    >
+                      Limpar filtros
+                    </button>
+                  </div>
+                ) : (
+                  'Nenhum registro de produção cadastrado.'
+                )}
               </div>
             ) : (
               dados.registros.map((reg) => (
@@ -555,7 +585,27 @@ export function ProducaoPage(): JSX.Element {
                       colSpan={isAdmin ? 9 : 8}
                       className="px-3 py-8 text-center text-sm text-gray-500"
                     >
-                      {carregando ? 'Carregando...' : 'Nenhum registro encontrado.'}
+                      {carregando ? (
+                        'Carregando...'
+                      ) : etapa || colaborador || dataInicio || dataFim || busca ? (
+                        <span>
+                          Nenhum registro encontrado para os filtros aplicados.{' '}
+                          <button
+                            onClick={() => {
+                              setEtapa('');
+                              setColaborador('');
+                              setDataInicio('');
+                              setDataFim('');
+                              setBusca('');
+                            }}
+                            className="text-blue-600 hover:text-blue-800 font-medium"
+                          >
+                            Limpar filtros
+                          </button>
+                        </span>
+                      ) : (
+                        'Nenhum registro de produção cadastrado.'
+                      )}
                     </td>
                   </tr>
                 ) : (
@@ -565,8 +615,10 @@ export function ProducaoPage(): JSX.Element {
                         {formatDateBR(reg.data_producao)}
                       </td>
                       <td className="px-3 py-2 text-sm text-gray-800">{reg.colaborador_nome}</td>
-                      <td className="px-3 py-2 text-xs text-gray-800 font-mono">
-                        {reg.repositorio_ged}
+                      <td className="px-3 py-2 text-xs text-gray-800 font-mono max-w-[200px]">
+                        <span title={reg.repositorio_ged} className="block truncate">
+                          {reg.repositorio_ged}
+                        </span>
                       </td>
                       <td className="px-3 py-2 text-sm text-gray-800">
                         {reg.funcao || ETAPA_LABELS[reg.etapa] || reg.etapa}
@@ -607,7 +659,13 @@ export function ProducaoPage(): JSX.Element {
             </table>
           </div>
 
-          {/* Paginação */}
+          {dados && dados.registros.length > 0 && (
+            <p className="mt-3 text-xs text-gray-500 text-center">
+              Exibindo {(dados.pagina - 1) * 25 + 1}–
+              {(dados.pagina - 1) * 25 + dados.registros.length} de{' '}
+              {formatCriticalNumber(dados.total)} registro{dados.total !== 1 ? 's' : ''}
+            </p>
+          )}
           {dados && (
             <Pagination
               pagina={dados.pagina}

@@ -135,17 +135,21 @@ export const router = createBrowserRouter([
       {
         path: 'producao',
         element: (
-          <PageSuspense>
-            <ProducaoPage />
-          </PageSuspense>
+          <RoleRoute allowedProfiles={['administrador']}>
+            <PageSuspense>
+              <ProducaoPage />
+            </PageSuspense>
+          </RoleRoute>
         ),
       },
       {
         path: 'producao/importar',
         element: (
-          <PageSuspense>
-            <ImportarProducaoPage />
-          </PageSuspense>
+          <RoleRoute allowedProfiles={['administrador']}>
+            <PageSuspense>
+              <ImportarProducaoPage />
+            </PageSuspense>
+          </RoleRoute>
         ),
       },
       {
@@ -195,17 +199,21 @@ export const router = createBrowserRouter([
       {
         path: 'relatorios/gerenciais',
         element: (
-          <PageSuspense>
-            <RelatoriosGerenciaisPage />
-          </PageSuspense>
+          <RoleRoute allowedProfiles={['administrador']}>
+            <PageSuspense>
+              <RelatoriosGerenciaisPage />
+            </PageSuspense>
+          </RoleRoute>
         ),
       },
       {
         path: 'relatorios/exportacoes',
         element: (
-          <PageSuspense>
-            <ExportacoesPage />
-          </PageSuspense>
+          <RoleRoute allowedProfiles={['administrador']}>
+            <PageSuspense>
+              <ExportacoesPage />
+            </PageSuspense>
+          </RoleRoute>
         ),
       },
       {

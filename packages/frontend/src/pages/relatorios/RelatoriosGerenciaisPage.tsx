@@ -135,6 +135,11 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
     }
 
     if (new Date(dataInicio) > new Date(dataFim)) {
+      setMensagem({
+        tipo: 'error',
+        texto: 'Período Inválido',
+        detalhes: 'A data de início deve ser anterior à data de fim',
+      });
       return;
     }
 
