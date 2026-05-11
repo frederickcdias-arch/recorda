@@ -1,18 +1,20 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
-import { Select } from '../../components/ui/Select';
+import { Pagination } from '../../components/ui/Pagination';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { PageState } from '../../components/ui/PageState';
 import { useToastHelpers } from '../../components/ui/Toast';
 import { buildApiUrl } from '../../services/api';
 import { getToken } from '../../services/tokenStorage';
+import { useDebounce } from '../../hooks/useDebounce';
 import {
   useDevolucoes,
   useDevolucaoDetalhe,
   useCriarDevolucao,
   useCoordenadorias,
+  useOrgaosRecebimento,
   useBuscarRecebimentoProcessos,
   type DevolucaoOperacional,
   type RecebimentoProcessoBusca,
@@ -39,6 +41,97 @@ function formatarData(isoDate: string): string {
   return `${parts[2]}/${parts[1]}/${parts[0]}`;
 }
 
+// ─── Combobox de Coordenadoria ────────────────────────────────
+
+interface CoordComboboxProps {
+  value: string;
+  onChange: (id: string) => void;
+  coordenadorias: Array<{ id: string; nome: string; sigla: string }>;
+  required?: boolean;
+}
+
+function CoordCombobox({
+  value,
+  onChange,
+  coordenadorias,
+  required,
+}: CoordComboboxProps): JSX.Element {
+  const [query, setQuery] = useState('');
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  const selected = coordenadorias.find((c) => c.id === value);
+  const displayText = selected ? `${selected.sigla} — ${selected.nome}` : '';
+
+  const filtered = query.trim()
+    ? coordenadorias.filter(
+        (c) =>
+          c.nome.toLowerCase().includes(query.toLowerCase()) ||
+          c.sigla.toLowerCase().includes(query.toLowerCase())
+      )
+    : coordenadorias;
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+        setQuery('');
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative">
+      <label className="block text-sm font-medium text-gray-700 mb-1">
+        Coordenadoria Destino{required && <span className="text-red-500 ml-0.5">*</span>}
+      </label>
+      <input
+        type="text"
+        className="w-full h-11 px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        placeholder="Buscar coordenadoria…"
+        value={open ? query : displayText}
+        onChange={(e) => {
+          setQuery(e.target.value);
+          setOpen(true);
+        }}
+        onFocus={() => {
+          setQuery('');
+          setOpen(true);
+        }}
+      />
+      {open && filtered.length > 0 && (
+        <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-52 overflow-y-auto">
+          {filtered.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              className={`w-full text-left px-3 py-2 text-sm hover:bg-blue-50 hover:text-blue-700 transition-colors ${
+                c.id === value ? 'bg-blue-50 text-blue-700 font-medium' : ''
+              }`}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                onChange(c.id);
+                setQuery('');
+                setOpen(false);
+              }}
+            >
+              <span className="font-medium">{c.sigla}</span>
+              <span className="text-gray-500 ml-1">— {c.nome}</span>
+            </button>
+          ))}
+        </div>
+      )}
+      {open && filtered.length === 0 && query.trim().length > 0 && (
+        <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg px-3 py-2 text-sm text-gray-400">
+          Nenhuma coordenadoria encontrada
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Modal Nova Devolução ─────────────────────────────────────
 
 interface ModalDevolucaoProps {
@@ -49,6 +142,7 @@ interface ModalDevolucaoProps {
 function ModalNovaDevolucao({ onClose, onSaved }: ModalDevolucaoProps): JSX.Element {
   const toast = useToastHelpers();
   const coordenadoriasQuery = useCoordenadorias();
+  const orgaosQuery = useOrgaosRecebimento();
   const criarMut = useCriarDevolucao();
   const buscarProcessosMut = useBuscarRecebimentoProcessos();
 
@@ -62,6 +156,7 @@ function ModalNovaDevolucao({ onClose, onSaved }: ModalDevolucaoProps): JSX.Elem
   const [buscaProcesso, setBuscaProcesso] = useState('');
   const [resultadosBusca, setResultadosBusca] = useState<RecebimentoProcessoBusca[]>([]);
   const [mostrarBusca, setMostrarBusca] = useState(false);
+  const debouncedBuscaProcesso = useDebounce(buscaProcesso, 350);
 
   // Item manual
   const [modoItem, setModoItem] = useState<'busca' | 'manual'>('busca');
@@ -75,17 +170,30 @@ function ModalNovaDevolucao({ onClose, onSaved }: ModalDevolucaoProps): JSX.Elem
   });
 
   const coordenadorias = coordenadoriasQuery.data ?? [];
+  const orgaosOptions = orgaosQuery.data ?? [];
 
-  const handleBuscarProcessos = useCallback(async () => {
-    if (buscaProcesso.trim().length < 2) return;
-    try {
-      const res = await buscarProcessosMut.mutateAsync(buscaProcesso.trim());
-      setResultadosBusca(res.itens ?? []);
-      setMostrarBusca(true);
-    } catch {
-      toast.error('Erro ao buscar processos');
-    }
-  }, [buscaProcesso, buscarProcessosMut, toast]);
+  const buscarProcessos = useCallback(
+    async (q: string) => {
+      if (q.trim().length < 2) {
+        setResultadosBusca([]);
+        setMostrarBusca(false);
+        return;
+      }
+      try {
+        const res = await buscarProcessosMut.mutateAsync(q.trim());
+        setResultadosBusca(res.itens ?? []);
+        setMostrarBusca(true);
+      } catch {
+        toast.error('Erro ao buscar processos');
+      }
+    },
+    [buscarProcessosMut, toast]
+  );
+
+  // Live search: auto-dispara quando o debounced query muda
+  useEffect(() => {
+    void buscarProcessos(debouncedBuscaProcesso);
+  }, [debouncedBuscaProcesso, buscarProcessos]);
 
   const adicionarDoRecebimento = (proc: RecebimentoProcessoBusca) => {
     const jaAdicionado = itens.some((i) => i.recebimentoProcessoId === proc.id);
@@ -200,19 +308,12 @@ function ModalNovaDevolucao({ onClose, onSaved }: ModalDevolucaoProps): JSX.Elem
               onChange={(e) => setDataDevolucao(e.target.value)}
               required
             />
-            <Select
-              label="Coordenadoria Destino"
+            <CoordCombobox
               value={coordenadoriaDestinoId}
-              onChange={(e) => setCoordenadoriaDestinoId(e.target.value)}
+              onChange={setCoordenadoriaDestinoId}
+              coordenadorias={coordenadorias}
               required
-              placeholder="Selecione a coordenadoria"
-            >
-              {coordenadorias.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.sigla} — {c.nome}
-                </option>
-              ))}
-            </Select>
+            />
             <Input
               label="Responsável pela Retirada"
               value={responsavelRetirada}
@@ -261,24 +362,21 @@ function ModalNovaDevolucao({ onClose, onSaved }: ModalDevolucaoProps): JSX.Elem
             {/* Busca no recebimento */}
             {modoItem === 'busca' && (
               <div className="border rounded-lg p-4 bg-blue-50 space-y-3">
-                <div className="flex gap-2">
+                <div className="relative">
                   <Input
                     placeholder="Buscar por protocolo, interessado, repositório ou unidade…"
                     value={buscaProcesso}
                     onChange={(e) => setBuscaProcesso(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') void handleBuscarProcessos();
-                    }}
                   />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => void handleBuscarProcessos()}
-                    disabled={buscarProcessosMut.isPending}
-                  >
-                    {buscarProcessosMut.isPending ? 'Buscando…' : 'Buscar'}
-                  </Button>
+                  {buscarProcessosMut.isPending && (
+                    <span className="absolute right-3 top-3 text-xs text-blue-500 animate-pulse">
+                      Buscando…
+                    </span>
+                  )}
                 </div>
+                <p className="text-xs text-gray-500">
+                  Digite ao menos 2 caracteres para buscar automaticamente.
+                </p>
                 {mostrarBusca && (
                   <div className="max-h-48 overflow-y-auto space-y-1">
                     {resultadosBusca.length === 0 ? (
@@ -294,6 +392,9 @@ function ModalNovaDevolucao({ onClose, onSaved }: ModalDevolucaoProps): JSX.Elem
                           <span className="font-medium">{proc.protocolo}</span>
                           {' — '}
                           <span className="text-gray-600">{proc.interessado}</span>
+                          {proc.orgao && (
+                            <span className="ml-2 text-xs text-gray-500">{proc.orgao}</span>
+                          )}
                           {proc.repositorio && (
                             <span className="ml-2 text-xs text-gray-400">[{proc.repositorio}]</span>
                           )}
@@ -315,12 +416,20 @@ function ModalNovaDevolucao({ onClose, onSaved }: ModalDevolucaoProps): JSX.Elem
                     onChange={(e) => setItemManual((p) => ({ ...p, repositorio: e.target.value }))}
                     placeholder="Ex: 000016/2025"
                   />
-                  <Input
-                    label="Unidade / Órgão"
-                    value={itemManual.orgao}
-                    onChange={(e) => setItemManual((p) => ({ ...p, orgao: e.target.value }))}
-                    placeholder="Ex: SEFAZ"
-                  />
+                  <div>
+                    <Input
+                      label="Unidade / Órgão"
+                      value={itemManual.orgao}
+                      onChange={(e) => setItemManual((p) => ({ ...p, orgao: e.target.value }))}
+                      placeholder="Selecione ou digite a unidade"
+                      list="devol-orgaos-list"
+                    />
+                    <datalist id="devol-orgaos-list">
+                      {orgaosOptions.map((o) => (
+                        <option key={o.id} value={o.nome} />
+                      ))}
+                    </datalist>
+                  </div>
                   <Input
                     label="Protocolo"
                     value={itemManual.protocolo}
@@ -361,6 +470,7 @@ function ModalNovaDevolucao({ onClose, onSaved }: ModalDevolucaoProps): JSX.Elem
                       <th className="text-left px-3 py-2 text-gray-600 font-medium">#</th>
                       <th className="text-left px-3 py-2 text-gray-600 font-medium">Protocolo</th>
                       <th className="text-left px-3 py-2 text-gray-600 font-medium">Interessado</th>
+                      <th className="text-left px-3 py-2 text-gray-600 font-medium">Unidade</th>
                       <th className="text-left px-3 py-2 text-gray-600 font-medium">Repositório</th>
                       <th className="text-left px-3 py-2 text-gray-600 font-medium">Vol.</th>
                       <th className="px-3 py-2"></th>
@@ -371,8 +481,11 @@ function ModalNovaDevolucao({ onClose, onSaved }: ModalDevolucaoProps): JSX.Elem
                       <tr key={item.tempId} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                         <td className="px-3 py-2 text-gray-500">{idx + 1}</td>
                         <td className="px-3 py-2">{item.protocolo || '—'}</td>
-                        <td className="px-3 py-2 truncate max-w-[160px]">
+                        <td className="px-3 py-2 truncate max-w-[140px]">
                           {item.interessado || '—'}
+                        </td>
+                        <td className="px-3 py-2 text-gray-500 truncate max-w-[100px]">
+                          {item.orgao || '—'}
                         </td>
                         <td className="px-3 py-2 text-gray-500">{item.repositorio || '—'}</td>
                         <td className="px-3 py-2 text-gray-500">{item.volume || '—'}</td>
@@ -402,7 +515,8 @@ function ModalNovaDevolucao({ onClose, onSaved }: ModalDevolucaoProps): JSX.Elem
           <Button
             variant="primary"
             onClick={() => void handleSalvar()}
-            disabled={criarMut.isPending}
+            disabled={criarMut.isPending || itens.length === 0}
+            title={itens.length === 0 ? 'Adicione ao menos um item' : undefined}
           >
             {criarMut.isPending
               ? 'Salvando…'
@@ -423,6 +537,30 @@ interface DetalheDevolucaoProps {
 
 function PainelDetalheDevolucao({ devolucaoId, onClose }: DetalheDevolucaoProps): JSX.Element {
   const detalheQuery = useDevolucaoDetalhe(devolucaoId);
+  const toast = useToastHelpers();
+  const [baixandoPdf, setBaixandoPdf] = useState(false);
+
+  const handleDownloadPdf = async () => {
+    try {
+      setBaixandoPdf(true);
+      const token = getToken();
+      const response = await fetch(buildApiUrl(`/operacional/devolucoes/${devolucaoId}/pdf`), {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!response.ok) throw new Error('Erro ao gerar PDF');
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `termo_devolucao_${devolucaoId.slice(0, 8)}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error('Não foi possível baixar o PDF');
+    } finally {
+      setBaixandoPdf(false);
+    }
+  };
 
   if (detalheQuery.isLoading) {
     return (
@@ -484,7 +622,15 @@ function PainelDetalheDevolucao({ devolucaoId, onClose }: DetalheDevolucaoProps)
             </tbody>
           </table>
         </div>
-        <div className="flex justify-end gap-3 p-4 border-t">
+        <div className="flex justify-between items-center gap-3 p-4 border-t">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void handleDownloadPdf()}
+            disabled={baixandoPdf}
+          >
+            {baixandoPdf ? 'Gerando PDF…' : 'Baixar PDF'}
+          </Button>
           <Button variant="outline" size="sm" onClick={onClose}>
             Fechar
           </Button>
@@ -509,8 +655,15 @@ export function DevolucoesPage(): JSX.Element {
   const [modalAberto, setModalAberto] = useState(false);
   const [devolucaoDetalhId, setDevolucaoDetalhId] = useState<string | null>(null);
 
+  const debouncedBusca = useDebounce(busca, 400);
+
+  // Auto-reset pagina quando filtros mudam
+  useEffect(() => {
+    setPagina(1);
+  }, [debouncedBusca, coordenadoriaFiltro, dataInicio, dataFim]);
+
   const devolucoesQuery = useDevolucoes({
-    q: busca || undefined,
+    q: debouncedBusca || undefined,
     coordenadoriaId: coordenadoriaFiltro || undefined,
     dataInicio: dataInicio || undefined,
     dataFim: dataFim || undefined,
@@ -519,7 +672,7 @@ export function DevolucoesPage(): JSX.Element {
   });
 
   const coordenadorias = coordenadoriasQuery.data ?? [];
-  const { devolucoes = [], total = 0, totalPaginas = 1 } = devolucoesQuery.data ?? {};
+  const { devolucoes = [], totalPaginas = 1 } = devolucoesQuery.data ?? {};
 
   const handleDownloadPdf = useCallback(
     async (id: string) => {
@@ -543,10 +696,12 @@ export function DevolucoesPage(): JSX.Element {
     [toast]
   );
 
-  const handleBusca = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleLimparFiltros = () => {
+    setBusca('');
+    setCoordenadoriaFiltro('');
+    setDataInicio('');
+    setDataFim('');
     setPagina(1);
-    void devolucoesQuery.refetch();
   };
 
   return (
@@ -564,7 +719,7 @@ export function DevolucoesPage(): JSX.Element {
 
         {/* Filtros */}
         <Card padding="sm">
-          <form onSubmit={handleBusca} className="flex flex-wrap gap-3 items-end">
+          <div className="flex flex-wrap gap-3 items-end">
             <div className="flex-1 min-w-[200px]">
               <Input
                 label="Busca"
@@ -574,18 +729,19 @@ export function DevolucoesPage(): JSX.Element {
               />
             </div>
             <div className="min-w-[180px]">
-              <Select
-                label="Coordenadoria"
+              <label className="block text-sm font-medium text-gray-700 mb-1">Coordenadoria</label>
+              <select
+                className="w-full h-11 px-3 border border-gray-300 rounded-lg text-sm"
                 value={coordenadoriaFiltro}
                 onChange={(e) => setCoordenadoriaFiltro(e.target.value)}
-                placeholder="Todas"
               >
+                <option value="">Todas</option>
                 {coordenadorias.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.sigla}
+                    {c.sigla} — {c.nome}
                   </option>
                 ))}
-              </Select>
+              </select>
             </div>
             <div>
               <Input
@@ -603,26 +759,12 @@ export function DevolucoesPage(): JSX.Element {
                 onChange={(e) => setDataFim(e.target.value)}
               />
             </div>
-            <Button type="submit" variant="outline" size="md">
-              Filtrar
-            </Button>
             {(busca || coordenadoriaFiltro || dataInicio || dataFim) && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="md"
-                onClick={() => {
-                  setBusca('');
-                  setCoordenadoriaFiltro('');
-                  setDataInicio('');
-                  setDataFim('');
-                  setPagina(1);
-                }}
-              >
+              <Button type="button" variant="ghost" size="md" onClick={handleLimparFiltros}>
                 Limpar
               </Button>
             )}
-          </form>
+          </div>
         </Card>
 
         {/* Tabela */}
@@ -700,31 +842,13 @@ export function DevolucoesPage(): JSX.Element {
 
           {/* Paginação */}
           {totalPaginas > 1 && (
-            <div className="flex items-center justify-between px-4 py-3 border-t bg-gray-50">
-              <span className="text-sm text-gray-500">
-                {total} devolução{total !== 1 ? 'ões' : ''} encontrada{total !== 1 ? 's' : ''}
-              </span>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={pagina <= 1}
-                  onClick={() => setPagina((p) => p - 1)}
-                >
-                  ← Anterior
-                </Button>
-                <span className="self-center text-sm text-gray-600">
-                  {pagina} / {totalPaginas}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={pagina >= totalPaginas}
-                  onClick={() => setPagina((p) => p + 1)}
-                >
-                  Próxima →
-                </Button>
-              </div>
+            <div className="px-4 border-t bg-gray-50">
+              <Pagination
+                pagina={pagina}
+                totalPaginas={totalPaginas}
+                onChange={setPagina}
+                disabled={devolucoesQuery.isLoading}
+              />
             </div>
           )}
         </Card>
