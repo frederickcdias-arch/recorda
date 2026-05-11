@@ -47,7 +47,24 @@ export class EtiquetaPdfService {
       const rowIndex = Math.floor(slotIndex / LABELS_PER_ROW);
 
       const sourcePage = pageRef.source.getPage(pageRef.index);
-      const embeddedPage = await output.embedPage(sourcePage);
+      const sourceWidth = sourcePage.getWidth();
+      const sourceHeight = sourcePage.getHeight();
+
+      // Recorta a área central de LABEL_WIDTH × LABEL_HEIGHT da página fonte.
+      // Se a fonte for menor que o slot, incorpora a página inteira e redimensiona.
+      let embeddedPage;
+      if (sourceWidth <= LABEL_WIDTH && sourceHeight <= LABEL_HEIGHT) {
+        embeddedPage = await output.embedPage(sourcePage);
+      } else {
+        const cropLeft = Math.max(0, (sourceWidth - LABEL_WIDTH) / 2);
+        const cropBottom = Math.max(0, (sourceHeight - LABEL_HEIGHT) / 2);
+        embeddedPage = await output.embedPage(sourcePage, {
+          left: cropLeft,
+          right: Math.min(sourceWidth, cropLeft + LABEL_WIDTH),
+          bottom: cropBottom,
+          top: Math.min(sourceHeight, cropBottom + LABEL_HEIGHT),
+        });
+      }
 
       const x = groupLeft + columnIndex * LABEL_WIDTH;
       const y = groupBottom + (LABELS_PER_ROW - 1 - rowIndex) * LABEL_HEIGHT;
