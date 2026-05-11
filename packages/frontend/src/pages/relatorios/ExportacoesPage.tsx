@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Icon } from '../../components/ui/Icon';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
+import { Input } from '../../components/ui/Input';
 import { ActionFeedback } from '../../components/ui/PageState';
 import { api } from '../../services/api';
 import { formatDateBR, toDateInputValue } from '../../utils/date';
@@ -270,28 +271,26 @@ export function ExportacoesPage(): JSX.Element {
       )}
 
       {/* Filtro de período */}
-      <Card>
+      <Card padding="none">
         <div className="p-4">
-          <h2 className="text-sm font-semibold text-gray-700 mb-3">Período da Exportação</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Data Início</label>
-              <input
-                type="date"
-                value={dataInicio}
-                onChange={(e) => setDataInicio(e.target.value)}
-                className="h-9 px-3 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Data Fim</label>
-              <input
-                type="date"
-                value={dataFim}
-                onChange={(e) => setDataFim(e.target.value)}
-                className="h-9 px-3 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
+          <h2 className="text-sm font-semibold text-[var(--color-text-primary)] mb-3">
+            Período da Exportação
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Input
+              label="Data Início"
+              type="date"
+              value={dataInicio}
+              max={dataFim || undefined}
+              onChange={(e) => setDataInicio(e.target.value)}
+            />
+            <Input
+              label="Data Fim"
+              type="date"
+              value={dataFim}
+              min={dataInicio || undefined}
+              onChange={(e) => setDataFim(e.target.value)}
+            />
           </div>
         </div>
       </Card>

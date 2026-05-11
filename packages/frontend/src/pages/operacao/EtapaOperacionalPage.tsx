@@ -1218,6 +1218,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                         label="Data Início"
                         type="date"
                         value={filtroDataInicio}
+                        max={filtroDataFim || undefined}
                         onChange={(e) => {
                           setFiltroDataInicio(e.target.value);
                           setPagina(1);
@@ -1229,6 +1230,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                         label="Data Fim"
                         type="date"
                         value={filtroDataFim}
+                        min={filtroDataInicio || undefined}
                         onChange={(e) => {
                           setFiltroDataFim(e.target.value);
                           setPagina(1);
