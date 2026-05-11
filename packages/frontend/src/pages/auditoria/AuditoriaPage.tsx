@@ -6,7 +6,7 @@ import { Card } from '../../components/ui/Card';
 import { PageState } from '../../components/ui/PageState';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { FilterBar } from '../../components/ui/FilterBar';
-import { DateRangePicker } from '../../components/ui/DateRangePicker';
+import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { useAuditoria, useQueryClient } from '../../hooks/useQueries';
 import { Pagination } from '../../components/ui/Pagination';
@@ -274,21 +274,26 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
             </Button>
           }
         >
-          <div className="sm:col-span-2 lg:col-span-2">
-            <DateRangePicker
-              startDate={dataInicio}
-              endDate={dataFim}
-              onStartDateChange={(v) => {
-                setDataInicio(v);
-                setPagina(1);
-              }}
-              onEndDateChange={(v) => {
-                setDataFim(v);
-                setPagina(1);
-              }}
-              showPresets={false}
-            />
-          </div>
+          <Input
+            label="Data inicial"
+            type="date"
+            value={dataInicio}
+            max={dataFim || undefined}
+            onChange={(e) => {
+              setDataInicio(e.target.value);
+              setPagina(1);
+            }}
+          />
+          <Input
+            label="Data final"
+            type="date"
+            value={dataFim}
+            min={dataInicio || undefined}
+            onChange={(e) => {
+              setDataFim(e.target.value);
+              setPagina(1);
+            }}
+          />
           <Select
             label="Tabela"
             value={filtroTabela}
