@@ -1,4 +1,4 @@
--- Migration: Gestão de Pessoas
+-- Migration: 074_gestao_pessoas
 -- Adiciona tabelas para controle de faltas, justificativas, férias, atestados e banco de horas
 
 -- Tabela de tipos de ausência
@@ -173,8 +173,8 @@ CREATE INDEX IF NOT EXISTS idx_historico_cargos_usuario ON historico_cargos(usua
 CREATE INDEX IF NOT EXISTS idx_avaliacoes_usuario ON avaliacoes_desempenho(usuario_id);
 CREATE INDEX IF NOT EXISTS idx_avaliacoes_avaliador ON avaliacoes_desempenho(avaliador_id);
 
--- Recria a funÃ§Ã£o legacy usada pelos triggers desta migration.
--- A migration 073 pode ter removido essa funÃ§Ã£o em bancos jÃ¡ consolidados.
+-- Recria a função legacy usada pelos triggers desta migration.
+-- A migration 073 pode ter removido essa função em bancos já consolidados.
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -239,12 +239,9 @@ COMMENT ON TABLE ferias IS 'Gestão de férias dos colaboradores';
 COMMENT ON TABLE ocorrencias IS 'Registro de advertências, suspensões e elogios';
 COMMENT ON TABLE historico_cargos IS 'Histórico de mudanças de cargo e salário';
 COMMENT ON TABLE avaliacoes_desempenho IS 'Avaliações de desempenho dos colaboradores';
--- Recria a funÃ§Ã£o legacy usada pelos triggers desta migration.
--- A migration 073 pode ter removido essa funÃ§Ã£o em bancos jÃ¡ consolidados.
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.atualizado_em = CURRENT_TIMESTAMP;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
+
+INSERT INTO schema_migrations (version)
+SELECT '074_gestao_pessoas'
+WHERE NOT EXISTS (
+    SELECT 1 FROM schema_migrations WHERE version = '074_gestao_pessoas'
+);
