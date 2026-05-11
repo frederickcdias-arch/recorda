@@ -14,8 +14,8 @@ const DASH_OFF = 3;
 // Grade 2×2 em A4 com 1 mm de espaço entre as etiquetas
 const LABEL_WIDTH = 9.5 * CM_TO_POINTS; // 269,29 pt
 const LABEL_HEIGHT = 15.0 * CM_TO_POINTS; // 425,20 pt
-const LABEL_GAP = 1 * MM_TO_POINTS; // 2,83 pt
-const CONTENT_MARGIN = 1 * MM_TO_POINTS; // 1 mm de margem interna entre conteúdo e linha de corte
+const LABEL_GAP = 1 * MM_TO_POINTS; // 2,83 pt — espaço para o corte físico
+const CROP_BUFFER = 1.05; // recorta 5% a mais do que o slot para evitar clipar bordas do conteúdo
 
 export class EtiquetaPdfService {
   async compactarTresPorFolha(inputs: Uint8Array[]): Promise<Buffer> {
@@ -55,21 +55,21 @@ export class EtiquetaPdfService {
       const sourceWidth = sourcePage.getWidth();
       const sourceHeight = sourcePage.getHeight();
 
-      // Recorta o centro da página fonte com 1 mm de margem interna.
-      // O conteúdo é desenhado 1 mm recuado em relação à linha de corte.
-      const contentWidth = LABEL_WIDTH - 2 * CONTENT_MARGIN;
-      const contentHeight = LABEL_HEIGHT - 2 * CONTENT_MARGIN;
+      // Recorta 5% a mais que o slot do centro da página fonte, depois escala de volta
+      // para LABEL_WIDTH × LABEL_HEIGHT. O buffer evita clipar conteúdo na borda da etiqueta.
+      const cropWidth = LABEL_WIDTH * CROP_BUFFER;
+      const cropHeight = LABEL_HEIGHT * CROP_BUFFER;
       let embeddedPage;
-      if (sourceWidth <= contentWidth && sourceHeight <= contentHeight) {
+      if (sourceWidth <= LABEL_WIDTH && sourceHeight <= LABEL_HEIGHT) {
         embeddedPage = await output.embedPage(sourcePage);
       } else {
-        const cropLeft = Math.max(0, (sourceWidth - contentWidth) / 2);
-        const cropBottom = Math.max(0, (sourceHeight - contentHeight) / 2);
+        const cropLeft = Math.max(0, (sourceWidth - cropWidth) / 2);
+        const cropBottom = Math.max(0, (sourceHeight - cropHeight) / 2);
         embeddedPage = await output.embedPage(sourcePage, {
           left: cropLeft,
-          right: Math.min(sourceWidth, cropLeft + contentWidth),
+          right: Math.min(sourceWidth, cropLeft + cropWidth),
           bottom: cropBottom,
-          top: Math.min(sourceHeight, cropBottom + contentHeight),
+          top: Math.min(sourceHeight, cropBottom + cropHeight),
         });
       }
 
@@ -77,10 +77,10 @@ export class EtiquetaPdfService {
       const y = groupBottom + (LABELS_PER_ROW - 1 - rowIndex) * (LABEL_HEIGHT + LABEL_GAP);
 
       targetPage.drawPage(embeddedPage, {
-        x: x + CONTENT_MARGIN,
-        y: y + CONTENT_MARGIN,
-        width: contentWidth,
-        height: contentHeight,
+        x,
+        y,
+        width: LABEL_WIDTH,
+        height: LABEL_HEIGHT,
       });
 
       // Borda de corte pontilhada (drawRectangle não suporta dashArray — desenha 4 linhas)
