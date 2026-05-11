@@ -395,11 +395,11 @@ export class OperacionalPDFService {
             Math.floor(pageWidth * 0.11), // REPOSITORIO
             Math.floor(pageWidth * 0.11), // UNIDADE
             Math.floor(pageWidth * 0.09), // SETOR
-            Math.floor(pageWidth * 0.1), // PROTOCOLO
+            Math.floor(pageWidth * 0.12), // PROTOCOLO
             Math.floor(pageWidth * 0.15), // INTERESSADO
             Math.floor(pageWidth * 0.18), // CLASSIF. (aumentado)
             Math.floor(pageWidth * 0.07), // VOL.
-            Math.floor(pageWidth * 0.13), // OBS
+            Math.floor(pageWidth * 0.11), // OBS
           ];
 
           this.renderRecebimentoTable(
@@ -692,7 +692,7 @@ export class OperacionalPDFService {
               'VOL.',
               'OBS',
             ],
-            [16, 68, 44, 58, 58, 72, 44, 34, 120],
+            [16, 68, 44, 50, 68, 72, 44, 34, 110],
             tableRows,
             processos.map((p) => !!p.isApenso)
           );
