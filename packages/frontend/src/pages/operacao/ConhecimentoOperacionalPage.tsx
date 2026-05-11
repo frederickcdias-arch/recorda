@@ -183,7 +183,7 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
 
   // React Query — Documentos
   const docsQuery = useConhecimentoDocs({ busca, categoria, etapa: etapaFiltro });
-  const itens = docsQuery.data?.itens ?? [];
+  const itens = useMemo(() => docsQuery.data?.itens ?? [], [docsQuery.data]);
   const loading = docsQuery.isLoading;
   const error = docsQuery.error
     ? {
@@ -197,7 +197,7 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
 
   // React Query — Glossário
   const glossarioQuery = useGlossario();
-  const glossarioItens = glossarioQuery.data?.itens ?? [];
+  const glossarioItens = useMemo(() => glossarioQuery.data?.itens ?? [], [glossarioQuery.data]);
   const criarGlossario = useCriarGlossario();
   const atualizarGlossario = useAtualizarGlossario();
   const excluirGlossario = useExcluirGlossario();
@@ -207,7 +207,7 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
 
   // React Query — Leis e Normas
   const leisQuery = useLeisNormas();
-  const leisItens = leisQuery.data?.itens ?? [];
+  const leisItens = useMemo(() => leisQuery.data?.itens ?? [], [leisQuery.data]);
 
   const glossarioFiltrado = useMemo(() => {
     if (!buscaGlossario.trim()) return glossarioItens;

@@ -267,14 +267,14 @@ function ModalNovaDevolucao({ onClose, onSaved }: ModalDevolucaoProps): JSX.Elem
         coordenadoriaDestino: coordenadoriaDestino.trim(),
         responsavelRetirada: responsavelRetirada.trim(),
         observacoes: observacoes.trim() || undefined,
-        itens: itens.map(({ tempId: _t, ...rest }) => ({
-          repositorio: rest.repositorio || undefined,
-          orgao: rest.orgao || undefined,
-          protocolo: rest.protocolo || undefined,
-          interessado: rest.interessado || undefined,
-          volume: rest.volume || undefined,
-          obs: rest.obs || undefined,
-          recebimentoProcessoId: rest.recebimentoProcessoId,
+        itens: itens.map((item) => ({
+          repositorio: item.repositorio || undefined,
+          orgao: item.orgao || undefined,
+          protocolo: item.protocolo || undefined,
+          interessado: item.interessado || undefined,
+          volume: item.volume || undefined,
+          obs: item.obs || undefined,
+          recebimentoProcessoId: item.recebimentoProcessoId,
         })),
       });
       toast.success('Devolução registrada com sucesso!');

@@ -163,8 +163,13 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
         });
 
         return true;
-      } catch (error: any) {
-        const errorMessage = error?.error || error?.message || 'Credenciais inválidas';
+      } catch (error: unknown) {
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : typeof error === 'object' && error !== null && 'error' in error
+              ? String((error as { error: unknown }).error)
+              : 'Credenciais inválidas';
         setErro(errorMessage);
         return false;
       } finally {

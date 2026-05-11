@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Icon } from '../../components/ui/Icon';
 import { Button } from '../../components/ui/Button';
@@ -145,7 +145,7 @@ export function ExportacoesPage(): JSX.Element {
     previewOperacional,
   ]);
 
-  const validarPeriodo = (): boolean => {
+  const validarPeriodo = useCallback((): boolean => {
     if (!dataInicio || !dataFim) {
       setMensagem({ tipo: 'error', texto: 'Selecione a data de início e fim.' });
       return false;
@@ -155,7 +155,7 @@ export function ExportacoesPage(): JSX.Element {
       return false;
     }
     return true;
-  };
+  }, [dataInicio, dataFim]);
 
   const handleExportar = async (tipo: string, formato: 'pdf' | 'excel') => {
     if (!validarPeriodo()) return;
@@ -187,51 +187,54 @@ export function ExportacoesPage(): JSX.Element {
     }
   };
 
-  const handlePreview = async (tipo: string) => {
-    if (!validarPeriodo()) return;
-    setExportando(`${tipo}-preview`);
-    setMensagem(null);
-    try {
-      if (tipo === 'gerencial') {
-        setPreviewOperacional(null);
-        const data = await api.get<PreviewData>(
-          `/relatorios?formato=json&dataInicio=${dataInicio}&dataFim=${dataFim}`
-        );
-        setPreviewData(data);
-      } else {
-        setPreviewData(null);
-        const data = await api.get<{
-          registros: {
-            id: string;
-            data_producao: string;
-            colaborador: string;
-            etapa: string;
-            funcao: string;
-            repositorio: string;
-            quantidade: number;
-          }[];
-        }>(`/relatorios/operacional?dataInicio=${dataInicio}&dataFim=${dataFim}`);
-        setPreviewOperacional(
-          (data.registros ?? []).map((r) => ({
-            id: r.id,
-            data: formatDateBR(r.data_producao),
-            colaborador: r.colaborador ?? '',
-            etapa: r.etapa ?? '',
-            funcao: r.funcao ?? '',
-            repositorio: r.repositorio ?? '',
-            quantidade: Number.isFinite(Number(r.quantidade)) ? Number(r.quantidade) : Number.NaN,
-          }))
-        );
+  const handlePreview = useCallback(
+    async (tipo: string) => {
+      if (!validarPeriodo()) return;
+      setExportando(`${tipo}-preview`);
+      setMensagem(null);
+      try {
+        if (tipo === 'gerencial') {
+          setPreviewOperacional(null);
+          const data = await api.get<PreviewData>(
+            `/relatorios?formato=json&dataInicio=${dataInicio}&dataFim=${dataFim}`
+          );
+          setPreviewData(data);
+        } else {
+          setPreviewData(null);
+          const data = await api.get<{
+            registros: {
+              id: string;
+              data_producao: string;
+              colaborador: string;
+              etapa: string;
+              funcao: string;
+              repositorio: string;
+              quantidade: number;
+            }[];
+          }>(`/relatorios/operacional?dataInicio=${dataInicio}&dataFim=${dataFim}`);
+          setPreviewOperacional(
+            (data.registros ?? []).map((r) => ({
+              id: r.id,
+              data: formatDateBR(r.data_producao),
+              colaborador: r.colaborador ?? '',
+              etapa: r.etapa ?? '',
+              funcao: r.funcao ?? '',
+              repositorio: r.repositorio ?? '',
+              quantidade: Number.isFinite(Number(r.quantidade)) ? Number(r.quantidade) : Number.NaN,
+            }))
+          );
+        }
+      } catch (error) {
+        setMensagem({
+          tipo: 'error',
+          texto: error instanceof Error ? error.message : 'Erro ao carregar preview',
+        });
+      } finally {
+        setExportando(null);
       }
-    } catch (error) {
-      setMensagem({
-        tipo: 'error',
-        texto: error instanceof Error ? error.message : 'Erro ao carregar preview',
-      });
-    } finally {
-      setExportando(null);
-    }
-  };
+    },
+    [validarPeriodo, dataInicio, dataFim]
+  );
 
   useEffect(() => {
     if (!filtrosUrl.preview || !dataInicio || !dataFim) {
@@ -248,7 +251,7 @@ export function ExportacoesPage(): JSX.Element {
 
     ultimoAutoPreviewRef.current = key;
     void handlePreview(filtrosUrl.preview);
-  }, [dataFim, dataInicio, filtrosUrl.preview]);
+  }, [dataFim, dataInicio, filtrosUrl.preview, handlePreview]);
 
   const colorClasses: Record<string, { bg: string; icon: string; border: string }> = {
     blue: { bg: 'bg-blue-50', icon: 'text-blue-600', border: 'border-blue-200' },

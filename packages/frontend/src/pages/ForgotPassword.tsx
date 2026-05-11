@@ -13,6 +13,11 @@ export function ForgotPasswordPage(): JSX.Element {
 
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email.trim() || !emailRegex.test(email)) {
+      setMensagem({ tipo: 'error', texto: 'Informe um endereço de e-mail válido' });
+      return;
+    }
     setCarregando(true);
     setMensagem(null);
 

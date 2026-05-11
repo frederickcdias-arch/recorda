@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Icon } from '../../components/ui/Icon';
 import { Button } from '../../components/ui/Button';
@@ -141,29 +141,7 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
     }
   }, [dataInicio, dataFim, coordenadoriaId, location.pathname, location.search, navigate]);
 
-  useEffect(() => {
-    if (!dataInicio || !dataFim) {
-      ultimoAutoLoadRef.current = null;
-      return;
-    }
-
-    if (new Date(dataInicio) > new Date(dataFim)) {
-      setMensagem({
-        tipo: 'error',
-        texto: 'Período Inválido',
-        detalhes: 'A data de início deve ser anterior à data de fim',
-      });
-      return;
-    }
-
-    const key = [dataInicio, dataFim, coordenadoriaId].join('|');
-    if (ultimoAutoLoadRef.current === key) return;
-
-    ultimoAutoLoadRef.current = key;
-    void handleVisualizar();
-  }, [coordenadoriaId, dataFim, dataInicio]);
-
-  const validarPeriodo = (): boolean => {
+  const validarPeriodo = useCallback((): boolean => {
     if (!dataInicio || !dataFim) {
       setMensagem({
         tipo: 'error',
@@ -181,9 +159,9 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
       return false;
     }
     return true;
-  };
+  }, [dataInicio, dataFim]);
 
-  const handleVisualizar = async (): Promise<void> => {
+  const handleVisualizar = useCallback(async (): Promise<void> => {
     if (!validarPeriodo()) return;
 
     setCarregandoRelatorio(true);
@@ -205,7 +183,29 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
     } finally {
       setCarregandoRelatorio(false);
     }
-  };
+  }, [validarPeriodo, dataInicio, dataFim, coordenadoriaId]);
+
+  useEffect(() => {
+    if (!dataInicio || !dataFim) {
+      ultimoAutoLoadRef.current = null;
+      return;
+    }
+
+    if (new Date(dataInicio) > new Date(dataFim)) {
+      setMensagem({
+        tipo: 'error',
+        texto: 'Período Inválido',
+        detalhes: 'A data de início deve ser anterior à data de fim',
+      });
+      return;
+    }
+
+    const key = [dataInicio, dataFim, coordenadoriaId].join('|');
+    if (ultimoAutoLoadRef.current === key) return;
+
+    ultimoAutoLoadRef.current = key;
+    void handleVisualizar();
+  }, [coordenadoriaId, dataFim, dataInicio, handleVisualizar]);
 
   const handleExportar = async (formato: 'pdf' | 'excel'): Promise<void> => {
     if (!validarPeriodo()) return;
