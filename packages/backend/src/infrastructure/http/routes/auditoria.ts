@@ -46,17 +46,19 @@ export function createAuditoriaRoutes(): FastifyPluginAsync {
           const offset = (Number(pagina) - 1) * Number(limite);
           let query = `
           SELECT
-            id,
-            tabela,
-            registro_id,
-            operacao,
-            dados_anteriores,
-            dados_novos,
-            usuario_id,
-            ip_origem,
-            user_agent,
-            data_operacao AS criado_em
-          FROM auditoria
+            a.id,
+            a.tabela,
+            a.registro_id,
+            a.operacao,
+            a.dados_anteriores,
+            a.dados_novos,
+            a.usuario_id,
+            u.nome AS usuario_nome,
+            a.ip_origem,
+            a.user_agent,
+            a.data_operacao AS criado_em
+          FROM auditoria a
+          LEFT JOIN usuarios u ON u.id = a.usuario_id
           WHERE 1=1
         `;
           const params: (string | number)[] = [];
@@ -68,34 +70,34 @@ export function createAuditoriaRoutes(): FastifyPluginAsync {
               .map((t) => t.trim())
               .filter(Boolean);
             if (tabelas.length === 1) {
-              query += ` AND tabela = $${paramIndex}`;
+              query += ` AND a.tabela = $${paramIndex}`;
               params.push(tabelas[0]!);
             } else {
-              query += ` AND tabela = ANY($${paramIndex}::text[])`;
+              query += ` AND a.tabela = ANY($${paramIndex}::text[])`;
               params.push(tabelas as unknown as string);
             }
             paramIndex++;
           }
 
           if (operacao) {
-            query += ` AND operacao = $${paramIndex}`;
+            query += ` AND a.operacao = $${paramIndex}`;
             params.push(operacao);
             paramIndex++;
           }
 
           if (dataInicio) {
-            query += ` AND data_operacao >= $${paramIndex}`;
+            query += ` AND a.data_operacao >= $${paramIndex}`;
             params.push(dataInicio);
             paramIndex++;
           }
 
           if (dataFim) {
-            query += ` AND data_operacao <= $${paramIndex}::date + interval '1 day'`;
+            query += ` AND a.data_operacao <= $${paramIndex}::date + interval '1 day'`;
             params.push(dataFim);
             paramIndex++;
           }
 
-          query += ` ORDER BY data_operacao DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+          query += ` ORDER BY a.data_operacao DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
           params.push(Number(limite), offset);
 
           const result = await server.database.query(query, params);

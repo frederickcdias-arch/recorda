@@ -51,7 +51,10 @@ export function AppLayout(): JSX.Element {
       {/* Sidebar - Mobile Overlay */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-50 md:hidden">
-          <div className="absolute inset-0 bg-black/50 animate-fade-in" onClick={() => setMobileMenuOpen(false)} />
+          <div
+            className="absolute inset-0 bg-black/50 animate-fade-in"
+            onClick={() => setMobileMenuOpen(false)}
+          />
           <div className="absolute left-0 top-0 h-full animate-slide-in-left">
             <Sidebar
               collapsed={false}

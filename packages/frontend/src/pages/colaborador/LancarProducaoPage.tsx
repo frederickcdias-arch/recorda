@@ -4,6 +4,7 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { PageState, ActionFeedback } from '../../components/ui/PageState';
+import { PageHeader } from '../../components/ui/PageHeader';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../services/api';
 import {
@@ -60,6 +61,7 @@ export function LancarProducaoPage(): JSX.Element {
     { value: 'CONFERENCIA', label: 'Conferência' },
     { value: 'RECONFERENCIA', label: 'Reconferência' },
     { value: 'MONTAGEM', label: 'Montagem' },
+    { value: 'ATENDIMENTO', label: 'Atendimento' },
     { value: 'CONTROLE_QUALIDADE', label: 'Controle de Qualidade' },
     { value: 'ENTREGA', label: 'Entrega' },
   ];
@@ -74,7 +76,7 @@ export function LancarProducaoPage(): JSX.Element {
     if (existente) {
       setFormData((prev) => ({ ...prev, coordenadoria: existente.nome.trim().toUpperCase() }));
       setNovaCoordenadoriaInput('');
-      toast.success('Coordenadoria já existente e selecionada.');
+      toast.success('Órgão / Unidade já existente e selecionado.');
       return;
     }
 
@@ -83,10 +85,10 @@ export function LancarProducaoPage(): JSX.Element {
       const created = await createCoordenadoria.mutateAsync(nomeCoordenadoria);
       setFormData((prev) => ({ ...prev, coordenadoria: created.nome.trim().toUpperCase() }));
       setNovaCoordenadoriaInput('');
-      toast.success('Coordenadoria cadastrada e selecionada com sucesso.');
+      toast.success('Órgão / Unidade cadastrado e selecionado com sucesso.');
       if (coordenadoriasQuery.refetch) await coordenadoriasQuery.refetch();
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Erro ao cadastrar coordenadoria';
+      const message = error instanceof Error ? error.message : 'Erro ao cadastrar órgão';
       toast.error(message);
     } finally {
       setSalvando(false);
@@ -144,10 +146,10 @@ export function LancarProducaoPage(): JSX.Element {
   return (
     <PageState>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Lançar Produção</h1>
-          <p className="text-gray-500 mt-1">Registre sua produção diária - {usuario?.nome}</p>
-        </div>
+        <PageHeader
+          title="Lançar Produção"
+          subtitle={`Registre sua produção diária — ${usuario?.nome ?? ''}`}
+        />
 
         {mensagem && (
           <ActionFeedback
@@ -185,32 +187,30 @@ export function LancarProducaoPage(): JSX.Element {
                 helperText="Digite apenas números (ex: 999) ou formato 999/2025"
               />
 
-              <div>
-                <Select
-                  label="Etapa"
-                  required
-                  value={formData.funcao}
-                  onChange={(e) => {
-                    const selected = etapas.find((item) => item.label === e.target.value);
-                    setFormData((p) => ({
-                      ...p,
-                      etapa: selected?.value ?? '',
-                      funcao: selected?.label ?? '',
-                    }));
-                  }}
-                  placeholder="Selecione a etapa"
-                >
-                  {etapas.map((etapa) => (
-                    <option key={etapa.label} value={etapa.label}>
-                      {etapa.label}
-                    </option>
-                  ))}
-                </Select>
-              </div>
+              <Select
+                label="Etapa"
+                required
+                value={formData.etapa}
+                onChange={(e) => {
+                  const selected = etapas.find((item) => item.value === e.target.value);
+                  setFormData((p) => ({
+                    ...p,
+                    etapa: selected?.value ?? '',
+                    funcao: selected?.label ?? '',
+                  }));
+                }}
+                placeholder="Selecione a etapa"
+              >
+                {etapas.map((etapa) => (
+                  <option key={etapa.value} value={etapa.value}>
+                    {etapa.label}
+                  </option>
+                ))}
+              </Select>
 
               <div>
                 <Select
-                  label="Coordenadoria"
+                  label="Órgão / Unidade"
                   value={formData.coordenadoria}
                   onChange={(e) =>
                     setFormData((p) => ({
@@ -226,28 +226,29 @@ export function LancarProducaoPage(): JSX.Element {
                     </option>
                   ))}
                 </Select>
-                <div className="flex gap-1 mt-1">
-                  <input
-                    className="flex-1 px-3 py-2 border rounded-lg text-sm"
-                    placeholder="Nova coordenadoria..."
-                    value={novaCoordenadoriaInput}
-                    onChange={(e) => setNovaCoordenadoriaInput(e.target.value.toUpperCase())}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        void handleCriarCoordenadoriaRapida();
-                      }
-                    }}
-                  />
-                  <button
+                <div className="flex items-end gap-2 mt-2">
+                  <div className="flex-1">
+                    <Input
+                      placeholder="Novo órgão / unidade..."
+                      value={novaCoordenadoriaInput}
+                      onChange={(e) => setNovaCoordenadoriaInput(e.target.value.toUpperCase())}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          void handleCriarCoordenadoriaRapida();
+                        }
+                      }}
+                    />
+                  </div>
+                  <Button
                     type="button"
-                    className="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                    variant="secondary"
                     onClick={() => void handleCriarCoordenadoriaRapida()}
                     disabled={!novaCoordenadoriaInput.trim() || salvando}
-                    title="Adicionar e selecionar coordenadoria"
+                    title="Adicionar e selecionar órgão / unidade"
                   >
                     Adicionar
-                  </button>
+                  </Button>
                 </div>
               </div>
 
@@ -269,17 +270,15 @@ export function LancarProducaoPage(): JSX.Element {
                 }
               />
 
-              <div>
-                <Select
-                  label="Tipo"
-                  value={formData.tipo}
-                  onChange={(e) => setFormData((p) => ({ ...p, tipo: e.target.value }))}
-                  placeholder="— Selecione —"
-                >
-                  <option value="Imagens">Imagens</option>
-                  <option value="Caixas">Caixas</option>
-                </Select>
-              </div>
+              <Select
+                label="Tipo"
+                value={formData.tipo}
+                onChange={(e) => setFormData((p) => ({ ...p, tipo: e.target.value }))}
+                placeholder="— Selecione —"
+              >
+                <option value="Imagens">Imagens</option>
+                <option value="Caixas">Caixas</option>
+              </Select>
             </div>
 
             <div className="flex justify-end pt-4">
@@ -290,9 +289,9 @@ export function LancarProducaoPage(): JSX.Element {
           </div>
         </Card>
 
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h3 className="font-semibold text-blue-900 mb-2">📋 Instruções</h3>
-          <ul className="text-sm text-blue-800 space-y-1">
+        <div className="bg-[var(--color-primary-50)] border border-[var(--color-primary-200)] rounded-lg p-4">
+          <h3 className="font-semibold text-[var(--color-primary-900)] mb-2">📋 Instruções</h3>
+          <ul className="text-sm text-[var(--color-primary-800)] space-y-1">
             <li>
               • <strong>Data:</strong> Data da produção (padrão: hoje)
             </li>

@@ -73,7 +73,7 @@ export function ActionMenu({ items, disabled = false }: ActionMenuProps): JSX.El
         ref={btnRef}
         type="button"
         className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors disabled:opacity-40"
-      onClick={() => setOpen((p) => !p)}
+        onClick={() => setOpen((p) => !p)}
         disabled={disabled}
         aria-label="Ações"
       >
@@ -82,7 +82,7 @@ export function ActionMenu({ items, disabled = false }: ActionMenuProps): JSX.El
         </svg>
       </button>
 
-      {(open || isClosing)
+      {open || isClosing
         ? createPortal(
             <div
               ref={menuRef}
@@ -98,7 +98,7 @@ export function ActionMenu({ items, disabled = false }: ActionMenuProps): JSX.El
                   className={`w-full text-left px-3 py-2 text-sm transition-colors ${
                     item.variant === 'danger'
                       ? 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
-                      : 'text-gray-700 hover:bg-blue-50 hover:text-blue-700'
+                      : 'text-gray-700 hover:bg-primary-50 hover:text-primary-700'
                   } disabled:opacity-40 disabled:cursor-not-allowed`}
                   onClick={() => {
                     closeMenu();

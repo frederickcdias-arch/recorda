@@ -10,3 +10,15 @@ export { LoadingSpinner, LoadingOverlay } from './LoadingSpinner';
 export { PageState, ActionFeedback } from './PageState';
 export { ConfirmDialog } from './ConfirmDialog';
 export { ToastProvider, useToast, useToastHelpers } from './Toast';
+export {
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableHeader,
+  TableCell,
+  TableEmptyState,
+} from './Table';
+export { PageHeader } from './PageHeader';
+export { FilterBar } from './FilterBar';
+export { DateRangePicker } from './DateRangePicker';

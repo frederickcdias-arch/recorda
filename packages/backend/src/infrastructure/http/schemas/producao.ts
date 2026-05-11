@@ -7,7 +7,7 @@ export const lancarProducaoColaboradorSchema = z.object({
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, 'Data deve estar no formato YYYY-MM-DD')
     .refine(
-      (val) => val <= new Date().toISOString().split('T')[0],
+      (val) => val <= (new Date().toISOString().split('T')[0] ?? ''),
       'Data não pode ser futura'
     )
     .optional(),

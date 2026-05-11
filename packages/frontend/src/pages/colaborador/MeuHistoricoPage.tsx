@@ -1,10 +1,25 @@
-﻿import { useEffect, useMemo, useRef, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Card } from '../../components/ui/Card';
 import { Icon } from '../../components/ui/Icon';
 import { PageState } from '../../components/ui/PageState';
 import { Button } from '../../components/ui/Button';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { FilterBar } from '../../components/ui/FilterBar';
+import { DateRangePicker } from '../../components/ui/DateRangePicker';
+import { Input } from '../../components/ui/Input';
+import { Select } from '../../components/ui/Select';
+import {
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableHeader,
+  TableCell,
+  TableEmptyState,
+} from '../../components/ui/Table';
 import { useAuth } from '../../contexts/AuthContext';
+import { useDebounce } from '../../hooks/useDebounce';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { api } from '../../services/api';
 import { formatDateBR } from '../../utils/date';
@@ -42,35 +57,6 @@ interface MeuHistoricoResponse {
   totalPaginas: number;
 }
 
-function fmtDate(d: Date): string {
-  return d.toISOString().slice(0, 10);
-}
-
-type DatePreset = 'hoje' | 'semana' | 'mes' | 'mes-anterior';
-
-function getPresetRange(preset: DatePreset): { start: string; end: string } {
-  const today = new Date();
-  switch (preset) {
-    case 'hoje':
-      return { start: fmtDate(today), end: fmtDate(today) };
-    case 'semana': {
-      const start = new Date(today);
-      start.setDate(today.getDate() - 6);
-      return { start: fmtDate(start), end: fmtDate(today) };
-    }
-    case 'mes': {
-      const start = new Date(today.getFullYear(), today.getMonth(), 1);
-      const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-      return { start: fmtDate(start), end: fmtDate(end) };
-    }
-    case 'mes-anterior': {
-      const start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-      const end = new Date(today.getFullYear(), today.getMonth(), 0);
-      return { start: fmtDate(start), end: fmtDate(end) };
-    }
-  }
-}
-
 export function MeuHistoricoPage(): JSX.Element {
   const navigate = useNavigate();
   const location = useLocation();
@@ -80,8 +66,7 @@ export function MeuHistoricoPage(): JSX.Element {
   const [dataInicio, setDataInicio] = useState('');
   const [dataFim, setDataFim] = useState('');
   const [buscaInput, setBuscaInput] = useState('');
-  const [busca, setBusca] = useState('');
-  const buscaDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const busca = useDebounce(buscaInput, 400);
   const limite = 50;
 
   const filtrosUrl = useMemo(() => {
@@ -100,7 +85,6 @@ export function MeuHistoricoPage(): JSX.Element {
     setEtapaFiltro(filtrosUrl.etapa);
     setDataInicio(filtrosUrl.dataInicio);
     setDataFim(filtrosUrl.dataFim);
-    setBusca(filtrosUrl.busca);
     setBuscaInput(filtrosUrl.busca);
   }, [
     filtrosUrl.pagina,
@@ -116,7 +100,7 @@ export function MeuHistoricoPage(): JSX.Element {
     if (etapaFiltro) params.set('etapa', etapaFiltro);
     if (dataInicio) params.set('dataInicio', dataInicio);
     if (dataFim) params.set('dataFim', dataFim);
-    if (busca) params.set('busca', busca);
+    if (buscaInput) params.set('busca', buscaInput);
 
     const nextSearch = params.toString();
     const currentSearch = location.search.startsWith('?')
@@ -137,7 +121,7 @@ export function MeuHistoricoPage(): JSX.Element {
     etapaFiltro,
     dataInicio,
     dataFim,
-    busca,
+    buscaInput,
     location.pathname,
     location.search,
     navigate,
@@ -172,28 +156,11 @@ export function MeuHistoricoPage(): JSX.Element {
     setEtapaFiltro('');
     setDataInicio('');
     setDataFim('');
-    setBusca('');
     setBuscaInput('');
     setPagina(1);
   };
 
-  const handleBuscaChange = (value: string): void => {
-    setBuscaInput(value);
-    if (buscaDebounce.current) clearTimeout(buscaDebounce.current);
-    buscaDebounce.current = setTimeout(() => {
-      setBusca(value);
-      setPagina(1);
-    }, 400);
-  };
-
-  const handlePreset = (preset: DatePreset): void => {
-    const range = getPresetRange(preset);
-    setDataInicio(range.start);
-    setDataFim(range.end);
-    setPagina(1);
-  };
-
-  const temFiltros = etapaFiltro || dataInicio || dataFim || busca;
+  const temFiltros = etapaFiltro || dataInicio || dataFim || buscaInput;
 
   const errorInfo = isError
     ? {
@@ -220,115 +187,64 @@ export function MeuHistoricoPage(): JSX.Element {
   return (
     <PageState loading={isLoading} loadingMessage="Carregando histórico...">
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Meu Histórico</h1>
-          <p className="text-gray-500 mt-1">Acompanhe sua produção - {usuario?.nome}</p>
-        </div>
+        <PageHeader
+          title="Meu Histórico"
+          subtitle={`Acompanhe sua produção - ${usuario?.nome ?? ''}`}
+        />
 
         {/* Filtros */}
-        <Card>
-          <div className="p-4 space-y-3">
-            {/* Atalhos de período */}
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-medium text-gray-500 mr-1">Período:</span>
-              {(
-                [
-                  { label: 'Hoje', preset: 'hoje' },
-                  { label: 'Últimos 7 dias', preset: 'semana' },
-                  { label: 'Este mês', preset: 'mes' },
-                  { label: 'Mês passado', preset: 'mes-anterior' },
-                ] as { label: string; preset: DatePreset }[]
-              ).map(({ label, preset }) => {
-                const range = getPresetRange(preset);
-                const active = dataInicio === range.start && dataFim === range.end;
-                return (
-                  <button
-                    key={preset}
-                    type="button"
-                    onClick={() => handlePreset(preset)}
-                    className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
-                      active
-                        ? 'bg-blue-600 text-white border-blue-600'
-                        : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400 hover:text-blue-600'
-                    }`}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
-              {temFiltros ? (
-                <button
-                  type="button"
-                  onClick={handleLimparFiltros}
-                  className="ml-auto flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium border border-gray-300 text-gray-500 hover:text-red-600 hover:border-red-300 transition-colors"
-                >
-                  <Icon name="x" className="w-3 h-3" />
-                  Limpar filtros
-                </button>
-              ) : null}
-            </div>
-
-            {/* Inputs */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Data Início</label>
-                <input
-                  type="date"
-                  value={dataInicio}
-                  max={dataFim || undefined}
-                  onChange={(e) => {
-                    setDataInicio(e.target.value);
-                    setPagina(1);
-                  }}
-                  className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Data Fim</label>
-                <input
-                  type="date"
-                  value={dataFim}
-                  min={dataInicio || undefined}
-                  onChange={(e) => {
-                    setDataFim(e.target.value);
-                    setPagina(1);
-                  }}
-                  className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Etapa</label>
-                <select
-                  value={etapaFiltro}
-                  onChange={(e) => {
-                    setEtapaFiltro(e.target.value);
-                    setPagina(1);
-                  }}
-                  className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                >
-                  <option value="">Todas</option>
-                  {etapasDisponiveis.map((e) => (
-                    <option key={e} value={e}>
-                      {e}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">
-                  Buscar repositório
-                </label>
-                <input
-                  type="text"
-                  value={buscaInput}
-                  onChange={(e) => handleBuscaChange(e.target.value)}
-                  placeholder="Ex: 943/2024"
-                  className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                />
-              </div>
-            </div>
+        <FilterBar
+          actions={
+            temFiltros ? (
+              <Button variant="ghost" size="sm" onClick={handleLimparFiltros}>
+                <Icon name="x" className="w-3 h-3" />
+                Limpar filtros
+              </Button>
+            ) : undefined
+          }
+        >
+          <div className="sm:col-span-2 lg:col-span-2">
+            <DateRangePicker
+              startDate={dataInicio}
+              endDate={dataFim}
+              onStartDateChange={(v) => {
+                setDataInicio(v);
+                setPagina(1);
+              }}
+              onEndDateChange={(v) => {
+                setDataFim(v);
+                setPagina(1);
+              }}
+              showPresets
+              onPresetChange={({ startDate, endDate }) => {
+                setDataInicio(startDate);
+                setDataFim(endDate);
+                setPagina(1);
+              }}
+            />
           </div>
-        </Card>
+          <Select
+            label="Etapa"
+            value={etapaFiltro}
+            onChange={(e) => {
+              setEtapaFiltro(e.target.value);
+              setPagina(1);
+            }}
+            options={[
+              { value: '', label: 'Todas' },
+              ...etapasDisponiveis.map((e) => ({ value: e, label: e })),
+            ]}
+          />
+          <Input
+            label="Buscar repositório"
+            placeholder="Ex: 943/2024"
+            value={buscaInput}
+            onChange={(e) => {
+              setBuscaInput(e.target.value);
+              setPagina(1);
+            }}
+          />
+        </FilterBar>
 
         {/* Stats */}
         <div
@@ -341,7 +257,7 @@ export function MeuHistoricoPage(): JSX.Element {
                   <p className="text-sm text-gray-500">Total de Registros</p>
                   <p className="text-2xl font-bold text-gray-900">{formatCriticalNumber(total)}</p>
                 </div>
-                <Icon name="clipboard" className="w-8 h-8 text-blue-600" />
+                <Icon name="clipboard" className="w-8 h-8 text-primary-600" />
               </div>
             </div>
           </Card>
@@ -416,7 +332,7 @@ export function MeuHistoricoPage(): JSX.Element {
                       </div>
                       <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-blue-500 rounded-full transition-all duration-700"
+                          className="h-full bg-primary-500 rounded-full transition-all duration-700"
                           style={{ width: `${largura}%` }}
                         />
                       </div>
@@ -429,43 +345,76 @@ export function MeuHistoricoPage(): JSX.Element {
         </Card>
 
         {/* Tabela */}
-        <Card>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Data
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Repositório
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Coordenadoria
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Etapa
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                    Quantidade
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {producoes.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
-                      <Icon name="inbox" className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                      <p>Nenhuma produção encontrada</p>
-                      {temFiltros ? (
-                        <p className="text-sm mt-2">Tente ajustar os filtros</p>
-                      ) : (
-                        <p className="text-sm mt-2">
-                          Comece lançando sua primeira produção em &quot;Lançar Produção&quot;
+        <div className="space-y-2">
+          {/* Mobile cards */}
+          <div className="md:hidden space-y-3">
+            {producoes.length === 0 ? (
+              <div className="rounded-xl border border-[var(--color-border-primary)] p-6 text-center text-[var(--color-text-secondary)] text-sm">
+                {temFiltros
+                  ? 'Nenhuma produção encontrada. Tente ajustar os filtros.'
+                  : 'Comece lançando sua primeira produção em "Lançar Produção".'}
+              </div>
+            ) : (
+              producoes.map((p) => {
+                const label = p.etapa_label ?? p.etapa;
+                const coordenadoria =
+                  p.coordenadoria_label ?? p.marcadores?.coordenadoria ?? 'NAO INFORMADO';
+                const cor = getEtapaProducaoStyle(label);
+                return (
+                  <div
+                    key={p.id}
+                    className="rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] p-4"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-[var(--color-text-primary)] truncate">
+                          {p.id_repositorio_ged}
                         </p>
-                      )}
-                    </td>
-                  </tr>
+                        <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">
+                          {coordenadoria.trim().toUpperCase()}
+                        </p>
+                      </div>
+                      <p className="text-xs text-[var(--color-text-tertiary)] shrink-0">
+                        {formatDateBR(p.data_producao)}
+                      </p>
+                    </div>
+                    <div className="mt-3 flex items-center justify-between">
+                      <span className={`px-2 py-1 text-xs rounded-full ${cor.bg} ${cor.text}`}>
+                        {label}
+                      </span>
+                      <span className="text-sm font-bold text-[var(--color-text-primary)]">
+                        {p.quantidade.toLocaleString('pt-BR')}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden md:block">
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableHeader>Data</TableHeader>
+                  <TableHeader>Repositório</TableHeader>
+                  <TableHeader>Coordenadoria</TableHeader>
+                  <TableHeader>Etapa</TableHeader>
+                  <TableHeader align="right">Quantidade</TableHeader>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {producoes.length === 0 ? (
+                  <TableEmptyState
+                    colSpan={5}
+                    title="Nenhuma produção encontrada"
+                    description={
+                      temFiltros
+                        ? 'Tente ajustar os filtros'
+                        : 'Comece lançando sua primeira produção em "Lançar Produção"'
+                    }
+                  />
                 ) : (
                   producoes.map((p) => {
                     const label = p.etapa_label ?? p.etapa;
@@ -473,35 +422,33 @@ export function MeuHistoricoPage(): JSX.Element {
                       p.coordenadoria_label ?? p.marcadores?.coordenadoria ?? 'NAO INFORMADO';
                     const cor = getEtapaProducaoStyle(label);
                     return (
-                      <tr key={p.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 text-gray-900">{formatDateBR(p.data_producao)}</td>
-                        <td className="px-6 py-4 font-medium text-gray-900">
-                          {p.id_repositorio_ged}
-                        </td>
-                        <td className="px-6 py-4 text-sm font-medium text-gray-700">
+                      <TableRow key={p.id}>
+                        <TableCell>{formatDateBR(p.data_producao)}</TableCell>
+                        <TableCell className="font-medium">{p.id_repositorio_ged}</TableCell>
+                        <TableCell className="font-medium">
                           {coordenadoria.trim().toUpperCase()}
-                        </td>
-                        <td className="px-6 py-4">
+                        </TableCell>
+                        <TableCell>
                           <span className={`px-2 py-1 text-xs rounded-full ${cor.bg} ${cor.text}`}>
                             {label}
                           </span>
-                        </td>
-                        <td className="px-6 py-4 text-right font-medium text-gray-900">
+                        </TableCell>
+                        <TableCell align="right" className="font-medium">
                           {p.quantidade.toLocaleString('pt-BR')}
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     );
                   })
                 )}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
 
           {/* Paginação */}
           {totalPaginas > 1 ? (
-            <div className="flex items-center justify-between border-t border-gray-200 px-6 py-3">
-              <p className="text-sm text-gray-500">
-                Mostrando {(pagina - 1) * limite + 1}-{Math.min(pagina * limite, total ?? 0)} de{' '}
+            <div className="flex items-center justify-between px-1 py-2">
+              <p className="text-sm text-[var(--color-text-secondary)]">
+                Mostrando {(pagina - 1) * limite + 1}–{Math.min(pagina * limite, total ?? 0)} de{' '}
                 <span className="font-medium">{formatCriticalNumber(total)}</span> registros
               </p>
               <div className="flex gap-2">
@@ -514,7 +461,7 @@ export function MeuHistoricoPage(): JSX.Element {
                   <Icon name="chevron-left" className="w-4 h-4" />
                   Anterior
                 </Button>
-                <span className="flex items-center text-sm text-gray-600 px-2">
+                <span className="flex items-center text-sm text-[var(--color-text-secondary)] px-2">
                   {pagina} / {totalPaginas}
                 </span>
                 <Button
@@ -529,7 +476,7 @@ export function MeuHistoricoPage(): JSX.Element {
               </div>
             </div>
           ) : null}
-        </Card>
+        </div>
       </div>
     </PageState>
   );

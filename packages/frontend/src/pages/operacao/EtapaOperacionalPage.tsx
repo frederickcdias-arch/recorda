@@ -4,6 +4,7 @@ import type { StatusRepositorio, OrigemDocumentoRecebimento } from '@recorda/sha
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
+import { PageHeader } from '../../components/ui/PageHeader';
 import { PageState } from '../../components/ui/PageState';
 import { useToastHelpers } from '../../components/ui/Toast';
 import { api } from '../../services/api';
@@ -895,31 +896,38 @@ export function EtapaOperacionalPage(): JSX.Element {
       error={erroComAcao}
     >
       <div className="space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="min-w-0">
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{etapaConfig.label}</h1>
-            <p className="text-sm text-gray-500 mt-1">Gestão operacional por etapa.</p>
-          </div>
-          {etapaConfig.nextPath ? (
-            <Button variant="secondary" size="sm" onClick={irProximaEtapa}>
-              Ir para próxima etapa
-            </Button>
-          ) : null}
-        </div>
+        <PageHeader
+          title={etapaConfig.label}
+          subtitle="Gestão operacional por etapa."
+          actions={
+            etapaConfig.nextPath ? (
+              <Button variant="secondary" size="sm" onClick={irProximaEtapa}>
+                Ir para próxima etapa
+              </Button>
+            ) : undefined
+          }
+        />
 
         {/* Summary cards */}
         {totalGeral > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-            <div className="bg-white border border-gray-200 rounded-xl px-4 py-3">
-              <p className="text-xs text-gray-500 uppercase font-medium">Total</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">{totalGeral}</p>
+            <div className="bg-[var(--color-bg-primary)] border border-[var(--color-border-primary)] rounded-xl px-4 py-3">
+              <p className="text-xs text-[var(--color-text-secondary)] uppercase font-medium">
+                Total
+              </p>
+              <p className="text-2xl font-bold text-[var(--color-text-primary)] mt-1">
+                {totalGeral}
+              </p>
             </div>
             {Object.entries(contadores).map(([status, qtd]) => (
-              <div key={status} className="bg-white border border-gray-200 rounded-xl px-4 py-3">
-                <p className="text-xs text-gray-500 uppercase font-medium truncate">
+              <div
+                key={status}
+                className="bg-[var(--color-bg-primary)] border border-[var(--color-border-primary)] rounded-xl px-4 py-3"
+              >
+                <p className="text-xs text-[var(--color-text-secondary)] uppercase font-medium truncate">
                   <StatusBadge status={status} />
                 </p>
-                <p className="text-2xl font-bold text-blue-700 mt-1">{qtd}</p>
+                <p className="text-2xl font-bold text-[var(--color-primary-700)] mt-1">{qtd}</p>
               </div>
             ))}
           </div>
@@ -932,7 +940,7 @@ export function EtapaOperacionalPage(): JSX.Element {
               <button
                 className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
                   recebSubTab === 'repositorios'
-                    ? 'border-blue-600 text-blue-700'
+                    ? 'border-primary-600 text-primary-700'
                     : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
                 onClick={() => setRecebSubTab('repositorios')}
@@ -942,7 +950,7 @@ export function EtapaOperacionalPage(): JSX.Element {
               <button
                 className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
                   recebSubTab === 'avulsos'
-                    ? 'border-blue-600 text-blue-700'
+                    ? 'border-primary-600 text-primary-700'
                     : 'border-transparent text-gray-500 hover:text-gray-700'
                 }`}
                 onClick={() => setRecebSubTab('avulsos')}
@@ -1041,7 +1049,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                       </select>
                       <div className="flex gap-1 mt-1">
                         <input
-                          className="flex-1 h-10 px-3 border rounded text-sm"
+                          className="flex-1 h-10 px-3 border rounded text-sm border-[var(--color-border-primary)] focus:outline-none focus:ring-2 focus:ring-primary-300 focus:border-primary-500"
                           placeholder="Nova unidade..."
                           value={novaUnidadeInput}
                           onChange={(e) => setNovaUnidadeInput(e.target.value)}
@@ -1054,7 +1062,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                         />
                         <button
                           type="button"
-                          className="h-10 px-3 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                          className="h-10 px-3 text-sm bg-primary-600 text-white rounded hover:bg-primary-700 disabled:opacity-50"
                           onClick={() => void handleCriarUnidadeRapida()}
                           disabled={!novaUnidadeInput.trim() || processando}
                           title="Adicionar e selecionar unidade"
@@ -1087,7 +1095,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                       </select>
                       <div className="flex gap-1 mt-1">
                         <input
-                          className="flex-1 h-10 px-3 border rounded text-sm"
+                          className="flex-1 h-10 px-3 border rounded text-sm border-[var(--color-border-primary)] focus:outline-none focus:ring-2 focus:ring-primary-300 focus:border-primary-500"
                           placeholder="Novo projeto..."
                           value={novoProjetoInput}
                           onChange={(e) => setNovoProjetoInput(e.target.value)}
@@ -1100,7 +1108,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                         />
                         <button
                           type="button"
-                          className="h-10 px-3 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                          className="h-10 px-3 text-sm bg-primary-600 text-white rounded hover:bg-primary-700 disabled:opacity-50"
                           onClick={() => void handleCriarProjetoRapido()}
                           disabled={!novoProjetoInput.trim() || processando}
                           title={
@@ -1317,7 +1325,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                       itens.map((item) => (
                         <div
                           key={item.id_repositorio_recorda}
-                          className={`border rounded-xl p-3 ${reposSelecionadosTermo.has(item.id_repositorio_recorda) ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-200'}`}
+                          className={`border rounded-xl p-3 ${reposSelecionadosTermo.has(item.id_repositorio_recorda) ? 'bg-primary-50 border-primary-200' : 'bg-white border-gray-200'}`}
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div>
@@ -1345,7 +1353,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                           <div className="mt-3 flex items-center justify-between gap-2">
                             <StatusBadge status={item.status_atual} />
                             <span
-                              className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold ${(item.total_processos ?? 0) > 0 ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-400'}`}
+                              className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold ${(item.total_processos ?? 0) > 0 ? 'bg-primary-100 text-primary-700' : 'bg-gray-100 text-gray-400'}`}
                             >
                               {item.total_processos ?? 0}
                             </span>
@@ -1472,7 +1480,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                           itens.map((item) => (
                             <tr
                               key={item.id_repositorio_recorda}
-                              className={`hover:bg-gray-50 transition-colors ${reposSelecionadosTermo.has(item.id_repositorio_recorda) ? 'bg-blue-50' : ''}`}
+                              className={`hover:bg-gray-50 transition-colors ${reposSelecionadosTermo.has(item.id_repositorio_recorda) ? 'bg-primary-50' : ''}`}
                             >
                               <td className="px-3 py-3">
                                 <input
@@ -1500,7 +1508,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                               </td>
                               <td className="px-4 py-3 text-center">
                                 <span
-                                  className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold ${(item.total_processos ?? 0) > 0 ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-400'}`}
+                                  className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold ${(item.total_processos ?? 0) > 0 ? 'bg-primary-100 text-primary-700' : 'bg-gray-100 text-gray-400'}`}
                                 >
                                   {item.total_processos ?? 0}
                                 </span>
@@ -1663,7 +1671,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                         </td>
                         <td className="px-4 py-3 text-center">
                           <span
-                            className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold ${(item.total_processos ?? 0) > 0 ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-400'}`}
+                            className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold ${(item.total_processos ?? 0) > 0 ? 'bg-primary-100 text-primary-700' : 'bg-gray-100 text-gray-400'}`}
                           >
                             {item.total_processos ?? 0}
                           </span>
@@ -1780,11 +1788,11 @@ export function EtapaOperacionalPage(): JSX.Element {
                         return (
                           <div
                             key={item.id}
-                            className={`border rounded-lg px-4 py-3 transition-colors ${preenchido ? 'border-blue-200 bg-blue-50/30' : 'border-gray-200'}`}
+                            className={`border rounded-lg px-4 py-3 transition-colors ${preenchido ? 'border-primary-200 bg-primary-50/30' : 'border-gray-200'}`}
                           >
                             <div className="flex items-start gap-3">
                               <span
-                                className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold mt-0.5 ${preenchido ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'}`}
+                                className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold mt-0.5 ${preenchido ? 'bg-primary-600 text-white' : 'bg-gray-200 text-gray-500'}`}
                               >
                                 {idx + 1}
                               </span>
@@ -1794,14 +1802,14 @@ export function EtapaOperacionalPage(): JSX.Element {
                                     {item.descricao}
                                   </span>
                                   {item.obrigatorio ? (
-                                    <span className="text-[10px] font-semibold text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded">
+                                    <span className="text-[10px] font-semibold text-primary-600 bg-primary-100 px-1.5 py-0.5 rounded">
                                       Obrigatório
                                     </span>
                                   ) : null}
                                 </div>
                                 <div className="flex flex-col sm:flex-row gap-2">
                                   <select
-                                    className={`h-9 px-3 border rounded-lg text-sm flex-shrink-0 sm:w-56 ${!preenchido && item.obrigatorio ? 'border-blue-300' : 'border-gray-300'}`}
+                                    className={`h-9 px-3 border rounded-lg text-sm flex-shrink-0 sm:w-56 ${!preenchido && item.obrigatorio ? 'border-primary-300' : 'border-gray-300'}`}
                                     value={item.resultado ?? ''}
                                     onChange={(e) => {
                                       const value = e.target.value as ResultadoChecklist;
@@ -1924,10 +1932,10 @@ export function EtapaOperacionalPage(): JSX.Element {
                 )}
 
                 {avancarDocs.length > 0 ? (
-                  <label className="flex items-start gap-3 mt-4 p-3 border rounded-lg cursor-pointer hover:bg-blue-50/50 transition-colors">
+                  <label className="flex items-start gap-3 mt-4 p-3 border rounded-lg cursor-pointer hover:bg-primary-50/50 transition-colors">
                     <input
                       type="checkbox"
-                      className="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                       checked={avancarConfirmado}
                       onChange={(e) => setAvancarConfirmado(e.target.checked)}
                     />
@@ -2050,13 +2058,13 @@ export function EtapaOperacionalPage(): JSX.Element {
               {/* Tabs */}
               <div className="px-6 pt-3 border-b shrink-0 flex gap-4">
                 <button
-                  className={`pb-2 text-sm font-medium border-b-2 ${recebTab === 'processos' ? 'border-blue-600 text-blue-700' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                  className={`pb-2 text-sm font-medium border-b-2 ${recebTab === 'processos' ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
                   onClick={() => setRecebTab('processos')}
                 >
                   Processos ({recebProcessos.length})
                 </button>
                 <button
-                  className={`pb-2 text-sm font-medium border-b-2 ${recebTab === 'ocr' ? 'border-blue-600 text-blue-700' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                  className={`pb-2 text-sm font-medium border-b-2 ${recebTab === 'ocr' ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
                   onClick={() => setRecebTab('ocr')}
                 >
                   Novo Processo
@@ -2100,7 +2108,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                         </div>
                       </div>
                       {ocrPreview ? (
-                        <p className="mt-2 text-xs text-blue-700 bg-blue-50 rounded px-2 py-1 inline-block">
+                        <p className="mt-2 text-xs text-primary-700 bg-primary-50 rounded px-2 py-1 inline-block">
                           Confiança OCR: {(ocrPreview.confianca * 100).toFixed(1)}%
                         </p>
                       ) : null}
@@ -2201,7 +2209,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                               />
                               <button
                                 type="button"
-                                className="h-8 px-2 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                                className="h-8 px-2 text-xs bg-primary-600 text-white rounded hover:bg-primary-700 disabled:opacity-50"
                                 onClick={() => void handleCriarSetor()}
                                 disabled={!novoSetorInput.trim()}
                               >
@@ -2314,13 +2322,13 @@ export function EtapaOperacionalPage(): JSX.Element {
                         {recebProcessos.map((proc) => (
                           <div key={proc.id} className="border rounded-lg overflow-hidden">
                             {/* Processo principal */}
-                            <div className="bg-blue-50 px-3 py-3">
+                            <div className="bg-primary-50 px-3 py-3">
                               {/* Protocolo + Volume */}
                               <div className="flex items-center gap-2 mb-1">
-                                <span className="font-bold text-base text-blue-900">
+                                <span className="font-bold text-base text-primary-900">
                                   {proc.protocolo}
                                 </span>
-                                <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded whitespace-nowrap">
+                                <span className="text-xs bg-primary-100 text-primary-700 px-1.5 py-0.5 rounded whitespace-nowrap">
                                   Vol. {proc.volume_atual}
                                   {proc.volume_total > 0 ? `/${proc.volume_total}` : ''}
                                 </span>
@@ -2343,7 +2351,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                                 </p>
                               )}
                               {/* Botões em linha separada */}
-                              <div className="flex gap-2 mt-2 pt-2 border-t border-blue-100">
+                              <div className="flex gap-2 mt-2 pt-2 border-t border-primary-100">
                                 <Button
                                   size="xs"
                                   variant="outline"

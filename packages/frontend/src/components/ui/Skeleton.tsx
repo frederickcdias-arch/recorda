@@ -3,7 +3,7 @@ interface SkeletonProps {
 }
 
 export function Skeleton({ className = '' }: SkeletonProps): JSX.Element {
-  return <div className={`animate-shimmer rounded ${className}`} />
+  return <div className={`animate-shimmer rounded ${className}`} />;
 }
 
 export function SkeletonTable({

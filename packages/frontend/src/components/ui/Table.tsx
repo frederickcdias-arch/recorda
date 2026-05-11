@@ -1,0 +1,223 @@
+import React from 'react';
+
+function cn(...classes: Array<string | false | null | undefined>): string {
+  return classes.filter(Boolean).join(' ');
+}
+
+// ---------------------------------------------------------------------------
+// Table
+// ---------------------------------------------------------------------------
+
+interface TableProps extends React.TableHTMLAttributes<HTMLTableElement> {
+  children: React.ReactNode;
+  className?: string;
+}
+
+export function Table({ children, className, ...rest }: TableProps): JSX.Element {
+  return (
+    <div className="w-full overflow-x-auto rounded-xl border border-[var(--color-border-primary)] shadow-xs">
+      <table className={cn('min-w-full border-collapse', className)} {...rest}>
+        {children}
+      </table>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// TableHead
+// ---------------------------------------------------------------------------
+
+interface TableHeadProps {
+  children: React.ReactNode;
+  className?: string;
+}
+
+export function TableHead({ children, className }: TableHeadProps): JSX.Element {
+  return <thead className={cn('bg-[var(--color-gray-50)]', className)}>{children}</thead>;
+}
+
+// ---------------------------------------------------------------------------
+// TableBody
+// ---------------------------------------------------------------------------
+
+interface TableBodyProps {
+  children: React.ReactNode;
+  className?: string;
+}
+
+export function TableBody({ children, className }: TableBodyProps): JSX.Element {
+  return (
+    <tbody
+      className={cn(
+        'divide-y divide-[var(--color-border-primary)] bg-[var(--color-bg-primary)]',
+        className
+      )}
+    >
+      {children}
+    </tbody>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// TableRow
+// ---------------------------------------------------------------------------
+
+interface TableRowProps extends React.HTMLAttributes<HTMLTableRowElement> {
+  children: React.ReactNode;
+  className?: string;
+  onClick?: () => void;
+}
+
+export function TableRow({ children, className, onClick, ...rest }: TableRowProps): JSX.Element {
+  return (
+    <tr
+      className={cn(
+        'transition-colors',
+        onClick
+          ? 'cursor-pointer hover:bg-[var(--color-gray-50)]'
+          : 'hover:bg-[var(--color-gray-50)]',
+        className
+      )}
+      onClick={onClick}
+      {...rest}
+    >
+      {children}
+    </tr>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// TableHeader
+// ---------------------------------------------------------------------------
+
+type Align = 'left' | 'center' | 'right';
+type SortDirection = 'asc' | 'desc' | null;
+
+const alignClass: Record<Align, string> = {
+  left: 'text-left',
+  center: 'text-center',
+  right: 'text-right',
+};
+
+const sortIcon: Record<'asc' | 'desc' | 'none', string> = {
+  asc: '↑',
+  desc: '↓',
+  none: '↕',
+};
+
+interface TableHeaderProps extends React.ThHTMLAttributes<HTMLTableCellElement> {
+  children?: React.ReactNode;
+  className?: string;
+  align?: Align;
+  sortable?: boolean;
+  sortDirection?: SortDirection;
+  onSort?: () => void;
+}
+
+export function TableHeader({
+  children,
+  className,
+  align = 'left',
+  sortable = false,
+  sortDirection = null,
+  onSort,
+  ...rest
+}: TableHeaderProps): JSX.Element {
+  const base =
+    'px-4 py-3 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-secondary)] border-b border-[var(--color-border-primary)]';
+
+  const icon =
+    sortDirection === 'asc'
+      ? sortIcon.asc
+      : sortDirection === 'desc'
+        ? sortIcon.desc
+        : sortIcon.none;
+
+  return (
+    <th className={cn(base, alignClass[align], className)} {...rest}>
+      {sortable ? (
+        <button
+          type="button"
+          onClick={onSort}
+          className={cn(
+            'inline-flex items-center gap-1 hover:text-[var(--color-text-primary)] transition-colors',
+            align === 'center' && 'justify-center w-full',
+            align === 'right' && 'justify-end w-full'
+          )}
+        >
+          {children}
+          <span className="text-[var(--color-text-tertiary)]" aria-hidden="true">
+            {icon}
+          </span>
+        </button>
+      ) : (
+        children
+      )}
+    </th>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// TableCell
+// ---------------------------------------------------------------------------
+
+interface TableCellProps extends React.TdHTMLAttributes<HTMLTableCellElement> {
+  children?: React.ReactNode;
+  className?: string;
+  align?: Align;
+  colSpan?: number;
+  hideOnMobile?: boolean;
+}
+
+export function TableCell({
+  children,
+  className,
+  align = 'left',
+  colSpan,
+  hideOnMobile = false,
+  ...rest
+}: TableCellProps): JSX.Element {
+  return (
+    <td
+      className={cn(
+        'px-4 py-3 text-sm text-[var(--color-text-primary)]',
+        alignClass[align],
+        hideOnMobile && 'hidden sm:table-cell',
+        className
+      )}
+      colSpan={colSpan}
+      {...rest}
+    >
+      {children}
+    </td>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// TableEmptyState
+// ---------------------------------------------------------------------------
+
+interface TableEmptyStateProps {
+  colSpan: number;
+  title: string;
+  description?: string;
+}
+
+export function TableEmptyState({
+  colSpan,
+  title,
+  description,
+}: TableEmptyStateProps): JSX.Element {
+  return (
+    <tr>
+      <td colSpan={colSpan}>
+        <div className="flex flex-col items-center justify-center gap-1 px-4 py-12 text-center">
+          <p className="text-sm font-medium text-[var(--color-text-primary)]">{title}</p>
+          {description && (
+            <p className="text-sm text-[var(--color-text-secondary)]">{description}</p>
+          )}
+        </div>
+      </td>
+    </tr>
+  );
+}

@@ -18,7 +18,11 @@ export function ProgressIndicator({ steps, className = '' }: ProgressIndicatorPr
         <div key={i} className="flex items-center gap-1" title={step.label}>
           <span
             className={`w-2 h-2 rounded-full ${
-              step.done ? 'bg-primary-600' : step.active ? 'bg-primary-300 animate-pulse' : 'bg-gray-200'
+              step.done
+                ? 'bg-primary-600'
+                : step.active
+                  ? 'bg-primary-300 animate-pulse'
+                  : 'bg-gray-200'
             }`}
           />
           <span

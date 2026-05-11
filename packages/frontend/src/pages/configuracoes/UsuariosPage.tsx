@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Icon } from '../../components/ui/Icon';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
+import { PageHeader } from '../../components/ui/PageHeader';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { PageState, ActionFeedback } from '../../components/ui/PageState';
@@ -144,15 +145,15 @@ export function UsuariosPage(): JSX.Element {
   return (
     <PageState loading={carregando} loadingMessage="Carregando..." error={erroComAcao}>
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Usuários</h1>
-            <p className="text-gray-500 mt-1">Gerencie os Usuários do sistema</p>
-          </div>
-          <Button variant="primary" icon="plus" onClick={handleAbrirModalNovo}>
-            Novo Usuário
-          </Button>
-        </div>
+        <PageHeader
+          title="Usuários"
+          subtitle="Gerencie os Usuários do sistema"
+          actions={
+            <Button variant="primary" icon="plus" onClick={handleAbrirModalNovo}>
+              Novo Usuário
+            </Button>
+          }
+        />
 
         {mensagem && (
           <ActionFeedback
@@ -229,7 +230,9 @@ export function UsuariosPage(): JSX.Element {
                                 ? 'text-gray-400 hover:text-gray-700'
                                 : 'text-green-600 hover:text-green-800'
                             }
-                            aria-label={u.ativo ? `Desativar usuário ${u.nome}` : `Ativar usuário ${u.nome}`}
+                            aria-label={
+                              u.ativo ? `Desativar usuário ${u.nome}` : `Ativar usuário ${u.nome}`
+                            }
                             title={u.ativo ? 'Desativar usuário' : 'Ativar usuário'}
                           >
                             <Icon name={u.ativo ? 'x' : 'check'} className="w-4 h-4" />
@@ -268,7 +271,11 @@ export function UsuariosPage(): JSX.Element {
                   onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))}
                 />
                 <Input
-                  label={usuarioEditando ? 'Senha (deixe em branco para manter)' : 'Senha * (mínimo 8 caracteres)'}
+                  label={
+                    usuarioEditando
+                      ? 'Senha (deixe em branco para manter)'
+                      : 'Senha * (mínimo 8 caracteres)'
+                  }
                   type="password"
                   value={formData.senha}
                   onChange={(e) => setFormData((p) => ({ ...p, senha: e.target.value }))}

@@ -4,6 +4,10 @@ import { Icon } from '../../components/ui/Icon';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { PageState } from '../../components/ui/PageState';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { FilterBar } from '../../components/ui/FilterBar';
+import { DateRangePicker } from '../../components/ui/DateRangePicker';
+import { Select } from '../../components/ui/Select';
 import { useAuditoria, useQueryClient } from '../../hooks/useQueries';
 import { Pagination } from '../../components/ui/Pagination';
 
@@ -63,9 +67,9 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
   const dataInicioPadrao = useMemo(() => {
     const d = new Date();
     d.setDate(d.getDate() - 7);
-    return d.toISOString().split('T')[0];
+    return d.toISOString().split('T')[0] ?? '';
   }, []);
-  const dataFimPadrao = useMemo(() => new Date().toISOString().split('T')[0], []);
+  const dataFimPadrao = useMemo(() => new Date().toISOString().split('T')[0] ?? '', []);
   const [filtroTabela, setFiltroTabela] = useState('');
   const [filtroOperacao, setFiltroOperacao] = useState('');
   const [dataInicio, setDataInicio] = useState(dataInicioPadrao);
@@ -160,8 +164,12 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
       }
     : null;
 
-  const temFiltroAtivo = !!(filtroTabela || filtroOperacao ||
-    dataInicio !== dataInicioPadrao || dataFim !== dataFimPadrao);
+  const temFiltroAtivo = !!(
+    filtroTabela ||
+    filtroOperacao ||
+    dataInicio !== dataInicioPadrao ||
+    dataFim !== dataFimPadrao
+  );
 
   const invalidate = () => void queryClient.invalidateQueries({ queryKey: ['auditoria'] });
 
@@ -176,13 +184,15 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
     return new Date(data).toLocaleString('pt-BR');
   };
 
-  const getOperacaoBadge = (operacao: string) => {
-    const cores: Record<string, string> = {
-      INSERT: 'bg-blue-100 text-blue-800',
-      UPDATE: 'bg-blue-50 text-blue-700',
-      DELETE: 'bg-gray-200 text-gray-800',
+  const getOperacaoBadge = (operacao: string): { bg: string; text: string } => {
+    const map: Record<string, { bg: string; text: string }> = {
+      INSERT: { bg: 'bg-[var(--color-primary-100)]', text: 'text-[var(--color-primary-800)]' },
+      UPDATE: { bg: 'bg-[var(--color-primary-50)]', text: 'text-[var(--color-primary-700)]' },
+      DELETE: { bg: 'bg-[var(--color-gray-200)]', text: 'text-[var(--color-gray-800)]' },
     };
-    return cores[operacao] || 'bg-gray-100 text-gray-800';
+    return (
+      map[operacao] ?? { bg: 'bg-[var(--color-gray-100)]', text: 'text-[var(--color-gray-800)]' }
+    );
   };
 
   const getOperacaoIcon = (operacao: string) => {
@@ -239,105 +249,78 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
     >
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">{config?.titulo ?? 'Auditoria'}</h1>
-            <p className="text-gray-500 mt-1">
-              {config?.descricao ?? 'Histórico de Alterações no sistema'}
-            </p>
-          </div>
-          <Button variant="secondary" icon="refresh-cw" onClick={invalidate}>
-            Atualizar
-          </Button>
-        </div>
+        <PageHeader
+          title={config?.titulo ?? 'Auditoria'}
+          subtitle={config?.descricao ?? 'Histórico de Alterações no sistema'}
+          actions={
+            <Button variant="secondary" icon="refresh-cw" onClick={invalidate}>
+              Atualizar
+            </Button>
+          }
+        />
 
         {/* Filtros */}
-        <Card>
-          <div className="p-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Data Início</label>
-                <input
-                  type="date"
-                  value={dataInicio}
-                  max={dataFim || undefined}
-                  onChange={(e) => {
-                    setDataInicio(e.target.value);
-                    setPagina(1);
-                  }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Data Fim</label>
-                <input
-                  type="date"
-                  value={dataFim}
-                  min={dataInicio || undefined}
-                  onChange={(e) => {
-                    setDataFim(e.target.value);
-                    setPagina(1);
-                  }}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                    dataInicio && dataFim && dataFim < dataInicio
-                      ? 'border-red-400 focus:ring-red-200'
-                      : 'border-gray-300'
-                  }`}
-                />
-                {dataInicio && dataFim && dataFim < dataInicio && (
-                  <p className="text-xs text-red-600 mt-1">Data fim deve ser após a data início</p>
-                )}
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Tabela</label>
-                <select
-                  value={filtroTabela}
-                  onChange={(e) => {
-                    setFiltroTabela(e.target.value);
-                    setPagina(1);
-                  }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Todas</option>
-                  <option value="processos_principais">Processos</option>
-                  <option value="colaboradores">Colaboradores</option>
-                  <option value="etapas">Etapas</option>
-                  <option value="producao_repositorio">Produção</option>
-                  <option value="documentos_ocr">Documentos OCR</option>
-                  <option value="usuarios">Usuários</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Operação</label>
-                <select
-                  value={filtroOperacao}
-                  onChange={(e) => {
-                    setFiltroOperacao(e.target.value);
-                    setPagina(1);
-                  }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Todas</option>
-                  <option value="INSERT">Criação</option>
-                  <option value="UPDATE">Atualização</option>
-                  <option value="DELETE">Exclusão</option>
-                </select>
-              </div>
-              <div className="flex items-end">
-                <Button
-                  variant="primary"
-                  icon="search"
-                  onClick={() => {
-                    setPagina(1);
-                    invalidate();
-                  }}
-                >
-                  Filtrar
-                </Button>
-              </div>
-            </div>
+        <FilterBar
+          actions={
+            <Button
+              variant="primary"
+              icon="search"
+              onClick={() => {
+                setPagina(1);
+                invalidate();
+              }}
+            >
+              Filtrar
+            </Button>
+          }
+        >
+          <div className="sm:col-span-2 lg:col-span-2">
+            <DateRangePicker
+              startDate={dataInicio}
+              endDate={dataFim}
+              onStartDateChange={(v) => {
+                setDataInicio(v);
+                setPagina(1);
+              }}
+              onEndDateChange={(v) => {
+                setDataFim(v);
+                setPagina(1);
+              }}
+              showPresets={false}
+            />
           </div>
-        </Card>
+          <Select
+            label="Tabela"
+            value={filtroTabela}
+            onChange={(e) => {
+              setFiltroTabela(e.target.value);
+              setPagina(1);
+            }}
+            options={[
+              { value: '', label: 'Todas' },
+              { value: 'processos_principais', label: 'Processos' },
+              { value: 'colaboradores', label: 'Colaboradores' },
+              { value: 'etapas', label: 'Etapas' },
+              { value: 'producao_repositorio', label: 'Produção' },
+              { value: 'documentos_ocr', label: 'Documentos OCR' },
+              { value: 'usuarios', label: 'Usuários' },
+            ]}
+          />
+          <Select
+            label="Operação"
+            value={filtroOperacao}
+            onChange={(e) => {
+              setFiltroOperacao(e.target.value);
+              setPagina(1);
+            }}
+            options={[
+              { value: '', label: 'Todas' },
+              { value: 'INSERT', label: 'Criação' },
+              { value: 'UPDATE', label: 'Atualização' },
+              { value: 'DELETE', label: 'Exclusão' },
+            ]}
+          />
+        </FilterBar>
 
         {/* Timeline */}
         <Card>
@@ -364,7 +347,9 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
                     className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
                   >
                     <div className="flex items-start gap-4">
-                      <div className={`p-2 rounded-lg ${getOperacaoBadge(log.operacao)}`}>
+                      <div
+                        className={`p-2 rounded-lg ${getOperacaoBadge(log.operacao).bg} ${getOperacaoBadge(log.operacao).text}`}
+                      >
                         <Icon name={getOperacaoIcon(log.operacao)} className="w-5 h-5" />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -378,13 +363,11 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
                               {' • '}
                               ID: {log.registro_id.substring(0, 8)}...
                               {log.usuario_id && (
-                                <span
-                                  className="ml-1"
-                                  title={`Usuário ID: ${log.usuario_id}`}
-                                >
+                                <span className="ml-1" title={`Usuário ID: ${log.usuario_id}`}>
                                   {' • '}
-                                  <Icon name="user" className="w-3 h-3 inline -mt-0.5" />
-                                  {' '}{log.usuario_id.substring(0, 8)}...
+                                  <Icon name="user" className="w-3 h-3 inline -mt-0.5" />{' '}
+                                  {(log as { usuario_nome?: string }).usuario_nome ??
+                                    `${log.usuario_id.substring(0, 8)}...`}
                                 </span>
                               )}
                             </p>
@@ -396,7 +379,7 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
                               aria-expanded={expandido === log.id}
                               aria-controls={`detalhes-${log.id}`}
                               onClick={() => setExpandido(expandido === log.id ? null : log.id)}
-                              className="text-xs text-blue-600 hover:text-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
+                              className="text-xs text-primary-600 hover:text-primary-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded"
                             >
                               {expandido === log.id ? 'Ocultar detalhes' : 'Ver detalhes'}
                             </button>
@@ -404,7 +387,10 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
                         </div>
 
                         {expandido === log.id && (
-                          <div id={`detalhes-${log.id}`} className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div
+                            id={`detalhes-${log.id}`}
+                            className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4"
+                          >
                             {log.dados_antigos && Object.keys(log.dados_antigos).length > 0 && (
                               <div>
                                 <div className="flex items-center justify-between mb-2">
@@ -413,8 +399,10 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
                                   </p>
                                   <button
                                     type="button"
-                                    className="text-xs text-blue-600 hover:text-blue-800 font-medium"
-                                    onClick={() => handleCopiar(`${log.id}-antigos`, log.dados_antigos)}
+                                    className="text-xs text-primary-600 hover:text-primary-800 font-medium"
+                                    onClick={() =>
+                                      handleCopiar(`${log.id}-antigos`, log.dados_antigos)
+                                    }
                                   >
                                     {copiadoId === `${log.id}-antigos` ? '✓ Copiado' : 'Copiar'}
                                   </button>
@@ -430,13 +418,13 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
                                   <p className="text-xs font-medium text-gray-500">Dados Novos</p>
                                   <button
                                     type="button"
-                                    className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                                    className="text-xs text-primary-600 hover:text-primary-800 font-medium"
                                     onClick={() => handleCopiar(`${log.id}-novos`, log.dados_novos)}
                                   >
                                     {copiadoId === `${log.id}-novos` ? '✓ Copiado' : 'Copiar'}
                                   </button>
                                 </div>
-                                <pre className="text-xs bg-blue-50 p-3 rounded-lg overflow-auto max-h-64">
+                                <pre className="text-xs bg-primary-50 p-3 rounded-lg overflow-auto max-h-64">
                                   {JSON.stringify(log.dados_novos, null, 2)}
                                 </pre>
                               </div>

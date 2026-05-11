@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { Icon } from '../ui/Icon';
 import { menuSections } from '../../config/menu';
@@ -11,16 +11,32 @@ interface SidebarProps {
   onMobileClose?: () => void;
 }
 
+const STORAGE_KEY = 'recorda.sidebar.expandedSections';
+
+function getStoredSections(): string[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '[]') as string[];
+  } catch {
+    return [];
+  }
+}
+
+function setStoredSections(sections: string[]): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(sections));
+  } catch {
+    // ignore
+  }
+}
+
 function canAccessByProfile(
   usuarioPerfil: string | undefined,
   allowedProfiles?: string[]
 ): boolean {
-  if (!allowedProfiles || allowedProfiles.length === 0) {
-    return true;
-  }
-  if (!usuarioPerfil) {
-    return false;
-  }
+  if (!allowedProfiles || allowedProfiles.length === 0) return true;
+  if (!usuarioPerfil) return false;
   return allowedProfiles.includes(usuarioPerfil);
 }
 
@@ -28,22 +44,14 @@ function filterMenuItemByProfile(
   item: MenuItem,
   usuarioPerfil: string | undefined
 ): MenuItem | null {
-  if (!canAccessByProfile(usuarioPerfil, item.allowedProfiles)) {
-    return null;
-  }
-
-  if (!item.children || item.children.length === 0) {
-    return item;
-  }
+  if (!canAccessByProfile(usuarioPerfil, item.allowedProfiles)) return null;
+  if (!item.children || item.children.length === 0) return item;
 
   const filteredChildren = item.children
     .map((child) => filterMenuItemByProfile(child, usuarioPerfil))
     .filter((child): child is MenuItem => child !== null);
 
-  if (filteredChildren.length === 0 && !item.path) {
-    return null;
-  }
-
+  if (filteredChildren.length === 0 && !item.path) return null;
   return { ...item, children: filteredChildren };
 }
 
@@ -71,8 +79,11 @@ function MenuItemComponent({
       <div>
         <button
           onClick={() => setExpanded(!expanded)}
+          aria-expanded={expanded}
           className={`w-full flex items-center gap-3 px-3 py-3 sm:py-2 rounded-lg text-sm transition-colors touch-manipulation ${
-            isChildActive ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-100'
+            isChildActive
+              ? 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)]'
+              : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-primary-50)] hover:text-[var(--color-primary-700)]'
           }`}
           style={{ paddingLeft: `${12 + depth * 12}px` }}
         >
@@ -112,9 +123,14 @@ function MenuItemComponent({
     <NavLink
       to={item.path || '#'}
       onClick={onNavigate}
+      aria-current={isActive ? 'page' : undefined}
+      title={collapsed ? item.label : undefined}
+      aria-label={collapsed ? item.label : undefined}
       className={({ isActive: navActive }) =>
         `flex items-center gap-3 px-3 py-3 sm:py-2 rounded-lg text-sm transition-colors touch-manipulation ${
-          navActive || isActive ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'
+          navActive || isActive
+            ? 'bg-primary-600 text-white shadow-sm'
+            : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-primary-50)] hover:text-[var(--color-primary-700)]'
         }`
       }
       style={{ paddingLeft: `${12 + depth * 12}px` }}
@@ -128,16 +144,20 @@ function MenuItemComponent({
 function MenuSectionComponent({
   section,
   collapsed,
+  expanded,
+  onToggleExpanded,
   onNavigate,
 }: {
   section: MenuSection;
   collapsed: boolean;
+  expanded: boolean;
+  onToggleExpanded: () => void;
   onNavigate?: () => void;
 }): JSX.Element {
   const location = useLocation();
   const isActive = location.pathname.startsWith(section.basePath);
-  const [expanded, setExpanded] = useState(isActive);
   const hasItems = section.items.length > 0;
+  const sectionId = `sidebar-section-${section.id}`;
 
   if (!hasItems) {
     return (
@@ -145,9 +165,12 @@ function MenuSectionComponent({
         to={section.basePath}
         onClick={onNavigate}
         title={collapsed ? section.label : undefined}
+        aria-label={collapsed ? section.label : undefined}
         className={({ isActive: navActive }) =>
           `flex items-center gap-3 px-3 py-3 sm:py-2.5 rounded-lg transition-colors touch-manipulation ${
-            navActive || isActive ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'
+            navActive || isActive
+              ? 'bg-primary-600 text-white shadow-sm'
+              : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-primary-50)] hover:text-[var(--color-primary-700)]'
           }`
         }
       >
@@ -159,11 +182,15 @@ function MenuSectionComponent({
 
   return (
     <div>
-        <button
-        onClick={() => setExpanded(!expanded)}
+      <button
+        onClick={onToggleExpanded}
         title={collapsed ? section.label : undefined}
+        aria-expanded={expanded}
+        aria-controls={sectionId}
         className={`w-full flex items-center gap-3 px-3 py-3 sm:py-2.5 rounded-lg transition-colors touch-manipulation ${
-          isActive ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-100'
+          isActive
+            ? 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)]'
+            : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-primary-50)] hover:text-[var(--color-primary-700)]'
         }`}
       >
         <Icon name={section.icon} className="w-5 h-5 flex-shrink-0" />
@@ -179,7 +206,8 @@ function MenuSectionComponent({
       </button>
       {!collapsed && (
         <div
-          className={`ml-2 space-y-1 border-l-2 border-gray-200 pl-2 overflow-hidden transition-all duration-300 ${
+          id={sectionId}
+          className={`ml-2 space-y-1 border-l-2 border-[var(--color-border-primary)] pl-2 overflow-hidden transition-all duration-300 ${
             expanded ? 'max-h-[500px] opacity-100 mt-1' : 'max-h-0 opacity-0 mt-0'
           }`}
         >
@@ -200,6 +228,7 @@ function MenuSectionComponent({
 export function Sidebar({ collapsed, onToggle, onMobileClose }: SidebarProps): JSX.Element {
   const { logout, usuario } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const perfilUsuario = usuario?.perfil;
 
   const visibleSections = menuSections
@@ -212,18 +241,47 @@ export function Sidebar({ collapsed, onToggle, onMobileClose }: SidebarProps): J
     }))
     .filter((section) => section.items.length > 0 || !section.allowedProfiles);
 
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(() => {
+    const stored = new Set(getStoredSections());
+    const activeSection = visibleSections.find((s) => location.pathname.startsWith(s.basePath));
+    if (activeSection) stored.add(activeSection.id);
+    return stored;
+  });
+
+  const toggleSection = (sectionId: string): void => {
+    setExpandedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(sectionId)) {
+        next.delete(sectionId);
+      } else {
+        next.add(sectionId);
+      }
+      setStoredSections([...next]);
+      return next;
+    });
+  };
+
   const handleLogout = async () => {
     await logout();
     navigate('/login');
   };
 
+  const userInitials =
+    usuario?.nome
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((w: string) => w[0]?.toUpperCase() ?? '')
+      .join('') || 'U';
+
   return (
     <aside
-      className={`bg-white border-r border-gray-200 flex flex-col h-full transition-all duration-300 ${
+      className={`bg-[var(--color-bg-primary)] border-r border-[var(--color-border-primary)] flex flex-col h-full transition-all duration-300 ${
         collapsed ? 'w-16' : 'w-64'
       }`}
     >
-      <div className="flex items-center justify-between p-4 border-b border-gray-200">
+      {/* Logo / Header */}
+      <div className="flex items-center justify-between p-4 border-b border-[var(--color-border-primary)]">
         {!collapsed && (
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full shadow-sm overflow-hidden">
@@ -234,8 +292,8 @@ export function Sidebar({ collapsed, onToggle, onMobileClose }: SidebarProps): J
               />
             </div>
             <div>
-              <p className="font-bold text-gray-900 leading-tight">Recorda</p>
-              <p className="text-xs text-blue-700">Gestão de Produção</p>
+              <p className="font-bold text-[var(--color-text-primary)] leading-tight">Recorda</p>
+              <p className="text-xs text-primary-700">Gestão de Produção</p>
             </div>
           </div>
         )}
@@ -250,56 +308,58 @@ export function Sidebar({ collapsed, onToggle, onMobileClose }: SidebarProps): J
         )}
         <button
           onClick={onToggle}
-          className="p-2 rounded-lg hover:bg-gray-100 text-gray-500"
+          className="p-2 rounded-lg hover:bg-[var(--color-bg-tertiary)] text-[var(--color-text-secondary)]"
           title={collapsed ? 'Expandir menu' : 'Recolher menu'}
+          aria-label={collapsed ? 'Expandir menu' : 'Recolher menu'}
         >
           <Icon name={collapsed ? 'chevron-right' : 'chevron-left'} className="w-5 h-5" />
         </button>
         {onMobileClose && (
           <button
             onClick={onMobileClose}
-            className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 md:hidden"
+            className="p-2 rounded-lg hover:bg-[var(--color-bg-tertiary)] text-[var(--color-text-secondary)] md:hidden"
+            aria-label="Fechar menu"
           >
             <Icon name="x" className="w-5 h-5" />
           </button>
         )}
       </div>
 
+      {/* Navigation */}
       <nav className="flex-1 overflow-y-auto p-3 space-y-1">
         {visibleSections.map((section) => (
           <MenuSectionComponent
             key={section.id}
             section={section}
             collapsed={collapsed}
+            expanded={expandedSections.has(section.id)}
+            onToggleExpanded={() => toggleSection(section.id)}
             onNavigate={onMobileClose}
           />
         ))}
 
-        {/* Usuário e Logout */}
-        <div className="pt-1 mt-1 border-t border-gray-200">
+        {/* UsuÃ¡rio e Logout */}
+        <div className="pt-1 mt-1 border-t border-[var(--color-border-primary)]">
           {!collapsed && usuario && (
             <div className="flex items-center gap-3 px-3 py-2">
-              <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-semibold select-none flex-shrink-0">
-                {usuario.nome
-                  .split(' ')
-                  .filter(Boolean)
-                  .slice(0, 2)
-                  .map((w: string) => w[0]?.toUpperCase() ?? '')
-                  .join('') || 'U'}
+              <div className="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center text-white text-xs font-semibold select-none flex-shrink-0">
+                {userInitials}
               </div>
               <div className="min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate leading-tight">
+                <p className="text-sm font-medium text-[var(--color-text-primary)] truncate leading-tight">
                   {usuario.nome}
                 </p>
-                <p className="text-xs text-gray-400 truncate leading-tight capitalize">
+                <p className="text-xs text-[var(--color-text-tertiary)] truncate leading-tight capitalize">
                   {usuario.perfil}
                 </p>
               </div>
             </div>
           )}
           <button
-            onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors"
+            onClick={() => void handleLogout()}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[var(--color-text-secondary)] hover:bg-red-50 hover:text-red-600 transition-colors"
+            title={collapsed ? 'Sair do sistema' : undefined}
+            aria-label={collapsed ? 'Sair do sistema' : undefined}
           >
             <Icon name="logout" className="w-5 h-5 flex-shrink-0" />
             {!collapsed && <span className="font-medium">Sair</span>}

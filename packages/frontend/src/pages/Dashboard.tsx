@@ -1,10 +1,20 @@
 ﻿import { useNavigate } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
 import { Icon } from '../components/ui/Icon';
+import { PageHeader } from '../components/ui/PageHeader';
 import { PageState } from '../components/ui';
 import { SkeletonCards } from '../components/ui/Skeleton';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
+import {
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableHeader,
+  TableCell,
+  TableEmptyState,
+} from '../components/ui/Table';
 import { useDashboard, type DashboardData } from '../hooks/useQueries';
 import { useAuth } from '../contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
@@ -16,7 +26,7 @@ import { formatCriticalNumber, parseFiniteNumber } from '../utils/number';
 interface StatCardProps {
   title: string;
   value: string;
-  rawValue?: number;
+  rawValue?: number | null;
   icon: string;
   subtitle?: string;
   onClick?: () => void;
@@ -27,7 +37,10 @@ function useCountUp(target: number, duration = 700): number {
   const [count, setCount] = useState(0);
   const rafRef = useRef<number>(0);
   useEffect(() => {
-    if (target === 0) { setCount(0); return; }
+    if (target === 0) {
+      setCount(0);
+      return;
+    }
     const start = performance.now();
     const tick = (now: number) => {
       const p = Math.min((now - start) / duration, 1);
@@ -41,24 +54,32 @@ function useCountUp(target: number, duration = 700): number {
   return count;
 }
 
-function StatCard({ title, value, rawValue, icon, subtitle, onClick, index = 0 }: StatCardProps): JSX.Element {
+function StatCard({
+  title,
+  value,
+  rawValue,
+  icon,
+  subtitle,
+  onClick,
+  index = 0,
+}: StatCardProps): JSX.Element {
   const animated = useCountUp(rawValue ?? 0);
-  const displayValue = rawValue !== undefined ? animated.toLocaleString('pt-BR') : value;
+  const displayValue = rawValue != null ? animated.toLocaleString('pt-BR') : value;
 
   return (
     <button
       type="button"
       onClick={onClick}
       style={{ animationDelay: `${index * 75}ms` }}
-      className="animate-fade-in-up [animation-fill-mode:both] bg-white rounded-xl p-6 shadow-sm border border-gray-100 w-full text-left hover:border-blue-200 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 active:scale-[0.98]"
+      className="animate-fade-in-up [animation-fill-mode:both] bg-white rounded-xl p-6 shadow-sm border border-gray-100 w-full text-left hover:border-primary-200 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 active:scale-[0.98]"
     >
       <div className="flex items-start justify-between">
         <div>
           <p className="text-sm font-medium text-gray-500">{title}</p>
           <p className="text-2xl font-bold text-gray-900 mt-1">{displayValue}</p>
-          {subtitle ? <p className="text-sm mt-2 text-blue-600">{subtitle}</p> : null}
+          {subtitle ? <p className="text-sm mt-2 text-primary-600">{subtitle}</p> : null}
         </div>
-        <div className="p-3 rounded-lg bg-blue-50 text-blue-600">
+        <div className="p-3 rounded-lg bg-primary-50 text-primary-600">
           <Icon name={icon} className="w-6 h-6" />
         </div>
       </div>
@@ -101,7 +122,7 @@ interface MeuHistoricoResponse {
 }
 
 const tipoCores: Record<string, { bg: string; text: string; icon: string }> = {
-  Imagens: { bg: 'bg-blue-50', text: 'text-blue-700', icon: 'image' },
+  Imagens: { bg: 'bg-primary-50', text: 'text-primary-700', icon: 'image' },
   Caixas: { bg: 'bg-amber-50', text: 'text-amber-700', icon: 'box' },
   'Não informado': { bg: 'bg-gray-50', text: 'text-gray-500', icon: 'help-circle' },
 };
@@ -135,10 +156,7 @@ function DashboardColaborador(): JSX.Element {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <header>
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-500 mt-1">Bem-vindo, {usuario?.nome}</p>
-        </header>
+        <PageHeader title="Dashboard" subtitle={`Bem-vindo, ${usuario?.nome ?? ''}`} />
         <SkeletonCards count={4} />
       </div>
     );
@@ -169,10 +187,7 @@ function DashboardColaborador(): JSX.Element {
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-500 mt-1">Bem-vindo, {usuario?.nome}</p>
-      </header>
+      <PageHeader title="Dashboard" subtitle={`Bem-vindo, ${usuario?.nome ?? ''}`} />
 
       {/* Estatísticas Pessoais */}
       <section>
@@ -214,8 +229,10 @@ function DashboardColaborador(): JSX.Element {
       {/* Produção por Etapa + Produção por Tipo */}
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Produção por Etapa */}
-        <div className="lg:col-span-2 bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <h3 className="font-semibold text-gray-900 mb-4">Produção por Etapa</h3>
+        <Card className="lg:col-span-2" padding="lg">
+          <h3 className="font-semibold text-[var(--color-text-primary)] mb-4">
+            Produção por Etapa
+          </h3>
           {producaoPorEtapa.length === 0 ? (
             <p className="text-gray-500 text-sm py-4">Nenhuma produção registrada</p>
           ) : (
@@ -253,11 +270,11 @@ function DashboardColaborador(): JSX.Element {
               })}
             </div>
           )}
-        </div>
+        </Card>
 
         {/* Produção por Tipo (Imagens / Caixas) */}
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <h3 className="font-semibold text-gray-900 mb-4">Por Tipo</h3>
+        <Card padding="lg">
+          <h3 className="font-semibold text-[var(--color-text-primary)] mb-4">Por Tipo</h3>
           {producaoPorTipo.length === 0 ? (
             <p className="text-gray-500 text-sm py-4">Nenhum dado</p>
           ) : (
@@ -265,10 +282,7 @@ function DashboardColaborador(): JSX.Element {
               {producaoPorTipo.map((item) => {
                 const cor = getTipoCor(item.tipo);
                 return (
-                  <div
-                    key={item.tipo}
-                    className={`p-4 rounded-lg border ${cor.bg} border-opacity-50`}
-                  >
+                  <div key={item.tipo} className={`p-4 rounded-lg border ${cor.bg}`}>
                     <div className="flex items-center gap-3">
                       <div className={`p-2 rounded-lg ${cor.bg} ${cor.text}`}>
                         <Icon name={cor.icon} className="w-5 h-5" />
@@ -291,10 +305,8 @@ function DashboardColaborador(): JSX.Element {
               })}
             </div>
           )}
-        </div>
+        </Card>
       </section>
-
-      {/* Ação Rápida */}
       <section>
         <Card>
           <div className="p-6">
@@ -320,7 +332,7 @@ function DashboardColaborador(): JSX.Element {
           <h2 className="text-lg font-semibold text-gray-900">Histórico Recente</h2>
           <button
             onClick={() => navigate('/minha-producao/historico')}
-            className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+            className="text-sm text-primary-600 hover:text-primary-800 font-medium"
           >
             Ver tudo →
           </button>
@@ -330,62 +342,52 @@ function DashboardColaborador(): JSX.Element {
           {producoesRecentes.length === 0 ? (
             <div className="p-12 text-center">
               <Icon name="inbox" className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-              <p className="text-gray-500 mb-4">Nenhuma produção registrada ainda</p>
+              <p className="text-[var(--color-text-secondary)] mb-4">
+                Nenhuma produção registrada ainda
+              </p>
               <Button variant="primary" onClick={() => navigate('/minha-producao/lancar')}>
                 Lançar Primeira Produção
               </Button>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Data
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Repositório
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Coordenadoria
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Etapa
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                      Quantidade
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {producoesRecentes.map((p) => {
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableHeader>Data</TableHeader>
+                  <TableHeader>Repositório</TableHeader>
+                  <TableHeader>Coordenadoria</TableHeader>
+                  <TableHeader>Etapa</TableHeader>
+                  <TableHeader align="right">Quantidade</TableHeader>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {producoesRecentes.length === 0 ? (
+                  <TableEmptyState colSpan={5} title="Nenhuma produção registrada ainda" />
+                ) : (
+                  producoesRecentes.map((p) => {
                     const label = p.etapa_label ?? p.etapa;
                     const coordenadoria =
                       p.coordenadoria_label ?? p.marcadores?.coordenadoria ?? '—';
                     const cor = getEtapaProducaoStyle(label);
                     return (
-                      <tr key={p.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 text-sm text-gray-900">
-                          {formatDateBR(p.data_producao)}
-                        </td>
-                        <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                          {p.id_repositorio_ged}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-700">{coordenadoria}</td>
-                        <td className="px-6 py-4">
+                      <TableRow key={p.id}>
+                        <TableCell>{formatDateBR(p.data_producao)}</TableCell>
+                        <TableCell className="font-medium">{p.id_repositorio_ged}</TableCell>
+                        <TableCell>{coordenadoria}</TableCell>
+                        <TableCell>
                           <span className={`px-2 py-1 text-xs rounded-full ${cor.bg} ${cor.text}`}>
                             {label}
                           </span>
-                        </td>
-                        <td className="px-6 py-4 text-sm text-right font-medium text-gray-900">
+                        </TableCell>
+                        <TableCell align="right" className="font-medium">
                           {p.quantidade.toLocaleString('pt-BR')}
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                  })
+                )}
+              </TableBody>
+            </Table>
           )}
         </Card>
       </section>
@@ -408,11 +410,9 @@ function DashboardContent({ data }: { data: DashboardData }): JSX.Element {
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-      </header>
+      <PageHeader title="Dashboard" />
       <section>
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Visão Geral</h2>
+        <h2 className="text-lg font-semibold text-[var(--color-text-primary)] mb-4">Visão Geral</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <StatCard
             title="Produção do Mês"
@@ -448,8 +448,10 @@ function DashboardContent({ data }: { data: DashboardData }): JSX.Element {
       </section>
 
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <h3 className="font-semibold text-gray-900 mb-4">Produção por Etapa</h3>
+        <Card padding="lg">
+          <h3 className="font-semibold text-[var(--color-text-primary)] mb-4">
+            Produção por Etapa
+          </h3>
           <div className="space-y-4">
             {producaoPorEtapa.length === 0 ? (
               <p className="text-gray-500 text-sm">Nenhuma produção registrada no período</p>
@@ -471,7 +473,7 @@ function DashboardContent({ data }: { data: DashboardData }): JSX.Element {
                     </div>
                     <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-blue-500 rounded-full transition-all duration-500"
+                        className="h-full bg-primary-500 rounded-full transition-all duration-500"
                         style={{ width: `${((valor ?? 0) / maxProducao) * 100}%` }}
                       />
                     </div>
@@ -480,20 +482,22 @@ function DashboardContent({ data }: { data: DashboardData }): JSX.Element {
               })
             )}
           </div>
-        </div>
+        </Card>
 
-        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <h3 className="font-semibold text-gray-900 mb-4">Status da Produção</h3>
+        <Card padding="lg">
+          <h3 className="font-semibold text-[var(--color-text-primary)] mb-4">
+            Status da Produção
+          </h3>
           <div className="space-y-3">
             {statusProducao.map((item) => (
               <button
                 key={item.status}
                 type="button"
                 onClick={() => navigate('/producao')}
-                className="w-full flex items-center justify-between p-3 bg-gray-50 rounded-lg text-left hover:bg-blue-50 transition"
+                className="w-full flex items-center justify-between p-3 bg-gray-50 rounded-lg text-left hover:bg-primary-50 transition"
               >
                 <div className="flex items-center gap-3">
-                  <Icon name={item.icon} className="w-5 h-5 text-blue-600" />
+                  <Icon name={item.icon} className="w-5 h-5 text-primary-600" />
                   <span className="text-gray-700">{item.status}</span>
                 </div>
                 <span className="font-semibold text-gray-900">
@@ -502,19 +506,19 @@ function DashboardContent({ data }: { data: DashboardData }): JSX.Element {
               </button>
             ))}
           </div>
-        </div>
+        </Card>
       </section>
 
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {retrabalhoCQ.length > 0 ? (
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <h3 className="font-semibold text-gray-900 mb-4">Retrabalho CQ</h3>
+          <Card padding="lg">
+            <h3 className="font-semibold text-[var(--color-text-primary)] mb-4">Retrabalho CQ</h3>
             <div className="space-y-3">
               {retrabalhoCQ.map((item, i) => (
-                <div key={i} className="p-3 bg-blue-50 border border-blue-100 rounded-lg">
+                <div key={i} className="p-3 bg-primary-50 border border-primary-100 rounded-lg">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-sm font-medium text-gray-800">{item.motivo}</span>
-                    <span className="text-sm font-bold text-blue-700">
+                    <span className="text-sm font-bold text-primary-700">
                       {formatCriticalNumber(item?.total)}
                     </span>
                   </div>
@@ -526,7 +530,7 @@ function DashboardContent({ data }: { data: DashboardData }): JSX.Element {
                 </div>
               ))}
             </div>
-          </div>
+          </Card>
         ) : null}
       </section>
     </div>
@@ -550,11 +554,11 @@ function DashboardAdminPage(): JSX.Element {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <header>
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        </header>
+        <PageHeader title="Dashboard" />
         <div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Visão Geral</h2>
+          <h2 className="text-lg font-semibold text-[var(--color-text-primary)] mb-4">
+            Visão Geral
+          </h2>
           <SkeletonCards count={4} />
         </div>
       </div>

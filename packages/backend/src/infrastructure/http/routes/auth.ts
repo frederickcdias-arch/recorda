@@ -712,9 +712,9 @@ export const authRoutes = fp(async (server: FastifyInstance): Promise<void> => {
       // Hash do token antes de salvar no banco
       const tokenHash = createHash('sha256').update(resetToken).digest('hex');
       await server.database.query(
-        `INSERT INTO refresh_tokens (usuario_id, token_hash, expira_em) 
+        `INSERT INTO password_reset_tokens (usuario_id, token_hash, expira_em)
            VALUES ($1, $2, $3)`,
-        [usuario.id, `reset:${tokenHash}`, expiresAt]
+        [usuario.id, tokenHash, expiresAt]
       );
 
       // Enviar e-mail com link de reset
@@ -790,12 +790,12 @@ export const authRoutes = fp(async (server: FastifyInstance): Promise<void> => {
         // Hash do token recebido para comparar com o banco
         const tokenHash = createHash('sha256').update(token).digest('hex');
         const tokenResult = await server.database.query(
-          `SELECT rt.usuario_id, rt.id as token_id
-           FROM refresh_tokens rt
-           WHERE rt.token_hash = $1 
-             AND rt.expira_em > NOW() 
-             AND rt.revogado = false`,
-          [`reset:${tokenHash}`]
+          `SELECT prt.usuario_id, prt.id as token_id
+           FROM password_reset_tokens prt
+           WHERE prt.token_hash = $1
+             AND prt.expira_em > NOW()
+             AND prt.usado = false`,
+          [tokenHash]
         );
 
         if (tokenResult.rows.length === 0) {
@@ -814,8 +814,8 @@ export const authRoutes = fp(async (server: FastifyInstance): Promise<void> => {
           usuario_id,
         ]);
 
-        // Revogar token de reset
-        await server.database.query(`UPDATE refresh_tokens SET revogado = true WHERE id = $1`, [
+        // Marcar token de reset como usado
+        await server.database.query(`UPDATE password_reset_tokens SET usado = true WHERE id = $1`, [
           token_id,
         ]);
 

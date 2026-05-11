@@ -1,12 +1,25 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Card } from '../../components/ui/Card';
 import { Icon } from '../../components/ui/Icon';
 import { Button } from '../../components/ui/Button';
 import { PageState } from '../../components/ui/PageState';
 import { Pagination } from '../../components/ui/Pagination';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { useToastHelpers } from '../../components/ui/Toast';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { FilterBar } from '../../components/ui/FilterBar';
+import { DateRangePicker } from '../../components/ui/DateRangePicker';
+import { Input } from '../../components/ui/Input';
+import { Select } from '../../components/ui/Select';
+import {
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableHeader,
+  TableCell,
+  TableEmptyState,
+} from '../../components/ui/Table';
 import { useAuth } from '../../contexts/AuthContext';
 import { useConfirmDialog } from '../../hooks/useConfirmDialog';
 import { extractErrorMessage } from '../../utils/errors';
@@ -301,48 +314,6 @@ export function ProducaoPage(): JSX.Element {
     return sorted;
   }, [dados?.registros, sortColumn, sortDirection]);
 
-  // Componente de cabeçalho ordenável
-  const SortableHeader = ({
-    column,
-    children,
-    align = 'left',
-  }: {
-    column: SortColumn;
-    children: React.ReactNode;
-    align?: 'left' | 'right' | 'center';
-  }) => {
-    const isActive = sortColumn === column;
-    const alignClass =
-      align === 'right' ? 'text-right' : align === 'center' ? 'text-center' : 'text-left';
-
-    return (
-      <th
-        className={`px-3 py-2.5 ${alignClass} text-xs font-semibold text-gray-500 uppercase cursor-pointer hover:bg-gray-100 select-none transition-colors`}
-        onClick={() => handleSort(column)}
-      >
-        <div
-          className={`flex items-center gap-1 ${align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : 'justify-start'}`}
-        >
-          <span>{children}</span>
-          <span className="inline-flex flex-col leading-none">
-            {isActive && sortDirection === 'asc' && (
-              <Icon name="chevron-up" className="w-3 h-3 text-blue-600" />
-            )}
-            {isActive && sortDirection === 'desc' && (
-              <Icon name="chevron-down" className="w-3 h-3 text-blue-600" />
-            )}
-            {!isActive && (
-              <>
-                <Icon name="chevron-up" className="w-2.5 h-2.5 text-gray-300 -mb-0.5" />
-                <Icon name="chevron-down" className="w-2.5 h-2.5 text-gray-300" />
-              </>
-            )}
-          </span>
-        </div>
-      </th>
-    );
-  };
-
   const erroComAcao = erro
     ? { ...erro, action: { label: 'Tentar novamente', onClick: () => void invalidate() } }
     : null;
@@ -354,46 +325,48 @@ export function ProducaoPage(): JSX.Element {
       error={erroComAcao}
     >
       <div className="space-y-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Produção</h1>
-            <p className="text-gray-500 mt-1">
+        <PageHeader
+          title="Produção"
+          subtitle={
+            <>
               {totalFormatado} Registros de Produção
               {atualizando && (
-                <span className="ml-2 text-xs text-blue-500 animate-pulse">Atualizando...</span>
+                <span className="ml-2 text-xs text-[var(--color-primary-500)] animate-pulse">
+                  Atualizando...
+                </span>
               )}
-            </p>
-          </div>
-          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-            {isAdmin && (
+            </>
+          }
+          actions={
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+              {isAdmin && (
+                <Button
+                  variant="danger"
+                  icon="trash"
+                  onClick={handleLimparTodasProducoes}
+                  loading={limparProducoes.isPending}
+                  disabled={limparProducoes.isPending}
+                >
+                  Limpar produções importadas
+                </Button>
+              )}
               <Button
-                className="w-full sm:w-auto"
-                variant="danger"
-                icon="trash"
-                onClick={handleLimparTodasProducoes}
-                loading={limparProducoes.isPending}
-                disabled={limparProducoes.isPending}
+                variant="secondary"
+                icon="download"
+                onClick={() => void handleExportarExcel()}
+                loading={exportando}
+                disabled={exportando || !dataInicio || !dataFim}
               >
-                Limpar produções importadas
+                Exportar Excel
               </Button>
-            )}
-            <Button
-              className="w-full sm:w-auto"
-              variant="secondary"
-              icon="download"
-              onClick={() => void handleExportarExcel()}
-              loading={exportando}
-              disabled={exportando || !dataInicio || !dataFim}
-            >
-              Exportar Excel
-            </Button>
-            {(!dataInicio || !dataFim) && (
-              <p className="text-xs text-gray-400 text-center sm:text-right">
-                Informe o período para exportar
-              </p>
-            )}
-          </div>
-        </div>
+              {(!dataInicio || !dataFim) && (
+                <p className="text-xs text-[var(--color-text-tertiary)] text-center sm:text-right">
+                  Informe o período para exportar
+                </p>
+              )}
+            </div>
+          }
+        />
 
         <ConfirmDialog
           state={confirmDialog.state}
@@ -403,264 +376,253 @@ export function ProducaoPage(): JSX.Element {
         />
 
         {/* Filtros */}
-        <Card>
-          <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Busca</label>
-              <input
-                type="text"
-                placeholder="Nome, repositório, tipo..."
-                value={busca}
-                onChange={(e) => setBusca(e.target.value)}
-                className="w-full h-11 sm:h-9 px-3 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Etapa</label>
-              <select
-                value={etapa}
-                onChange={(e) => setEtapa(e.target.value)}
-                className="w-full h-11 sm:h-9 px-2 text-sm border rounded-lg"
+        <FilterBar
+          actions={
+            etapa || colaborador || dataInicio || dataFim || busca ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setEtapa('');
+                  setColaborador('');
+                  setDataInicio('');
+                  setDataFim('');
+                  setBusca('');
+                }}
               >
-                <option value="">Todas</option>
-                {(dados?.filtros.etapas ?? []).map((e) => (
-                  <option key={e} value={e}>
-                    {ETAPA_LABELS[e] ?? e}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Colaborador</label>
-              <select
-                value={colaborador}
-                onChange={(e) => setColaborador(e.target.value)}
-                className="w-full h-11 sm:h-9 px-2 text-sm border rounded-lg"
-              >
-                <option value="">Todos</option>
-                {(dados?.filtros.colaboradores ?? []).map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.nome}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Data início</label>
-              <input
-                type="date"
-                value={dataInicio}
-                max={dataFim || undefined}
-                onChange={(e) => setDataInicio(e.target.value)}
-                className="w-full h-11 sm:h-9 px-2 text-sm border rounded-lg"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Data fim</label>
-              <input
-                type="date"
-                value={dataFim}
-                min={dataInicio || undefined}
-                onChange={(e) => setDataFim(e.target.value)}
-                className="w-full h-11 sm:h-9 px-2 text-sm border rounded-lg"
-              />
-            </div>
+                <Icon name="x" className="w-3 h-3" />
+                Limpar Filtros
+              </Button>
+            ) : undefined
+          }
+        >
+          <div className="sm:col-span-2 lg:col-span-2">
+            <DateRangePicker
+              startDate={dataInicio}
+              endDate={dataFim}
+              onStartDateChange={setDataInicio}
+              onEndDateChange={setDataFim}
+              showPresets={false}
+            />
           </div>
-          {(etapa || colaborador || dataInicio || dataFim || busca) && (
-            <button
-              onClick={() => {
-                setEtapa('');
-                setColaborador('');
-                setDataInicio('');
-                setDataFim('');
-                setBusca('');
-              }}
-              className="mt-3 text-xs text-blue-600 hover:text-blue-800 font-medium touch-manipulation min-h-[44px] sm:min-h-0 flex items-center"
-            >
-              Limpar Filtros
-            </button>
-          )}
-        </Card>
+          <Select
+            label="Etapa"
+            value={etapa}
+            onChange={(e) => setEtapa(e.target.value)}
+            options={[
+              { value: '', label: 'Todas' },
+              ...(dados?.filtros.etapas ?? []).map((e) => ({
+                value: e,
+                label: ETAPA_LABELS[e] ?? e,
+              })),
+            ]}
+          />
+          <Select
+            label="Colaborador"
+            value={colaborador}
+            onChange={(e) => setColaborador(e.target.value)}
+            options={[
+              { value: '', label: 'Todos' },
+              ...(dados?.filtros.colaboradores ?? []).map((c) => ({
+                value: c.id,
+                label: c.nome,
+              })),
+            ]}
+          />
+          <Input
+            label="Busca"
+            placeholder="Nome, repositório, tipo..."
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+          />
+        </FilterBar>
 
-        {/* Tabela */}
-        <Card>
-          <div className={`space-y-3 md:hidden${atualizando ? ' opacity-60' : ''}`}>
-            {!dados || dados.registros.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-gray-200 px-4 py-8 text-center text-sm text-gray-500">
-                {carregando ? (
-                  'Carregando...'
-                ) : etapa || colaborador || dataInicio || dataFim || busca ? (
-                  <div className="space-y-2">
-                    <p>Nenhum registro encontrado para os filtros aplicados.</p>
-                    <button
-                      onClick={() => {
-                        setEtapa('');
-                        setColaborador('');
-                        setDataInicio('');
-                        setDataFim('');
-                        setBusca('');
-                      }}
-                      className="text-xs text-blue-600 hover:text-blue-800 font-medium"
-                    >
-                      Limpar filtros
-                    </button>
+        {/* Tabela — mobile cards */}
+        <div className={`space-y-3 md:hidden${atualizando ? ' opacity-60' : ''}`}>
+          {!dados || dados.registros.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-[var(--color-border-primary)] px-4 py-8 text-center text-sm text-[var(--color-text-secondary)]">
+              {carregando ? 'Carregando...' : 'Nenhum registro encontrado.'}
+            </div>
+          ) : (
+            dados.registros.map((reg) => (
+              <div
+                key={reg.id}
+                className="rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] p-3"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-[var(--color-text-primary)]">
+                      {reg.colaborador_nome}
+                    </p>
+                    <p className="text-xs text-[var(--color-text-secondary)]">
+                      {formatDateBR(reg.data_producao)}
+                    </p>
                   </div>
-                ) : (
-                  'Nenhum registro de produção cadastrado.'
-                )}
-              </div>
-            ) : (
-              dados.registros.map((reg) => (
-                <div key={reg.id} className="rounded-lg border border-gray-200 p-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-semibold text-gray-900">{reg.colaborador_nome}</p>
-                      <p className="text-xs text-gray-500">{formatDateBR(reg.data_producao)}</p>
-                    </div>
-                    <span className="text-sm font-semibold text-gray-900 tabular-nums">
-                      {formatCriticalNumber(reg.quantidade)}
-                    </span>
-                  </div>
-                  <p className="mt-2 font-mono text-xs text-gray-700 break-all">
-                    {reg.repositorio_ged}
-                  </p>
-                  <div className="mt-2 flex items-center justify-between gap-2 text-xs">
-                    <span className="text-gray-600">
-                      {reg.funcao || ETAPA_LABELS[reg.etapa] || reg.etapa}
-                    </span>
-                    <span className="text-gray-500">{reg.coordenadoria_sigla || '-'}</span>
-                  </div>
-                  <div className="mt-3 flex items-center justify-between">
-                    {reg.origem === 'LEGADO' ? (
-                      <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
-                        Legado
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800">
-                        Fluxo
-                      </span>
-                    )}
-                    {isAdmin && (
-                      <button
-                        onClick={() => void handleExcluir(reg.id)}
-                        className="rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-                        title="Excluir Registro"
-                      >
-                        <Icon name="trash" className="h-4 w-4" />
-                      </button>
-                    )}
-                  </div>
+                  <span className="text-sm font-semibold text-[var(--color-text-primary)] tabular-nums">
+                    {formatCriticalNumber(reg.quantidade)}
+                  </span>
                 </div>
-              ))
-            )}
-          </div>
-
-          <div className={`hidden overflow-x-auto md:block${atualizando ? ' opacity-60' : ''}`}>
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <SortableHeader column="data">Data</SortableHeader>
-                  <SortableHeader column="colaborador">Colaborador</SortableHeader>
-                  <SortableHeader column="repositorio">Repositório</SortableHeader>
-                  <SortableHeader column="funcao">Função</SortableHeader>
-                  <SortableHeader column="tipo">Unidade</SortableHeader>
-                  <SortableHeader column="quantidade" align="right">
-                    Qtd
-                  </SortableHeader>
-                  <SortableHeader column="coordenadoria">Coord.</SortableHeader>
-                  <SortableHeader column="origem" align="center">
-                    Origem
-                  </SortableHeader>
+                <p className="mt-2 font-mono text-xs text-[var(--color-text-primary)] break-all">
+                  {reg.repositorio_ged}
+                </p>
+                <div className="mt-2 flex items-center justify-between gap-2 text-xs">
+                  <span className="text-[var(--color-text-secondary)]">
+                    {reg.funcao || ETAPA_LABELS[reg.etapa] || reg.etapa}
+                  </span>
+                  <span className="text-[var(--color-text-tertiary)]">
+                    {reg.coordenadoria_sigla || '-'}
+                  </span>
+                </div>
+                <div className="mt-3 flex items-center justify-between">
+                  <span
+                    className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                      reg.origem === 'LEGADO'
+                        ? 'bg-[var(--color-gray-100)] text-[var(--color-gray-700)]'
+                        : 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)]'
+                    }`}
+                  >
+                    {reg.origem === 'LEGADO' ? 'Legado' : 'Fluxo'}
+                  </span>
                   {isAdmin && (
-                    <th className="px-3 py-2.5 text-center text-xs font-semibold text-gray-500 uppercase">
-                      Ações
-                    </th>
-                  )}
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-100">
-                {!dados || dados.registros.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={isAdmin ? 9 : 8}
-                      className="px-3 py-8 text-center text-sm text-gray-500"
+                    <button
+                      onClick={() => void handleExcluir(reg.id)}
+                      className="rounded-md p-2 text-[var(--color-text-tertiary)] hover:bg-[var(--color-gray-100)] hover:text-[var(--color-text-primary)]"
+                      title="Excluir Registro"
                     >
-                      {carregando ? (
-                        'Carregando...'
-                      ) : etapa || colaborador || dataInicio || dataFim || busca ? (
-                        <span>
-                          Nenhum registro encontrado para os filtros aplicados.{' '}
-                          <button
-                            onClick={() => {
-                              setEtapa('');
-                              setColaborador('');
-                              setDataInicio('');
-                              setDataFim('');
-                              setBusca('');
-                            }}
-                            className="text-blue-600 hover:text-blue-800 font-medium"
-                          >
-                            Limpar filtros
-                          </button>
-                        </span>
-                      ) : (
-                        'Nenhum registro de produção cadastrado.'
-                      )}
-                    </td>
-                  </tr>
-                ) : (
-                  registrosOrdenados.map((reg) => (
-                    <tr key={reg.id} className="hover:bg-gray-50">
-                      <td className="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">
-                        {formatDateBR(reg.data_producao)}
-                      </td>
-                      <td className="px-3 py-2 text-sm text-gray-800">{reg.colaborador_nome}</td>
-                      <td className="px-3 py-2 text-xs text-gray-800 font-mono max-w-[200px]">
-                        <span title={reg.repositorio_ged} className="block truncate">
-                          {reg.repositorio_ged}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2 text-sm text-gray-800">
-                        {reg.funcao || ETAPA_LABELS[reg.etapa] || reg.etapa}
-                      </td>
-                      <td className="px-3 py-2 text-sm text-gray-600">{reg.tipo || '-'}</td>
-                      <td className="px-3 py-2 text-sm text-gray-800 text-right font-medium tabular-nums">
-                        {formatCriticalNumber(reg.quantidade)}
-                      </td>
-                      <td className="px-3 py-2 text-sm text-gray-600">
-                        {reg.coordenadoria_sigla || '-'}
-                      </td>
-                      <td className="px-3 py-2 text-center">
-                        {reg.origem === 'LEGADO' ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-                            Legado
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                            Fluxo
-                          </span>
-                        )}
-                      </td>
-                      {isAdmin && (
-                        <td className="px-3 py-2 text-center">
-                          <button
-                            onClick={() => void handleExcluir(reg.id)}
-                            className="text-gray-400 hover:text-gray-700 p-2 rounded"
-                            title="Excluir Registro"
-                          >
-                            <Icon name="trash" className="w-4 h-4" />
-                          </button>
-                        </td>
-                      )}
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                      <Icon name="trash" className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Tabela — desktop */}
+        <div className={`hidden md:block${atualizando ? ' opacity-60' : ''}`}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableHeader
+                  sortable
+                  sortDirection={sortColumn === 'data' ? sortDirection : null}
+                  onSort={() => handleSort('data')}
+                >
+                  Data
+                </TableHeader>
+                <TableHeader
+                  sortable
+                  sortDirection={sortColumn === 'colaborador' ? sortDirection : null}
+                  onSort={() => handleSort('colaborador')}
+                >
+                  Colaborador
+                </TableHeader>
+                <TableHeader
+                  sortable
+                  sortDirection={sortColumn === 'repositorio' ? sortDirection : null}
+                  onSort={() => handleSort('repositorio')}
+                >
+                  Repositório
+                </TableHeader>
+                <TableHeader
+                  sortable
+                  sortDirection={sortColumn === 'funcao' ? sortDirection : null}
+                  onSort={() => handleSort('funcao')}
+                >
+                  Função
+                </TableHeader>
+                <TableHeader
+                  sortable
+                  sortDirection={sortColumn === 'tipo' ? sortDirection : null}
+                  onSort={() => handleSort('tipo')}
+                >
+                  Unidade
+                </TableHeader>
+                <TableHeader
+                  align="right"
+                  sortable
+                  sortDirection={sortColumn === 'quantidade' ? sortDirection : null}
+                  onSort={() => handleSort('quantidade')}
+                >
+                  Qtd
+                </TableHeader>
+                <TableHeader
+                  sortable
+                  sortDirection={sortColumn === 'coordenadoria' ? sortDirection : null}
+                  onSort={() => handleSort('coordenadoria')}
+                >
+                  Coord.
+                </TableHeader>
+                <TableHeader
+                  align="center"
+                  sortable
+                  sortDirection={sortColumn === 'origem' ? sortDirection : null}
+                  onSort={() => handleSort('origem')}
+                >
+                  Origem
+                </TableHeader>
+                {isAdmin && <TableHeader align="center">Ações</TableHeader>}
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {!dados || registrosOrdenados.length === 0 ? (
+                <TableEmptyState
+                  colSpan={isAdmin ? 9 : 8}
+                  title="Nenhum registro encontrado"
+                  description={
+                    etapa || colaborador || dataInicio || dataFim || busca
+                      ? 'Ajuste os filtros ou tente outro período.'
+                      : 'Nenhum registro de produção cadastrado.'
+                  }
+                />
+              ) : (
+                registrosOrdenados.map((reg) => (
+                  <TableRow key={reg.id}>
+                    <TableCell className="whitespace-nowrap">
+                      {formatDateBR(reg.data_producao)}
+                    </TableCell>
+                    <TableCell>{reg.colaborador_nome}</TableCell>
+                    <TableCell className="font-mono text-xs max-w-[200px]">
+                      <span title={reg.repositorio_ged} className="block truncate">
+                        {reg.repositorio_ged}
+                      </span>
+                    </TableCell>
+                    <TableCell>{reg.funcao || ETAPA_LABELS[reg.etapa] || reg.etapa}</TableCell>
+                    <TableCell>{reg.tipo || '-'}</TableCell>
+                    <TableCell align="right" className="font-medium tabular-nums">
+                      {formatCriticalNumber(reg.quantidade)}
+                    </TableCell>
+                    <TableCell>{reg.coordenadoria_sigla || '-'}</TableCell>
+                    <TableCell align="center">
+                      <span
+                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                          reg.origem === 'LEGADO'
+                            ? 'bg-[var(--color-gray-100)] text-[var(--color-gray-700)]'
+                            : 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)]'
+                        }`}
+                      >
+                        {reg.origem === 'LEGADO' ? 'Legado' : 'Fluxo'}
+                      </span>
+                    </TableCell>
+                    {isAdmin && (
+                      <TableCell align="center">
+                        <button
+                          onClick={() => void handleExcluir(reg.id)}
+                          className="text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)] p-2 rounded"
+                          title="Excluir Registro"
+                        >
+                          <Icon name="trash" className="w-4 h-4" />
+                        </button>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
 
           {dados && dados.registros.length > 0 && (
-            <p className="mt-3 text-xs text-gray-500 text-center">
+            <p className="mt-3 text-xs text-[var(--color-text-secondary)] text-center">
               Exibindo {(dados.pagina - 1) * 25 + 1}–
               {(dados.pagina - 1) * 25 + dados.registros.length} de{' '}
               {formatCriticalNumber(dados.total)} registro{dados.total !== 1 ? 's' : ''}
@@ -673,7 +635,7 @@ export function ProducaoPage(): JSX.Element {
               onChange={setPagina}
             />
           )}
-        </Card>
+        </div>
       </div>
     </PageState>
   );

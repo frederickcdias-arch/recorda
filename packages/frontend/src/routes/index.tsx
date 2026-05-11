@@ -177,18 +177,18 @@ export const router = createBrowserRouter([
         element: <Navigate to="/operacao/recebimento" replace />,
       },
       {
-        path: 'operacao/:etapa',
-        element: (
-          <PageSuspense>
-            <EtapaOperacionalPage />
-          </PageSuspense>
-        ),
-      },
-      {
         path: 'operacao/conhecimento',
         element: (
           <PageSuspense>
             <ConhecimentoOperacionalPage />
+          </PageSuspense>
+        ),
+      },
+      {
+        path: 'operacao/:etapa',
+        element: (
+          <PageSuspense>
+            <EtapaOperacionalPage />
           </PageSuspense>
         ),
       },

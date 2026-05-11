@@ -3,6 +3,19 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Icon } from '../../components/ui/Icon';
 import { Button } from '../../components/ui/Button';
 import { ActionFeedback } from '../../components/ui/PageState';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { FilterBar } from '../../components/ui/FilterBar';
+import { DateRangePicker } from '../../components/ui/DateRangePicker';
+import { Select } from '../../components/ui/Select';
+import {
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableHeader,
+  TableCell,
+  TableEmptyState,
+} from '../../components/ui/Table';
 import { api } from '../../services/api';
 import { useCoordenadorias } from '../../hooks/useQueries';
 import { formatDateBR, formatDateTimeBR } from '../../utils/date';
@@ -295,66 +308,24 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-bold text-gray-900">Relatórios Gerenciais</h1>
-        <p className="mt-1 text-gray-500">
-          Resumo consolidado da produção por período, coordenadoria e colaborador.
-        </p>
-      </header>
+      <PageHeader
+        title="Relatórios Gerenciais"
+        subtitle="Resumo consolidado da produção por período, coordenadoria e colaborador."
+      />
+
+      {mensagem && (
+        <ActionFeedback
+          type={mensagem.tipo}
+          title={mensagem.texto}
+          message={mensagem.detalhes ?? ''}
+          onDismiss={() => setMensagem(null)}
+        />
+      )}
 
       {/* Filtros */}
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Resumo Gerencial de Produção</h2>
-
-        {mensagem && (
-          <div className="mb-4">
-            <ActionFeedback
-              type={mensagem.tipo}
-              title={mensagem.texto}
-              message={mensagem.detalhes ?? ''}
-              onDismiss={() => setMensagem(null)}
-            />
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Data Início</label>
-            <input
-              type="date"
-              value={dataInicio}
-              max={dataFim || undefined}
-              onChange={(e) => setDataInicio(e.target.value)}
-              className="w-full h-9 px-3 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Data Fim</label>
-            <input
-              type="date"
-              value={dataFim}
-              min={dataInicio || undefined}
-              onChange={(e) => setDataFim(e.target.value)}
-              className="w-full h-9 px-3 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Coordenadoria</label>
-            <select
-              value={coordenadoriaId}
-              onChange={(e) => setCoordenadoriaId(e.target.value)}
-              disabled={carregandoCoordenadorias}
-              className="w-full h-9 px-2 text-sm border rounded-lg disabled:opacity-50"
-            >
-              <option value="">{carregandoCoordenadorias ? 'Carregando...' : 'Todas'}</option>
-              {coordenadorias.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.sigla} - {c.nome}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="sm:col-span-2 lg:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-2 items-end">
+      <FilterBar
+        actions={
+          <div className="flex flex-wrap gap-2">
             <Button
               variant="primary"
               icon="search"
@@ -365,36 +336,56 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
               Visualizar
             </Button>
             <Button
-              variant="primary"
+              variant="secondary"
               icon="file-text"
               onClick={() => void handleExportar('pdf')}
               loading={gerando === 'pdf'}
               disabled={gerando !== null || carregandoRelatorio}
-              className="bg-blue-700 hover:bg-blue-800"
             >
               PDF
             </Button>
             <Button
-              variant="primary"
+              variant="secondary"
               icon="table"
               onClick={() => void handleExportar('excel')}
               loading={gerando === 'excel'}
               disabled={gerando !== null || carregandoRelatorio}
-              className="bg-blue-500 hover:bg-blue-600"
             >
               Excel
             </Button>
           </div>
+        }
+      >
+        <div className="sm:col-span-2 lg:col-span-2">
+          <DateRangePicker
+            startDate={dataInicio}
+            endDate={dataFim}
+            onStartDateChange={setDataInicio}
+            onEndDateChange={setDataFim}
+            showPresets={false}
+          />
         </div>
-      </div>
+        <Select
+          label="Coordenadoria"
+          value={coordenadoriaId}
+          onChange={(e) => setCoordenadoriaId(e.target.value)}
+          disabled={carregandoCoordenadorias}
+          options={[
+            { value: '', label: carregandoCoordenadorias ? 'Carregando...' : 'Todas' },
+            ...coordenadorias.map((c) => ({ value: c.id, label: `${c.sigla} - ${c.nome}` })),
+          ]}
+        />
+      </FilterBar>
 
       {/* Dados do Relatório */}
       {relatorio && (
         <>
           {/* Cabeçalho do relatório */}
-          <div className="bg-blue-50 rounded-xl p-4 border border-blue-200 text-center">
-            <h3 className="text-lg font-bold text-blue-900">{relatorio.titulo.toUpperCase()}</h3>
-            <p className="text-sm text-blue-700 mt-1">
+          <div className="bg-[var(--color-primary-50)] rounded-xl p-4 border border-[var(--color-primary-200)] text-center">
+            <h3 className="text-lg font-bold text-[var(--color-primary-900)]">
+              {relatorio.titulo.toUpperCase()}
+            </h3>
+            <p className="text-sm text-[var(--color-primary-700)] mt-1">
               Período: {formatDateBR(relatorio.periodo.inicio)} a{' '}
               {formatDateBR(relatorio.periodo.fim)}
               {' | '}Emitido em: {formatDateTimeBR(relatorio.dataGeracao)}
@@ -402,8 +393,8 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
           </div>
 
           {/* RESUMO GERAL POR ETAPA */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="flex items-center gap-2 px-5 py-3 bg-blue-800 text-white">
+          <div className="bg-[var(--color-bg-primary)] rounded-xl shadow-xs border border-[var(--color-border-primary)] overflow-hidden">
+            <div className="flex items-center gap-2 px-5 py-3 bg-primary-800 text-white">
               <Icon name="bar-chart" className="w-4 h-4" />
               <h3 className="font-semibold text-sm">RESUMO GERAL POR ETAPA</h3>
             </div>
@@ -432,53 +423,47 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
                 </p>
               </div>
             </div>
-            <div className="hidden overflow-x-auto md:block">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-blue-50">
-                  <tr>
-                    <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-600 uppercase">
-                      Etapa
-                    </th>
-                    <th className="px-4 py-2.5 text-right text-xs font-semibold text-gray-600 uppercase">
-                      Total
-                    </th>
-                    <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-600 uppercase">
-                      Unidade
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
+            <div className="hidden md:block">
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableHeader>Etapa</TableHeader>
+                    <TableHeader align="right">Total</TableHeader>
+                    <TableHeader>Unidade</TableHeader>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
                   {relatorio.resumoPorEtapa.map((etapa) => (
-                    <tr key={etapa.etapaId} className="hover:bg-gray-50">
-                      <td className="px-4 py-2 text-sm text-gray-800">{etapa.etapaNome}</td>
-                      <td className="px-4 py-2 text-sm text-gray-800 text-right font-medium tabular-nums">
+                    <TableRow key={etapa.etapaId}>
+                      <TableCell>{etapa.etapaNome}</TableCell>
+                      <TableCell align="right" className="font-medium tabular-nums">
                         {formatNum(etapa.totalQuantidade)}
-                      </td>
-                      <td className="px-4 py-2 text-sm text-gray-500">{etapa.unidade}</td>
-                    </tr>
+                      </TableCell>
+                      <TableCell>{etapa.unidade}</TableCell>
+                    </TableRow>
                   ))}
-                  <tr className="bg-gray-50 font-bold">
-                    <td className="px-4 py-2 text-sm text-gray-900">TOTAL CAIXAS</td>
-                    <td className="px-4 py-2 text-sm text-gray-900 text-right tabular-nums">
+                  <TableRow>
+                    <TableCell className="font-bold">TOTAL CAIXAS</TableCell>
+                    <TableCell align="right" className="font-bold tabular-nums">
                       {formatNum(relatorio.totais.totalCaixas)}
-                    </td>
-                    <td className="px-4 py-2 text-sm text-gray-500">CAIXAS</td>
-                  </tr>
-                  <tr className="bg-gray-50 font-bold">
-                    <td className="px-4 py-2 text-sm text-gray-900">TOTAL IMAGENS</td>
-                    <td className="px-4 py-2 text-sm text-gray-900 text-right tabular-nums">
+                    </TableCell>
+                    <TableCell className="font-bold">CAIXAS</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell className="font-bold">TOTAL IMAGENS</TableCell>
+                    <TableCell align="right" className="font-bold tabular-nums">
                       {formatNum(relatorio.totais.totalImagens)}
-                    </td>
-                    <td className="px-4 py-2 text-sm text-gray-500">IMAGENS</td>
-                  </tr>
-                </tbody>
-              </table>
+                    </TableCell>
+                    <TableCell className="font-bold">IMAGENS</TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
             </div>
           </div>
 
           {/* POR COORDENADORIA E ETAPA */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="flex items-center gap-2 px-5 py-3 bg-blue-700 text-white">
+          <div className="bg-[var(--color-bg-primary)] rounded-xl shadow-xs border border-[var(--color-border-primary)] overflow-hidden">
+            <div className="flex items-center gap-2 px-5 py-3 bg-primary-700 text-white">
               <Icon name="building" className="w-4 h-4" />
               <h3 className="font-semibold text-sm">POR COORDENADORIA E ETAPA</h3>
             </div>
@@ -504,48 +489,37 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
                 ))
               )}
             </div>
-            <div className="hidden overflow-x-auto md:block">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-blue-50">
-                  <tr>
-                    <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-600 uppercase">
-                      Coordenadoria
-                    </th>
-                    <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-600 uppercase">
-                      Etapa
-                    </th>
-                    <th className="px-4 py-2.5 text-right text-xs font-semibold text-gray-600 uppercase">
-                      Total
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {coordEtapaRows.map((row, i) => (
-                    <tr key={`${row.coordenadoria}-${row.etapa}-${i}`} className="hover:bg-gray-50">
-                      <td className="px-4 py-2 text-sm text-gray-800 font-medium">
-                        {row.coordenadoria}
-                      </td>
-                      <td className="px-4 py-2 text-sm text-gray-800">{row.etapa}</td>
-                      <td className="px-4 py-2 text-sm text-gray-800 text-right tabular-nums">
-                        {formatNum(row.total)}
-                      </td>
-                    </tr>
-                  ))}
-                  {coordEtapaRows.length === 0 && (
-                    <tr>
-                      <td colSpan={3} className="px-4 py-4 text-center text-sm text-gray-400">
-                        Sem dados
-                      </td>
-                    </tr>
+            <div className="hidden md:block">
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableHeader>Coordenadoria</TableHeader>
+                    <TableHeader>Etapa</TableHeader>
+                    <TableHeader align="right">Total</TableHeader>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {coordEtapaRows.length === 0 ? (
+                    <TableEmptyState colSpan={3} title="Sem dados" />
+                  ) : (
+                    coordEtapaRows.map((row, i) => (
+                      <TableRow key={`${row.coordenadoria}-${row.etapa}-${i}`}>
+                        <TableCell className="font-medium">{row.coordenadoria}</TableCell>
+                        <TableCell>{row.etapa}</TableCell>
+                        <TableCell align="right" className="tabular-nums">
+                          {formatNum(row.total)}
+                        </TableCell>
+                      </TableRow>
+                    ))
                   )}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           </div>
 
           {/* PRODUÇÃO POR COLABORADOR */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="flex items-center gap-2 px-5 py-3 bg-blue-600 text-white">
+          <div className="bg-[var(--color-bg-primary)] rounded-xl shadow-xs border border-[var(--color-border-primary)] overflow-hidden">
+            <div className="flex items-center gap-2 px-5 py-3 bg-primary-600 text-white">
               <Icon name="users" className="w-4 h-4" />
               <h3 className="font-semibold text-sm">PRODUÇÃO POR COLABORADOR</h3>
             </div>
@@ -571,48 +545,37 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
                 ))
               )}
             </div>
-            <div className="hidden overflow-x-auto md:block">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-blue-50">
-                  <tr>
-                    <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-600 uppercase">
-                      Colaborador
-                    </th>
-                    <th className="px-4 py-2.5 text-left text-xs font-semibold text-gray-600 uppercase">
-                      Etapa
-                    </th>
-                    <th className="px-4 py-2.5 text-right text-xs font-semibold text-gray-600 uppercase">
-                      Produção
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {colabRows.map((row, i) => (
-                    <tr key={`${row.colaborador}-${row.etapa}-${i}`} className="hover:bg-gray-50">
-                      <td className="px-4 py-2 text-sm text-gray-800 font-medium">
-                        {row.colaborador}
-                      </td>
-                      <td className="px-4 py-2 text-sm text-gray-800">{row.etapa}</td>
-                      <td className="px-4 py-2 text-sm text-gray-800 text-right tabular-nums">
-                        {formatNum(row.producao)} {row.unidade}
-                      </td>
-                    </tr>
-                  ))}
-                  {colabRows.length === 0 && (
-                    <tr>
-                      <td colSpan={3} className="px-4 py-4 text-center text-sm text-gray-400">
-                        Sem dados
-                      </td>
-                    </tr>
+            <div className="hidden md:block">
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableHeader>Colaborador</TableHeader>
+                    <TableHeader>Etapa</TableHeader>
+                    <TableHeader align="right">Produção</TableHeader>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {colabRows.length === 0 ? (
+                    <TableEmptyState colSpan={3} title="Sem dados" />
+                  ) : (
+                    colabRows.map((row, i) => (
+                      <TableRow key={`${row.colaborador}-${row.etapa}-${i}`}>
+                        <TableCell className="font-medium">{row.colaborador}</TableCell>
+                        <TableCell>{row.etapa}</TableCell>
+                        <TableCell align="right" className="tabular-nums">
+                          {formatNum(row.producao)} {row.unidade}
+                        </TableCell>
+                      </TableRow>
+                    ))
                   )}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           </div>
 
           {/* GLOSSÁRIO */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div className="flex items-center gap-2 px-5 py-3 bg-gray-600 text-white">
+          <div className="bg-[var(--color-bg-primary)] rounded-xl shadow-xs border border-[var(--color-border-primary)] overflow-hidden">
+            <div className="flex items-center gap-2 px-5 py-3 bg-[var(--color-gray-600)] text-white">
               <Icon name="book" className="w-4 h-4" />
               <h3 className="font-semibold text-sm">GLOSSÁRIO DAS ETAPAS</h3>
             </div>

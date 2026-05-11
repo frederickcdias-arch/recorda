@@ -30,18 +30,22 @@ export function ConfirmDialog({
   const variantStyles = {
     danger: 'text-gray-900',
     warning: 'text-gray-900',
-    default: 'text-blue-600',
+    default: 'text-primary-600',
   };
 
   const buttonVariant = state.variant === 'danger' ? 'danger' : 'primary';
 
   return (
-    <div className={`fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 ${
-      isClosing ? 'animate-fade-out' : 'animate-fade-in'
-    }`}>
-      <div className={`bg-white rounded-xl shadow-xl w-full max-w-md p-6 ${
-        isClosing ? 'animate-scale-out' : 'animate-scale-in'
-      }`}>
+    <div
+      className={`fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 ${
+        isClosing ? 'animate-fade-out' : 'animate-fade-in'
+      }`}
+    >
+      <div
+        className={`bg-white rounded-xl shadow-xl w-full max-w-md p-6 ${
+          isClosing ? 'animate-scale-out' : 'animate-scale-in'
+        }`}
+      >
         <h3 className={`text-lg font-semibold ${variantStyles[state.variant]} mb-2`}>
           {state.title}
         </h3>

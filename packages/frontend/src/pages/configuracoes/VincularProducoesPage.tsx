@@ -47,12 +47,20 @@ export function VincularProducoesPage(): JSX.Element {
     null
   );
 
-  const { data: colaboradores, isLoading: loadingColaboradores, error: erroColaboradores } = useQuery({
+  const {
+    data: colaboradores,
+    isLoading: loadingColaboradores,
+    error: erroColaboradores,
+  } = useQuery({
     queryKey: ['colaboradores-legado'],
     queryFn: () => api.get<ColaboradorLegado[]>('/admin/colaboradores-legado'),
   });
 
-  const { data: usuarios, isLoading: loadingUsuarios, error: erroUsuarios } = useQuery({
+  const {
+    data: usuarios,
+    isLoading: loadingUsuarios,
+    error: erroUsuarios,
+  } = useQuery({
     queryKey: ['usuarios-colaboradores'],
     queryFn: () => api.get<UsuarioColaborador[]>('/admin/usuarios-colaboradores'),
   });
@@ -175,7 +183,9 @@ export function VincularProducoesPage(): JSX.Element {
                     <button
                       key={colab.nome}
                       onClick={() => {
-                        setColaboradorSelecionado(colab.nome === colaboradorSelecionado ? '' : colab.nome);
+                        setColaboradorSelecionado(
+                          colab.nome === colaboradorSelecionado ? '' : colab.nome
+                        );
                         setMostrarPreview(false);
                       }}
                       className={`w-full text-left p-3 rounded-lg border transition-colors ${

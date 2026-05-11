@@ -5,6 +5,7 @@ import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { PageState, ActionFeedback } from '../../components/ui/PageState';
+import { PageHeader } from '../../components/ui/PageHeader';
 import { MarkdownEditor, MarkdownViewer } from '../../components/ui/MarkdownEditor';
 import { useAuth } from '../../contexts/AuthContext';
 import {
@@ -400,10 +401,10 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
       error={activeTab === 'documentos' ? errorWithAction : null}
     >
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Conhecimento Operacional</h1>
-          <p className="text-gray-500 mt-1">Referência operacional, glossário e legislação.</p>
-        </div>
+        <PageHeader
+          title="Conhecimento Operacional"
+          subtitle="Referência operacional, glossário e legislação."
+        />
 
         {message ? (
           <ActionFeedback
