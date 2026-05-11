@@ -20,12 +20,22 @@ interface CriarDevolucaoBody {
   }>;
 }
 
+/** Normalise a DATE value returned by node-postgres (may be a Date object or a 'YYYY-MM-DD' string). */
+function toDateString(value: unknown): string {
+  if (value instanceof Date) return value.toISOString().split('T')[0] ?? '';
+  if (typeof value === 'string') return value.split('T')[0] ?? value;
+  return String(value);
+}
+
 /**
  * Rotas de Devolução Operacional.
- * POST  /operacional/devolucoes          — cria devolução com itens
- * GET   /operacional/devolucoes          — lista/busca devoluções (paginado)
- * GET   /operacional/devolucoes/:id      — detalhes de uma devolução + itens
- * GET   /operacional/devolucoes/:id/pdf  — gera PDF do termo
+ * POST   /operacional/devolucoes          — cria devolução com itens
+ * GET    /operacional/devolucoes          — lista/busca devoluções (paginado)
+ * GET    /operacional/devolucoes/:id      — detalhes de uma devolução + itens
+ * PUT    /operacional/devolucoes/:id      — atualiza cabeçalho (data/coord/responsável/obs)
+ * DELETE /operacional/devolucoes/:id      — exclui devolução e seus itens
+ * GET    /operacional/devolucoes/:id/pdf  — gera PDF do termo
+ * GET    /operacional/responsaveis-retirada-opcoes — lista responsáveis históricos
  */
 export function createOperacionalDevolucoesRoutes(): FastifyPluginAsync {
   return async (server: FastifyInstance): Promise<void> => {
@@ -351,12 +361,13 @@ export function createOperacionalDevolucoesRoutes(): FastifyPluginAsync {
           }
 
           const coordenadoriaDestino = devolucao.coordenadoria_destino.trim();
+          const dataDevolucaoStr = toDateString(devolucao.data_devolucao);
 
           const pdfBuffer = await pdfService.gerarTermoDevolucaoOperacional(
             {
               coordenadoriaDestino,
               responsavelRetirada: devolucao.responsavel_retirada,
-              dataDevolucao: String(devolucao.data_devolucao),
+              dataDevolucao: dataDevolucaoStr,
               observacoes: devolucao.observacoes,
               processos: (itensRes.rows as Record<string, string>[]).map((item) => ({
                 repositorio: item.repositorio ?? '',
@@ -371,9 +382,7 @@ export function createOperacionalDevolucoesRoutes(): FastifyPluginAsync {
             empresa
           );
 
-          const dataFormatada = new Date(devolucao.data_devolucao + 'T12:00:00')
-            .toLocaleDateString('pt-BR')
-            .replace(/\//g, '-');
+          const dataFormatada = dataDevolucaoStr.split('-').reverse().join('/');
           const sigla = devolucao.coordenadoria_destino
             .replace(/[^a-zA-Z0-9À-ÿ\s]/gi, '')
             .trim()
@@ -505,6 +514,138 @@ export function createOperacionalDevolucoesRoutes(): FastifyPluginAsync {
           return reply.send({ opcoes: (result.rows as { nome: string }[]).map((r) => r.nome) });
         } catch (error) {
           const message = error instanceof Error ? error.message : 'Erro ao buscar coordenadorias';
+          return sendDatabaseError(reply, error, message);
+        }
+      }
+    );
+
+    // ============================================================
+    // GET /operacional/responsaveis-retirada-opcoes
+    // Retorna lista de responsáveis históricos para o autocomplete
+    // ============================================================
+    server.get(
+      '/operacional/responsaveis-retirada-opcoes',
+      {
+        schema: {
+          tags: ['operacional'],
+          summary: 'Lista de responsáveis históricos de retirada',
+          security: [{ bearerAuth: [] }],
+        },
+        preHandler: [server.authenticate, authorize('operador', 'administrador')],
+      },
+      async (_request, reply) => {
+        try {
+          const result = await server.database.query(`
+            SELECT DISTINCT TRIM(responsavel_retirada) AS nome
+            FROM devolucoes_operacionais
+            WHERE LENGTH(TRIM(responsavel_retirada)) > 0
+            ORDER BY nome ASC
+            LIMIT 200
+          `);
+          return reply.send({ opcoes: (result.rows as { nome: string }[]).map((r) => r.nome) });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Erro ao buscar responsáveis';
+          return sendDatabaseError(reply, error, message);
+        }
+      }
+    );
+
+    // ============================================================
+    // PUT /operacional/devolucoes/:id
+    // Atualiza cabeçalho da devolução (data, coordenadoria, responsável, obs)
+    // ============================================================
+    server.put(
+      '/operacional/devolucoes/:id',
+      {
+        schema: {
+          tags: ['operacional'],
+          summary: 'Atualizar cabeçalho de uma devolução operacional',
+          security: [{ bearerAuth: [] }],
+          params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+          body: {
+            type: 'object',
+            required: ['dataDevolucao', 'coordenadoriaDestino', 'responsavelRetirada'],
+            properties: {
+              dataDevolucao: { type: 'string' },
+              coordenadoriaDestino: { type: 'string' },
+              responsavelRetirada: { type: 'string' },
+              observacoes: { type: 'string' },
+            },
+          },
+        },
+        preHandler: [server.authenticate, authorize('operador', 'administrador')],
+      },
+      async (request, reply) => {
+        const { id } = request.params as { id: string };
+        const body = request.body as {
+          dataDevolucao: string;
+          coordenadoriaDestino: string;
+          responsavelRetirada: string;
+          observacoes?: string;
+        };
+
+        if (!body.responsavelRetirada?.trim()) {
+          return reply.status(400).send({ error: 'Responsável pela retirada é obrigatório' });
+        }
+        if (!body.coordenadoriaDestino?.trim()) {
+          return reply.status(400).send({ error: 'Coordenadoria destino é obrigatória' });
+        }
+
+        try {
+          const result = await server.database.query(
+            `UPDATE devolucoes_operacionais
+             SET data_devolucao = $1,
+                 coordenadoria_destino = $2,
+                 responsavel_retirada = $3,
+                 observacoes = $4
+             WHERE id = $5
+             RETURNING id, data_devolucao, coordenadoria_destino, responsavel_retirada, observacoes`,
+            [
+              body.dataDevolucao,
+              body.coordenadoriaDestino.trim(),
+              body.responsavelRetirada.trim(),
+              body.observacoes?.trim() || null,
+              id,
+            ]
+          );
+          if (result.rows.length === 0) {
+            return reply.status(404).send({ error: 'Devolução não encontrada' });
+          }
+          return reply.send(result.rows[0]);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Erro ao atualizar devolução';
+          return sendDatabaseError(reply, error, message);
+        }
+      }
+    );
+
+    // ============================================================
+    // DELETE /operacional/devolucoes/:id
+    // ============================================================
+    server.delete(
+      '/operacional/devolucoes/:id',
+      {
+        schema: {
+          tags: ['operacional'],
+          summary: 'Excluir devolução operacional (cascata nos itens)',
+          security: [{ bearerAuth: [] }],
+          params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+        },
+        preHandler: [server.authenticate, authorize('operador', 'administrador')],
+      },
+      async (request, reply) => {
+        const { id } = request.params as { id: string };
+        try {
+          const result = await server.database.query(
+            'DELETE FROM devolucoes_operacionais WHERE id = $1 RETURNING id',
+            [id]
+          );
+          if (result.rows.length === 0) {
+            return reply.status(404).send({ error: 'Devolução não encontrada' });
+          }
+          return reply.status(204).send();
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Erro ao excluir devolução';
           return sendDatabaseError(reply, error, message);
         }
       }

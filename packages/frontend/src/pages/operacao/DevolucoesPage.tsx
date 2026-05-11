@@ -13,7 +13,10 @@ import {
   useDevolucoes,
   useDevolucaoDetalhe,
   useCriarDevolucao,
+  useEditarDevolucao,
+  useExcluirDevolucao,
   useCoordenadestinoOpcoes,
+  useResponsaveisRetiradaOpcoes,
   useOrgaosRecebimento,
   useBuscarRecebimentoProcessos,
   type DevolucaoOperacional,
@@ -35,9 +38,10 @@ function gerarTempId(): string {
   return `tmp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-function formatarData(isoDate: string): string {
-  const parts = isoDate.split('T')[0]?.split('-');
-  if (!parts || parts.length < 3) return isoDate;
+function formatarData(value: string | null | undefined): string {
+  if (!value) return '—';
+  const parts = String(value).split('T')[0]?.split('-');
+  if (!parts || parts.length < 3) return String(value);
   return `${parts[2]}/${parts[1]}/${parts[0]}`;
 }
 
@@ -128,6 +132,7 @@ interface ModalDevolucaoProps {
 function ModalNovaDevolucao({ onClose, onSaved }: ModalDevolucaoProps): JSX.Element {
   const toast = useToastHelpers();
   const coordOpcoes = useCoordenadestinoOpcoes();
+  const respOpcoes = useResponsaveisRetiradaOpcoes();
   const orgaosQuery = useOrgaosRecebimento();
   const criarMut = useCriarDevolucao();
   const buscarProcessosMut = useBuscarRecebimentoProcessos();
@@ -157,6 +162,7 @@ function ModalNovaDevolucao({ onClose, onSaved }: ModalDevolucaoProps): JSX.Elem
   });
 
   const opcoesCoordenadorias = coordOpcoes.data ?? [];
+  const opcoesResponsaveis = respOpcoes.data ?? [];
   const orgaosOptions = orgaosQuery.data ?? [];
 
   // Destructure mutateAsync so the callback only depends on the stable function
@@ -307,13 +313,21 @@ function ModalNovaDevolucao({ onClose, onSaved }: ModalDevolucaoProps): JSX.Elem
               opcoes={opcoesCoordenadorias}
               required
             />
-            <Input
-              label="Responsável pela Retirada"
-              value={responsavelRetirada}
-              onChange={(e) => setResponsavelRetirada(e.target.value)}
-              placeholder="Nome de quem retirou os documentos"
-              required
-            />
+            <div>
+              <Input
+                label="Responsável pela Retirada"
+                value={responsavelRetirada}
+                onChange={(e) => setResponsavelRetirada(e.target.value)}
+                placeholder="Nome de quem retirou os documentos"
+                required
+                list="devol-responsaveis-list"
+              />
+              <datalist id="devol-responsaveis-list">
+                {opcoesResponsaveis.map((r) => (
+                  <option key={r} value={r} />
+                ))}
+              </datalist>
+            </div>
             <Input
               label="Observações"
               value={observacoes}
@@ -604,6 +618,130 @@ function ModalNovaDevolucao({ onClose, onSaved }: ModalDevolucaoProps): JSX.Elem
   );
 }
 
+// ─── Modal Editar Devolução (cabeçalho) ──────────────────────
+
+interface ModalEditarDevolucaoProps {
+  devolucao: DevolucaoOperacional;
+  onClose: () => void;
+  onSaved: () => void;
+}
+
+function ModalEditarDevolucao({
+  devolucao,
+  onClose,
+  onSaved,
+}: ModalEditarDevolucaoProps): JSX.Element {
+  const toast = useToastHelpers();
+  const coordOpcoes = useCoordenadestinoOpcoes();
+  const respOpcoes = useResponsaveisRetiradaOpcoes();
+  const editarMut = useEditarDevolucao();
+
+  const [dataDevolucao, setDataDevolucao] = useState(
+    String(devolucao.data_devolucao).split('T')[0] ?? ''
+  );
+  const [coordenadoriaDestino, setCoordenadoriaDestino] = useState(devolucao.coordenadoria_destino);
+  const [responsavelRetirada, setResponsavelRetirada] = useState(devolucao.responsavel_retirada);
+  const [observacoes, setObservacoes] = useState(devolucao.observacoes ?? '');
+
+  const opcoesCoordenadorias = coordOpcoes.data ?? [];
+  const opcoesResponsaveis = respOpcoes.data ?? [];
+
+  const handleSalvar = async () => {
+    if (!dataDevolucao) {
+      toast.error('Data é obrigatória');
+      return;
+    }
+    if (!coordenadoriaDestino.trim()) {
+      toast.error('Coordenadoria destino é obrigatória');
+      return;
+    }
+    if (!responsavelRetirada.trim()) {
+      toast.error('Responsável pela retirada é obrigatório');
+      return;
+    }
+    try {
+      await editarMut.mutateAsync({
+        id: devolucao.id,
+        dataDevolucao,
+        coordenadoriaDestino: coordenadoriaDestino.trim(),
+        responsavelRetirada: responsavelRetirada.trim(),
+        observacoes: observacoes.trim() || undefined,
+      });
+      toast.success('Devolução atualizada com sucesso!');
+      onSaved();
+      onClose();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao atualizar devolução');
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg">
+        <div className="flex items-center justify-between p-5 border-b">
+          <h2 className="text-base font-semibold text-gray-900">Editar Devolução</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 text-xl leading-none"
+            aria-label="Fechar"
+          >
+            ×
+          </button>
+        </div>
+        <div className="p-5 space-y-4">
+          <Input
+            label="Data da Devolução"
+            type="date"
+            value={dataDevolucao}
+            max={new Date().toISOString().split('T')[0]}
+            onChange={(e) => setDataDevolucao(e.target.value)}
+            required
+          />
+          <CoordCombobox
+            value={coordenadoriaDestino}
+            onChange={setCoordenadoriaDestino}
+            opcoes={opcoesCoordenadorias}
+            required
+          />
+          <div>
+            <Input
+              label="Responsável pela Retirada"
+              value={responsavelRetirada}
+              onChange={(e) => setResponsavelRetirada(e.target.value)}
+              placeholder="Nome de quem retirou os documentos"
+              required
+              list="editar-responsaveis-list"
+            />
+            <datalist id="editar-responsaveis-list">
+              {opcoesResponsaveis.map((r) => (
+                <option key={r} value={r} />
+              ))}
+            </datalist>
+          </div>
+          <Input
+            label="Observações"
+            value={observacoes}
+            onChange={(e) => setObservacoes(e.target.value)}
+            placeholder="Opcional"
+          />
+        </div>
+        <div className="flex justify-end gap-3 px-5 py-4 border-t bg-gray-50 rounded-b-xl">
+          <Button variant="outline" onClick={onClose} disabled={editarMut.isPending}>
+            Cancelar
+          </Button>
+          <Button
+            variant="primary"
+            onClick={() => void handleSalvar()}
+            disabled={editarMut.isPending}
+          >
+            {editarMut.isPending ? 'Salvando…' : 'Salvar Alterações'}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Detalhe de Devolução (lista de itens inline) ─────────────
 
 interface DetalheDevolucaoProps {
@@ -729,6 +867,10 @@ export function DevolucoesPage(): JSX.Element {
 
   const [modalAberto, setModalAberto] = useState(false);
   const [devolucaoDetalhId, setDevolucaoDetalhId] = useState<string | null>(null);
+  const [devolucaoEditando, setDevolucaoEditando] = useState<DevolucaoOperacional | null>(null);
+  const [confirmandoExclusao, setConfirmandoExclusao] = useState<DevolucaoOperacional | null>(null);
+
+  const excluirMut = useExcluirDevolucao();
 
   const debouncedBusca = useDebounce(busca, 400);
 
@@ -776,6 +918,17 @@ export function DevolucoesPage(): JSX.Element {
     setDataInicio('');
     setDataFim('');
     setPagina(1);
+  };
+
+  const handleConfirmarExclusao = async () => {
+    if (!confirmandoExclusao) return;
+    try {
+      await excluirMut.mutateAsync(confirmandoExclusao.id);
+      toast.success('Devolução excluída com sucesso.');
+      setConfirmandoExclusao(null);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao excluir devolução');
+    }
   };
 
   return (
@@ -893,9 +1046,24 @@ export function DevolucoesPage(): JSX.Element {
                           <Button
                             variant="outline"
                             size="xs"
+                            onClick={() => setDevolucaoEditando(dev)}
+                          >
+                            Editar
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="xs"
                             onClick={() => void handleDownloadPdf(dev.id)}
                           >
                             PDF
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="xs"
+                            onClick={() => setConfirmandoExclusao(dev)}
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                          >
+                            Excluir
                           </Button>
                         </div>
                       </td>
@@ -932,6 +1100,48 @@ export function DevolucoesPage(): JSX.Element {
           devolucaoId={devolucaoDetalhId}
           onClose={() => setDevolucaoDetalhId(null)}
         />
+      )}
+      {devolucaoEditando && (
+        <ModalEditarDevolucao
+          devolucao={devolucaoEditando}
+          onClose={() => setDevolucaoEditando(null)}
+          onSaved={() => void devolucoesQuery.refetch()}
+        />
+      )}
+      {confirmandoExclusao && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6 space-y-4">
+            <h3 className="text-base font-semibold text-gray-900">Excluir devolução?</h3>
+            <p className="text-sm text-gray-600">
+              A devolução de{' '}
+              <span className="font-medium">
+                {formatarData(confirmandoExclusao.data_devolucao)}
+              </span>{' '}
+              para <span className="font-medium">{confirmandoExclusao.coordenadoria_destino}</span>{' '}
+              e todos os seus {confirmandoExclusao.total_itens} iten
+              {Number(confirmandoExclusao.total_itens) !== 1 ? 's' : ''} serão excluídos. Esta ação
+              não pode ser desfeita.
+            </p>
+            <div className="flex justify-end gap-3 pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setConfirmandoExclusao(null)}
+                disabled={excluirMut.isPending}
+              >
+                Cancelar
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => void handleConfirmarExclusao()}
+                disabled={excluirMut.isPending}
+                className="bg-red-600 hover:bg-red-700 text-white border-red-600"
+              >
+                {excluirMut.isPending ? 'Excluindo…' : 'Excluir'}
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </PageState>
   );

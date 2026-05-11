@@ -60,61 +60,90 @@ export function normalizeText(value: string): string {
 }
 
 export function extractOCRPreview(texto: string, confianca: number): OCRPreview {
-  const normalized = normalizeText(texto);
   const lines = texto
     .split(/\n/)
     .map((l) => l.trim())
     .filter(Boolean);
 
-  // --- Protocolo ---
-  // Fix common OCR errors: O→0, l→1, I→1, S→5, B→8
+  // Join lines into a single string for pattern matching
+  const normalized = lines.join(' ');
+
+  // Fix common OCR character substitutions in numeric strings (applied only to matched groups)
   const fixOcrDigits = (s: string) =>
     s.replace(/[Oo]/g, '0').replace(/[lIi]/g, '1').replace(/S/g, '5').replace(/B/g, '8');
 
-  // Try multiple patterns in order of specificity
-  // Note: OCR may introduce artifacts like extra hyphens, pipes, etc.
-  const protocoloPatterns = [
-    // "Protocolo n.: 13142/2024" or "Protocolo n.:-13142/2024" (with OCR artifacts)
-    /protocolo\s*n[º°.]?\s*[.:][\s\-|]*([0-9OoIl]{3,}[\/.\-][0-9OoIl]{2,4})/i,
-    // "Protocolo: 123456/2024" or "Protocolo n. 123456/2024"
-    /protocolo\s*n?[º°.]?\s*:?[\s\-|]*([0-9OoIl]{3,}[\/.\-][0-9OoIl]{2,4})/i,
-    // "Protocolo: 123456-2024" with dash
-    /protocolo\s*n?[º°.]?\s*:?[\s\-|]*([0-9OoIl]{4,}[\-][0-9OoIl]{2,4})/i,
-    // "Protocolo: 123456" (no year separator)
-    /protocolo\s*n?[º°.]?\s*:?[\s\-|]*([0-9OoIl]{4,})/i,
-    // "Prot:" or "Prot." abbreviation
-    /prot[.:]?[\s\-|]*([0-9OoIl]{3,}[\/.\-]?[0-9OoIl]{0,4})/i,
-    // "Nº 123456/2024" standalone
-    /n[º°][\s\-|]*([0-9OoIl]{3,}[\/.\-][0-9OoIl]{2,4})/i,
-    // Standalone pattern: 5+ digits followed by /year (common in government docs)
-    /\b([0-9OoIl]{4,}[\/][0-9OoIl]{4})\b/,
-    // Standalone pattern: 5+ digits followed by /2-digit year
-    /\b([0-9OoIl]{4,}[\/][0-9OoIl]{2})\b/,
+  // Remove spaces that OCR may insert within digit groups, then fix OCR digit errors
+  const cleanNum = (s: string) => fixOcrDigits(s.replace(/\s+/g, '').trim());
+
+  // --- Protocolo ---
+  // Patterns ordered from most specific (keyword-anchored) to least specific (standalone number).
+  // Each digit group allows up to ~3 stray spaces (OCR may split "502824" as "502 824").
+  const protocoloPatterns: RegExp[] = [
+    // "Protocolo n.: 13142/2024" — colon/period after n, possible OCR artifacts before digits
+    /protocolo\s*n[º°.]?\s*[.:][^\d]{0,6}(\d[\d ]{0,5}[/.\-]\d[\d ]{0,5})/i,
+    // "Protocolo: 502824/2021" or "Protocolo 502824/2021"
+    /protocolo\s*:?[^\d]{0,6}(\d[\d ]{0,5}[/.\-]\d[\d ]{0,5})/i,
+    // "Processo nº 123456/2024" or "Processo n. 123456/2024"
+    /processo\s+n[º°.]?\s*[.:]*[^\d]{0,4}(\d[\d ]{0,5}[/.\-]\d[\d ]{0,5})/i,
+    // "Processo: 123456/2024"
+    /processo\s*:\s*[^\d]{0,4}(\d[\d ]{0,5}[/.\-]\d[\d ]{0,5})/i,
+    // "Prot.: 123456/2024" abbreviation
+    /prot[o.]?\s*[.:]\s*[^\d]{0,4}(\d[\d ]{0,5}[/.\-]\d[\d ]{0,5})/i,
+    // "Nº 123456/2024" or "N.º 123456/2024"
+    /n[º°]\s*(\d[\d ]{0,5}[/]\d[\d ]{0,5})/i,
+    // Standalone: 4+ digits / 4-digit year (e.g., "502824/2021") — least specific
+    /\b(\d{3,}[\d ]{0,4}\/\d{4})\b/,
+    // Standalone: 4+ digits / 2-digit year
+    /\b(\d{3,}[\d ]{0,4}\/\d{2})\b/,
+    // With dash as year separator (e.g., "13142-2024")
+    /\b(\d{4,}-\d{4})\b/,
   ];
 
   let protocolo = '';
   for (const pattern of protocoloPatterns) {
     const match = normalized.match(pattern);
     if (match?.[1]) {
-      protocolo = fixOcrDigits(match[1].trim());
+      protocolo = cleanNum(match[1]);
       break;
     }
   }
 
   // --- Interessado ---
-  const interessadoMatch = normalized.match(
-    /interessad[oa()\s]*:?\s*(.+?)(?=\s*assunto|\s*resumo|$)/i
-  );
-  let interessado = interessadoMatch?.[1]?.trim() ?? '';
-  interessado = interessado
-    .replace(/\s*(assunto|resumo|setor|volume|data|protocolo).*/i, '')
-    .trim();
-  if (!interessado) {
-    const intLine = lines.find((l) => /interessad/i.test(l));
-    if (intLine) {
-      interessado = intLine.replace(/^.*interessad[oa()\s]*:?\s*/i, '').trim();
+  let interessado = '';
+
+  // Prefer line-by-line search: find the line with "Interessado" or "Requerente" label
+  const labelPattern = /(?:interessad[oa]|requerente)\s*:?/i;
+  const intIdx = lines.findIndex((l) => labelPattern.test(l));
+  if (intIdx !== -1) {
+    // Extract value after the label on the same line
+    const afterLabel = (lines[intIdx] ?? '')
+      .replace(labelPattern, '')
+      .replace(/^[\s:]+/, '')
+      .trim();
+    if (afterLabel.length > 1) {
+      interessado = afterLabel;
+    } else if (lines[intIdx + 1] != null) {
+      // Value might be on the next line — skip if it looks like another field label
+      const next = lines[intIdx + 1] as string;
+      if (!/^(?:assunto|resumo|setor|volume|data|protocolo|processo|origem)\s*:/i.test(next)) {
+        interessado = next;
+      }
     }
   }
+
+  // Fallback: search in normalized text
+  if (!interessado) {
+    const m = normalized.match(
+      /(?:interessad[oa]|requerente)\s*:?\s*([A-ZÀ-Úa-zà-ú][^:]{2,80}?)(?=\s*(?:assunto|resumo|setor|protocolo|processo)|$)/i
+    );
+    interessado = m?.[1]?.trim() ?? '';
+  }
+
+  // Strip stray OCR artifacts from the start/end of the interessado value
+  interessado = interessado
+    .replace(/^[:\-|]+\s*/, '')
+    .replace(/[:\-|.]+$/, '')
+    .trim();
 
   return {
     protocolo,

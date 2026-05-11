@@ -482,6 +482,23 @@ const icons: Record<string, JSX.Element> = {
       d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
     />
   ),
+  'corner-up-right': (
+    <>
+      <polyline
+        points="15 14 20 9 15 4"
+        fill="none"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+      />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M4 20v-7a4 4 0 014-4h12"
+      />
+    </>
+  ),
 };
 
 export function Icon({

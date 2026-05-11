@@ -1575,12 +1575,51 @@ export function useCriarDevolucao() {
   });
 }
 
+export function useEditarDevolucao() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      ...body
+    }: {
+      id: string;
+      dataDevolucao: string;
+      coordenadoriaDestino: string;
+      responsavelRetirada: string;
+      observacoes?: string;
+    }) => api.put<DevolucaoOperacional>(`/operacional/devolucoes/${id}`, body),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['devolucoes'] });
+      void qc.invalidateQueries({ queryKey: ['devolucao-detalhe'] });
+    },
+  });
+}
+
+export function useExcluirDevolucao() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.delete(`/operacional/devolucoes/${id}`),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['devolucoes'] }),
+  });
+}
+
 export function useCoordenadestinoOpcoes() {
   return useQuery({
     queryKey: ['coordenadorias-destino-opcoes'],
     queryFn: () =>
       api
         .get<{ opcoes: string[] }>('/operacional/coordenadorias-destino-opcoes')
+        .then((d) => d.opcoes),
+    staleTime: 5 * 60_000,
+  });
+}
+
+export function useResponsaveisRetiradaOpcoes() {
+  return useQuery({
+    queryKey: ['responsaveis-retirada-opcoes'],
+    queryFn: () =>
+      api
+        .get<{ opcoes: string[] }>('/operacional/responsaveis-retirada-opcoes')
         .then((d) => d.opcoes),
     staleTime: 5 * 60_000,
   });
