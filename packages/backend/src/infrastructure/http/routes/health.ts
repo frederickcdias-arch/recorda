@@ -1,4 +1,5 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
+import { authorize } from '../middleware/auth.js';
 
 const startedAt = new Date();
 
@@ -82,6 +83,7 @@ export const healthRoutes: FastifyPluginAsync = async (server: FastifyInstance):
           },
         },
       },
+      preHandler: [server.authenticate, authorize('operador', 'administrador')],
     },
     async (_request, reply) => {
       const mem = process.memoryUsage();

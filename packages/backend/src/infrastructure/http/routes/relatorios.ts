@@ -197,6 +197,19 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
     server.get<{ Querystring: { dataInicio: string; dataFim: string } }>(
       '/relatorios/operacional',
       {
+        schema: {
+          tags: ['relatorios'],
+          summary: 'Relatório operacional',
+          security: [{ bearerAuth: [] }],
+          querystring: {
+            type: 'object',
+            required: ['dataInicio', 'dataFim'],
+            properties: {
+              dataInicio: { type: 'string', format: 'date' },
+              dataFim: { type: 'string', format: 'date' },
+            },
+          },
+        },
         preHandler: [server.authenticate, authorize('operador', 'administrador')],
       },
       async (request, reply) => {
@@ -249,6 +262,25 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
     }>(
       '/relatorios/operacional/export',
       {
+        schema: {
+          tags: ['relatorios'],
+          summary: 'Export operacional em Excel',
+          security: [{ bearerAuth: [] }],
+          querystring: {
+            type: 'object',
+            required: ['dataInicio', 'dataFim'],
+            properties: {
+              dataInicio: { type: 'string', format: 'date' },
+              dataFim: { type: 'string', format: 'date' },
+              formato: { type: 'string' },
+              token: { type: 'string' },
+              etapa: { type: 'string' },
+              colaborador: { type: 'string' },
+              origem: { type: 'string', enum: ['legado', 'sistema', 'fluxo', ''] },
+              busca: { type: 'string' },
+            },
+          },
+        },
         preHandler: [
           async (request) => {
             const { token } = request.query as { token?: string };

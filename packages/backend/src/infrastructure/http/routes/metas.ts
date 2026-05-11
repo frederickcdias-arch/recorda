@@ -39,8 +39,8 @@ export function createMetasRoutes(): FastifyPluginAsync {
         `);
           return reply.send({ metas: result.rows });
         } catch (error) {
-          // Tabela pode não existir ainda
-          return reply.send({ metas: [] });
+          const message = error instanceof Error ? error.message : 'Erro ao buscar metas';
+          return reply.status(500).send({ error: message });
         }
       }
     );
@@ -181,7 +181,8 @@ export function createMetasRoutes(): FastifyPluginAsync {
         `);
           return reply.send({ mapeamentos: result.rows });
         } catch (error) {
-          return reply.send({ mapeamentos: [] });
+          const message = error instanceof Error ? error.message : 'Erro ao buscar mapeamentos';
+          return reply.status(500).send({ error: message });
         }
       }
     );

@@ -1,4 +1,5 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
+import { authorize } from '../middleware/auth.js';
 
 export function createAuditoriaRoutes(): FastifyPluginAsync {
   return async (server: FastifyInstance): Promise<void> => {
@@ -23,7 +24,7 @@ export function createAuditoriaRoutes(): FastifyPluginAsync {
           },
           response: { 500: { type: 'object', properties: { error: { type: 'string' } } } },
         },
-        preHandler: [server.authenticate],
+        preHandler: [server.authenticate, authorize('operador', 'administrador')],
       },
       async (request, reply) => {
         try {
@@ -170,7 +171,7 @@ export function createAuditoriaRoutes(): FastifyPluginAsync {
           },
           response: { 500: { type: 'object', properties: { error: { type: 'string' } } } },
         },
-        preHandler: [server.authenticate],
+        preHandler: [server.authenticate, authorize('operador', 'administrador')],
       },
       async (request, reply) => {
         try {

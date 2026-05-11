@@ -169,7 +169,7 @@ export function createConhecimentoOperacionalRoutes(): FastifyPluginAsync {
           );
           const documento = docResult.rows[0];
           if (!documento) {
-            return reply.status(404).send({ error: 'Documento nao encontrado' });
+            return reply.status(404).send({ error: 'Documento não encontrado' });
           }
 
           const [etapasResult, versoesResult, atualResult] = await Promise.all([
@@ -332,7 +332,7 @@ export function createConhecimentoOperacionalRoutes(): FastifyPluginAsync {
           );
           if (existsResult.rows.length === 0) {
             await server.database.query('ROLLBACK');
-            return reply.status(404).send({ error: 'Documento nao encontrado' });
+            return reply.status(404).send({ error: 'Documento não encontrado' });
           }
 
           const numberResult = await server.database.query<{ ultima_versao: number }>(
@@ -422,7 +422,7 @@ export function createConhecimentoOperacionalRoutes(): FastifyPluginAsync {
 
           if (updateResult.rows.length === 0) {
             await server.database.query('ROLLBACK');
-            return reply.status(404).send({ error: 'Documento nao encontrado' });
+            return reply.status(404).send({ error: 'Documento não encontrado' });
           }
 
           if (body.etapas) {
