@@ -137,6 +137,7 @@ function ModalNovaDevolucao({ onClose, onSaved }: ModalDevolucaoProps): JSX.Elem
   const [responsavelRetirada, setResponsavelRetirada] = useState('');
   const [observacoes, setObservacoes] = useState('');
   const [itens, setItens] = useState<ItemRascunho[]>([]);
+  const [mostrarPreview, setMostrarPreview] = useState(false);
 
   // Busca de processos de recebimento
   const [buscaProcesso, setBuscaProcesso] = useState('');
@@ -499,21 +500,104 @@ function ModalNovaDevolucao({ onClose, onSaved }: ModalDevolucaoProps): JSX.Elem
           </div>
         </div>
 
+        {/* Preview */}
+        {mostrarPreview && (
+          <div className="mx-6 mb-4 rounded-xl border border-blue-200 bg-blue-50 overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-2 bg-blue-100 border-b border-blue-200">
+              <span className="text-sm font-semibold text-blue-800">Pré-visualização do Termo</span>
+              <button
+                type="button"
+                onClick={() => setMostrarPreview(false)}
+                className="text-blue-400 hover:text-blue-600 text-lg leading-none"
+                aria-label="Fechar pré-visualização"
+              >
+                ×
+              </button>
+            </div>
+            <div className="p-4 space-y-3">
+              <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
+                <div>
+                  <span className="text-gray-500">Data:</span>{' '}
+                  <span className="font-medium text-gray-800">
+                    {dataDevolucao ? formatarData(dataDevolucao) : '—'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-500">Coordenadoria:</span>{' '}
+                  <span className="font-medium text-gray-800">{coordenadoriaDestino || '—'}</span>
+                </div>
+                <div>
+                  <span className="text-gray-500">Responsável:</span>{' '}
+                  <span className="font-medium text-gray-800">{responsavelRetirada || '—'}</span>
+                </div>
+                {observacoes && (
+                  <div className="col-span-2">
+                    <span className="text-gray-500">Observações:</span>{' '}
+                    <span className="text-gray-800">{observacoes}</span>
+                  </div>
+                )}
+              </div>
+              {itens.length > 0 ? (
+                <table className="w-full text-xs border-collapse mt-1">
+                  <thead>
+                    <tr className="bg-blue-100">
+                      <th className="text-left px-2 py-1 text-gray-600 font-medium">#</th>
+                      <th className="text-left px-2 py-1 text-gray-600 font-medium">Protocolo</th>
+                      <th className="text-left px-2 py-1 text-gray-600 font-medium">Interessado</th>
+                      <th className="text-left px-2 py-1 text-gray-600 font-medium">Unidade</th>
+                      <th className="text-left px-2 py-1 text-gray-600 font-medium">Repositório</th>
+                      <th className="text-left px-2 py-1 text-gray-600 font-medium">Vol.</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {itens.map((item, idx) => (
+                      <tr
+                        key={item.tempId}
+                        className={idx % 2 === 0 ? 'bg-white' : 'bg-blue-50/60'}
+                      >
+                        <td className="px-2 py-1 text-gray-400">{idx + 1}</td>
+                        <td className="px-2 py-1">{item.protocolo || '—'}</td>
+                        <td className="px-2 py-1 max-w-[120px] truncate">
+                          {item.interessado || '—'}
+                        </td>
+                        <td className="px-2 py-1 text-gray-500">{item.orgao || '—'}</td>
+                        <td className="px-2 py-1 text-gray-500">{item.repositorio || '—'}</td>
+                        <td className="px-2 py-1 text-gray-500">{item.volume || '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p className="text-xs text-gray-400 italic">Nenhum item adicionado ainda.</p>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Footer */}
-        <div className="flex justify-end gap-3 px-6 py-4 border-t bg-gray-50 rounded-b-xl">
+        <div className="flex justify-between gap-3 px-6 py-4 border-t bg-gray-50 rounded-b-xl">
           <Button variant="outline" onClick={onClose} disabled={criarMut.isPending}>
             Cancelar
           </Button>
-          <Button
-            variant="primary"
-            onClick={() => void handleSalvar()}
-            disabled={criarMut.isPending || itens.length === 0}
-            title={itens.length === 0 ? 'Adicione ao menos um item' : undefined}
-          >
-            {criarMut.isPending
-              ? 'Salvando…'
-              : `Registrar Devolução (${itens.length} iten${itens.length !== 1 ? 's' : ''})`}
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setMostrarPreview((v) => !v)}
+              disabled={criarMut.isPending}
+            >
+              {mostrarPreview ? 'Ocultar prévia' : 'Pré-visualizar'}
+            </Button>
+            <Button
+              variant="primary"
+              onClick={() => void handleSalvar()}
+              disabled={criarMut.isPending || itens.length === 0}
+              title={itens.length === 0 ? 'Adicione ao menos um item' : undefined}
+            >
+              {criarMut.isPending
+                ? 'Salvando…'
+                : `Registrar Devolução (${itens.length} iten${itens.length !== 1 ? 's' : ''})`}
+            </Button>
+          </div>
         </div>
       </div>
     </div>
