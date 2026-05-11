@@ -81,11 +81,23 @@ export class EtiquetaPdfService {
       });
 
       // Borda de corte pontilhada (drawRectangle não suporta dashArray — desenha 4 linhas)
-      const dashOpts = { thickness: BORDER_WIDTH, color: rgb(0, 0, 0), dashArray: [DASH_ON, DASH_OFF] };
+      const dashOpts = {
+        thickness: BORDER_WIDTH,
+        color: rgb(0, 0, 0),
+        dashArray: [DASH_ON, DASH_OFF],
+      };
       targetPage.drawLine({ start: { x, y }, end: { x: x + LABEL_WIDTH, y }, ...dashOpts });
-      targetPage.drawLine({ start: { x, y: y + LABEL_HEIGHT }, end: { x: x + LABEL_WIDTH, y: y + LABEL_HEIGHT }, ...dashOpts });
+      targetPage.drawLine({
+        start: { x, y: y + LABEL_HEIGHT },
+        end: { x: x + LABEL_WIDTH, y: y + LABEL_HEIGHT },
+        ...dashOpts,
+      });
       targetPage.drawLine({ start: { x, y }, end: { x, y: y + LABEL_HEIGHT }, ...dashOpts });
-      targetPage.drawLine({ start: { x: x + LABEL_WIDTH, y }, end: { x: x + LABEL_WIDTH, y: y + LABEL_HEIGHT }, ...dashOpts });
+      targetPage.drawLine({
+        start: { x: x + LABEL_WIDTH, y },
+        end: { x: x + LABEL_WIDTH, y: y + LABEL_HEIGHT },
+        ...dashOpts,
+      });
     }
 
     const bytes = await output.save();
