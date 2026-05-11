@@ -8,7 +8,6 @@ import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { useToastHelpers } from '../../components/ui/Toast';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { FilterBar } from '../../components/ui/FilterBar';
-import { DateRangePicker } from '../../components/ui/DateRangePicker';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import {
@@ -396,15 +395,20 @@ export function ProducaoPage(): JSX.Element {
             ) : undefined
           }
         >
-          <div className="sm:col-span-2 lg:col-span-2">
-            <DateRangePicker
-              startDate={dataInicio}
-              endDate={dataFim}
-              onStartDateChange={setDataInicio}
-              onEndDateChange={setDataFim}
-              showPresets={false}
-            />
-          </div>
+          <Input
+            label="Data inicial"
+            type="date"
+            value={dataInicio}
+            max={dataFim || undefined}
+            onChange={(e) => setDataInicio(e.target.value)}
+          />
+          <Input
+            label="Data final"
+            type="date"
+            value={dataFim}
+            min={dataInicio || undefined}
+            onChange={(e) => setDataFim(e.target.value)}
+          />
           <Select
             label="Etapa"
             value={etapa}
