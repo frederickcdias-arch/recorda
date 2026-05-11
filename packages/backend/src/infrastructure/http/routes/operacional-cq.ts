@@ -364,29 +364,48 @@ export function createOperacionalCQRoutes(): FastifyPluginAsync {
             geradoEm: new Date().toISOString(),
           };
 
-          const pdfBuffer = await pdfService.gerarRelatorioEntrega({
-            lote: lote as {
-              codigo: string;
-              status: string;
-              auditor_nome?: string | null;
-              data_criacao?: string | null;
-              data_fechamento?: string | null;
+          const pdfBuffer = await pdfService.gerarRelatorioEntrega(
+            {
+              lote: lote as {
+                codigo: string;
+                status: string;
+                auditor_nome?: string | null;
+                data_criacao?: string | null;
+                data_fechamento?: string | null;
+              },
+              itens: itensResult.rows as Array<{
+                ordem: number;
+                id_repositorio_ged: string;
+                orgao: string;
+                projeto: string;
+                resultado: string;
+                motivo_codigo?: string | null;
+              }>,
+              totais: {
+                total: itensResult.rows.length,
+                aprovados,
+                reprovados,
+              },
+              geradoEm: new Date().toISOString(),
             },
-            itens: itensResult.rows as Array<{
-              ordem: number;
-              id_repositorio_ged: string;
-              orgao: string;
-              projeto: string;
-              resultado: string;
-              motivo_codigo?: string | null;
-            }>,
-            totais: {
-              total: itensResult.rows.length,
-              aprovados,
-              reprovados,
-            },
-            geradoEm: new Date().toISOString(),
-          });
+            await (async () => {
+              const er = await server.database.query(
+                `SELECT nome, logo_url, logo_data, exibir_logo_relatorio, logo_largura_relatorio, logo_alinhamento_relatorio, logo_deslocamento_y_relatorio FROM configuracao_empresa LIMIT 1`
+              );
+              const ew = er.rows[0] as Record<string, unknown> | undefined;
+              return ew
+                ? {
+                    nome: (ew.nome as string) || '',
+                    logoUrl: (ew.logo_url as string) || '',
+                    logoData: (ew.logo_data as Buffer | null) ?? null,
+                    exibirLogoRelatorio: ew.exibir_logo_relatorio !== false,
+                    logoLarguraRelatorio: Number(ew.logo_largura_relatorio ?? 120),
+                    logoAlinhamentoRelatorio: (ew.logo_alinhamento_relatorio as string) || 'CENTRO',
+                    logoDeslocamentoYRelatorio: Number(ew.logo_deslocamento_y_relatorio ?? 0),
+                  }
+                : null;
+            })()
+          );
           const report = await saveOperationalReport({
             server,
             userId: user.id,
@@ -870,17 +889,36 @@ export function createOperacionalCQRoutes(): FastifyPluginAsync {
               .send({ error: 'Nenhum documento reprovado para gerar termo de correção.' });
           }
 
-          const pdfBuffer = await pdfService.gerarTermoCorrecao({
-            repositorio: repo as { id_repositorio_ged: string; orgao: string; projeto: string },
-            documentos: docsResult.rows as Array<{
-              protocolo: string;
-              interessado: string;
-              volume: string;
-              observacao: string | null;
-              avaliador_nome: string | null;
-            }>,
-            geradoEm: new Date().toISOString(),
-          });
+          const pdfBuffer = await pdfService.gerarTermoCorrecao(
+            {
+              repositorio: repo as { id_repositorio_ged: string; orgao: string; projeto: string },
+              documentos: docsResult.rows as Array<{
+                protocolo: string;
+                interessado: string;
+                volume: string;
+                observacao: string | null;
+                avaliador_nome: string | null;
+              }>,
+              geradoEm: new Date().toISOString(),
+            },
+            await (async () => {
+              const er = await server.database.query(
+                `SELECT nome, logo_url, logo_data, exibir_logo_relatorio, logo_largura_relatorio, logo_alinhamento_relatorio, logo_deslocamento_y_relatorio FROM configuracao_empresa LIMIT 1`
+              );
+              const ew = er.rows[0] as Record<string, unknown> | undefined;
+              return ew
+                ? {
+                    nome: (ew.nome as string) || '',
+                    logoUrl: (ew.logo_url as string) || '',
+                    logoData: (ew.logo_data as Buffer | null) ?? null,
+                    exibirLogoRelatorio: ew.exibir_logo_relatorio !== false,
+                    logoLarguraRelatorio: Number(ew.logo_largura_relatorio ?? 120),
+                    logoAlinhamentoRelatorio: (ew.logo_alinhamento_relatorio as string) || 'CENTRO',
+                    logoDeslocamentoYRelatorio: Number(ew.logo_deslocamento_y_relatorio ?? 0),
+                  }
+                : null;
+            })()
+          );
 
           const snapshot = {
             repositorio: repo,
@@ -1096,6 +1134,7 @@ export function createOperacionalCQRoutes(): FastifyPluginAsync {
             `SELECT
              nome,
              logo_url AS "logoUrl",
+             logo_data AS "logoData",
              exibir_logo_relatorio AS "exibirLogoRelatorio",
              logo_largura_relatorio AS "logoLarguraRelatorio",
              logo_alinhamento_relatorio AS "logoAlinhamentoRelatorio",

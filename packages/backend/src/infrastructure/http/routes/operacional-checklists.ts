@@ -175,7 +175,7 @@ export function createOperacionalChecklistsRoutes(): FastifyPluginAsync {
 
       // Buscar configuração da empresa para logo no PDF
       const empresaResult = await server.database.query(
-        `SELECT nome, logo_url, exibir_logo_relatorio, logo_largura_relatorio, logo_alinhamento_relatorio, logo_deslocamento_y_relatorio
+        `SELECT nome, logo_url, logo_data, exibir_logo_relatorio, logo_largura_relatorio, logo_alinhamento_relatorio, logo_deslocamento_y_relatorio
          FROM configuracao_empresa LIMIT 1`
       );
       const empresaRow = empresaResult.rows[0] as Record<string, unknown> | undefined;
@@ -183,6 +183,7 @@ export function createOperacionalChecklistsRoutes(): FastifyPluginAsync {
         ? {
             nome: (empresaRow.nome as string) || '',
             logoUrl: (empresaRow.logo_url as string) || '',
+            logoData: (empresaRow.logo_data as Buffer | null) ?? null,
             exibirLogoRelatorio: empresaRow.exibir_logo_relatorio !== false,
             logoLarguraRelatorio: Number(empresaRow.logo_largura_relatorio ?? 120),
             logoAlinhamentoRelatorio: (empresaRow.logo_alinhamento_relatorio as string) || 'CENTRO',

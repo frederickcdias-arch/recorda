@@ -9,6 +9,7 @@ export interface EmpresaConfig {
   telefone?: string;
   email?: string;
   logoUrl?: string;
+  logoData?: Buffer | null;
   exibirLogoRelatorio?: boolean;
   exibirEnderecoRelatorio?: boolean;
   exibirContatoRelatorio?: boolean;
@@ -80,7 +81,16 @@ export class PDFExportService {
   }
 
   private async loadLogoBuffer(empresa?: EmpresaConfig | null): Promise<Buffer | null> {
-    if (!empresa?.logoUrl || empresa.exibirLogoRelatorio === false) {
+    if (empresa?.exibirLogoRelatorio === false) {
+      return null;
+    }
+
+    // Logo armazenada diretamente no banco de dados (migration 085)
+    if (empresa?.logoData) {
+      return empresa.logoData;
+    }
+
+    if (!empresa?.logoUrl) {
       return null;
     }
 

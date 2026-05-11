@@ -70,7 +70,7 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
 
           // Buscar configuração da empresa para PDF/Excel
           const empresaResult = await server.database.query(
-            `SELECT nome, cnpj, endereco, telefone, email, logo_url,
+            `SELECT nome, cnpj, endereco, telefone, email, logo_url, logo_data,
                     exibir_logo_relatorio, exibir_endereco_relatorio, exibir_contato_relatorio,
                     logo_largura_relatorio, logo_alinhamento_relatorio, logo_deslocamento_y_relatorio
              FROM configuracao_empresa LIMIT 1`
@@ -83,6 +83,7 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
                 telefone: (empresaRow.telefone as string) || '',
                 email: (empresaRow.email as string) || '',
                 logoUrl: (empresaRow.logo_url as string) || '',
+                logoData: (empresaRow.logo_data as Buffer | null) ?? null,
                 exibirLogoRelatorio: empresaRow.exibir_logo_relatorio !== false,
                 exibirEnderecoRelatorio: empresaRow.exibir_endereco_relatorio !== false,
                 exibirContatoRelatorio: empresaRow.exibir_contato_relatorio === true,

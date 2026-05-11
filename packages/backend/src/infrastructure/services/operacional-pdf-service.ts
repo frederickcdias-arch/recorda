@@ -5,6 +5,7 @@ import path from 'path';
 export interface EmpresaConfig {
   nome?: string;
   logoUrl?: string;
+  logoData?: Buffer | null;
   exibirLogoRelatorio?: boolean;
   logoLarguraRelatorio?: number;
   logoAlinhamentoRelatorio?: 'ESQUERDA' | 'CENTRO' | 'DIREITA' | string;
@@ -1047,7 +1048,16 @@ export class OperacionalPDFService {
   }
 
   private async loadLogoBuffer(empresa?: EmpresaConfig | null): Promise<Buffer | null> {
-    if (!empresa?.logoUrl || empresa.exibirLogoRelatorio === false) {
+    if (empresa?.exibirLogoRelatorio === false) {
+      return null;
+    }
+
+    // Logo armazenada diretamente no banco de dados (migration 085)
+    if (empresa?.logoData) {
+      return empresa.logoData;
+    }
+
+    if (!empresa?.logoUrl) {
       return null;
     }
 
