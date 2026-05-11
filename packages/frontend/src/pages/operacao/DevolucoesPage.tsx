@@ -158,6 +158,11 @@ function ModalNovaDevolucao({ onClose, onSaved }: ModalDevolucaoProps): JSX.Elem
   const opcoesCoordenadorias = coordOpcoes.data ?? [];
   const orgaosOptions = orgaosQuery.data ?? [];
 
+  // Destructure mutateAsync so the callback only depends on the stable function
+  // reference, not the entire mutation object (which changes on every state update
+  // and would re-trigger the useEffect in a loop).
+  const { mutateAsync: executarBusca } = buscarProcessosMut;
+
   const buscarProcessos = useCallback(
     async (q: string) => {
       if (q.trim().length < 2) {
@@ -166,7 +171,7 @@ function ModalNovaDevolucao({ onClose, onSaved }: ModalDevolucaoProps): JSX.Elem
         return;
       }
       try {
-        const res = await buscarProcessosMut.mutateAsync(q.trim());
+        const res = await executarBusca(q.trim());
         setResultadosBusca(res.itens ?? []);
         setMostrarBusca(true);
       } catch {
@@ -174,7 +179,7 @@ function ModalNovaDevolucao({ onClose, onSaved }: ModalDevolucaoProps): JSX.Elem
         setMostrarBusca(false);
       }
     },
-    [buscarProcessosMut, toast]
+    [executarBusca]
   );
 
   // Live search: auto-dispara quando o debounced query muda
