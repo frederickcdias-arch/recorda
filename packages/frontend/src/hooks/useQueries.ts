@@ -603,6 +603,27 @@ export function useCriarVersaoConhecimento() {
   });
 }
 
+export function useAtualizarDocConhecimento() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      ...body
+    }: {
+      id: string;
+      titulo?: string;
+      descricao?: string;
+      status?: 'ATIVO' | 'INATIVO';
+      nivelAcesso?: 'OPERADOR_ADMIN' | 'ADMIN';
+      etapas?: EtapaFluxo[];
+    }) => api.patch(`/operacional/conhecimento/documentos/${id}`, body),
+    onSuccess: (_data, { id }) => {
+      void qc.invalidateQueries({ queryKey: queryKeys.conhecimentoDocsAll });
+      void qc.invalidateQueries({ queryKey: queryKeys.conhecimentoDetalhe(id) });
+    },
+  });
+}
+
 export function useImportarRecebimentoLegado() {
   const qc = useQueryClient();
   return useMutation({

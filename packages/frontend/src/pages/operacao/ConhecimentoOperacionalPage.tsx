@@ -4,6 +4,7 @@ import type { EtapaFluxo } from '@recorda/shared';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
+import { Select } from '../../components/ui/Select';
 import { PageState, ActionFeedback } from '../../components/ui/PageState';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { MarkdownEditor, MarkdownViewer } from '../../components/ui/MarkdownEditor';
@@ -13,6 +14,7 @@ import {
   useConhecimentoDetalhe,
   useCriarDocConhecimento,
   useCriarVersaoConhecimento,
+  useAtualizarDocConhecimento,
   useGlossario,
   useCriarGlossario,
   useAtualizarGlossario,
@@ -53,6 +55,23 @@ const ETAPAS: EtapaFluxo[] = [
   'ENTREGA',
 ];
 
+const ETAPA_LABELS: Record<string, string> = {
+  RECEBIMENTO: 'Recebimento',
+  PREPARACAO: 'Preparação',
+  DIGITALIZACAO: 'Digitalização',
+  DIGITALIZACAO_COLORIDA: 'Digital. Colorida',
+  CONFERENCIA: 'Conferência',
+  MONTAGEM: 'Montagem',
+  CONTROLE_QUALIDADE: 'Controle de Qualidade',
+  ENTREGA: 'Entrega',
+  RECONFERENCIA: 'Reconferência',
+  ATENDIMENTO: 'Atendimento',
+};
+
+function etapaLabel(etapa: EtapaFluxo): string {
+  return ETAPA_LABELS[etapa] ?? etapa;
+}
+
 type KBTab = 'documentos' | 'glossario' | 'leis';
 
 function isKBTab(value: string | null): value is KBTab {
@@ -68,6 +87,7 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
   const queryClient = useQueryClient();
   const criarDoc = useCriarDocConhecimento();
   const criarVersao = useCriarVersaoConhecimento();
+  const atualizarDoc = useAtualizarDocConhecimento();
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ tipo: 'success' | 'error'; texto: string } | null>(null);
 
@@ -76,6 +96,15 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
   const [categoria, setCategoria] = useState('');
   const [etapaFiltro, setEtapaFiltro] = useState('');
   const [selectedId, setSelectedId] = useState('');
+  const [buscaGlossario, setBuscaGlossario] = useState('');
+  const [buscaLeis, setBuscaLeis] = useState('');
+  const [editandoMeta, setEditandoMeta] = useState(false);
+  const [editMeta, setEditMeta] = useState({
+    titulo: '',
+    descricao: '',
+    status: 'ATIVO' as 'ATIVO' | 'INATIVO',
+    etapas: [] as EtapaFluxo[],
+  });
 
   const filtrosUrl = useMemo(() => {
     const params = new URLSearchParams(location.search);
@@ -179,6 +208,26 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
   // React Query — Leis e Normas
   const leisQuery = useLeisNormas();
   const leisItens = leisQuery.data?.itens ?? [];
+
+  const glossarioFiltrado = useMemo(() => {
+    if (!buscaGlossario.trim()) return glossarioItens;
+    const q = buscaGlossario.toLowerCase();
+    return glossarioItens.filter(
+      (item) => item.termo.toLowerCase().includes(q) || item.definicao.toLowerCase().includes(q)
+    );
+  }, [glossarioItens, buscaGlossario]);
+
+  const leisFiltradas = useMemo(() => {
+    if (!buscaLeis.trim()) return leisItens;
+    const q = buscaLeis.toLowerCase();
+    return leisItens.filter(
+      (item) =>
+        item.nome.toLowerCase().includes(q) ||
+        item.descricao.toLowerCase().includes(q) ||
+        item.referencia.toLowerCase().includes(q)
+    );
+  }, [leisItens, buscaLeis]);
+
   const criarLei = useCriarLeiNorma();
   const atualizarLei = useAtualizarLeiNorma();
   const excluirLei = useExcluirLeiNorma();
@@ -203,6 +252,18 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
   useEffect(() => {
     if (detalhe?.versaoAtual) {
       setNovaVersao({ conteudo: detalhe.versaoAtual.conteudo ?? '', resumoAlteracao: '' });
+    }
+  }, [detalhe]);
+
+  useEffect(() => {
+    if (detalhe?.documento) {
+      setEditMeta({
+        titulo: detalhe.documento.titulo,
+        descricao: detalhe.documento.descricao,
+        status: detalhe.documento.status,
+        etapas: detalhe.etapas,
+      });
+      setEditandoMeta(false);
     }
   }, [detalhe]);
 
@@ -235,6 +296,15 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
 
   const toggleEtapa = (value: EtapaFluxo): void => {
     setNovoDoc((prev) => ({
+      ...prev,
+      etapas: prev.etapas.includes(value)
+        ? prev.etapas.filter((item) => item !== value)
+        : [...prev.etapas, value],
+    }));
+  };
+
+  const toggleMetaEtapa = (value: EtapaFluxo): void => {
+    setEditMeta((prev) => ({
       ...prev,
       etapas: prev.etapas.includes(value)
         ? prev.etapas.filter((item) => item !== value)
@@ -290,6 +360,31 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
       setMessage({
         tipo: 'error',
         texto: err instanceof Error ? err.message : 'Erro ao publicar Versão',
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSalvarMeta = async (): Promise<void> => {
+    if (!isAdmin || !selectedId) return;
+    try {
+      setSaving(true);
+      await atualizarDoc.mutateAsync({
+        id: selectedId,
+        titulo: editMeta.titulo,
+        descricao: editMeta.descricao,
+        status: editMeta.status,
+        etapas: editMeta.etapas,
+      });
+      setEditandoMeta(false);
+      setMessage({ tipo: 'success', texto: 'Metadados atualizados.' });
+      invalidateDetalhe();
+      invalidateDocs();
+    } catch (err) {
+      setMessage({
+        tipo: 'error',
+        texto: err instanceof Error ? err.message : 'Erro ao atualizar metadados',
       });
     } finally {
       setSaving(false);
@@ -453,34 +548,26 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
                   />
                 </div>
                 <div className="w-48">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Categoria</label>
-                  <select
-                    className="w-full h-9 px-3 border rounded-lg text-sm"
+                  <Select
+                    label="Categoria"
                     value={categoria}
                     onChange={(e) => setCategoria(e.target.value)}
-                  >
-                    <option value="">Todas</option>
-                    {CATEGORIAS.map((item) => (
-                      <option key={item} value={item}>
-                        {categoriaLabel(item)}
-                      </option>
-                    ))}
-                  </select>
+                    options={[
+                      { value: '', label: 'Todas' },
+                      ...CATEGORIAS.map((item) => ({ value: item, label: categoriaLabel(item) })),
+                    ]}
+                  />
                 </div>
                 <div className="w-48">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Etapa</label>
-                  <select
-                    className="w-full h-9 px-3 border rounded-lg text-sm"
+                  <Select
+                    label="Etapa"
                     value={etapaFiltro}
                     onChange={(e) => setEtapaFiltro(e.target.value)}
-                  >
-                    <option value="">Todas</option>
-                    {ETAPAS.map((item) => (
-                      <option key={item} value={item}>
-                        {item}
-                      </option>
-                    ))}
-                  </select>
+                    options={[
+                      { value: '', label: 'Todas' },
+                      ...ETAPAS.map((item) => ({ value: item, label: etapaLabel(item) })),
+                    ]}
+                  />
                 </div>
                 <Button
                   variant="secondary"
@@ -518,7 +605,7 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
                               key={e}
                               className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500"
                             >
-                              {e}
+                              {etapaLabel(e)}
                             </span>
                           ))}
                         </div>
@@ -534,13 +621,85 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
                 ) : (
                   <div className="space-y-3">
                     <div>
-                      <h3 className="text-base font-semibold text-gray-900">
-                        {detalhe.documento.codigo} — {detalhe.documento.titulo}
-                      </h3>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {categoriaLabel(detalhe.documento.categoria)} · Etapas:{' '}
-                        {detalhe.etapas.join(', ') || '—'}
-                      </p>
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="text-base font-semibold text-gray-900">
+                          {detalhe.documento.codigo} — {detalhe.documento.titulo}
+                        </h3>
+                        {isAdmin && !editandoMeta && (
+                          <Button size="xs" variant="ghost" onClick={() => setEditandoMeta(true)}>
+                            Editar
+                          </Button>
+                        )}
+                      </div>
+                      {editandoMeta ? (
+                        <div className="mt-2 space-y-2 p-3 rounded-lg bg-gray-50 border">
+                          <Input
+                            label="Título"
+                            value={editMeta.titulo}
+                            onChange={(e) => setEditMeta((p) => ({ ...p, titulo: e.target.value }))}
+                          />
+                          <Input
+                            label="Descrição"
+                            value={editMeta.descricao}
+                            onChange={(e) =>
+                              setEditMeta((p) => ({ ...p, descricao: e.target.value }))
+                            }
+                          />
+                          <Select
+                            label="Status"
+                            value={editMeta.status}
+                            onChange={(e) =>
+                              setEditMeta((p) => ({
+                                ...p,
+                                status: e.target.value as 'ATIVO' | 'INATIVO',
+                              }))
+                            }
+                            options={[
+                              { value: 'ATIVO', label: 'Ativo' },
+                              { value: 'INATIVO', label: 'Inativo' },
+                            ]}
+                          />
+                          <div>
+                            <p className="text-xs font-medium text-gray-700 mb-1.5">Etapas</p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {ETAPAS.map((etapa) => (
+                                <button
+                                  key={etapa}
+                                  type="button"
+                                  onClick={() => toggleMetaEtapa(etapa)}
+                                  className={`px-2.5 py-1 rounded-full border text-xs ${editMeta.etapas.includes(etapa) ? 'bg-blue-100 border-blue-500 text-blue-700' : 'bg-white border-gray-300 text-gray-700'}`}
+                                >
+                                  {etapaLabel(etapa)}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="flex gap-2 pt-1">
+                            <Button
+                              size="xs"
+                              onClick={() => void handleSalvarMeta()}
+                              loading={saving}
+                            >
+                              Salvar
+                            </Button>
+                            <Button
+                              size="xs"
+                              variant="ghost"
+                              onClick={() => setEditandoMeta(false)}
+                            >
+                              Cancelar
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-gray-500 mt-1">
+                          {categoriaLabel(detalhe.documento.categoria)} · Etapas:{' '}
+                          {detalhe.etapas.map(etapaLabel).join(', ') || '—'}
+                          {detalhe.documento.status === 'INATIVO' && (
+                            <span className="ml-2 text-orange-500 font-medium">Inativo</span>
+                          )}
+                        </p>
+                      )}
                     </div>
                     <div className="rounded-lg border bg-gray-50 overflow-hidden">
                       <div className="flex items-center justify-between px-3 py-2 border-b bg-white">
@@ -624,24 +783,17 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
                       value={novoDoc.titulo}
                       onChange={(e) => setNovoDoc((p) => ({ ...p, titulo: e.target.value }))}
                     />
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Categoria
-                      </label>
-                      <select
-                        className="w-full h-9 px-3 border rounded-lg text-sm"
-                        value={novoDoc.categoria}
-                        onChange={(e) =>
-                          setNovoDoc((p) => ({ ...p, categoria: e.target.value as KBCategoria }))
-                        }
-                      >
-                        {CATEGORIAS.map((item) => (
-                          <option key={item} value={item}>
-                            {categoriaLabel(item)}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                    <Select
+                      label="Categoria"
+                      value={novoDoc.categoria}
+                      onChange={(e) =>
+                        setNovoDoc((p) => ({ ...p, categoria: e.target.value as KBCategoria }))
+                      }
+                      options={CATEGORIAS.map((item) => ({
+                        value: item,
+                        label: categoriaLabel(item),
+                      }))}
+                    />
                   </div>
                   <Input
                     label="Descrição"
@@ -656,7 +808,7 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
                         onClick={() => toggleEtapa(item)}
                         className={`px-3 py-1 rounded-full border text-xs ${novoDoc.etapas.includes(item) ? 'bg-blue-100 border-blue-500 text-blue-700' : 'bg-white border-gray-300 text-gray-700'}`}
                       >
-                        {item}
+                        {etapaLabel(item)}
                       </button>
                     ))}
                   </div>
@@ -685,13 +837,20 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
               </h2>
               <span className="text-xs text-gray-400">{glossarioItens.length} termos</span>
             </div>
+            <div className="mb-4">
+              <Input
+                placeholder="Buscar termo ou definição..."
+                value={buscaGlossario}
+                onChange={(e) => setBuscaGlossario(e.target.value)}
+              />
+            </div>
 
             {glossarioQuery.isLoading ? (
               <p className="text-sm text-gray-500">Carregando glossário...</p>
             ) : (
               <>
                 <div className="divide-y divide-gray-100">
-                  {glossarioItens.map((item) => (
+                  {glossarioFiltrado.map((item) => (
                     <div key={item.id} className="py-3 group">
                       {editandoTermoId === item.id ? (
                         <div className="space-y-2">
@@ -701,7 +860,7 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
                             placeholder="Termo"
                           />
                           <textarea
-                            className="w-full p-2 border rounded-lg text-sm"
+                            className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             rows={2}
                             value={editTermo.definicao}
                             onChange={(e) =>
@@ -752,8 +911,12 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
                       )}
                     </div>
                   ))}
-                  {glossarioItens.length === 0 && (
-                    <p className="text-sm text-gray-500 py-4">Nenhum termo cadastrado.</p>
+                  {glossarioFiltrado.length === 0 && (
+                    <p className="text-sm text-gray-500 py-4">
+                      {buscaGlossario.trim()
+                        ? 'Nenhum termo encontrado.'
+                        : 'Nenhum termo cadastrado.'}
+                    </p>
                   )}
                 </div>
 
@@ -795,13 +958,20 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
               </h2>
               <span className="text-xs text-gray-400">{leisItens.length} itens</span>
             </div>
+            <div className="mb-4">
+              <Input
+                placeholder="Buscar lei, norma ou referência..."
+                value={buscaLeis}
+                onChange={(e) => setBuscaLeis(e.target.value)}
+              />
+            </div>
 
             {leisQuery.isLoading ? (
               <p className="text-sm text-gray-500">Carregando leis e normas...</p>
             ) : (
               <>
                 <div className="space-y-3">
-                  {leisItens.map((item) => (
+                  {leisFiltradas.map((item) => (
                     <div
                       key={item.id}
                       className="p-3 rounded-lg border border-gray-100 bg-gray-50 group"
@@ -814,7 +984,7 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
                             placeholder="Nome"
                           />
                           <textarea
-                            className="w-full p-2 border rounded-lg text-sm"
+                            className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             rows={2}
                             value={editLei.descricao}
                             onChange={(e) =>
@@ -904,8 +1074,12 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
                       )}
                     </div>
                   ))}
-                  {leisItens.length === 0 && (
-                    <p className="text-sm text-gray-500">Nenhuma lei/norma cadastrada.</p>
+                  {leisFiltradas.length === 0 && (
+                    <p className="text-sm text-gray-500">
+                      {buscaLeis.trim()
+                        ? 'Nenhuma lei/norma encontrada.'
+                        : 'Nenhuma lei/norma cadastrada.'}
+                    </p>
                   )}
                 </div>
 
@@ -925,7 +1099,7 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
                       />
                     </div>
                     <textarea
-                      className="w-full p-2 border rounded-lg text-sm"
+                      className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       rows={2}
                       value={novaLei.descricao}
                       onChange={(e) => setNovaLei((p) => ({ ...p, descricao: e.target.value }))}
