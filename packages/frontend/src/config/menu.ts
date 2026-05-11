@@ -65,6 +65,12 @@ export const menuSections: MenuSection[] = [
         path: '/operacao/controle-qualidade',
       },
       { id: 'operacao-kb', label: 'Conhecimento', icon: 'book', path: '/operacao/conhecimento' },
+      {
+        id: 'operacao-devolucoes',
+        label: 'Devoluções',
+        icon: 'corner-up-right',
+        path: '/operacao/devolucoes',
+      },
     ],
   },
   {

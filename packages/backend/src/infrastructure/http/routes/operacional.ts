@@ -6,6 +6,7 @@ import { createOperacionalImportacaoLegadoRoutes } from './operacional-importaca
 import { createOperacionalChecklistsRoutes } from './operacional-checklists.js';
 import { createOperacionalCQRoutes } from './operacional-cq.js';
 import { createOperacionalEtiquetasRoutes } from './operacional-etiquetas.js';
+import { createOperacionalDevolucoesRoutes } from './operacional-devolucoes.js';
 
 /**
  * Orchestrator that registers all operational sub-route modules.
@@ -16,6 +17,7 @@ import { createOperacionalEtiquetasRoutes } from './operacional-etiquetas.js';
  *   - operacional-importacao-legado.ts  — validar, importar recebimento/produção, listar, limpar
  *   - operacional-checklists.ts         — checklists, produção, relatórios, exceções, avanço de etapa
  *   - operacional-cq.ts                 — lotes CQ, itens, fechar, relatório entrega, download PDF
+ *   - operacional-devolucoes.ts         — devoluções operacionais para coordenadorias
  */
 export function createOperacionalRoutes(): FastifyPluginAsync {
   return async (server): Promise<void> => {
@@ -26,5 +28,6 @@ export function createOperacionalRoutes(): FastifyPluginAsync {
     await server.register(createOperacionalChecklistsRoutes());
     await server.register(createOperacionalCQRoutes());
     await server.register(createOperacionalEtiquetasRoutes());
+    await server.register(createOperacionalDevolucoesRoutes());
   };
 }

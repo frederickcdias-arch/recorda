@@ -120,6 +120,22 @@ interface DevolucaoPayload {
   geradoEm: string;
 }
 
+interface DevolucaoOperacionalPDFPayload {
+  coordenadoriaDestino: string;
+  responsavelRetirada: string;
+  dataDevolucao: string;
+  observacoes?: string | null;
+  processos: Array<{
+    repositorio: string;
+    orgao: string;
+    protocolo: string;
+    interessado: string;
+    volume: string;
+    obs: string;
+  }>;
+  geradoEm: string;
+}
+
 const PDF_PAGE_SIZE = 'A4';
 
 export class OperacionalPDFService {
@@ -762,6 +778,170 @@ export class OperacionalPDFService {
             item.checklist_id,
             this.formatDateTime(item.data_producao),
           ])
+        );
+
+        this.renderRodape(doc);
+        doc.end();
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+  async gerarTermoDevolucaoOperacional(
+    payload: DevolucaoOperacionalPDFPayload,
+    empresa?: EmpresaConfig | null
+  ): Promise<Buffer> {
+    // eslint-disable-next-line no-async-promise-executor
+    return new Promise(async (resolve, reject) => {
+      try {
+        const doc = new PDFDocument({ margin: 24, size: PDF_PAGE_SIZE });
+        const chunks: Buffer[] = [];
+
+        doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+        doc.on('end', () => resolve(Buffer.concat(chunks)));
+        doc.on('error', reject);
+
+        const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+        const marginLeft = doc.page.margins.left;
+        const processos = payload.processos ?? [];
+
+        await this.renderLogoSpace(doc, empresa);
+
+        // Linha decorativa superior
+        doc.save();
+        doc.rect(marginLeft, doc.y, pageWidth, 3).fill('#1e3a5f');
+        doc.restore();
+        doc.moveDown(0.4);
+
+        // Título
+        doc
+          .font('Helvetica-Bold')
+          .fontSize(16)
+          .fillColor('#1e3a5f')
+          .text('TERMO DE DEVOLU\u00C7\u00C3O DE DOCUMENTOS', { align: 'center' });
+        doc
+          .font('Helvetica')
+          .fontSize(10)
+          .fillColor('#6b7280')
+          .text('Controle Operacional', { align: 'center' });
+        doc.moveDown(0.3);
+
+        // Linha fina separadora
+        doc.save();
+        doc
+          .moveTo(marginLeft, doc.y)
+          .lineTo(marginLeft + pageWidth, doc.y)
+          .strokeColor('#d1d5db')
+          .lineWidth(0.5)
+          .stroke();
+        doc.restore();
+        doc.moveDown(0.4);
+
+        // Bloco de referência
+        const refBoxY = doc.y;
+        doc.save();
+        doc.roundedRect(marginLeft, refBoxY, pageWidth, 50, 4).fill('#f8fafc');
+        doc.restore();
+
+        const col1 = marginLeft + 12;
+        const col2 = marginLeft + Math.floor(pageWidth * 0.4);
+        const col3 = marginLeft + Math.floor(pageWidth * 0.68);
+        const colPad = 8;
+
+        doc.font('Helvetica-Bold').fontSize(9).fillColor('#6b7280');
+        doc.text('COORDENADORIA DEST.', col1, refBoxY + 6);
+        doc.text('DATA DA DEVOLU\u00C7\u00C3O', col2, refBoxY + 6);
+        doc.text('RESPONS\u00C1VEL PELA RETIRADA', col3, refBoxY + 6);
+
+        doc.font('Helvetica').fontSize(10).fillColor('#111827');
+        doc.text(payload.coordenadoriaDestino, col1, refBoxY + 18, {
+          width: col2 - col1 - colPad,
+          ellipsis: true,
+        });
+        doc.text(
+          new Date(payload.dataDevolucao + 'T12:00:00').toLocaleDateString('pt-BR'),
+          col2,
+          refBoxY + 18,
+          { width: col3 - col2 - colPad, ellipsis: true }
+        );
+        doc.text(payload.responsavelRetirada, col3, refBoxY + 18, {
+          width: pageWidth - (col3 - marginLeft) - 12,
+          ellipsis: true,
+        });
+
+        doc.y = refBoxY + 58;
+        doc.moveDown(0.2);
+
+        // Texto formal
+        doc.font('Helvetica').fontSize(10).fillColor('#111827');
+        doc.text(
+          `Pelo presente termo, declaramos que os processos e documentos abaixo discriminados foram disponibilizados para retirada pela coordenadoria ${payload.coordenadoriaDestino}, na data acima indicada.`,
+          marginLeft,
+          doc.y,
+          { width: pageWidth, align: 'justify', lineGap: 2 }
+        );
+
+        if (payload.observacoes) {
+          doc.moveDown(0.3);
+          doc.font('Helvetica-Oblique').fontSize(9).fillColor('#374151');
+          doc.text(`Obs.: ${payload.observacoes}`, marginLeft, doc.y, {
+            width: pageWidth,
+            align: 'left',
+          });
+        }
+
+        doc.moveDown(0.4);
+
+        // Resumo
+        const boxY = doc.y;
+        doc.save();
+        doc.roundedRect(marginLeft, boxY, pageWidth, 28, 4).fill('#eef2ff');
+        doc.restore();
+        doc.font('Helvetica-Bold').fontSize(10).fillColor('#1e3a5f');
+        doc.text(`Itens: ${processos.length}`, marginLeft + 12, boxY + 8);
+        doc.y = boxY + 36;
+
+        // Tabela de processos
+        if (processos.length > 0) {
+          const tableRows = processos.map((item, idx) => [
+            String(idx + 1),
+            item.repositorio || '-',
+            item.orgao || '-',
+            item.protocolo || '-',
+            item.interessado || '-',
+            item.volume || '-',
+            item.obs || '',
+          ]);
+
+          const colWidths = [
+            22,
+            Math.floor(pageWidth * 0.12),
+            Math.floor(pageWidth * 0.13),
+            Math.floor(pageWidth * 0.14),
+            Math.floor(pageWidth * 0.2),
+            Math.floor(pageWidth * 0.08),
+            Math.floor(pageWidth * 0.27),
+          ];
+
+          this.renderRecebimentoTable(
+            doc,
+            ['#', 'REPOSIT\u00D3RIO', 'UNIDADE', 'PROTOCOLO', 'INTERESSADO', 'VOL.', 'OBS'],
+            colWidths,
+            tableRows,
+            processos.map(() => false)
+          );
+        } else {
+          doc.font('Helvetica-Oblique').fontSize(10).fillColor('#6b7280');
+          doc.text('Nenhum item registrado para esta devolu\u00E7\u00E3o.', { align: 'center' });
+          doc.moveDown(1);
+        }
+
+        this.renderDataAssinaturas(
+          doc,
+          payload.geradoEm,
+          'Equipe de Arquivo',
+          'Respons\u00E1vel pela Retirada'
         );
 
         this.renderRodape(doc);

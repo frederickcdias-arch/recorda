@@ -1477,3 +1477,111 @@ export function useImportacoesHistorico() {
       }>('/operacional/importacoes-legado?pagina=1&limite=20'),
   });
 }
+
+// ─── Devoluções Operacionais ─────────────────────────────────
+
+export interface DevolucaoOperacional {
+  id: string;
+  data_devolucao: string;
+  responsavel_retirada: string;
+  observacoes: string | null;
+  criado_em: string;
+  coordenadoria_id: string;
+  coordenadoria_nome: string;
+  coordenadoria_sigla: string;
+  total_itens: string;
+}
+
+export interface DevolucaoOperacionalItem {
+  id: string;
+  repositorio: string | null;
+  orgao: string | null;
+  protocolo: string | null;
+  interessado: string | null;
+  volume: string | null;
+  obs: string | null;
+  recebimento_processo_id: string | null;
+}
+
+export interface RecebimentoProcessoBusca {
+  id: string;
+  protocolo: string;
+  interessado: string;
+  volume: string;
+  repositorio: string;
+  orgao: string;
+}
+
+export function useDevolucoes(params: {
+  q?: string;
+  coordenadoriaId?: string;
+  dataInicio?: string;
+  dataFim?: string;
+  pagina?: number;
+  limite?: number;
+}) {
+  const { q, coordenadoriaId, dataInicio, dataFim, pagina = 1, limite = 20 } = params;
+  const queryParams: Record<string, string | number> = { pagina, limite };
+  if (q) queryParams.q = q;
+  if (coordenadoriaId) queryParams.coordenadoriaId = coordenadoriaId;
+  if (dataInicio) queryParams.dataInicio = dataInicio;
+  if (dataFim) queryParams.dataFim = dataFim;
+
+  return useQuery({
+    queryKey: ['devolucoes', queryParams],
+    queryFn: () => {
+      const qs = new URLSearchParams();
+      for (const [k, v] of Object.entries(queryParams)) qs.set(k, String(v));
+      return api.get<{
+        devolucoes: DevolucaoOperacional[];
+        total: number;
+        pagina: number;
+        totalPaginas: number;
+      }>(`/operacional/devolucoes?${qs.toString()}`);
+    },
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useDevolucaoDetalhe(id: string | null) {
+  return useQuery({
+    queryKey: ['devolucao-detalhe', id],
+    queryFn: () =>
+      api.get<{
+        devolucao: DevolucaoOperacional;
+        itens: DevolucaoOperacionalItem[];
+      }>(`/operacional/devolucoes/${id}`),
+    enabled: !!id,
+  });
+}
+
+export function useCriarDevolucao() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: {
+      dataDevolucao: string;
+      coordenadoriaDestinoId: string;
+      responsavelRetirada: string;
+      observacoes?: string;
+      itens: Array<{
+        repositorio?: string;
+        orgao?: string;
+        protocolo?: string;
+        interessado?: string;
+        volume?: string;
+        obs?: string;
+        recebimentoProcessoId?: string;
+      }>;
+    }) => api.post<{ id: string }>('/operacional/devolucoes', body),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['devolucoes'] }),
+  });
+}
+
+export function useBuscarRecebimentoProcessos() {
+  return useMutation({
+    mutationFn: (q: string) =>
+      api.get<{ itens: RecebimentoProcessoBusca[] }>(
+        `/operacional/recebimento-processos/busca?q=${encodeURIComponent(q)}&limite=20`
+      ),
+  });
+}

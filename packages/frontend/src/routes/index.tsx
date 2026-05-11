@@ -71,6 +71,9 @@ const VincularProducoesPage = lazy(() =>
     default: m.VincularProducoesPage,
   }))
 );
+const DevolucoesPage = lazy(() =>
+  import('../pages/operacao/DevolucoesPage').then((m) => ({ default: m.DevolucoesPage }))
+);
 
 function PageSuspense({ children }: { children: React.ReactNode }): JSX.Element {
   return (
@@ -182,6 +185,16 @@ export const router = createBrowserRouter([
           <PageSuspense>
             <ConhecimentoOperacionalPage />
           </PageSuspense>
+        ),
+      },
+      {
+        path: 'operacao/devolucoes',
+        element: (
+          <RoleRoute allowedProfiles={['operador', 'administrador']}>
+            <PageSuspense>
+              <DevolucoesPage />
+            </PageSuspense>
+          </RoleRoute>
         ),
       },
       {
