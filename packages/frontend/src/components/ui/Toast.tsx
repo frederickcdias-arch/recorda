@@ -62,7 +62,7 @@ const variantStyles: Record<
   info: {
     container: 'bg-white border-[var(--color-gray-200)]',
     icon: 'text-[var(--color-primary-600)]',
-    iconName: 'help-circle',
+    iconName: 'info',
   },
   success: {
     container: 'bg-white border-[var(--color-success-200)]',
@@ -72,12 +72,12 @@ const variantStyles: Record<
   warning: {
     container: 'bg-white border-[var(--color-warning-200)]',
     icon: 'text-[var(--color-warning-600)]',
-    iconName: 'help-circle',
+    iconName: 'alert-triangle',
   },
   error: {
     container: 'bg-white border-[var(--color-error-200)]',
     icon: 'text-[var(--color-error-600)]',
-    iconName: 'x',
+    iconName: 'alert-circle',
   },
 };
 
@@ -153,7 +153,7 @@ function ToastContainer({ toasts, onRemove }: ToastContainerProps): JSX.Element 
 
   return (
     <div
-      className="fixed bottom-4 left-4 right-4 z-[var(--z-toast)] flex flex-col gap-2 sm:left-auto sm:w-[420px]"
+      className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] left-4 right-4 z-[var(--z-toast)] flex flex-col gap-2 sm:left-auto sm:w-[420px] md:bottom-4"
       aria-live="assertive"
       aria-atomic="true"
     >

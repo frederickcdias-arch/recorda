@@ -59,6 +59,12 @@ const mobileNavItems: NavItem[] = [
 
 const sheetItemsByPerfil: Record<string, SheetItem[]> = {
   administrador: [
+    {
+      id: 'devolucoes',
+      label: 'Devoluções',
+      icon: 'corner-up-right',
+      path: '/operacao/devolucoes',
+    },
     { id: 'config', label: 'Configurações', icon: 'settings', path: '/configuracoes' },
     { id: 'usuarios', label: 'Usuários', icon: 'users', path: '/configuracoes/usuarios' },
     { id: 'auditoria', label: 'Auditoria', icon: 'shield', path: '/auditoria' },
@@ -71,6 +77,12 @@ const sheetItemsByPerfil: Record<string, SheetItem[]> = {
     },
   ],
   operador: [
+    {
+      id: 'devolucoes',
+      label: 'Devoluções',
+      icon: 'corner-up-right',
+      path: '/operacao/devolucoes',
+    },
     { id: 'conhecimento', label: 'Conhecimento', icon: 'book', path: '/operacao/conhecimento' },
     {
       id: 'cq',
@@ -86,6 +98,7 @@ const MAIS_ACTIVE_PREFIXES = [
   '/auditoria',
   '/operacao/conhecimento',
   '/operacao/controle-qualidade',
+  '/operacao/devolucoes',
 ];
 
 const colsClass: Record<number, string> = {

@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Alert } from '../components/ui/Alert';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
+import { Icon } from '../components/ui/Icon';
 
 function validateEmail(value: string): string {
   if (!value) return 'E-mail é obrigatório';
@@ -29,6 +30,7 @@ export function LoginPage(): JSX.Element {
   } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [lembrarMe, setLembrarMe] = useState(savedRememberMe);
   const [touched, setTouched] = useState({ email: false, password: false });
 
@@ -103,7 +105,7 @@ export function LoginPage(): JSX.Element {
 
             <Input
               id="password"
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               label="Senha"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -111,19 +113,34 @@ export function LoginPage(): JSX.Element {
               placeholder="••••••••"
               error={passwordError}
               leftIcon="lock"
+              rightIcon={showPassword ? 'eye-off' : 'eye'}
+              onRightIconClick={() => setShowPassword((v) => !v)}
               inputSize="lg"
               autoComplete="current-password"
               disabled={carregando}
             />
 
             <div className="flex items-center justify-between text-sm">
-              <label className="flex items-center gap-2 text-[var(--color-text-secondary)] cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={lembrarMe}
-                  onChange={(e) => setLembrarMe(e.target.checked)}
-                  className="rounded border-[var(--color-gray-300)] text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)]"
-                />
+              <label className="flex items-center gap-2.5 text-[var(--color-text-secondary)] cursor-pointer select-none">
+                <span
+                  onClick={() => setLembrarMe((v) => !v)}
+                  role="checkbox"
+                  aria-checked={lembrarMe}
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === ' ' || e.key === 'Enter') {
+                      e.preventDefault();
+                      setLembrarMe((v) => !v);
+                    }
+                  }}
+                  className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors duration-150 flex-shrink-0 ${
+                    lembrarMe
+                      ? 'bg-[var(--color-primary-600)] border-[var(--color-primary-600)]'
+                      : 'bg-white border-[var(--color-gray-300)] hover:border-[var(--color-primary-400)]'
+                  }`}
+                >
+                  {lembrarMe && <Icon name="check" className="w-2.5 h-2.5 text-white" />}
+                </span>
                 Lembrar-me
               </label>
               <Link

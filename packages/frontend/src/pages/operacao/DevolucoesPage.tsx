@@ -2,9 +2,11 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
+import { Icon } from '../../components/ui/Icon';
 import { Pagination } from '../../components/ui/Pagination';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { PageState } from '../../components/ui/PageState';
+import { SkeletonTable } from '../../components/ui/Skeleton';
 import { useToastHelpers } from '../../components/ui/Toast';
 import { buildApiUrl } from '../../services/api';
 import { getToken } from '../../services/tokenStorage';
@@ -76,12 +78,13 @@ function CoordCombobox({ value, onChange, opcoes, required }: CoordComboboxProps
 
   return (
     <div ref={ref} className="relative">
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        Coordenadoria Destino{required && <span className="text-red-500 ml-0.5">*</span>}
+      <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-1.5">
+        Coordenadoria Destino
+        {required && <span className="text-[var(--color-error-500)] ml-0.5">*</span>}
       </label>
       <input
         type="text"
-        className="w-full h-11 px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        className="w-full h-11 sm:h-9 px-3.5 border rounded-lg text-sm bg-white placeholder:text-[var(--color-text-placeholder)] text-[var(--color-text-primary)] transition-all duration-150 focus:outline-none focus:ring-[3px] border-[var(--color-gray-300)] focus:border-[var(--color-primary-500)] focus:ring-[var(--color-primary-100)]"
         placeholder="Digite ou selecione a coordenadoria…"
         value={open ? query : value}
         onChange={(e) => {
@@ -98,13 +101,15 @@ function CoordCombobox({ value, onChange, opcoes, required }: CoordComboboxProps
         }}
       />
       {open && filtered.length > 0 && (
-        <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-52 overflow-y-auto">
+        <div className="absolute z-20 w-full mt-1 bg-white border border-[var(--color-border-primary)] rounded-lg shadow-lg max-h-52 overflow-y-auto">
           {filtered.map((opt) => (
             <button
               key={opt}
               type="button"
-              className={`w-full text-left px-3 py-2 text-sm hover:bg-blue-50 hover:text-blue-700 transition-colors ${
-                opt === value ? 'bg-blue-50 text-blue-700 font-medium' : ''
+              className={`w-full text-left px-3 py-2 text-sm hover:bg-[var(--color-primary-50)] hover:text-[var(--color-primary-700)] transition-colors ${
+                opt === value
+                  ? 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)] font-medium'
+                  : ''
               }`}
               onMouseDown={(e) => {
                 e.preventDefault();
@@ -289,10 +294,10 @@ function ModalNovaDevolucao({ onClose, onSaved }: ModalDevolucaoProps): JSX.Elem
           <h2 className="text-lg font-semibold text-gray-900">Nova Devolução Operacional</h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 text-xl leading-none"
+            className="text-gray-400 hover:text-gray-600 p-1 rounded transition-colors"
             aria-label="Fechar"
           >
-            ×
+            <Icon name="x" className="w-5 h-5" />
           </button>
         </div>
 
@@ -676,16 +681,16 @@ function ModalEditarDevolucao({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 overflow-y-auto py-8 px-4">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg">
         <div className="flex items-center justify-between p-5 border-b">
           <h2 className="text-base font-semibold text-gray-900">Editar Devolução</h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 text-xl leading-none"
+            className="text-gray-400 hover:text-gray-600 p-1 rounded transition-colors"
             aria-label="Fechar"
           >
-            ×
+            <Icon name="x" className="w-5 h-5" />
           </button>
         </div>
         <div className="p-5 space-y-4">
@@ -801,10 +806,10 @@ function PainelDetalheDevolucao({ devolucaoId, onClose }: DetalheDevolucaoProps)
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 text-xl"
+            className="text-gray-400 hover:text-gray-600 p-1 rounded transition-colors"
             aria-label="Fechar"
           >
-            ×
+            <Icon name="x" className="w-5 h-5" />
           </button>
         </div>
         <div className="overflow-y-auto flex-1 p-5">
@@ -990,7 +995,9 @@ export function DevolucoesPage(): JSX.Element {
         {/* Tabela */}
         <Card padding="none">
           {devolucoesQuery.isLoading ? (
-            <div className="p-12 text-center text-gray-500">Carregando…</div>
+            <div className="p-6">
+              <SkeletonTable rows={5} cols={5} />
+            </div>
           ) : devolucoes.length === 0 ? (
             <div className="p-12 text-center text-gray-400">
               <p className="text-lg font-medium">Nenhuma devolução encontrada</p>
@@ -1015,19 +1022,19 @@ export function DevolucoesPage(): JSX.Element {
                   {devolucoes.map((dev: DevolucaoOperacional, idx: number) => (
                     <tr
                       key={dev.id}
-                      className={`border-b last:border-0 ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}
+                      className={`border-b last:border-0 transition-colors hover:bg-[var(--color-primary-25)] ${idx % 2 === 0 ? 'bg-white' : 'bg-[var(--color-gray-50)]'}`}
                     >
                       <td className="px-4 py-3 whitespace-nowrap">
                         {formatarData(dev.data_devolucao)}
                       </td>
                       <td className="px-4 py-3">
-                        <span className="font-medium text-blue-700">
+                        <span className="font-medium text-[var(--color-primary-700)]">
                           {dev.coordenadoria_destino}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-gray-700">{dev.responsavel_retirada}</td>
                       <td className="px-4 py-3 text-center">
-                        <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 text-blue-800 font-semibold text-xs">
+                        <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-[var(--color-primary-100)] text-[var(--color-primary-800)] font-semibold text-xs">
                           {dev.total_itens}
                         </span>
                       </td>
@@ -1132,10 +1139,10 @@ export function DevolucoesPage(): JSX.Element {
                 Cancelar
               </Button>
               <Button
+                variant="danger"
                 size="sm"
                 onClick={() => void handleConfirmarExclusao()}
                 disabled={excluirMut.isPending}
-                className="bg-red-600 hover:bg-red-700 text-white border-red-600"
               >
                 {excluirMut.isPending ? 'Excluindo…' : 'Excluir'}
               </Button>

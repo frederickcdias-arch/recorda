@@ -47,9 +47,9 @@ export function PageState({
 
   if (error) {
     return (
-      <div className="bg-white rounded-xl border border-[var(--color-border-primary)] p-8 text-center max-w-lg mx-auto my-8">
-        <div className="w-16 h-16 bg-[var(--color-gray-100)] rounded-full flex items-center justify-center mx-auto mb-4">
-          <Icon name="x" className="w-8 h-8 text-[var(--color-gray-500)]" />
+      <div className="bg-white rounded-xl border border-[var(--color-error-200)] p-8 text-center max-w-lg mx-auto my-8">
+        <div className="w-16 h-16 bg-[var(--color-error-50)] rounded-full flex items-center justify-center mx-auto mb-4">
+          <Icon name="alert-circle" className="w-8 h-8 text-[var(--color-error-500)]" />
         </div>
         <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-2">
           Algo deu errado
@@ -124,7 +124,7 @@ const feedbackStyles = {
   warning: {
     bg: 'bg-[var(--color-warning-50)]',
     border: 'border-[var(--color-warning-200)]',
-    icon: 'help-circle',
+    icon: 'alert-triangle',
     iconBg: 'bg-[var(--color-warning-100)]',
     iconColor: 'text-[var(--color-warning-600)]',
     titleColor: 'text-[var(--color-text-primary)]',
@@ -133,7 +133,7 @@ const feedbackStyles = {
   info: {
     bg: 'bg-[var(--color-primary-50)]',
     border: 'border-[var(--color-primary-200)]',
-    icon: 'help-circle',
+    icon: 'info',
     iconBg: 'bg-[var(--color-primary-100)]',
     iconColor: 'text-[var(--color-primary-600)]',
     titleColor: 'text-[var(--color-primary-900)]',
