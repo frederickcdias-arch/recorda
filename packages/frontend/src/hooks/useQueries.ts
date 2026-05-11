@@ -1486,9 +1486,7 @@ export interface DevolucaoOperacional {
   responsavel_retirada: string;
   observacoes: string | null;
   criado_em: string;
-  coordenadoria_id: string;
-  coordenadoria_nome: string;
-  coordenadoria_sigla: string;
+  coordenadoria_destino: string;
   total_itens: string;
 }
 
@@ -1514,16 +1512,16 @@ export interface RecebimentoProcessoBusca {
 
 export function useDevolucoes(params: {
   q?: string;
-  coordenadoriaId?: string;
+  coordenadoria?: string;
   dataInicio?: string;
   dataFim?: string;
   pagina?: number;
   limite?: number;
 }) {
-  const { q, coordenadoriaId, dataInicio, dataFim, pagina = 1, limite = 20 } = params;
+  const { q, coordenadoria, dataInicio, dataFim, pagina = 1, limite = 20 } = params;
   const queryParams: Record<string, string | number> = { pagina, limite };
   if (q) queryParams.q = q;
-  if (coordenadoriaId) queryParams.coordenadoriaId = coordenadoriaId;
+  if (coordenadoria) queryParams.coordenadoria = coordenadoria;
   if (dataInicio) queryParams.dataInicio = dataInicio;
   if (dataFim) queryParams.dataFim = dataFim;
 
@@ -1560,7 +1558,7 @@ export function useCriarDevolucao() {
   return useMutation({
     mutationFn: (body: {
       dataDevolucao: string;
-      coordenadoriaDestinoId: string;
+      coordenadoriaDestino: string;
       responsavelRetirada: string;
       observacoes?: string;
       itens: Array<{
@@ -1574,6 +1572,17 @@ export function useCriarDevolucao() {
       }>;
     }) => api.post<{ id: string }>('/operacional/devolucoes', body),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ['devolucoes'] }),
+  });
+}
+
+export function useCoordenadestinoOpcoes() {
+  return useQuery({
+    queryKey: ['coordenadorias-destino-opcoes'],
+    queryFn: () =>
+      api
+        .get<{ opcoes: string[] }>('/operacional/coordenadorias-destino-opcoes')
+        .then((d) => d.opcoes),
+    staleTime: 5 * 60_000,
   });
 }
 

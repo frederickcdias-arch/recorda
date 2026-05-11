@@ -6,7 +6,7 @@ import { getCurrentUser } from './operacional-helpers.js';
 
 interface CriarDevolucaoBody {
   dataDevolucao: string;
-  coordenadoriaDestinoId: string;
+  coordenadoriaDestino: string;
   responsavelRetirada: string;
   observacoes?: string;
   itens: Array<{
@@ -43,10 +43,10 @@ export function createOperacionalDevolucoesRoutes(): FastifyPluginAsync {
           security: [{ bearerAuth: [] }],
           body: {
             type: 'object',
-            required: ['dataDevolucao', 'coordenadoriaDestinoId', 'responsavelRetirada', 'itens'],
+            required: ['dataDevolucao', 'coordenadoriaDestino', 'responsavelRetirada', 'itens'],
             properties: {
               dataDevolucao: { type: 'string' },
-              coordenadoriaDestinoId: { type: 'string' },
+              coordenadoriaDestino: { type: 'string' },
               responsavelRetirada: { type: 'string' },
               observacoes: { type: 'string' },
               itens: { type: 'array', items: { type: 'object' }, minItems: 1 },
@@ -63,7 +63,7 @@ export function createOperacionalDevolucoesRoutes(): FastifyPluginAsync {
         const user = getCurrentUser(request);
         const body = request.body as CriarDevolucaoBody;
 
-        const { dataDevolucao, coordenadoriaDestinoId, responsavelRetirada, observacoes, itens } =
+        const { dataDevolucao, coordenadoriaDestino, responsavelRetirada, observacoes, itens } =
           body;
 
         if (!responsavelRetirada?.trim()) {
@@ -76,16 +76,21 @@ export function createOperacionalDevolucoesRoutes(): FastifyPluginAsync {
         try {
           await server.database.query('BEGIN');
 
+          if (!coordenadoriaDestino?.trim()) {
+            await server.database.query('ROLLBACK');
+            return reply.status(400).send({ error: 'Coordenadoria destino é obrigatória' });
+          }
+
           // Criar cabeçalho
           const devolucaoRes = await server.database.query(
             `INSERT INTO devolucoes_operacionais
-               (data_devolucao, coordenadoria_destino_id, responsavel_retirada, observacoes, criado_por)
+               (data_devolucao, coordenadoria_destino, responsavel_retirada, observacoes, criado_por)
              VALUES ($1, $2, $3, $4, $5)
-             RETURNING id, data_devolucao, coordenadoria_destino_id, responsavel_retirada,
+             RETURNING id, data_devolucao, coordenadoria_destino, responsavel_retirada,
                        observacoes, criado_em`,
             [
               dataDevolucao,
-              coordenadoriaDestinoId,
+              coordenadoriaDestino.trim(),
               responsavelRetirada.trim(),
               observacoes?.trim() || null,
               user.id,
@@ -137,7 +142,7 @@ export function createOperacionalDevolucoesRoutes(): FastifyPluginAsync {
             type: 'object',
             properties: {
               q: { type: 'string' },
-              coordenadoriaId: { type: 'string' },
+              coordenadoria: { type: 'string' },
               dataInicio: { type: 'string' },
               dataFim: { type: 'string' },
               pagina: { type: 'number', default: 1 },
@@ -150,14 +155,14 @@ export function createOperacionalDevolucoesRoutes(): FastifyPluginAsync {
       async (request, reply) => {
         const {
           q,
-          coordenadoriaId,
+          coordenadoria,
           dataInicio,
           dataFim,
           pagina = 1,
           limite = 20,
         } = request.query as {
           q?: string;
-          coordenadoriaId?: string;
+          coordenadoria?: string;
           dataInicio?: string;
           dataFim?: string;
           pagina?: number;
@@ -170,9 +175,9 @@ export function createOperacionalDevolucoesRoutes(): FastifyPluginAsync {
 
         let whereClauses = '';
 
-        if (coordenadoriaId) {
-          whereClauses += ` AND d.coordenadoria_destino_id = $${paramIdx}`;
-          params.push(coordenadoriaId);
+        if (coordenadoria) {
+          whereClauses += ` AND d.coordenadoria_destino ILIKE $${paramIdx}`;
+          params.push(`%${coordenadoria}%`);
           paramIdx++;
         }
         if (dataInicio) {
@@ -213,10 +218,9 @@ export function createOperacionalDevolucoesRoutes(): FastifyPluginAsync {
           const dataParams = [...params, Number(limite), offset];
           const dataResult = await server.database.query(
             `SELECT d.id, d.data_devolucao, d.responsavel_retirada, d.observacoes, d.criado_em,
-                    c.id AS coordenadoria_id, c.nome AS coordenadoria_nome, c.sigla AS coordenadoria_sigla,
+                    d.coordenadoria_destino,
                     (SELECT COUNT(*) FROM devolucao_operacional_itens di WHERE di.devolucao_id = d.id) AS total_itens
              FROM devolucoes_operacionais d
-             JOIN coordenadorias c ON c.id = d.coordenadoria_destino_id
              WHERE 1=1${whereClauses}
              ORDER BY d.data_devolucao DESC, d.criado_em DESC
              LIMIT $${paramIdx} OFFSET $${paramIdx + 1}`,
@@ -255,9 +259,8 @@ export function createOperacionalDevolucoesRoutes(): FastifyPluginAsync {
         try {
           const devolucaoRes = await server.database.query(
             `SELECT d.id, d.data_devolucao, d.responsavel_retirada, d.observacoes, d.criado_em,
-                    c.id AS coordenadoria_id, c.nome AS coordenadoria_nome, c.sigla AS coordenadoria_sigla
+                    d.coordenadoria_destino
              FROM devolucoes_operacionais d
-             JOIN coordenadorias c ON c.id = d.coordenadoria_destino_id
              WHERE d.id = $1`,
             [id]
           );
@@ -298,9 +301,8 @@ export function createOperacionalDevolucoesRoutes(): FastifyPluginAsync {
         try {
           const devolucaoRes = await server.database.query(
             `SELECT d.id, d.data_devolucao, d.responsavel_retirada, d.observacoes, d.criado_em,
-                    c.nome AS coordenadoria_nome, c.sigla AS coordenadoria_sigla
+                    d.coordenadoria_destino
              FROM devolucoes_operacionais d
-             JOIN coordenadorias c ON c.id = d.coordenadoria_destino_id
              WHERE d.id = $1`,
             [id]
           );
@@ -313,8 +315,7 @@ export function createOperacionalDevolucoesRoutes(): FastifyPluginAsync {
             responsavel_retirada: string;
             observacoes: string | null;
             criado_em: string;
-            coordenadoria_nome: string;
-            coordenadoria_sigla: string;
+            coordenadoria_destino: string;
           };
 
           const itensRes = await server.database.query(
@@ -349,8 +350,7 @@ export function createOperacionalDevolucoesRoutes(): FastifyPluginAsync {
             // empresa config opcional
           }
 
-          const coordenadoriaDestino =
-            `${devolucao.coordenadoria_nome} (${devolucao.coordenadoria_sigla})`.trim();
+          const coordenadoriaDestino = devolucao.coordenadoria_destino.trim();
 
           const pdfBuffer = await pdfService.gerarTermoDevolucaoOperacional(
             {
@@ -374,7 +374,11 @@ export function createOperacionalDevolucoesRoutes(): FastifyPluginAsync {
           const dataFormatada = new Date(devolucao.data_devolucao + 'T12:00:00')
             .toLocaleDateString('pt-BR')
             .replace(/\//g, '-');
-          const sigla = devolucao.coordenadoria_sigla.replace(/[^a-zA-Z0-9]/g, '_');
+          const sigla = devolucao.coordenadoria_destino
+            .replace(/[^a-zA-Z0-9À-ÿ\s]/gi, '')
+            .trim()
+            .replace(/\s+/g, '_')
+            .slice(0, 40);
           const filename = `termo_devolucao_${sigla}_${dataFormatada}.pdf`;
 
           return reply
@@ -448,6 +452,59 @@ export function createOperacionalDevolucoesRoutes(): FastifyPluginAsync {
         } catch (error) {
           const message =
             error instanceof Error ? error.message : 'Erro ao buscar processos de recebimento';
+          return sendDatabaseError(reply, error, message);
+        }
+      }
+    );
+
+    // ============================================================
+    // GET /operacional/coordenadorias-destino-opcoes
+    // Retorna lista de coordenadorias para o combobox de destino,
+    // unindo a tabela coordenadorias com os registros históricos de
+    // producao_repositorio.marcadores->>'coordenadoria'.
+    // ============================================================
+    server.get(
+      '/operacional/coordenadorias-destino-opcoes',
+      {
+        schema: {
+          tags: ['operacional'],
+          summary: 'Opções de coordenadoria destino (tabela + histórico)',
+          security: [{ bearerAuth: [] }],
+        },
+        preHandler: [server.authenticate, authorize('operador', 'administrador')],
+      },
+      async (_request, reply) => {
+        try {
+          const result = await server.database.query(`
+            WITH da_tabela AS (
+              SELECT UPPER(TRIM(sigla || ' — ' || nome)) AS nome
+              FROM coordenadorias
+              WHERE ativa = TRUE AND TRIM(nome) <> ''
+            ),
+            do_fluxo AS (
+              SELECT DISTINCT UPPER(TRIM(marcadores->>'coordenadoria')) AS nome
+              FROM producao_repositorio
+              WHERE TRIM(COALESCE(marcadores->>'coordenadoria', '')) <> ''
+            ),
+            do_historico AS (
+              SELECT DISTINCT UPPER(TRIM(coordenadoria_destino)) AS nome
+              FROM devolucoes_operacionais
+              WHERE TRIM(COALESCE(coordenadoria_destino, '')) <> ''
+            ),
+            uniao AS (
+              SELECT nome FROM da_tabela
+              UNION
+              SELECT nome FROM do_fluxo
+              UNION
+              SELECT nome FROM do_historico
+            )
+            SELECT nome FROM uniao
+            WHERE nome IS NOT NULL AND nome <> ''
+            ORDER BY nome ASC
+          `);
+          return reply.send({ opcoes: (result.rows as { nome: string }[]).map((r) => r.nome) });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Erro ao buscar coordenadorias';
           return sendDatabaseError(reply, error, message);
         }
       }

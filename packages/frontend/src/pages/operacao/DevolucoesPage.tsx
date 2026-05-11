@@ -13,7 +13,7 @@ import {
   useDevolucoes,
   useDevolucaoDetalhe,
   useCriarDevolucao,
-  useCoordenadorias,
+  useCoordenadestinoOpcoes,
   useOrgaosRecebimento,
   useBuscarRecebimentoProcessos,
   type DevolucaoOperacional,
@@ -41,35 +41,23 @@ function formatarData(isoDate: string): string {
   return `${parts[2]}/${parts[1]}/${parts[0]}`;
 }
 
-// ─── Combobox de Coordenadoria ────────────────────────────────
+// ─── Combobox de Coordenadoria (texto livre + sugestões) ─────
 
 interface CoordComboboxProps {
   value: string;
-  onChange: (id: string) => void;
-  coordenadorias: Array<{ id: string; nome: string; sigla: string }>;
+  onChange: (value: string) => void;
+  opcoes: string[];
   required?: boolean;
 }
 
-function CoordCombobox({
-  value,
-  onChange,
-  coordenadorias,
-  required,
-}: CoordComboboxProps): JSX.Element {
+function CoordCombobox({ value, onChange, opcoes, required }: CoordComboboxProps): JSX.Element {
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  const selected = coordenadorias.find((c) => c.id === value);
-  const displayText = selected ? `${selected.sigla} — ${selected.nome}` : '';
-
   const filtered = query.trim()
-    ? coordenadorias.filter(
-        (c) =>
-          c.nome.toLowerCase().includes(query.toLowerCase()) ||
-          c.sigla.toLowerCase().includes(query.toLowerCase())
-      )
-    : coordenadorias;
+    ? opcoes.filter((o) => o.toLowerCase().includes(query.toLowerCase()))
+    : opcoes;
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -90,42 +78,40 @@ function CoordCombobox({
       <input
         type="text"
         className="w-full h-11 px-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        placeholder="Buscar coordenadoria…"
-        value={open ? query : displayText}
+        placeholder="Digite ou selecione a coordenadoria…"
+        value={open ? query : value}
         onChange={(e) => {
           setQuery(e.target.value);
+          onChange(e.target.value);
           setOpen(true);
         }}
         onFocus={() => {
-          setQuery('');
+          setQuery(value);
           setOpen(true);
+        }}
+        onBlur={() => {
+          setTimeout(() => setOpen(false), 150);
         }}
       />
       {open && filtered.length > 0 && (
         <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-52 overflow-y-auto">
-          {filtered.map((c) => (
+          {filtered.map((opt) => (
             <button
-              key={c.id}
+              key={opt}
               type="button"
               className={`w-full text-left px-3 py-2 text-sm hover:bg-blue-50 hover:text-blue-700 transition-colors ${
-                c.id === value ? 'bg-blue-50 text-blue-700 font-medium' : ''
+                opt === value ? 'bg-blue-50 text-blue-700 font-medium' : ''
               }`}
               onMouseDown={(e) => {
                 e.preventDefault();
-                onChange(c.id);
+                onChange(opt);
                 setQuery('');
                 setOpen(false);
               }}
             >
-              <span className="font-medium">{c.sigla}</span>
-              <span className="text-gray-500 ml-1">— {c.nome}</span>
+              {opt}
             </button>
           ))}
-        </div>
-      )}
-      {open && filtered.length === 0 && query.trim().length > 0 && (
-        <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg px-3 py-2 text-sm text-gray-400">
-          Nenhuma coordenadoria encontrada
         </div>
       )}
     </div>
@@ -141,13 +127,13 @@ interface ModalDevolucaoProps {
 
 function ModalNovaDevolucao({ onClose, onSaved }: ModalDevolucaoProps): JSX.Element {
   const toast = useToastHelpers();
-  const coordenadoriasQuery = useCoordenadorias();
+  const coordOpcoes = useCoordenadestinoOpcoes();
   const orgaosQuery = useOrgaosRecebimento();
   const criarMut = useCriarDevolucao();
   const buscarProcessosMut = useBuscarRecebimentoProcessos();
 
   const [dataDevolucao, setDataDevolucao] = useState(new Date().toISOString().split('T')[0]);
-  const [coordenadoriaDestinoId, setCoordenadoriaDestinoId] = useState('');
+  const [coordenadoriaDestino, setCoordenadoriaDestino] = useState('');
   const [responsavelRetirada, setResponsavelRetirada] = useState('');
   const [observacoes, setObservacoes] = useState('');
   const [itens, setItens] = useState<ItemRascunho[]>([]);
@@ -169,7 +155,7 @@ function ModalNovaDevolucao({ onClose, onSaved }: ModalDevolucaoProps): JSX.Elem
     obs: '',
   });
 
-  const coordenadorias = coordenadoriasQuery.data ?? [];
+  const opcoesCoordenadorias = coordOpcoes.data ?? [];
   const orgaosOptions = orgaosQuery.data ?? [];
 
   const buscarProcessos = useCallback(
@@ -244,7 +230,7 @@ function ModalNovaDevolucao({ onClose, onSaved }: ModalDevolucaoProps): JSX.Elem
       toast.error('Data é obrigatória');
       return;
     }
-    if (!coordenadoriaDestinoId) {
+    if (!coordenadoriaDestino.trim()) {
       toast.error('Coordenadoria destino é obrigatória');
       return;
     }
@@ -260,7 +246,7 @@ function ModalNovaDevolucao({ onClose, onSaved }: ModalDevolucaoProps): JSX.Elem
     try {
       await criarMut.mutateAsync({
         dataDevolucao,
-        coordenadoriaDestinoId,
+        coordenadoriaDestino: coordenadoriaDestino.trim(),
         responsavelRetirada: responsavelRetirada.trim(),
         observacoes: observacoes.trim() || undefined,
         itens: itens.map(({ tempId: _t, ...rest }) => ({
@@ -309,9 +295,9 @@ function ModalNovaDevolucao({ onClose, onSaved }: ModalDevolucaoProps): JSX.Elem
               required
             />
             <CoordCombobox
-              value={coordenadoriaDestinoId}
-              onChange={setCoordenadoriaDestinoId}
-              coordenadorias={coordenadorias}
+              value={coordenadoriaDestino}
+              onChange={setCoordenadoriaDestino}
+              opcoes={opcoesCoordenadorias}
               required
             />
             <Input
@@ -579,7 +565,7 @@ function PainelDetalheDevolucao({ devolucaoId, onClose }: DetalheDevolucaoProps)
         <div className="flex items-center justify-between p-5 border-b">
           <div>
             <h2 className="text-base font-semibold text-gray-900">
-              Devolução — {devolucao.coordenadoria_sigla}
+              Devolução — {devolucao.coordenadoria_destino}
             </h2>
             <p className="text-sm text-gray-500">
               {formatarData(devolucao.data_devolucao)} · {devolucao.responsavel_retirada}
@@ -644,7 +630,6 @@ function PainelDetalheDevolucao({ devolucaoId, onClose }: DetalheDevolucaoProps)
 
 export function DevolucoesPage(): JSX.Element {
   const toast = useToastHelpers();
-  const coordenadoriasQuery = useCoordenadorias();
 
   const [busca, setBusca] = useState('');
   const [coordenadoriaFiltro, setCoordenadoriaFiltro] = useState('');
@@ -664,14 +649,13 @@ export function DevolucoesPage(): JSX.Element {
 
   const devolucoesQuery = useDevolucoes({
     q: debouncedBusca || undefined,
-    coordenadoriaId: coordenadoriaFiltro || undefined,
+    coordenadoria: coordenadoriaFiltro || undefined,
     dataInicio: dataInicio || undefined,
     dataFim: dataFim || undefined,
     pagina,
     limite: 20,
   });
 
-  const coordenadorias = coordenadoriasQuery.data ?? [];
   const { devolucoes = [], totalPaginas = 1 } = devolucoesQuery.data ?? {};
 
   const handleDownloadPdf = useCallback(
@@ -729,19 +713,12 @@ export function DevolucoesPage(): JSX.Element {
               />
             </div>
             <div className="min-w-[180px]">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Coordenadoria</label>
-              <select
-                className="w-full h-11 px-3 border border-gray-300 rounded-lg text-sm"
+              <Input
+                label="Coordenadoria"
+                placeholder="Filtrar por coordenadoria…"
                 value={coordenadoriaFiltro}
                 onChange={(e) => setCoordenadoriaFiltro(e.target.value)}
-              >
-                <option value="">Todas</option>
-                {coordenadorias.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.sigla} — {c.nome}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
             <div>
               <Input
@@ -801,9 +778,8 @@ export function DevolucoesPage(): JSX.Element {
                         {formatarData(dev.data_devolucao)}
                       </td>
                       <td className="px-4 py-3">
-                        <span className="font-medium text-blue-700">{dev.coordenadoria_sigla}</span>
-                        <span className="text-gray-500 ml-1 text-xs">
-                          — {dev.coordenadoria_nome}
+                        <span className="font-medium text-blue-700">
+                          {dev.coordenadoria_destino}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-gray-700">{dev.responsavel_retirada}</td>
