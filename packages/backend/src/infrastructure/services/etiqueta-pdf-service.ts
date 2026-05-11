@@ -15,6 +15,7 @@ const DASH_OFF = 3;
 const LABEL_WIDTH = 9.5 * CM_TO_POINTS; // 269,29 pt
 const LABEL_HEIGHT = 15.0 * CM_TO_POINTS; // 425,20 pt
 const LABEL_GAP = 1 * MM_TO_POINTS; // 2,83 pt
+const CONTENT_MARGIN = 1 * MM_TO_POINTS; // 1 mm de margem interna entre conteúdo e linha de corte
 
 export class EtiquetaPdfService {
   async compactarTresPorFolha(inputs: Uint8Array[]): Promise<Buffer> {
@@ -54,19 +55,21 @@ export class EtiquetaPdfService {
       const sourceWidth = sourcePage.getWidth();
       const sourceHeight = sourcePage.getHeight();
 
-      // Recorta a área central de LABEL_WIDTH × LABEL_HEIGHT da página fonte.
-      // Se a fonte for menor que o slot, incorpora a página inteira e redimensiona.
+      // Recorta o centro da página fonte com 1 mm de margem interna.
+      // O conteúdo é desenhado 1 mm recuado em relação à linha de corte.
+      const contentWidth = LABEL_WIDTH - 2 * CONTENT_MARGIN;
+      const contentHeight = LABEL_HEIGHT - 2 * CONTENT_MARGIN;
       let embeddedPage;
-      if (sourceWidth <= LABEL_WIDTH && sourceHeight <= LABEL_HEIGHT) {
+      if (sourceWidth <= contentWidth && sourceHeight <= contentHeight) {
         embeddedPage = await output.embedPage(sourcePage);
       } else {
-        const cropLeft = Math.max(0, (sourceWidth - LABEL_WIDTH) / 2);
-        const cropBottom = Math.max(0, (sourceHeight - LABEL_HEIGHT) / 2);
+        const cropLeft = Math.max(0, (sourceWidth - contentWidth) / 2);
+        const cropBottom = Math.max(0, (sourceHeight - contentHeight) / 2);
         embeddedPage = await output.embedPage(sourcePage, {
           left: cropLeft,
-          right: Math.min(sourceWidth, cropLeft + LABEL_WIDTH),
+          right: Math.min(sourceWidth, cropLeft + contentWidth),
           bottom: cropBottom,
-          top: Math.min(sourceHeight, cropBottom + LABEL_HEIGHT),
+          top: Math.min(sourceHeight, cropBottom + contentHeight),
         });
       }
 
@@ -74,10 +77,10 @@ export class EtiquetaPdfService {
       const y = groupBottom + (LABELS_PER_ROW - 1 - rowIndex) * (LABEL_HEIGHT + LABEL_GAP);
 
       targetPage.drawPage(embeddedPage, {
-        x,
-        y,
-        width: LABEL_WIDTH,
-        height: LABEL_HEIGHT,
+        x: x + CONTENT_MARGIN,
+        y: y + CONTENT_MARGIN,
+        width: contentWidth,
+        height: contentHeight,
       });
 
       // Borda de corte pontilhada (drawRectangle não suporta dashArray — desenha 4 linhas)
