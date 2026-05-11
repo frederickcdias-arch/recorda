@@ -5,12 +5,16 @@ const PORTRAIT_A4_HEIGHT = PageSizes.A4[1];
 const LABELS_PER_PAGE = 4;
 const LABELS_PER_ROW = 2;
 const CM_TO_POINTS = 28.3464566929;
-const BORDER_WIDTH = 0.8;
+const MM_TO_POINTS = 2.8346456693;
+const BORDER_WIDTH = 0.5;
+const DASH_ON = 4;
+const DASH_OFF = 3;
 
 // Área de recorte da etiqueta: 9,5 × 15 cm
-// Grade 2×2 em A4: margem lateral ≈ 1 cm; sangria vertical ≈ ±1,5 mm (bordas justas)
+// Grade 2×2 em A4 com 1 mm de espaço entre as etiquetas
 const LABEL_WIDTH = 9.5 * CM_TO_POINTS; // 269,29 pt
 const LABEL_HEIGHT = 15.0 * CM_TO_POINTS; // 425,20 pt
+const LABEL_GAP = 1 * MM_TO_POINTS; // 2,83 pt
 
 export class EtiquetaPdfService {
   async compactarTresPorFolha(inputs: Uint8Array[]): Promise<Buffer> {
@@ -30,9 +34,9 @@ export class EtiquetaPdfService {
       });
     }
 
-    // Centraliza a grade na folha; a altura total (30 cm) excede A4 (29,7 cm) em ~1,5 mm por borda
-    const groupLeft = (PORTRAIT_A4_WIDTH - LABEL_WIDTH * LABELS_PER_ROW) / 2;
-    const groupBottom = (PORTRAIT_A4_HEIGHT - LABEL_HEIGHT * LABELS_PER_ROW) / 2;
+    // Centraliza a grade na folha (inclui 1 gap interno na grade 2×2)
+    const groupLeft = (PORTRAIT_A4_WIDTH - LABEL_WIDTH * LABELS_PER_ROW - LABEL_GAP) / 2;
+    const groupBottom = (PORTRAIT_A4_HEIGHT - LABEL_HEIGHT * LABELS_PER_ROW - LABEL_GAP) / 2;
 
     for (let position = 0; position < sourcePages.length; position += 1) {
       const pageRef = sourcePages[position]!;
@@ -66,8 +70,8 @@ export class EtiquetaPdfService {
         });
       }
 
-      const x = groupLeft + columnIndex * LABEL_WIDTH;
-      const y = groupBottom + (LABELS_PER_ROW - 1 - rowIndex) * LABEL_HEIGHT;
+      const x = groupLeft + columnIndex * (LABEL_WIDTH + LABEL_GAP);
+      const y = groupBottom + (LABELS_PER_ROW - 1 - rowIndex) * (LABEL_HEIGHT + LABEL_GAP);
 
       targetPage.drawPage(embeddedPage, {
         x,
@@ -76,14 +80,12 @@ export class EtiquetaPdfService {
         height: LABEL_HEIGHT,
       });
 
-      targetPage.drawRectangle({
-        x,
-        y,
-        width: LABEL_WIDTH,
-        height: LABEL_HEIGHT,
-        borderColor: rgb(0, 0, 0),
-        borderWidth: BORDER_WIDTH,
-      });
+      // Borda de corte pontilhada (drawRectangle não suporta dashArray — desenha 4 linhas)
+      const dashOpts = { thickness: BORDER_WIDTH, color: rgb(0, 0, 0), dashArray: [DASH_ON, DASH_OFF] };
+      targetPage.drawLine({ start: { x, y }, end: { x: x + LABEL_WIDTH, y }, ...dashOpts });
+      targetPage.drawLine({ start: { x, y: y + LABEL_HEIGHT }, end: { x: x + LABEL_WIDTH, y: y + LABEL_HEIGHT }, ...dashOpts });
+      targetPage.drawLine({ start: { x, y }, end: { x, y: y + LABEL_HEIGHT }, ...dashOpts });
+      targetPage.drawLine({ start: { x: x + LABEL_WIDTH, y }, end: { x: x + LABEL_WIDTH, y: y + LABEL_HEIGHT }, ...dashOpts });
     }
 
     const bytes = await output.save();
