@@ -170,7 +170,8 @@ function ModalNovaDevolucao({ onClose, onSaved }: ModalDevolucaoProps): JSX.Elem
         setResultadosBusca(res.itens ?? []);
         setMostrarBusca(true);
       } catch {
-        toast.error('Erro ao buscar processos');
+        setResultadosBusca([]);
+        setMostrarBusca(false);
       }
     },
     [buscarProcessosMut, toast]
