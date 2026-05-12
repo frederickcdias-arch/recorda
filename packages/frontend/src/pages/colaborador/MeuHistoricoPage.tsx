@@ -69,6 +69,24 @@ export function MeuHistoricoPage(): JSX.Element {
   const busca = useDebounce(buscaInput, 400);
   const limite = 50;
 
+  type SortField =
+    | 'data_producao'
+    | 'id_repositorio_ged'
+    | 'coordenadoria'
+    | 'etapa'
+    | 'quantidade';
+  const [sortField, setSortField] = useState<SortField | null>(null);
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+
+  const handleSort = (field: SortField): void => {
+    if (sortField === field) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortField(field);
+      setSortDir('asc');
+    }
+  };
+
   const filtrosUrl = useMemo(() => {
     const params = new URLSearchParams(location.search);
     return {
@@ -142,7 +160,35 @@ export function MeuHistoricoPage(): JSX.Element {
     placeholderData: keepPreviousData,
   });
 
-  const producoes = data?.producoes ?? [];
+  const producoesBrutos = data?.producoes ?? [];
+
+  const producoes = useMemo(() => {
+    if (!sortField) return producoesBrutos;
+    return [...producoesBrutos].sort((a, b) => {
+      let av: string | number;
+      let bv: string | number;
+      if (sortField === 'coordenadoria') {
+        av = (a.coordenadoria_label ?? a.marcadores?.coordenadoria ?? 'NAO INFORMADO')
+          .trim()
+          .toUpperCase();
+        bv = (b.coordenadoria_label ?? b.marcadores?.coordenadoria ?? 'NAO INFORMADO')
+          .trim()
+          .toUpperCase();
+      } else if (sortField === 'etapa') {
+        av = (a.etapa_label ?? a.etapa).toLowerCase();
+        bv = (b.etapa_label ?? b.etapa).toLowerCase();
+      } else if (sortField === 'quantidade') {
+        av = a.quantidade;
+        bv = b.quantidade;
+      } else {
+        av = (a[sortField] as string).toLowerCase();
+        bv = (b[sortField] as string).toLowerCase();
+      }
+      if (av < bv) return sortDir === 'asc' ? -1 : 1;
+      if (av > bv) return sortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [producoesBrutos, sortField, sortDir]);
   const total = parseFiniteNumber(data?.total);
   const totalQuantidade = parseFiniteNumber(data?.totalQuantidade);
   const registrosUltimos7Dias = parseFiniteNumber(data?.registrosUltimos7Dias) ?? 0;
@@ -397,11 +443,52 @@ export function MeuHistoricoPage(): JSX.Element {
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableHeader>Data</TableHeader>
-                  <TableHeader>Repositório</TableHeader>
-                  <TableHeader>Coordenadoria</TableHeader>
-                  <TableHeader>Etapa</TableHeader>
-                  <TableHeader align="right">Quantidade</TableHeader>
+                  <TableHeader
+                    sortable
+                    sortDirection={sortField === 'data_producao' ? sortDir : null}
+                    onSort={() => {
+                      handleSort('data_producao');
+                    }}
+                  >
+                    Data
+                  </TableHeader>
+                  <TableHeader
+                    sortable
+                    sortDirection={sortField === 'id_repositorio_ged' ? sortDir : null}
+                    onSort={() => {
+                      handleSort('id_repositorio_ged');
+                    }}
+                  >
+                    Repositório
+                  </TableHeader>
+                  <TableHeader
+                    sortable
+                    sortDirection={sortField === 'coordenadoria' ? sortDir : null}
+                    onSort={() => {
+                      handleSort('coordenadoria');
+                    }}
+                  >
+                    Coordenadoria
+                  </TableHeader>
+                  <TableHeader
+                    sortable
+                    sortDirection={sortField === 'etapa' ? sortDir : null}
+                    onSort={() => {
+                      handleSort('etapa');
+                    }}
+                  >
+                    Etapa
+                  </TableHeader>
+                  <TableHeader
+                    align="right"
+                    sortable
+                    sortDirection={sortField === 'quantidade' ? sortDir : null}
+                    onSort={() => {
+                      handleSort('quantidade');
+                    }}
+                  >
+                    Quantidade
+                  </TableHeader>
                 </TableRow>
               </TableHead>
               <TableBody>
