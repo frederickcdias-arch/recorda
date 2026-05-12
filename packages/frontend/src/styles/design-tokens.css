@@ -106,21 +106,22 @@
      ═══════════════════════════════════════════════════════════════ */
 
   /* Famílias */
-  --font-family-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  --font-family-sans:
+    'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
   --font-family-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', 'Consolas', monospace;
   --font-family-display: 'Inter', var(--font-family-sans);
 
   /* Escala de tamanhos (Major Third - 1.25) */
-  --font-size-2xs: 0.6875rem;  /* 11px */
-  --font-size-xs: 0.75rem;     /* 12px */
-  --font-size-sm: 0.8125rem;   /* 13px */
-  --font-size-base: 0.875rem;  /* 14px - corpo principal */
-  --font-size-md: 1rem;        /* 16px */
-  --font-size-lg: 1.125rem;    /* 18px */
-  --font-size-xl: 1.25rem;     /* 20px */
-  --font-size-2xl: 1.5rem;     /* 24px */
-  --font-size-3xl: 1.875rem;   /* 30px */
-  --font-size-4xl: 2.25rem;    /* 36px */
+  --font-size-2xs: 0.6875rem; /* 11px */
+  --font-size-xs: 0.75rem; /* 12px */
+  --font-size-sm: 0.8125rem; /* 13px */
+  --font-size-base: 0.875rem; /* 14px - corpo principal */
+  --font-size-md: 1rem; /* 16px */
+  --font-size-lg: 1.125rem; /* 18px */
+  --font-size-xl: 1.25rem; /* 20px */
+  --font-size-2xl: 1.5rem; /* 24px */
+  --font-size-3xl: 1.875rem; /* 30px */
+  --font-size-4xl: 2.25rem; /* 36px */
 
   /* Pesos */
   --font-weight-regular: 400;
@@ -149,41 +150,41 @@
 
   --space-0: 0;
   --space-px: 1px;
-  --space-0-5: 0.125rem;  /* 2px */
-  --space-1: 0.25rem;     /* 4px */
-  --space-1-5: 0.375rem;  /* 6px */
-  --space-2: 0.5rem;      /* 8px */
-  --space-2-5: 0.625rem;  /* 10px */
-  --space-3: 0.75rem;     /* 12px */
-  --space-3-5: 0.875rem;  /* 14px */
-  --space-4: 1rem;        /* 16px */
-  --space-5: 1.25rem;     /* 20px */
-  --space-6: 1.5rem;      /* 24px */
-  --space-7: 1.75rem;     /* 28px */
-  --space-8: 2rem;        /* 32px */
-  --space-9: 2.25rem;     /* 36px */
-  --space-10: 2.5rem;     /* 40px */
-  --space-11: 2.75rem;    /* 44px */
-  --space-12: 3rem;       /* 48px */
-  --space-14: 3.5rem;     /* 56px */
-  --space-16: 4rem;       /* 64px */
-  --space-20: 5rem;       /* 80px */
-  --space-24: 6rem;       /* 96px */
+  --space-0-5: 0.125rem; /* 2px */
+  --space-1: 0.25rem; /* 4px */
+  --space-1-5: 0.375rem; /* 6px */
+  --space-2: 0.5rem; /* 8px */
+  --space-2-5: 0.625rem; /* 10px */
+  --space-3: 0.75rem; /* 12px */
+  --space-3-5: 0.875rem; /* 14px */
+  --space-4: 1rem; /* 16px */
+  --space-5: 1.25rem; /* 20px */
+  --space-6: 1.5rem; /* 24px */
+  --space-7: 1.75rem; /* 28px */
+  --space-8: 2rem; /* 32px */
+  --space-9: 2.25rem; /* 36px */
+  --space-10: 2.5rem; /* 40px */
+  --space-11: 2.75rem; /* 44px */
+  --space-12: 3rem; /* 48px */
+  --space-14: 3.5rem; /* 56px */
+  --space-16: 4rem; /* 64px */
+  --space-20: 5rem; /* 80px */
+  --space-24: 6rem; /* 96px */
 
   /* ═══════════════════════════════════════════════════════════════
      BORDAS - Raios padronizados
      ═══════════════════════════════════════════════════════════════ */
 
   --radius-none: 0;
-  --radius-xs: 0.125rem;   /* 2px - badges pequenos */
-  --radius-sm: 0.25rem;    /* 4px - chips, tags */
-  --radius-md: 0.375rem;   /* 6px - inputs, buttons pequenos */
+  --radius-xs: 0.125rem; /* 2px - badges pequenos */
+  --radius-sm: 0.25rem; /* 4px - chips, tags */
+  --radius-md: 0.375rem; /* 6px - inputs, buttons pequenos */
   --radius-DEFAULT: 0.5rem; /* 8px - buttons, cards pequenos */
-  --radius-lg: 0.625rem;   /* 10px - cards */
-  --radius-xl: 0.75rem;    /* 12px - modais, cards grandes */
-  --radius-2xl: 1rem;      /* 16px - containers */
-  --radius-3xl: 1.5rem;    /* 24px - elementos especiais */
-  --radius-full: 9999px;   /* pills, avatares */
+  --radius-lg: 0.625rem; /* 10px - cards */
+  --radius-xl: 0.75rem; /* 12px - modais, cards grandes */
+  --radius-2xl: 1rem; /* 16px - containers */
+  --radius-3xl: 1.5rem; /* 24px - elementos especiais */
+  --radius-full: 9999px; /* pills, avatares */
 
   /* ═══════════════════════════════════════════════════════════════
      SOMBRAS - Sistema de elevação refinado
@@ -221,9 +222,10 @@
   --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
 
   /* Transições compostas */
-  --transition-colors: color var(--duration-normal) var(--ease-in-out),
-                       background-color var(--duration-normal) var(--ease-in-out),
-                       border-color var(--duration-normal) var(--ease-in-out);
+  --transition-colors:
+    color var(--duration-normal) var(--ease-in-out),
+    background-color var(--duration-normal) var(--ease-in-out),
+    border-color var(--duration-normal) var(--ease-in-out);
   --transition-transform: transform var(--duration-normal) var(--ease-out);
   --transition-opacity: opacity var(--duration-normal) var(--ease-in-out);
   --transition-shadow: box-shadow var(--duration-normal) var(--ease-in-out);
@@ -248,15 +250,15 @@
      ═══════════════════════════════════════════════════════════════ */
 
   /* Alturas de input/button */
-  --size-xs: 1.75rem;   /* 28px */
-  --size-sm: 2rem;      /* 32px */
-  --size-md: 2.25rem;   /* 36px */
-  --size-lg: 2.5rem;    /* 40px */
-  --size-xl: 2.75rem;   /* 44px */
+  --size-xs: 1.75rem; /* 28px */
+  --size-sm: 2rem; /* 32px */
+  --size-md: 2.25rem; /* 36px */
+  --size-lg: 2.5rem; /* 40px */
+  --size-xl: 2.75rem; /* 44px */
 
   /* Larguras de sidebar */
-  --sidebar-width: 16rem;      /* 256px */
-  --sidebar-collapsed: 4rem;   /* 64px */
+  --sidebar-width: 16rem; /* 256px */
+  --sidebar-collapsed: 4rem; /* 64px */
 
   /* Container máximo */
   --container-sm: 640px;
@@ -461,8 +463,12 @@
    ═══════════════════════════════════════════════════════════════ */
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes fadeInUp {
@@ -510,23 +516,42 @@
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes fadeOut {
-  from { opacity: 1; }
-  to { opacity: 0; }
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
 }
 
 @keyframes scaleOut {
-  from { opacity: 1; transform: scale(1); }
-  to { opacity: 0; transform: scale(0.95); }
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95);
+  }
 }
 
 @keyframes slideInLeft {
@@ -541,8 +566,12 @@
 }
 
 @keyframes shimmer {
-  0% { background-position: -200% center; }
-  100% { background-position: 200% center; }
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
 }
 
 .animate-fade-in {
@@ -586,12 +615,7 @@
 }
 
 .animate-shimmer {
-  background: linear-gradient(
-    90deg,
-    #f0f0f0 25%,
-    #e8e8e8 50%,
-    #f0f0f0 75%
-  );
+  background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
   background-size: 200% 100%;
   animation: shimmer 1.6s ease-in-out infinite;
 }
@@ -650,5 +674,72 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TRANSIÇÃO SUAVE DE TEMA
+   ═══════════════════════════════════════════════════════════════ */
+
+html {
+  transition:
+    background-color 200ms ease,
+    color 200ms ease;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TEMA ESCURO — Recorda Dark
+   Inspirado em Linear, Stripe — cool-tinted, thin & elegant
+   ═══════════════════════════════════════════════════════════════ */
+
+[data-theme='dark'] {
+  /* Escala gray invertida para superfícies escuras */
+  --color-gray-25: #111115;
+  --color-gray-50: #16161c;
+  --color-gray-100: #1e1e28;
+  --color-gray-200: #28283c;
+  --color-gray-300: #3a3a52;
+  --color-gray-400: #64648a;
+  --color-gray-500: #9090b0;
+  --color-gray-600: #b4b4cc;
+  --color-gray-700: #d0d0e4;
+  --color-gray-800: #e4e4f4;
+  --color-gray-900: #ededf9;
+  --color-gray-950: #f4f4fc;
+
+  /* Fundo base — ligeiramente mais escuro que gray-50 */
+  --color-bg-primary: #111115;
+  --color-bg-secondary: var(--color-gray-50);
+  --color-bg-tertiary: var(--color-gray-100);
+  --color-bg-inverse: var(--color-gray-900);
+
+  /* Bordas */
+  --color-border-primary: var(--color-gray-200);
+  --color-border-secondary: var(--color-gray-100);
+  --color-border-focus: var(--color-primary-400);
+
+  /* Texto */
+  --color-text-primary: var(--color-gray-900);
+  --color-text-secondary: var(--color-gray-600);
+  --color-text-tertiary: var(--color-gray-500);
+  --color-text-placeholder: var(--color-gray-400);
+  --color-text-inverse: #111115;
+  --color-text-brand: var(--color-primary-400);
+
+  /* Sombras adaptadas para fundo escuro */
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.5);
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.6), 0 1px 2px -1px rgb(0 0 0 / 0.4);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.6), 0 2px 4px -2px rgb(0 0 0 / 0.4);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.6), 0 4px 6px -4px rgb(0 0 0 / 0.4);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.6), 0 8px 10px -6px rgb(0 0 0 / 0.4);
+  --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.7);
+  --shadow-primary: 0 0 0 3px var(--color-primary-800);
+  --shadow-error: 0 0 0 3px var(--color-error-800);
+  --shadow-success: 0 0 0 3px var(--color-success-800);
+
+  /* Shimmer escuro */
+  .animate-shimmer {
+    background: linear-gradient(90deg, #1e1e28 25%, #28283c 50%, #1e1e28 75%);
+    background-size: 200% 100%;
   }
 }

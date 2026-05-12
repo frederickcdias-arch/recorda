@@ -45,7 +45,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
-        <div className="bg-white rounded-xl shadow-lg border border-gray-200 max-w-lg w-full p-8 text-center">
+        <div className="bg-[var(--color-bg-primary)] rounded-xl shadow-lg border border-[var(--color-border-primary)] max-w-lg w-full p-8 text-center">
           <div className="mx-auto w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center mb-4">
             <Icon name="x" className="w-7 h-7 text-gray-500" />
           </div>

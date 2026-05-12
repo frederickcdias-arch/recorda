@@ -389,7 +389,7 @@ export function EmpresaPage(): JSX.Element {
               <p className="text-sm font-semibold text-gray-900 mb-3">
                 Pré-visualização no relatório
               </p>
-              <div className="mx-auto w-full max-w-[720px] rounded-md bg-white border border-gray-200 px-8 py-6">
+              <div className="mx-auto w-full max-w-[720px] rounded-md bg-[var(--color-bg-primary)] border border-[var(--color-border-primary)] px-8 py-6">
                 <div className="relative h-24">
                   {config.exibirLogoRelatorio && logoSrc && !logoLoadError ? (
                     <img

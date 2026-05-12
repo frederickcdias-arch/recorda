@@ -28,8 +28,8 @@ export function ConfirmDialog({
   };
 
   const variantStyles = {
-    danger: 'text-gray-900',
-    warning: 'text-gray-900',
+    danger: 'text-[var(--color-text-primary)]',
+    warning: 'text-[var(--color-text-primary)]',
     default: 'text-primary-600',
   };
 
@@ -42,14 +42,14 @@ export function ConfirmDialog({
       }`}
     >
       <div
-        className={`bg-white rounded-xl shadow-xl w-full max-w-md p-6 ${
+        className={`bg-[var(--color-bg-primary)] rounded-xl shadow-xl w-full max-w-md p-6 ${
           isClosing ? 'animate-scale-out' : 'animate-scale-in'
         }`}
       >
         <h3 className={`text-lg font-semibold ${variantStyles[state.variant]} mb-2`}>
           {state.title}
         </h3>
-        <p className="text-sm text-gray-600 mb-6">{state.message}</p>
+        <p className="text-sm text-[var(--color-text-secondary)] mb-6">{state.message}</p>
         <div className="flex justify-end gap-3">
           <Button variant="secondary" onClick={handleCancel} disabled={loading}>
             Cancelar

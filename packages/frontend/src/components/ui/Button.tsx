@@ -24,7 +24,7 @@ const variantClasses: Record<ButtonVariant, string> = {
     shadow-sm hover:shadow
   `,
   secondary: `
-    bg-white text-[var(--color-gray-700)] 
+    bg-[var(--color-bg-primary)] text-[var(--color-gray-700)] 
     border border-[var(--color-gray-300)]
     hover:bg-[var(--color-gray-50)] hover:border-[var(--color-gray-400)]
     active:bg-[var(--color-gray-100)]

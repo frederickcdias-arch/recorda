@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+﻿import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 interface ActionMenuItem {
@@ -72,10 +72,10 @@ export function ActionMenu({ items, disabled = false }: ActionMenuProps): JSX.El
       <button
         ref={btnRef}
         type="button"
-        className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors disabled:opacity-40"
+        className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-[var(--color-text-tertiary)] hover:bg-[var(--color-gray-100)] hover:text-[var(--color-text-primary)] transition-colors disabled:opacity-40"
         onClick={() => setOpen((p) => !p)}
         disabled={disabled}
-        aria-label="Ações"
+        aria-label="AÃ§Ãµes"
       >
         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
           <path d="M10 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4z" />
@@ -86,7 +86,7 @@ export function ActionMenu({ items, disabled = false }: ActionMenuProps): JSX.El
         ? createPortal(
             <div
               ref={menuRef}
-              className={`fixed z-[9999] w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 max-h-[calc(100vh-16px)] overflow-auto origin-top-right ${
+              className={`fixed z-[9999] w-48 bg-[var(--color-bg-primary)] rounded-lg shadow-lg border border-[var(--color-border-primary)] py-1 max-h-[calc(100vh-16px)] overflow-auto origin-top-right ${
                 isClosing ? 'animate-scale-out' : 'animate-fade-in-down'
               }`}
               style={{ top: pos.top, left: Math.max(pos.left, 8) }}
@@ -97,8 +97,8 @@ export function ActionMenu({ items, disabled = false }: ActionMenuProps): JSX.El
                   type="button"
                   className={`w-full text-left px-3 py-2 text-sm transition-colors ${
                     item.variant === 'danger'
-                      ? 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
-                      : 'text-gray-700 hover:bg-primary-50 hover:text-primary-700'
+                      ? 'text-[var(--color-text-primary)] hover:bg-[var(--color-gray-50)] hover:text-error-600'
+                      : 'text-[var(--color-text-primary)] hover:bg-primary-50 hover:text-primary-700'
                   } disabled:opacity-40 disabled:cursor-not-allowed`}
                   onClick={() => {
                     closeMenu();

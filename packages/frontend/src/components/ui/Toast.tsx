@@ -60,22 +60,22 @@ const variantStyles: Record<
   }
 > = {
   info: {
-    container: 'bg-white border-[var(--color-gray-200)]',
+    container: 'bg-[var(--color-bg-primary)] border-[var(--color-gray-200)]',
     icon: 'text-[var(--color-primary-600)]',
     iconName: 'info',
   },
   success: {
-    container: 'bg-white border-[var(--color-success-200)]',
+    container: 'bg-[var(--color-bg-primary)] border-[var(--color-success-200)]',
     icon: 'text-[var(--color-success-600)]',
     iconName: 'check-square',
   },
   warning: {
-    container: 'bg-white border-[var(--color-warning-200)]',
+    container: 'bg-[var(--color-bg-primary)] border-[var(--color-warning-200)]',
     icon: 'text-[var(--color-warning-600)]',
     iconName: 'alert-triangle',
   },
   error: {
-    container: 'bg-white border-[var(--color-error-200)]',
+    container: 'bg-[var(--color-bg-primary)] border-[var(--color-error-200)]',
     icon: 'text-[var(--color-error-600)]',
     iconName: 'alert-circle',
   },

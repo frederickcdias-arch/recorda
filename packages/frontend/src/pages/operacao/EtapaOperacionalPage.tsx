@@ -1471,7 +1471,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                           </th>
                         </tr>
                       </thead>
-                      <tbody className="bg-white divide-y divide-gray-100">
+                      <tbody className="bg-[var(--color-bg-primary)] divide-y divide-[var(--color-border-secondary)]">
                         {itens.length === 0 ? (
                           <tr>
                             <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
@@ -1650,7 +1650,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-100">
+                <tbody className="bg-[var(--color-bg-primary)] divide-y divide-[var(--color-border-secondary)]">
                   {itens.length === 0 ? (
                     <tr>
                       <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
@@ -1762,7 +1762,7 @@ export function EtapaOperacionalPage(): JSX.Element {
 
               return (
                 <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 animate-fade-in">
-                  <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[88vh] overflow-hidden flex flex-col animate-scale-in">
+                  <div className="bg-white bg-[var(--color-bg-primary)] rounded-xl shadow-xl w-full max-w-3xl max-h-[88vh] overflow-hidden flex flex-col animate-scale-in">
                     <div className="px-5 py-3 sm:px-6 sm:py-4 border-b flex items-center justify-between shrink-0">
                       <div>
                         <h3 className="text-base sm:text-lg font-semibold text-gray-900">
@@ -1882,7 +1882,7 @@ export function EtapaOperacionalPage(): JSX.Element {
 
         {avancarModalOpen ? (
           <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 animate-fade-in">
-            <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[88vh] overflow-hidden flex flex-col animate-scale-in">
+            <div className="bg-[var(--color-bg-primary)] rounded-xl shadow-xl w-full max-w-2xl max-h-[88vh] overflow-hidden flex flex-col animate-scale-in">
               <div className="px-6 py-4 border-b shrink-0">
                 <h3 className="text-lg font-semibold text-gray-900">
                   Avançar para {etapaConfig.nextEtapaApi}
@@ -1919,7 +1919,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                           </th>
                         </tr>
                       </thead>
-                      <tbody className="bg-white divide-y divide-gray-100">
+                      <tbody className="bg-[var(--color-bg-primary)] divide-y divide-[var(--color-border-secondary)]">
                         {avancarDocs.map((doc, idx) => (
                           <tr key={doc.id} className="hover:bg-gray-50">
                             <td className="px-3 py-2 text-xs text-gray-400">{idx + 1}</td>
@@ -1991,7 +1991,7 @@ export function EtapaOperacionalPage(): JSX.Element {
         {/* Modal: Adicionar em Lote */}
         {batchAddModalOpen ? (
           <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 animate-fade-in">
-            <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[80vh] overflow-hidden flex flex-col animate-scale-in">
+            <div className="bg-[var(--color-bg-primary)] rounded-xl shadow-xl w-full max-w-lg max-h-[80vh] overflow-hidden flex flex-col animate-scale-in">
               <div className="px-6 py-4 border-b">
                 <h3 className="text-lg font-semibold text-gray-900">Importação em Lote</h3>
                 <p className="text-sm text-gray-500 mt-1">
@@ -2046,7 +2046,7 @@ export function EtapaOperacionalPage(): JSX.Element {
 
         {ocrModalOpen && ocrRepo ? (
           <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center sm:p-4 animate-fade-in">
-            <div className="bg-white w-full h-[95vh] sm:h-auto sm:max-h-[92vh] sm:max-w-6xl rounded-t-xl sm:rounded-xl shadow-xl overflow-hidden flex flex-col animate-scale-in">
+            <div className="bg-[var(--color-bg-primary)] w-full h-[95vh] sm:h-auto sm:max-h-[92vh] sm:max-w-6xl rounded-t-xl sm:rounded-xl shadow-xl overflow-hidden flex flex-col animate-scale-in">
               <div className="px-6 py-4 border-b flex items-center justify-between shrink-0">
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900">Recebimento — Processos</h3>
@@ -2431,7 +2431,7 @@ export function EtapaOperacionalPage(): JSX.Element {
         {/* Preview Termo de Recebimento */}
         {previewTermoUrl ? (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in">
-            <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl h-[85vh] flex flex-col overflow-hidden animate-scale-in">
+            <div className="bg-[var(--color-bg-primary)] rounded-xl shadow-xl w-full max-w-4xl h-[85vh] flex flex-col overflow-hidden animate-scale-in">
               <div className="px-6 py-4 border-b flex items-center justify-between shrink-0">
                 <h3 className="text-lg font-semibold text-gray-900">Termo de Recebimento</h3>
                 <div className="flex gap-2">
@@ -2477,7 +2477,7 @@ export function EtapaOperacionalPage(): JSX.Element {
 
         {previewEtiquetasUrl ? (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in">
-            <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl h-[85vh] flex flex-col overflow-hidden animate-scale-in">
+            <div className="bg-[var(--color-bg-primary)] rounded-xl shadow-xl w-full max-w-4xl h-[85vh] flex flex-col overflow-hidden animate-scale-in">
               <div className="px-6 py-4 border-b flex items-center justify-between shrink-0">
                 <h3 className="text-lg font-semibold text-gray-900">
                   Pré-visualização das Etiquetas

@@ -35,7 +35,10 @@ export function SkeletonCards({ count = 4 }: { count?: number }): JSX.Element {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="bg-white rounded-xl p-6 border border-gray-100">
+        <div
+          key={i}
+          className="bg-[var(--color-bg-primary)] rounded-xl p-6 border border-[var(--color-border-secondary)]"
+        >
           <Skeleton className="h-3 w-24 mb-3" />
           <Skeleton className="h-7 w-16 mb-2" />
           <Skeleton className="h-3 w-20" />

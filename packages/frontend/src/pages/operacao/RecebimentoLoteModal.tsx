@@ -284,7 +284,7 @@ export function RecebimentoLoteModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center animate-fade-in">
-      <div className="bg-white w-full h-full sm:h-auto sm:max-h-[92vh] sm:max-w-lg sm:rounded-xl sm:shadow-xl overflow-hidden flex flex-col animate-scale-in">
+      <div className="bg-[var(--color-bg-primary)] w-full h-full sm:h-auto sm:max-h-[92vh] sm:max-w-lg sm:rounded-xl sm:shadow-xl overflow-hidden flex flex-col animate-scale-in">
         {/* Header */}
         <div className="px-4 py-3 border-b flex items-center justify-between shrink-0">
           <div className="min-w-0">

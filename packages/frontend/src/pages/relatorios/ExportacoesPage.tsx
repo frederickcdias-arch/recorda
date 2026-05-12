@@ -305,7 +305,7 @@ export function ExportacoesPage(): JSX.Element {
           return (
             <div
               key={item.id}
-              className={`bg-white rounded-xl border ${colors.border} shadow-sm overflow-hidden`}
+              className={`bg-[var(--color-bg-primary)] rounded-xl border ${colors.border} shadow-sm overflow-hidden`}
             >
               <div className="p-5">
                 <div className="flex items-start gap-4">
@@ -375,7 +375,7 @@ export function ExportacoesPage(): JSX.Element {
       {/* Preview modal — gerencial JSON */}
       {previewData ? (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[85vh] flex flex-col overflow-hidden animate-scale-in">
+          <div className="bg-[var(--color-bg-primary)] rounded-xl shadow-xl w-full max-w-3xl max-h-[85vh] flex flex-col overflow-hidden animate-scale-in">
             <div className="px-6 py-4 border-b flex items-center justify-between shrink-0">
               <h3 className="text-lg font-semibold text-gray-900">Preview — Relatório Gerencial</h3>
               <div className="flex gap-2">
@@ -497,7 +497,7 @@ export function ExportacoesPage(): JSX.Element {
       {/* Preview modal — operacional data table */}
       {previewOperacional ? (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden animate-scale-in">
+          <div className="bg-[var(--color-bg-primary)] rounded-xl shadow-xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden animate-scale-in">
             <div className="px-6 py-4 border-b flex items-center justify-between shrink-0">
               <h3 className="text-lg font-semibold text-gray-900">
                 Preview — Detalhamento Operacional ({previewOperacional.length} registros)

@@ -39,7 +39,7 @@ export function MarkdownEditor({
   };
 
   return (
-    <div className="border rounded-lg overflow-hidden bg-white">
+    <div className="border rounded-lg overflow-hidden bg-[var(--color-bg-primary)]">
       {label && <div className="px-3 pt-2 text-sm font-medium text-gray-700">{label}</div>}
 
       {!readOnly && (

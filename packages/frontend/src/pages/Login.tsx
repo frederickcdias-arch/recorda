@@ -60,7 +60,7 @@ export function LoginPage(): JSX.Element {
       <div className="w-full max-w-md">
         {/* Logo e Branding */}
         <div className="text-center mb-8 space-y-2">
-          <div className="w-16 h-16 mx-auto rounded-full shadow-lg bg-white overflow-hidden">
+          <div className="w-16 h-16 mx-auto rounded-full shadow-lg bg-[var(--color-bg-primary)] overflow-hidden">
             <img
               src="/images/logo-icon.png"
               alt="Recorda - Gestão de Produção"
@@ -74,7 +74,7 @@ export function LoginPage(): JSX.Element {
         </div>
 
         {/* Card de Login */}
-        <div className="bg-white rounded-2xl shadow-2xl p-8">
+        <div className="bg-[var(--color-bg-primary)] rounded-2xl shadow-2xl p-8">
           <h2 className="text-xl font-semibold text-[var(--color-text-primary)] mb-6 text-center">
             Acesse sua conta
           </h2>
@@ -136,7 +136,7 @@ export function LoginPage(): JSX.Element {
                   className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors duration-150 flex-shrink-0 ${
                     lembrarMe
                       ? 'bg-[var(--color-primary-600)] border-[var(--color-primary-600)]'
-                      : 'bg-white border-[var(--color-gray-300)] hover:border-[var(--color-primary-400)]'
+                      : 'bg-[var(--color-bg-primary)] border-[var(--color-gray-300)] hover:border-[var(--color-primary-400)]'
                   }`}
                 >
                   {lembrarMe && <Icon name="check" className="w-2.5 h-2.5 text-white" />}

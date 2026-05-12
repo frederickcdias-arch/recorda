@@ -7,7 +7,7 @@ export function NotFoundPage(): JSX.Element {
 
   return (
     <div className="min-h-screen bg-[var(--color-bg-secondary)] flex items-center justify-center p-6">
-      <div className="bg-white rounded-2xl border border-[var(--color-border-primary)] shadow-[var(--shadow-lg)] max-w-md w-full p-10 text-center">
+      <div className="bg-[var(--color-bg-primary)] rounded-2xl border border-[var(--color-border-primary)] shadow-[var(--shadow-lg)] max-w-md w-full p-10 text-center">
         <div className="w-16 h-16 bg-[var(--color-primary-50)] rounded-full flex items-center justify-center mx-auto mb-6">
           <Icon name="search" className="w-8 h-8 text-[var(--color-primary-600)]" />
         </div>

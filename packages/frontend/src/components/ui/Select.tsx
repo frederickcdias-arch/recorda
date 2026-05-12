@@ -72,7 +72,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             id={selectId}
             disabled={disabled}
             className={`
-              w-full rounded-lg border bg-white appearance-none
+              w-full rounded-lg border bg-[var(--color-bg-primary)] appearance-none
               transition-all duration-150 ease-in-out
               focus:outline-none
               ${sizeClasses[selectSize]}

@@ -47,7 +47,7 @@ export function PageState({
 
   if (error) {
     return (
-      <div className="bg-white rounded-xl border border-[var(--color-error-200)] p-8 text-center max-w-lg mx-auto my-8">
+      <div className="bg-[var(--color-bg-primary)] rounded-xl border border-[var(--color-error-200)] p-8 text-center max-w-lg mx-auto my-8">
         <div className="w-16 h-16 bg-[var(--color-error-50)] rounded-full flex items-center justify-center mx-auto mb-4">
           <Icon name="alert-circle" className="w-8 h-8 text-[var(--color-error-500)]" />
         </div>
@@ -69,7 +69,7 @@ export function PageState({
 
   if (empty) {
     return (
-      <div className="bg-white rounded-xl border border-[var(--color-border-primary)] p-12 text-center">
+      <div className="bg-[var(--color-bg-primary)] rounded-xl border border-[var(--color-border-primary)] p-12 text-center">
         <div className="w-16 h-16 bg-[var(--color-gray-100)] rounded-full flex items-center justify-center mx-auto mb-4">
           <Icon name={empty.icon} className="w-8 h-8 text-[var(--color-gray-400)]" />
         </div>

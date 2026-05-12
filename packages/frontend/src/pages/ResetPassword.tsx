@@ -65,7 +65,7 @@ export function ResetPasswordPage(): JSX.Element {
       <div className="w-full max-w-md">
         <div className="text-center mb-8 space-y-2">
           <div
-            className="w-16 h-16 mx-auto rounded-full shadow-lg bg-white"
+            className="w-16 h-16 mx-auto rounded-full shadow-lg bg-[var(--color-bg-primary)]"
             style={{
               backgroundImage: 'url(/images/logo-icon.png)',
               backgroundSize: 'cover',
@@ -80,7 +80,7 @@ export function ResetPasswordPage(): JSX.Element {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-2xl p-8">
+        <div className="bg-[var(--color-bg-primary)] rounded-2xl shadow-2xl p-8">
           <h2 className="text-xl font-semibold text-gray-900 mb-2 text-center">Redefinir senha</h2>
           <p className="text-gray-500 text-sm text-center mb-6">
             Insira o token recebido por e-mail e defina sua nova senha.

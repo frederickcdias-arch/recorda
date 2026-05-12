@@ -130,8 +130,8 @@ export function Modal({
     : 'fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4';
 
   const panelClass = scrollable
-    ? `bg-white rounded-xl shadow-2xl w-full ${sizeClasses[size]}`
-    : `bg-white rounded-xl shadow-2xl w-full ${sizeClasses[size]} max-h-[90vh] flex flex-col`;
+    ? `bg-[var(--color-bg-primary)] rounded-xl shadow-2xl w-full ${sizeClasses[size]}`
+    : `bg-[var(--color-bg-primary)] rounded-xl shadow-2xl w-full ${sizeClasses[size]} max-h-[90vh] flex flex-col`;
 
   return (
     <div

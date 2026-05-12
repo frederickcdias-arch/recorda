@@ -593,7 +593,7 @@ export function RecebimentoAvulsosPanel({
       {/* Modal vincular a repositório */}
       {vincularModalOpen && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[80vh] overflow-hidden flex flex-col animate-scale-in">
+          <div className="bg-[var(--color-bg-primary)] rounded-xl shadow-xl w-full max-w-lg max-h-[80vh] overflow-hidden flex flex-col animate-scale-in">
             <div className="px-6 py-4 border-b">
               <h3 className="text-lg font-semibold text-gray-900">
                 Vincular {selecionados.size} processo(s) a repositório

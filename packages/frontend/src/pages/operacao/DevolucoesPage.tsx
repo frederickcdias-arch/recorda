@@ -84,7 +84,7 @@ function CoordCombobox({ value, onChange, opcoes, required }: CoordComboboxProps
       </label>
       <input
         type="text"
-        className="w-full h-11 sm:h-9 px-3.5 border rounded-lg text-sm bg-white placeholder:text-[var(--color-text-placeholder)] text-[var(--color-text-primary)] transition-all duration-150 focus:outline-none focus:ring-[3px] border-[var(--color-gray-300)] focus:border-[var(--color-primary-500)] focus:ring-[var(--color-primary-100)]"
+        className="w-full h-11 sm:h-9 px-3.5 border rounded-lg text-sm bg-[var(--color-bg-primary)] placeholder:text-[var(--color-text-placeholder)] text-[var(--color-text-primary)] transition-all duration-150 focus:outline-none focus:ring-[3px] border-[var(--color-gray-300)] focus:border-[var(--color-primary-500)] focus:ring-[var(--color-primary-100)]"
         placeholder="Digite ou selecione a coordenadoria…"
         value={open ? query : value}
         onChange={(e) => {
@@ -101,7 +101,7 @@ function CoordCombobox({ value, onChange, opcoes, required }: CoordComboboxProps
         }}
       />
       {open && filtered.length > 0 && (
-        <div className="absolute z-20 w-full mt-1 bg-white border border-[var(--color-border-primary)] rounded-lg shadow-lg max-h-52 overflow-y-auto">
+        <div className="absolute z-20 w-full mt-1 bg-[var(--color-bg-primary)] border border-[var(--color-border-primary)] rounded-lg shadow-lg max-h-52 overflow-y-auto">
           {filtered.map((opt) => (
             <button
               key={opt}
@@ -288,7 +288,7 @@ function ModalNovaDevolucao({ onClose, onSaved }: ModalDevolucaoProps): JSX.Elem
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 overflow-y-auto py-8 px-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl">
+      <div className="bg-[var(--color-bg-primary)] rounded-xl shadow-2xl w-full max-w-3xl">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
           <h2 className="text-lg font-semibold text-gray-900">Nova Devolução Operacional</h2>
@@ -682,7 +682,7 @@ function ModalEditarDevolucao({
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 overflow-y-auto py-8 px-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg">
+      <div className="bg-[var(--color-bg-primary)] rounded-xl shadow-2xl w-full max-w-lg">
         <div className="flex items-center justify-between p-5 border-b">
           <h2 className="text-base font-semibold text-gray-900">Editar Devolução</h2>
           <button
@@ -784,7 +784,9 @@ function PainelDetalheDevolucao({ devolucaoId, onClose }: DetalheDevolucaoProps)
   if (detalheQuery.isLoading) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-        <div className="bg-white rounded-xl p-8 text-gray-600">Carregando…</div>
+        <div className="bg-[var(--color-bg-primary)] rounded-xl p-8 text-[var(--color-text-secondary)]">
+          Carregando…
+        </div>
       </div>
     );
   }
@@ -794,7 +796,7 @@ function PainelDetalheDevolucao({ devolucaoId, onClose }: DetalheDevolucaoProps)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col">
+      <div className="bg-[var(--color-bg-primary)] rounded-xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col">
         <div className="flex items-center justify-between p-5 border-b">
           <div>
             <h2 className="text-base font-semibold text-gray-900">
@@ -1117,7 +1119,7 @@ export function DevolucoesPage(): JSX.Element {
       )}
       {confirmandoExclusao && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6 space-y-4">
+          <div className="bg-[var(--color-bg-primary)] rounded-xl shadow-2xl w-full max-w-sm p-6 space-y-4">
             <h3 className="text-base font-semibold text-gray-900">Excluir devolução?</h3>
             <p className="text-sm text-gray-600">
               A devolução de{' '}

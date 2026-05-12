@@ -1,6 +1,9 @@
+import { useRef, useState, useEffect } from 'react';
 import { Icon } from '../ui/Icon';
 import { Button } from '../ui/Button';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
+import type { Theme } from '../../contexts/ThemeContext';
 
 interface HeaderProps {
   onMenuToggle: () => void;
@@ -16,6 +19,68 @@ const PERFIL_LABELS: Record<string, string> = {
 
 function formatPerfil(perfil: string): string {
   return PERFIL_LABELS[perfil] ?? perfil.charAt(0).toUpperCase() + perfil.slice(1);
+}
+
+const THEME_OPTIONS: { value: Theme; icon: string; label: string }[] = [
+  { value: 'light', icon: 'sun', label: 'Claro' },
+  { value: 'dark', icon: 'moon', label: 'Escuro' },
+  { value: 'system', icon: 'monitor', label: 'Sistema' },
+];
+
+function ThemeToggle(): JSX.Element {
+  const { theme, setTheme } = useTheme();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  const current = THEME_OPTIONS.find((o) => o.value === theme) ?? THEME_OPTIONS[2]!;
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        title={`Tema: ${current.label}`}
+        aria-label={`Tema: ${current.label}`}
+        aria-expanded={open}
+        className="p-2 rounded-lg hover:bg-[var(--color-gray-100)] text-[var(--color-text-secondary)] transition-colors"
+      >
+        <Icon name={current.icon} className="w-4 h-4" />
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-full mt-1 w-36 rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] shadow-lg py-1 z-[var(--z-dropdown)]">
+          {THEME_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => {
+                setTheme(opt.value);
+                setOpen(false);
+              }}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm transition-colors ${
+                theme === opt.value
+                  ? 'text-[var(--color-primary-600)] bg-[var(--color-primary-50)]'
+                  : 'text-[var(--color-text-primary)] hover:bg-[var(--color-gray-50)]'
+              }`}
+            >
+              <Icon name={opt.icon} className="w-3.5 h-3.5 shrink-0" />
+              <span>{opt.label}</span>
+              {theme === opt.value && (
+                <Icon name="check" className="w-3 h-3 ml-auto text-[var(--color-primary-600)]" />
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function Header({ onMenuToggle, title }: HeaderProps): JSX.Element {
@@ -83,6 +148,9 @@ export function Header({ onMenuToggle, title }: HeaderProps): JSX.Element {
         >
           {initial}
         </div>
+
+        {/* Theme toggle */}
+        <ThemeToggle />
 
         {/* Logout button */}
         <Button

@@ -86,7 +86,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             id={inputId}
             disabled={disabled}
             className={`
-              w-full rounded-lg border bg-white
+              w-full rounded-lg border bg-[var(--color-bg-primary)]
               transition-all duration-150 ease-in-out
               placeholder:text-[var(--color-text-placeholder)]
               focus:outline-none

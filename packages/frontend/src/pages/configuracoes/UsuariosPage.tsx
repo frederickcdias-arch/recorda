@@ -186,7 +186,7 @@ export function UsuariosPage(): JSX.Element {
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-[var(--color-bg-primary)] divide-y divide-[var(--color-border-secondary)]">
                 {usuarios.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
@@ -254,7 +254,7 @@ export function UsuariosPage(): JSX.Element {
             aria-modal="true"
             aria-labelledby="modal-usuario-titulo"
           >
-            <div className="bg-white rounded-xl p-6 max-w-md w-full shadow-2xl animate-scale-in">
+            <div className="bg-[var(--color-bg-primary)] rounded-xl p-6 max-w-md w-full shadow-2xl animate-scale-in">
               <h3 id="modal-usuario-titulo" className="text-lg font-semibold mb-4">
                 {usuarioEditando ? 'Editar Usuário' : 'Novo Usuário'}
               </h3>

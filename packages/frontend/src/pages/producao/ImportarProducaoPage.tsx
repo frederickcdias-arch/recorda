@@ -538,7 +538,7 @@ export function ImportarProducaoPage(): JSX.Element {
       {/* Modal de Duplicidades */}
       {previewImportacao && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 animate-fade-in">
-          <div className="bg-white rounded-xl shadow-xl max-w-lg w-full mx-4 p-6 animate-scale-in">
+          <div className="bg-[var(--color-bg-primary)] rounded-xl shadow-xl max-w-lg w-full mx-4 p-6 animate-scale-in">
             <h3 className="text-lg font-bold text-gray-900 mb-3">Preview de Importação</h3>
             <div className="space-y-3 text-sm text-gray-700">
               <p>

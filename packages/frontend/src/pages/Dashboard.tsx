@@ -71,7 +71,7 @@ function StatCard({
       type="button"
       onClick={onClick}
       style={{ animationDelay: `${index * 75}ms` }}
-      className="animate-fade-in-up [animation-fill-mode:both] bg-white rounded-xl p-6 shadow-sm border border-gray-100 w-full text-left hover:border-primary-200 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 active:scale-[0.98]"
+      className="animate-fade-in-up [animation-fill-mode:both] bg-[var(--color-bg-primary)] rounded-xl p-6 shadow-sm border border-[var(--color-border-secondary)] w-full text-left hover:border-primary-200 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 active:scale-[0.98]"
     >
       <div className="flex items-start justify-between">
         <div>

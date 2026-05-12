@@ -330,8 +330,8 @@ export function ControleQualidadePanel({
     <div className="space-y-6">
       {confirmConcluir ? (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6">
-            <h3 className="text-base font-semibold text-gray-900 mb-2">
+          <div className="bg-[var(--color-bg-primary)] rounded-xl shadow-xl w-full max-w-sm p-6">
+            <h3 className="text-base font-semibold text-[var(--color-text-primary)] mb-2">
               Concluir Controle de Qualidade?
             </h3>
             <p className="text-sm text-gray-600 mb-1">
@@ -360,8 +360,10 @@ export function ControleQualidadePanel({
 
       {reprovandoId ? (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6">
-            <h3 className="text-base font-semibold text-gray-900 mb-1">Reprovar documento</h3>
+          <div className="bg-[var(--color-bg-primary)] rounded-xl shadow-xl w-full max-w-sm p-6">
+            <h3 className="text-base font-semibold text-[var(--color-text-primary)] mb-1">
+              Reprovar documento
+            </h3>
             <p className="text-sm text-gray-500 mb-3 font-mono">
               {docs.find((d) => d.processo_id === reprovandoId)?.protocolo}
             </p>
@@ -575,7 +577,7 @@ export function ControleQualidadePanel({
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-100">
+                <tbody className="bg-[var(--color-bg-primary)] divide-y divide-[var(--color-border-secondary)]">
                   {docsFiltrados.map((doc, idx) => (
                     <tr key={doc.processo_id}>
                       <td className="px-3 py-2 text-xs text-gray-400">{idx + 1}</td>
@@ -669,7 +671,7 @@ export function ControleQualidadePanel({
 
       {previewDevolucaoUrl ? (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl h-[85vh] flex flex-col overflow-hidden animate-scale-in">
+          <div className="bg-[var(--color-bg-primary)] rounded-xl shadow-xl w-full max-w-4xl h-[85vh] flex flex-col overflow-hidden animate-scale-in">
             <div className="px-6 py-4 border-b flex items-center justify-between shrink-0">
               <h3 className="text-lg font-semibold text-gray-900">Termo de Devolucao</h3>
               <div className="flex gap-2">
