@@ -91,7 +91,7 @@ export function MarkdownEditor({
         )}
         {(mode === 'preview' || mode === 'split') && (
           <div
-            className="p-3 overflow-auto prose prose-sm max-w-none prose-headings:text-gray-900 prose-p:text-gray-700 prose-a:text-blue-600 prose-strong:text-gray-900 prose-code:bg-gray-100 prose-code:px-1 prose-code:rounded prose-pre:bg-gray-50 prose-pre:border prose-table:text-sm prose-th:bg-gray-50 prose-td:border prose-th:border prose-th:px-3 prose-th:py-1.5 prose-td:px-3 prose-td:py-1.5"
+            className="p-3 overflow-auto prose prose-sm max-w-none prose-headings:text-gray-900 prose-p:text-gray-700 prose-a:text-[var(--color-text-brand)] prose-strong:text-gray-900 prose-code:bg-gray-100 prose-code:px-1 prose-code:rounded prose-pre:bg-gray-50 prose-pre:border prose-table:text-sm prose-th:bg-gray-50 prose-td:border prose-th:border prose-th:px-3 prose-th:py-1.5 prose-td:px-3 prose-td:py-1.5"
             style={{ minHeight }}
           >
             {value.trim() ? (
@@ -114,7 +114,7 @@ interface MarkdownViewerProps {
 export function MarkdownViewer({ content, className = '' }: MarkdownViewerProps): JSX.Element {
   return (
     <div
-      className={`prose prose-sm max-w-none prose-headings:text-gray-900 prose-p:text-gray-700 prose-a:text-blue-600 prose-strong:text-gray-900 prose-code:bg-gray-100 prose-code:px-1 prose-code:rounded prose-pre:bg-gray-50 prose-pre:border prose-table:text-sm prose-th:bg-gray-50 prose-td:border prose-th:border prose-th:px-3 prose-th:py-1.5 prose-td:px-3 prose-td:py-1.5 ${className}`}
+      className={`prose prose-sm max-w-none prose-headings:text-gray-900 prose-p:text-gray-700 prose-a:text-[var(--color-text-brand)] prose-strong:text-gray-900 prose-code:bg-gray-100 prose-code:px-1 prose-code:rounded prose-pre:bg-gray-50 prose-pre:border prose-table:text-sm prose-th:bg-gray-50 prose-td:border prose-th:border prose-th:px-3 prose-th:py-1.5 prose-td:px-3 prose-td:py-1.5 ${className}`}
     >
       {content.trim() ? (
         <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>

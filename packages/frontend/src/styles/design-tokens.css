@@ -835,3 +835,118 @@ html {
 [data-theme='dark'] .text-amber-700 {
   color: #fbbf24 !important;
 }
+
+/* ── Green ────────────────────────────────────────────────────── */
+[data-theme='dark'] .bg-green-50 {
+  background-color: rgba(34, 197, 94, 0.12) !important;
+}
+[data-theme='dark'] .bg-green-100 {
+  background-color: rgba(34, 197, 94, 0.18) !important;
+}
+[data-theme='dark'] .bg-green-500 {
+  background-color: #16a34a !important;
+}
+[data-theme='dark'] .text-green-600 {
+  color: #4ade80 !important;
+}
+[data-theme='dark'] .text-green-700 {
+  color: #4ade80 !important;
+}
+[data-theme='dark'] .border-green-100 {
+  border-color: rgba(34, 197, 94, 0.2) !important;
+}
+[data-theme='dark'] .border-green-200 {
+  border-color: rgba(34, 197, 94, 0.3) !important;
+}
+
+/* ── Red ──────────────────────────────────────────────────────── */
+[data-theme='dark'] .bg-red-50 {
+  background-color: rgba(239, 68, 68, 0.12) !important;
+}
+[data-theme='dark'] .text-red-500 {
+  color: #f87171 !important;
+}
+[data-theme='dark'] .text-red-600 {
+  color: #f87171 !important;
+}
+[data-theme='dark'] .text-red-700 {
+  color: #fca5a5 !important;
+}
+[data-theme='dark'] .border-red-200 {
+  border-color: rgba(239, 68, 68, 0.3) !important;
+}
+[data-theme='dark'] .hover\:bg-red-50:hover {
+  background-color: rgba(239, 68, 68, 0.12) !important;
+}
+[data-theme='dark'] .hover\:text-red-600:hover {
+  color: #f87171 !important;
+}
+[data-theme='dark'] .hover\:text-red-700:hover {
+  color: #fca5a5 !important;
+}
+
+/* ── Purple ───────────────────────────────────────────────────── */
+[data-theme='dark'] .bg-purple-50 {
+  background-color: rgba(168, 85, 247, 0.12) !important;
+}
+[data-theme='dark'] .bg-purple-500 {
+  background-color: #9333ea !important;
+}
+[data-theme='dark'] .text-purple-700 {
+  color: #c084fc !important;
+}
+
+/* ── Rose ─────────────────────────────────────────────────────── */
+[data-theme='dark'] .bg-rose-50 {
+  background-color: rgba(244, 63, 94, 0.12) !important;
+}
+[data-theme='dark'] .bg-rose-500 {
+  background-color: #e11d48 !important;
+}
+[data-theme='dark'] .text-rose-700 {
+  color: #fb7185 !important;
+}
+
+/* ── Orange ───────────────────────────────────────────────────── */
+[data-theme='dark'] .bg-orange-50 {
+  background-color: rgba(249, 115, 22, 0.12) !important;
+}
+[data-theme='dark'] .bg-orange-500 {
+  background-color: #ea580c !important;
+}
+[data-theme='dark'] .text-orange-700 {
+  color: #fb923c !important;
+}
+
+/* ── Violet ───────────────────────────────────────────────────── */
+[data-theme='dark'] .bg-violet-50 {
+  background-color: rgba(139, 92, 246, 0.12) !important;
+}
+[data-theme='dark'] .bg-violet-500 {
+  background-color: #7c3aed !important;
+}
+[data-theme='dark'] .text-violet-700 {
+  color: #a78bfa !important;
+}
+
+/* ── Emerald ──────────────────────────────────────────────────── */
+[data-theme='dark'] .bg-emerald-50 {
+  background-color: rgba(16, 185, 129, 0.12) !important;
+}
+[data-theme='dark'] .bg-emerald-500 {
+  background-color: #059669 !important;
+}
+[data-theme='dark'] .text-emerald-700 {
+  color: #34d399 !important;
+}
+
+/* ── Cyan ─────────────────────────────────────────────────────── */
+[data-theme='dark'] .bg-cyan-50 {
+  background-color: rgba(6, 182, 212, 0.12) !important;
+}
+[data-theme='dark'] .bg-cyan-500 {
+  background-color: #0891b2 !important;
+}
+[data-theme='dark'] .text-cyan-700 {
+  color: #22d3ee !important;
+}
