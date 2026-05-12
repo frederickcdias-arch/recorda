@@ -66,6 +66,9 @@ const LancarProducaoPage = lazy(() =>
 const MeuHistoricoPage = lazy(() =>
   import('../pages/colaborador/MeuHistoricoPage').then((m) => ({ default: m.MeuHistoricoPage }))
 );
+const CapturaMapaPage = lazy(() =>
+  import('../pages/colaborador/CapturaMapaPage').then((m) => ({ default: m.CapturaMapaPage }))
+);
 const VincularProducoesPage = lazy(() =>
   import('../pages/configuracoes/VincularProducoesPage').then((m) => ({
     default: m.VincularProducoesPage,
@@ -171,6 +174,16 @@ export const router = createBrowserRouter([
           <RoleRoute allowedProfiles={['colaborador']}>
             <PageSuspense>
               <MeuHistoricoPage />
+            </PageSuspense>
+          </RoleRoute>
+        ),
+      },
+      {
+        path: 'minha-producao/captura-mapa',
+        element: (
+          <RoleRoute allowedProfiles={['colaborador']}>
+            <PageSuspense>
+              <CapturaMapaPage />
             </PageSuspense>
           </RoleRoute>
         ),

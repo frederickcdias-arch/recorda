@@ -23,6 +23,7 @@ import { createMetasRoutes } from './routes/metas.js';
 import { createOperacionalRoutes } from './routes/operacional.js';
 import { createConhecimentoOperacionalRoutes } from './routes/conhecimento-operacional.js';
 import { createAdminRoutes } from './routes/admin.js';
+import { createCapturasMapaRoutes } from './routes/capturas-mapa.js';
 
 export interface ServerDependencies {
   database: DatabaseConnection;
@@ -201,6 +202,7 @@ export async function createServer(dependencies: ServerDependencies): Promise<Fa
   await server.register(createOperacionalRoutes());
   await server.register(createConhecimentoOperacionalRoutes());
   await server.register(createAdminRoutes());
+  await server.register(createCapturasMapaRoutes());
 
   return server;
 }

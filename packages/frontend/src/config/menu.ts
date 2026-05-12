@@ -43,6 +43,12 @@ export const menuSections: MenuSection[] = [
         icon: 'history',
         path: '/minha-producao/historico',
       },
+      {
+        id: 'captura-mapa',
+        label: 'Captura de Mapas',
+        icon: 'camera',
+        path: '/minha-producao/captura-mapa',
+      },
     ],
   },
   {
