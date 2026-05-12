@@ -424,7 +424,7 @@ export function ControleQualidadePanel({
             <button
               key={key}
               onClick={() => setFiltroRepo(key)}
-              className={`px-3 h-8 rounded-lg text-xs font-medium border transition-colors ${filtroRepo === key ? 'bg-blue-50 text-blue-700 border-blue-300' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}
+              className={`px-3 h-8 rounded-lg text-xs font-medium border transition-colors ${filtroRepo === key ? 'bg-blue-50 text-blue-700 border-blue-300' : 'bg-[var(--color-bg-primary)] text-gray-600 border-gray-200 hover:bg-gray-50'}`}
             >
               {label}
             </button>
@@ -443,7 +443,7 @@ export function ControleQualidadePanel({
                   setBusca('');
                   setFiltroStatus('TODOS');
                 }}
-                className={`w-full text-left px-3 py-2 rounded-lg border transition-colors flex items-center justify-between gap-2 ${repoSelecionadoId === repo.id_repositorio_recorda ? 'bg-blue-50 border-blue-300 ring-1 ring-blue-300' : 'bg-white border-gray-200 hover:bg-gray-50'}`}
+                className={`w-full text-left px-3 py-2 rounded-lg border transition-colors flex items-center justify-between gap-2 ${repoSelecionadoId === repo.id_repositorio_recorda ? 'bg-blue-50 border-blue-300 ring-1 ring-blue-300' : 'bg-[var(--color-bg-primary)] border-gray-200 hover:bg-gray-50'}`}
               >
                 <div className="min-w-0">
                   <span className="text-sm font-medium text-gray-900">
@@ -534,7 +534,7 @@ export function ControleQualidadePanel({
               <button
                 key={f}
                 onClick={() => setFiltroStatus(f)}
-                className={`px-3 h-8 rounded-lg text-xs font-medium border transition-colors ${filtroStatus === f ? 'bg-blue-50 text-blue-700 border-blue-300' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}
+                className={`px-3 h-8 rounded-lg text-xs font-medium border transition-colors ${filtroStatus === f ? 'bg-blue-50 text-blue-700 border-blue-300' : 'bg-[var(--color-bg-primary)] text-gray-600 border-gray-200 hover:bg-gray-50'}`}
               >
                 {f}
               </button>

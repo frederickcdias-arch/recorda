@@ -687,12 +687,25 @@ html {
     color 200ms ease;
 }
 
+/* Garante que elementos nativos sem bg explícito herdem o tema escuro */
+[data-theme='dark'] select,
+[data-theme='dark'] input:not([type='checkbox']):not([type='radio']),
+[data-theme='dark'] textarea {
+  background-color: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+  border-color: var(--color-border-primary);
+  color-scheme: dark;
+}
+
 /* ═══════════════════════════════════════════════════════════════
    TEMA ESCURO — Recorda Dark
    Inspirado em Linear, Stripe — cool-tinted, thin & elegant
    ═══════════════════════════════════════════════════════════════ */
 
 [data-theme='dark'] {
+  /* Instrui o browser a renderizar controles nativos (select, input, scrollbar) em modo escuro */
+  color-scheme: dark;
+
   /* Escala gray invertida para superfícies escuras */
   --color-gray-25: #111115;
   --color-gray-50: #16161c;

@@ -1030,7 +1030,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                         Unidade
                       </label>
                       <select
-                        className="w-full h-11 px-3 border rounded-lg text-sm"
+                        className="w-full h-11 px-3 border rounded-lg text-sm bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] border-[var(--color-border-primary)]"
                         value={novoRepositorio.orgao}
                         onChange={(e) =>
                           setNovoRepositorio((p) => ({
@@ -1076,7 +1076,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                         Projeto
                       </label>
                       <select
-                        className="w-full h-11 px-3 border rounded-lg text-sm"
+                        className="w-full h-11 px-3 border rounded-lg text-sm bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] border-[var(--color-border-primary)]"
                         value={novoRepositorio.projeto}
                         onChange={(e) =>
                           setNovoRepositorio((p) => ({
@@ -1131,7 +1131,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                         Classificação
                       </label>
                       <select
-                        className="w-full h-11 px-3 border rounded-lg text-sm"
+                        className="w-full h-11 px-3 border rounded-lg text-sm bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] border-[var(--color-border-primary)]"
                         value={novoRepositorio.classificacaoId}
                         onChange={(e) =>
                           setNovoRepositorio((p) => ({ ...p, classificacaoId: e.target.value }))
@@ -1327,7 +1327,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                       itens.map((item) => (
                         <div
                           key={item.id_repositorio_recorda}
-                          className={`border rounded-xl p-3 ${reposSelecionadosTermo.has(item.id_repositorio_recorda) ? 'bg-primary-50 border-primary-200' : 'bg-white border-gray-200'}`}
+                          className={`border rounded-xl p-3 ${reposSelecionadosTermo.has(item.id_repositorio_recorda) ? 'bg-primary-50 border-primary-200' : 'bg-[var(--color-bg-primary)] border-gray-200'}`}
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div>
@@ -1762,7 +1762,7 @@ export function EtapaOperacionalPage(): JSX.Element {
 
               return (
                 <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 animate-fade-in">
-                  <div className="bg-white bg-[var(--color-bg-primary)] rounded-xl shadow-xl w-full max-w-3xl max-h-[88vh] overflow-hidden flex flex-col animate-scale-in">
+                  <div className="bg-[var(--color-bg-primary)] rounded-xl shadow-xl w-full max-w-3xl max-h-[88vh] overflow-hidden flex flex-col animate-scale-in">
                     <div className="px-5 py-3 sm:px-6 sm:py-4 border-b flex items-center justify-between shrink-0">
                       <div>
                         <h3 className="text-base sm:text-lg font-semibold text-gray-900">

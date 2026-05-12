@@ -518,7 +518,7 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
               onClick={() => setActiveTab(tab.key)}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-1.5 ${
                 activeTab === tab.key
-                  ? 'bg-white text-gray-900 shadow-sm'
+                  ? 'bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
@@ -589,7 +589,7 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
                     <button
                       key={doc.id}
                       type="button"
-                      className={`w-full text-left rounded-lg border p-3 transition ${selectedId === doc.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white hover:border-blue-200'}`}
+                      className={`w-full text-left rounded-lg border p-3 transition ${selectedId === doc.id ? 'border-blue-500 bg-blue-50' : 'border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] hover:border-blue-200'}`}
                       onClick={() => setSelectedId(doc.id)}
                     >
                       <div className="font-medium text-sm text-gray-900">
@@ -667,7 +667,7 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
                                   key={etapa}
                                   type="button"
                                   onClick={() => toggleMetaEtapa(etapa)}
-                                  className={`px-2.5 py-1 rounded-full border text-xs ${editMeta.etapas.includes(etapa) ? 'bg-blue-100 border-blue-500 text-blue-700' : 'bg-white border-gray-300 text-gray-700'}`}
+                                  className={`px-2.5 py-1 rounded-full border text-xs ${editMeta.etapas.includes(etapa) ? 'bg-blue-100 border-blue-500 text-blue-700' : 'bg-[var(--color-bg-primary)] border-gray-300 text-gray-700'}`}
                                 >
                                   {etapaLabel(etapa)}
                                 </button>
@@ -702,7 +702,7 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
                       )}
                     </div>
                     <div className="rounded-lg border bg-gray-50 overflow-hidden">
-                      <div className="flex items-center justify-between px-3 py-2 border-b bg-white">
+                      <div className="flex items-center justify-between px-3 py-2 border-b bg-[var(--color-bg-secondary)]">
                         <span className="text-xs font-medium text-gray-600">
                           v{detalhe.versaoAtual?.versao ?? '-'}
                         </span>
@@ -767,7 +767,7 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
             </div>
 
             {isAdmin ? (
-              <details className="bg-white rounded-xl border border-gray-100 shadow-sm">
+              <details className="bg-[var(--color-bg-primary)] rounded-xl border border-gray-100 shadow-sm">
                 <summary className="px-5 py-4 cursor-pointer text-sm font-semibold text-gray-900">
                   Novo Documento
                 </summary>
@@ -806,7 +806,7 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
                         key={item}
                         type="button"
                         onClick={() => toggleEtapa(item)}
-                        className={`px-3 py-1 rounded-full border text-xs ${novoDoc.etapas.includes(item) ? 'bg-blue-100 border-blue-500 text-blue-700' : 'bg-white border-gray-300 text-gray-700'}`}
+                        className={`px-3 py-1 rounded-full border text-xs ${novoDoc.etapas.includes(item) ? 'bg-blue-100 border-blue-500 text-blue-700' : 'bg-[var(--color-bg-primary)] border-gray-300 text-gray-700'}`}
                       >
                         {etapaLabel(item)}
                       </button>

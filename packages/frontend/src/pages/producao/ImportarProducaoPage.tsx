@@ -892,7 +892,7 @@ export function ImportarProducaoPage(): JSX.Element {
                   onClick={() => setFonteProducao(opt.key)}
                   className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                     fonteProducao === opt.key
-                      ? 'bg-white text-gray-900 shadow-sm'
+                      ? 'bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] shadow-sm'
                       : 'text-gray-600 hover:text-gray-900'
                   }`}
                 >

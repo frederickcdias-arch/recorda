@@ -399,7 +399,7 @@ function ModalNovaDevolucao({ onClose, onSaved }: ModalDevolucaoProps): JSX.Elem
                           key={proc.id}
                           type="button"
                           onClick={() => adicionarDoRecebimento(proc)}
-                          className="w-full text-left px-3 py-2 bg-white rounded border hover:border-blue-400 hover:bg-blue-50 text-sm transition-colors"
+                          className="w-full text-left px-3 py-2 bg-[var(--color-bg-primary)] rounded border border-[var(--color-border-primary)] hover:border-blue-400 hover:bg-blue-50 text-sm transition-colors"
                         >
                           <span className="font-medium">{proc.protocolo}</span>
                           {' — '}
@@ -490,7 +490,14 @@ function ModalNovaDevolucao({ onClose, onSaved }: ModalDevolucaoProps): JSX.Elem
                   </thead>
                   <tbody>
                     {itens.map((item, idx) => (
-                      <tr key={item.tempId} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                      <tr
+                        key={item.tempId}
+                        className={
+                          idx % 2 === 0
+                            ? 'bg-[var(--color-bg-primary)]'
+                            : 'bg-[var(--color-bg-secondary)]'
+                        }
+                      >
                         <td className="px-3 py-2 text-gray-500">{idx + 1}</td>
                         <td className="px-3 py-2">{item.protocolo || '—'}</td>
                         <td className="px-3 py-2 truncate max-w-[140px]">
@@ -572,7 +579,7 @@ function ModalNovaDevolucao({ onClose, onSaved }: ModalDevolucaoProps): JSX.Elem
                     {itens.map((item, idx) => (
                       <tr
                         key={item.tempId}
-                        className={idx % 2 === 0 ? 'bg-white' : 'bg-blue-50/60'}
+                        className={idx % 2 === 0 ? 'bg-[var(--color-bg-primary)]' : 'bg-blue-50/60'}
                       >
                         <td className="px-2 py-1 text-gray-400">{idx + 1}</td>
                         <td className="px-2 py-1">{item.protocolo || '—'}</td>
@@ -831,7 +838,14 @@ function PainelDetalheDevolucao({ devolucaoId, onClose }: DetalheDevolucaoProps)
             </thead>
             <tbody>
               {itens.map((item, idx) => (
-                <tr key={item.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                <tr
+                  key={item.id}
+                  className={
+                    idx % 2 === 0
+                      ? 'bg-[var(--color-bg-primary)]'
+                      : 'bg-[var(--color-bg-secondary)]'
+                  }
+                >
                   <td className="px-3 py-2 text-gray-400">{idx + 1}</td>
                   <td className="px-3 py-2">{item.protocolo || '—'}</td>
                   <td className="px-3 py-2 truncate max-w-[140px]">{item.interessado || '—'}</td>
@@ -1024,7 +1038,7 @@ export function DevolucoesPage(): JSX.Element {
                   {devolucoes.map((dev: DevolucaoOperacional, idx: number) => (
                     <tr
                       key={dev.id}
-                      className={`border-b last:border-0 transition-colors hover:bg-[var(--color-primary-25)] ${idx % 2 === 0 ? 'bg-white' : 'bg-[var(--color-gray-50)]'}`}
+                      className={`border-b last:border-0 transition-colors hover:bg-[var(--color-primary-25)] ${idx % 2 === 0 ? 'bg-[var(--color-bg-primary)]' : 'bg-[var(--color-bg-secondary)]'}`}
                     >
                       <td className="px-4 py-3 whitespace-nowrap">
                         {formatarData(dev.data_devolucao)}

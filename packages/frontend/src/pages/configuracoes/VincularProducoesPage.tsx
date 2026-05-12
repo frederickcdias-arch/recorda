@@ -191,7 +191,7 @@ export function VincularProducoesPage(): JSX.Element {
                       className={`w-full text-left p-3 rounded-lg border transition-colors ${
                         colaboradorSelecionado === colab.nome
                           ? 'bg-blue-50 border-blue-500 ring-2 ring-blue-200'
-                          : 'bg-white border-gray-200 hover:bg-gray-50'
+                          : 'bg-[var(--color-bg-primary)] border-gray-200 hover:bg-gray-50'
                       }`}
                     >
                       <p className="font-medium text-gray-900">{colab.nome}</p>
@@ -255,7 +255,7 @@ export function VincularProducoesPage(): JSX.Element {
                         usuarioSelecionado === usuario.id
                           ? 'bg-green-50 border-green-500 ring-2 ring-green-200'
                           : usuario.ativo
-                            ? 'bg-white border-gray-200 hover:bg-gray-50'
+                            ? 'bg-[var(--color-bg-primary)] border-gray-200 hover:bg-gray-50'
                             : 'bg-gray-100 border-gray-200 opacity-50 cursor-not-allowed'
                       }`}
                     >
@@ -327,7 +327,7 @@ export function VincularProducoesPage(): JSX.Element {
                   <h3 className="text-sm font-semibold text-gray-900 mb-3">
                     Preview de Vinculação ({preview.totalRegistros} registros)
                   </h3>
-                  <div className="bg-white border border-gray-200 rounded-lg overflow-hidden max-h-60 overflow-y-auto">
+                  <div className="bg-[var(--color-bg-primary)] border border-gray-200 rounded-lg overflow-hidden max-h-60 overflow-y-auto">
                     <table className="min-w-full divide-y divide-gray-200">
                       <thead className="bg-gray-50 sticky top-0">
                         <tr>

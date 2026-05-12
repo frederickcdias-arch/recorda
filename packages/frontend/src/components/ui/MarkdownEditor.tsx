@@ -65,7 +65,7 @@ export function MarkdownEditor({
                 onClick={() => setMode(m)}
                 className={`px-2 py-0.5 text-xs rounded transition-colors ${
                   mode === m
-                    ? 'bg-white text-gray-900 shadow-sm'
+                    ? 'bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] shadow-sm'
                     : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
