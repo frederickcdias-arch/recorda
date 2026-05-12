@@ -7,6 +7,29 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [Unreleased] — 2026-05-12
+
+### 🧹 Manutenção / Limpeza
+
+- Removidos scripts duplicados e pontuais: `scripts/maintenance/create-admin.js`, `scripts/maintenance/apply-gestao-pessoas.js`, `db/scripts/vincular_producoes_colaboradores.sql`
+- Removidos documentos de diagnóstico antigos de `docs/archive/` (diagnósticos superados fev/2026, backlog mar/2026)
+- Removido `docs/DIAGNOSTICO_INTERFACE_UX.md` (jul/2025, superado pelos diagnósticos de 2026)
+- Removido `vercel.json` — deploy ativo é exclusivamente Railway
+- Testes k6 consolidados em `tests/`: `scripts/performance/` → `tests/load/`, `scripts/security/` → `tests/security/`
+- Logs e screenshots de diagnóstico limpos de `logs/`
+
+### 🐛 Corrigido
+
+- **Backend (`health.ts`):** `server.authenticate` substituído por `authenticate` importado diretamente de `middleware/auth.js` — crash na inicialização em produção resolvido (commit `87fc80d`)
+- **Frontend:** `useCallback` em handlers de `useEffect` em `RelatoriosGerenciaisPage`, `ExportacoesPage`; `useMemo` em arrays derivados de query em `ConhecimentoOperacionalPage`; `catch (error: unknown)` com narrowing em `AuthContext`; validação de e-mail em `ForgotPassword` (commit `3fe0c6d`)
+- **DB (`074_gestao_pessoas.sql`):** `INSERT INTO schema_migrations` ausente adicionado; função duplicada `update_updated_at_column()` removida (commit `ef49485`)
+
+### ✨ Adicionado
+
+- **DB (`092_gestao_pessoas_auditoria_e_fixes.sql`):** 7 triggers de auditoria para tabelas de gestão de pessoas; trigger `sync_ferias_dias` para atualização automática de `ferias.dias_restantes`; trigger `BEFORE UPDATE` em `tipos_ausencia` (commit `ef49485`)
+
+---
+
 ## [1.0.0] - 2026-04-15
 
 ### 🎉 Lançamento Inicial - Sistema Completo

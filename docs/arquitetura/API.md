@@ -1,6 +1,6 @@
 # Recorda API — Route Reference
 
-> Auto-generated from source code audit. Last updated: 2026-02-11.
+> Auto-generated from source code audit. Last updated: 2026-05-12.
 
 ## Authentication
 
@@ -17,10 +17,10 @@
 
 ## Health & Monitoring
 
-| Method | Path       | Auth | Description                                   |
-| ------ | ---------- | ---- | --------------------------------------------- |
-| GET    | `/health`  | No   | Health check (DB status, uptime, version)     |
-| GET    | `/metrics` | No   | System metrics (memory, uptime, node version) |
+| Method | Path       | Auth            | Description                                   |
+| ------ | ---------- | --------------- | --------------------------------------------- |
+| GET    | `/health`  | No              | Health check (DB status, uptime, version)     |
+| GET    | `/metrics` | Yes (operador+) | System metrics (memory, uptime, node version) |
 
 ## Dashboard
 

@@ -1,6 +1,6 @@
 # Diagnóstico Técnico — Projeto Recorda
 
-> Gerado em: 2026-05-08  
+> Gerado em: 2026-05-08 | Atualizado em: 2026-05-12  
 > Tipo: Leitura profunda / sem alterações  
 > Escopo: Todos os pacotes do monorepo
 
@@ -41,18 +41,17 @@ Sistema de Gestão Documental e Produção para arquivamento físico de document
 
 | Pasta/Arquivo                                | Função                                                              |
 | -------------------------------------------- | ------------------------------------------------------------------- |
-| `db/migrations/`                             | 85 migrações SQL numeradas (001–085)                                |
+| `db/migrations/`                             | 92 migrações SQL numeradas (001–092)                                |
 | `db/baseline/`                               | Dump consolidado do schema atual (gerado automaticamente)           |
 | `scripts/`                                   | Utilitários de manutenção (bootstrap, importação, criação de admin) |
 | `docker-compose.yml`                         | PostgreSQL 15 (porta 5433) + Redis 7 (porta 6380) para dev local    |
 | `Dockerfile.backend` / `Dockerfile.frontend` | Imagens Docker                                                      |
 | `railway.json`                               | Configuração de deploy do backend no Railway                        |
-| `vercel.json`                                | Configuração de deploy do frontend na Vercel                        |
 | `nixpacks.toml`                              | Build para Railway via Nixpacks                                     |
 | `nginx.conf`                                 | Nginx para servir o frontend em produção                            |
 | `docs/`                                      | Documentação técnica (changelogs, diagnósticos, regras)             |
 | `uploads/`                                   | Arquivos locais: OCR, planilhas, relatórios                         |
-| `tests/`                                     | Testes de carga (load) e manuais                                    |
+| `tests/`                                     | Testes de carga (load), manuais e segurança (k6)                    |
 
 ---
 

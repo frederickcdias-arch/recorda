@@ -11,7 +11,6 @@ Organização atual:
 - `operacao/`: execução local, deploy, limitações e materiais operacionais.
 - `auditorias/`: auditorias, correções, validações e relatórios históricos relevantes.
 - `padroes/`: padrões técnicos obrigatórios para futuras alterações.
-- `archive/`: documentos antigos, diagnósticos superados e artefatos não ativos.
 
 ## Índice Mestre
 
@@ -38,9 +37,6 @@ Organização atual:
 | `auditorias/seguranca/AUDITORIA_SEGURANCA_PRODUCAO.md`       | Auditoria de segurança no fluxo de produção          | Histórico válido |
 | `auditorias/seguranca/SECURITY_REVIEW.md`                    | Revisão de segurança complementar                    | Histórico válido |
 | `auditorias/organizacao/ORGANIZACAO_RAIZ_E_DOCS_RECORDA.md`  | Relatório da reorganização da raiz e da documentação | Histórico válido |
-| `archive/antigos/*`                                          | Documentos antigos de referência histórica           | Arquivado        |
-| `archive/diagnosticos-superados/*`                           | Auditorias e diagnósticos superados                  | Arquivado        |
-| `archive/nao-utilizados/*`                                   | Artefatos preservados por segurança, sem uso atual   | Arquivado        |
 
 ## Navegação Recomendada
 

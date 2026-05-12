@@ -22,11 +22,25 @@ Sistema de gestão de processos administrativos com rastreamento de produção e
 ```text
 recorda/
 ├── db/
+│   ├── baseline/
+│   ├── migrations/        (001–092)
+│   └── scripts/
 ├── docs/
 ├── packages/
+│   ├── backend/
+│   ├── frontend/
+│   └── shared/
 ├── scripts/
 ├── tests/
+│   ├── load/
+│   ├── manual/
+│   └── security/
 ├── docker-compose.yml
+├── Dockerfile.backend
+├── Dockerfile.frontend
+├── nginx.conf
+├── nixpacks.toml
+├── railway.json
 ├── package.json
 ├── package-lock.json
 ├── tsconfig.base.json

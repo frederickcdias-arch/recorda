@@ -1,31 +1,22 @@
-# Deploy: Git + Railway + Vercel
+# Deploy: Railway (backend) + Nginx/Docker (frontend)
+
+> **Plataforma ativa:** Railway (backend via Nixpacks). O frontend é servido via Nginx embutido na imagem Docker ou pode ser hospedado em qualquer CDN/static host.
 
 ## 1. Preparar repositório Git
-
-Se ainda não houver repositório Git inicializado:
-
-```bash
-git init
-git add .
-git commit -m "chore: prepare deploy for railway and vercel"
-git branch -M main
-git remote add origin <URL_DO_REPOSITORIO>
-git push -u origin main
-```
 
 Se o repositório já existir:
 
 ```bash
 git add .
-git commit -m "chore: deploy configs railway/vercel"
+git commit -m "chore: deploy"
 git push
 ```
 
-## 2. Railway
+## 2. Railway (Backend)
 
 ### Configuração do projeto
 
-1. Criar projeto Railway e conectar ao repositório.
+1. Criar projeto Railway e conectar ao repositório GitHub.
 2. Service root: repositório raiz (`recorda`).
 3. Railway usa [railway.json](../../railway.json):
    - builder: `NIXPACKS`
@@ -35,28 +26,26 @@ git push
    - install: `npm ci --include=dev`
    - build compartilhado e do backend via workspaces.
 
-### Variáveis obrigatórias
+### Variáveis obrigatórias no Railway
 
 - `NODE_ENV=production`
 - `PORT`
 - `HOST=0.0.0.0`
 - `JWT_SECRET`
-- `CORS_ORIGIN=https://<seu-front>.vercel.app`
-- `APP_URL=https://<seu-front>.vercel.app`
+- `CORS_ORIGIN=https://<seu-front>`
+- `APP_URL=https://<seu-front>`
 - `DATABASE_URL`
 
-## 3. Vercel
+## 3. Frontend (Docker / Nginx)
 
-### Configuração do projeto
+O frontend é construído pela imagem `Dockerfile.frontend` e servido via Nginx conforme [nginx.conf](../../nginx.conf).
 
-1. Importar o mesmo repositório no Vercel.
-2. Root Directory: repositório raiz (`recorda`).
-3. Vercel usa [vercel.json](../../vercel.json):
-   - install: `npm ci`
-   - build: `npm run build --workspace=@recorda/frontend`
-   - output: `packages/frontend/dist`
+```bash
+docker build -f Dockerfile.frontend -t recorda-frontend .
+docker run -p 80:80 recorda-frontend
+```
 
-### Variável obrigatória
+A variável de build obrigatória é:
 
 - `VITE_API_BASE=https://<seu-backend>.up.railway.app`
 
@@ -64,8 +53,8 @@ git push
 
 1. Subir backend no Railway.
 2. Copiar URL pública do Railway.
-3. Configurar `VITE_API_BASE` no Vercel.
-4. Publicar frontend no Vercel.
+3. Buildar frontend com `VITE_API_BASE` apontando para o Railway.
+4. Publicar imagem do frontend.
 5. Atualizar `CORS_ORIGIN` e `APP_URL` no Railway.
 
 ## 5. Verificação pós-deploy
@@ -87,8 +76,10 @@ git push
 ## 6. Arquivos Relacionados
 
 - [railway.json](../../railway.json)
-- [vercel.json](../../vercel.json)
+- [nixpacks.toml](../../nixpacks.toml)
+- [nginx.conf](../../nginx.conf)
+- [Dockerfile.backend](../../Dockerfile.backend)
+- [Dockerfile.frontend](../../Dockerfile.frontend)
 - [.env.example](../../.env.example)
 - [packages/backend/src/infrastructure/config/index.ts](../../packages/backend/src/infrastructure/config/index.ts)
 - [packages/frontend/src/services/api.ts](../../packages/frontend/src/services/api.ts)
-- [packages/frontend/src/contexts/AuthContext.tsx](../../packages/frontend/src/contexts/AuthContext.tsx)
