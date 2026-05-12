@@ -756,3 +756,82 @@ html {
     background-size: 200% 100%;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   CORREÇÕES TAILWIND — cores não mapeadas para CSS vars
+   Classes como bg-blue-50, text-amber-700, bg-sky-100 etc. usam
+   os valores fixos do Tailwind e não adaptam sozinhas ao dark mode.
+   Estas regras fazem o mapeamento global para todos os componentes.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Blue ─────────────────────────────────────────────────────── */
+[data-theme='dark'] .bg-blue-50,
+[data-theme='dark'] .bg-blue-50\/60 {
+  background-color: rgba(99, 102, 241, 0.12) !important;
+}
+[data-theme='dark'] .bg-blue-100 {
+  background-color: rgba(99, 102, 241, 0.18) !important;
+}
+[data-theme='dark'] .bg-blue-200 {
+  background-color: rgba(99, 102, 241, 0.25) !important;
+}
+[data-theme='dark'] .text-blue-600 {
+  color: #818cf8 !important;
+}
+[data-theme='dark'] .text-blue-700 {
+  color: #818cf8 !important;
+}
+[data-theme='dark'] .text-blue-800 {
+  color: #a5b4fc !important;
+}
+[data-theme='dark'] .text-blue-900 {
+  color: #c7d2fe !important;
+}
+[data-theme='dark'] .border-blue-200 {
+  border-color: rgba(99, 102, 241, 0.3) !important;
+}
+[data-theme='dark'] .border-blue-300 {
+  border-color: rgba(99, 102, 241, 0.45) !important;
+}
+[data-theme='dark'] .border-blue-400 {
+  border-color: #6366f1 !important;
+}
+[data-theme='dark'] .border-blue-500 {
+  border-color: #6366f1 !important;
+}
+[data-theme='dark'] .hover\:bg-blue-50:hover {
+  background-color: rgba(99, 102, 241, 0.12) !important;
+}
+
+/* ── Sky ──────────────────────────────────────────────────────── */
+[data-theme='dark'] .bg-sky-50 {
+  background-color: rgba(14, 165, 233, 0.12) !important;
+}
+[data-theme='dark'] .bg-sky-100 {
+  background-color: rgba(14, 165, 233, 0.18) !important;
+}
+[data-theme='dark'] .text-sky-700 {
+  color: #7dd3fc !important;
+}
+[data-theme='dark'] .text-sky-800 {
+  color: #bae6fd !important;
+}
+
+/* ── Slate ────────────────────────────────────────────────────── */
+[data-theme='dark'] .bg-slate-100 {
+  background-color: rgba(148, 163, 184, 0.12) !important;
+}
+[data-theme='dark'] .text-slate-700 {
+  color: #94a3b8 !important;
+}
+
+/* ── Amber ────────────────────────────────────────────────────── */
+[data-theme='dark'] .bg-amber-50 {
+  background-color: rgba(245, 158, 11, 0.12) !important;
+}
+[data-theme='dark'] .bg-amber-500 {
+  background-color: #d97706 !important;
+}
+[data-theme='dark'] .text-amber-700 {
+  color: #fbbf24 !important;
+}
