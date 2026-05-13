@@ -206,27 +206,26 @@ export function CapturaMapaPage() {
     [setQueue]
   );
 
-  // ── Processar lote (sequencial) ───────────────────────────────────────────
+  // ── Processar lote (paralelo com concorrência limitada) ──────────────────
 
   const handleProcessarLote = useCallback(async () => {
     if (processandoLote) return;
     setProcessandoLote(true);
 
-    const toProcess = queueRef.current
+    const pending = queueRef.current
       .filter((it) => it.status === 'aguardando' && it.correctedSrc)
       .map((it) => it.localId);
 
     let ok = 0;
     let fail = 0;
 
-    for (const localId of toProcess) {
+    // Pool: até 3 uploads simultâneos para maximizar throughput sem sobrecarregar
+    const processOne = async (localId: string) => {
       setQueue((prev) =>
         prev.map((it) => (it.localId === localId ? { ...it, status: 'processando' } : it))
       );
-
       const item = queueRef.current.find((it) => it.localId === localId);
-      if (!item?.correctedSrc) continue;
-
+      if (!item?.correctedSrc) return;
       try {
         const result = await api.post<ProcessarResponse>('/colaborador/capturas-mapa', {
           imagemBase64: item.correctedSrc,
@@ -243,7 +242,16 @@ export function CapturaMapaPage() {
         );
         fail++;
       }
-    }
+    };
+
+    const queue = [...pending];
+    const workers = Array.from({ length: Math.min(3, pending.length) }, async () => {
+      while (queue.length > 0) {
+        const localId = queue.shift();
+        if (localId) await processOne(localId);
+      }
+    });
+    await Promise.all(workers);
 
     if (ok > 0)
       toast.success(`${plural(ok, 'imagem processada', 'imagens processadas')} com sucesso.`);

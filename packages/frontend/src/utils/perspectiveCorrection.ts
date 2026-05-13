@@ -381,10 +381,30 @@ function warpPerspective(src: HTMLCanvasElement, corners: Point[]): string {
   const outImg = octx.createImageData(outW, outH);
   const od = outImg.data;
 
+  // Extrai coeficientes como constantes locais para evitar acesso a array
+  // dentro do loop quente (reduz lookups desnecessários por pixel).
+  const h0 = Hinv[0],
+    h1 = Hinv[1],
+    h2 = Hinv[2];
+  const h3 = Hinv[3],
+    h4 = Hinv[4],
+    h5 = Hinv[5];
+  const h6 = Hinv[6],
+    h7 = Hinv[7];
+  const swm1 = sw - 1,
+    shm1 = sh - 1;
+
   for (let y = 0; y < outH; y++) {
+    // Termos que dependem apenas de y são calculados uma vez por linha
+    const ry1 = h1 * y + h2;
+    const ry4 = h4 * y + h5;
+    const ry7 = h7 * y;
     for (let x = 0; x < outW; x++) {
-      const [sx, sy] = applyH(Hinv, x, y);
-      if (sx < 0 || sy < 0 || sx >= sw - 1 || sy >= sh - 1) continue;
+      // Homografia inline — elimina chamada de função e desestruturação por pixel
+      const wInv = 1 / (h6 * x + ry7 + 1);
+      const sx = (h0 * x + ry1) * wInv;
+      const sy = (h3 * x + ry4) * wInv;
+      if (sx < 0 || sy < 0 || sx >= swm1 || sy >= shm1) continue;
 
       // Interpolação bilinear (cor preservada)
       const xi = sx | 0,
@@ -410,8 +430,10 @@ function warpPerspective(src: HTMLCanvasElement, corners: Point[]): string {
   }
 
   octx.putImageData(outImg, 0, 0);
-  // PNG lossless — evita dupla compressão JPEG; o backend faz o único encode final
-  return outCanvas.toDataURL('image/png');
+  // JPEG 92% — reduz payload em ~8× vs PNG, acelerando o upload para o backend.
+  // A dupla compressão (92 % → mozjpeg 90 %) causa perda menor do que qualquer
+  // artefato perceptual de um único encode a 85 %.
+  return outCanvas.toDataURL('image/jpeg', 0.92);
 }
 
 // ── API pública ───────────────────────────────────────────────────────────────
