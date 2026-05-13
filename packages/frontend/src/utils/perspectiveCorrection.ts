@@ -212,6 +212,7 @@ type DocumentGeometry = {
   right?: Point[];
   bottom?: Point[];
   left?: Point[];
+  manualCurves?: boolean;
 };
 
 export interface PerspectiveDetection {
@@ -1019,6 +1020,14 @@ function hasCurvedEdges(geometry: DocumentGeometry): boolean {
     Math.hypot(br[0] - tr[0], br[1] - tr[1])
   );
   const maxResidual = Math.max(4, minDim * 0.055);
+  if (geometry.manualCurves) {
+    return (
+      (geometry.top?.length || 0) >= 3 &&
+      (geometry.right?.length || 0) >= 3 &&
+      (geometry.bottom?.length || 0) >= 3 &&
+      (geometry.left?.length || 0) >= 3
+    );
+  }
   return (
     edgeResidualOk(geometry.top, tl, tr, maxResidual) &&
     edgeResidualOk(geometry.right, tr, br, maxResidual) &&
@@ -1331,6 +1340,37 @@ export async function correctPerspectiveWithCorners(
 
   const scaledGeometry: DocumentGeometry = {
     corners: scalePoints(corners, ow / iw, oh / ih),
+  };
+
+  return warpDocument(wc, scaledGeometry);
+}
+
+export async function correctPerspectiveWithEdgePoints(
+  dataUrl: string,
+  corners: Point[],
+  edgeMidpoints: Point[]
+): Promise<string> {
+  const img = await loadImage(dataUrl);
+  const iw = img.width;
+  const ih = img.height;
+  const oScale = Math.min(1, OUTPUT_MAX / Math.max(iw, ih));
+  const ow = Math.round(iw * oScale);
+  const oh = Math.round(ih * oScale);
+
+  const wc = mkCanvas(ow, oh);
+  wc.getContext('2d')!.drawImage(img, 0, 0, ow, oh);
+
+  const scaledCorners = scalePoints(corners, ow / iw, oh / ih);
+  const scaledMidpoints = scalePoints(edgeMidpoints, ow / iw, oh / ih);
+  const [tl, tr, br, bl] = scaledCorners;
+  const [top, right, bottom, left] = scaledMidpoints;
+  const scaledGeometry: DocumentGeometry = {
+    corners: scaledCorners,
+    top: [tl, top, tr],
+    right: [tr, right, br],
+    bottom: [bl, bottom, br],
+    left: [tl, left, bl],
+    manualCurves: true,
   };
 
   return warpDocument(wc, scaledGeometry);

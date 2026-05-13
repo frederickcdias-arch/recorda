@@ -12,6 +12,7 @@ import { formatDateBR } from '../../utils/date';
 import {
   correctPerspective,
   correctPerspectiveWithCorners,
+  correctPerspectiveWithEdgePoints,
   detectPerspective,
 } from '../../utils/perspectiveCorrection';
 
@@ -47,6 +48,7 @@ interface QueueItem {
   thumbSrc: string;
   correctedSrc: string | null;
   corners: Point[] | null;
+  edgeMidpoints: Point[] | null;
   confidence: 'high' | 'low' | 'none';
   status: ItemStatus;
   result: ProcessarResponse | null;
@@ -111,6 +113,19 @@ function defaultCorners(size: ImageSize): Point[] {
   ];
 }
 
+function defaultEdgeMidpoints(corners: Point[]): Point[] {
+  const tl = corners[0]!;
+  const tr = corners[1]!;
+  const br = corners[2]!;
+  const bl = corners[3]!;
+  return [
+    [(tl[0] + tr[0]) / 2, (tl[1] + tr[1]) / 2],
+    [(tr[0] + br[0]) / 2, (tr[1] + br[1]) / 2],
+    [(bl[0] + br[0]) / 2, (bl[1] + br[1]) / 2],
+    [(tl[0] + bl[0]) / 2, (tl[1] + bl[1]) / 2],
+  ];
+}
+
 function plural(n: number, singular: string, pluralForm: string): string {
   return `${n} ${n === 1 ? singular : pluralForm}`;
 }
@@ -151,6 +166,7 @@ export function CapturaMapaPage() {
   const [listaExpandida, setListaExpandida] = useState(false);
   const [editorItemId, setEditorItemId] = useState<string | null>(null);
   const [editorCorners, setEditorCorners] = useState<Point[]>([]);
+  const [editorEdgeMidpoints, setEditorEdgeMidpoints] = useState<Point[]>([]);
   const [editorImageSize, setEditorImageSize] = useState<ImageSize | null>(null);
   const [editorSaving, setEditorSaving] = useState(false);
   const [previewItemId, setPreviewItemId] = useState<string | null>(null);
@@ -184,6 +200,7 @@ export function CapturaMapaPage() {
               thumbSrc,
               correctedSrc: null,
               corners: null,
+              edgeMidpoints: null,
               confidence: 'none',
               status: 'corrigindo',
               result: null,
@@ -203,6 +220,7 @@ export function CapturaMapaPage() {
                       ...it,
                       correctedSrc: corrected,
                       corners: detection.corners,
+                      edgeMidpoints: null,
                       confidence: detection.confidence,
                       status: detection.confidence === 'high' ? 'aguardando' : 'revisar',
                     }
@@ -217,6 +235,7 @@ export function CapturaMapaPage() {
                       ...it,
                       correctedSrc: dataUrl,
                       corners: null,
+                      edgeMidpoints: null,
                       confidence: 'none',
                       status: 'revisar',
                     }
@@ -278,8 +297,10 @@ export function CapturaMapaPage() {
 
   const handleOpenEditor = useCallback(async (item: QueueItem) => {
     const size = await getImageSize(item.originalSrc);
+    const corners = item.corners ?? defaultCorners(size);
     setEditorImageSize(size);
-    setEditorCorners(item.corners ?? defaultCorners(size));
+    setEditorCorners(corners);
+    setEditorEdgeMidpoints(item.edgeMidpoints ?? defaultEdgeMidpoints(corners));
     setEditorItemId(item.localId);
   }, []);
 
@@ -287,16 +308,21 @@ export function CapturaMapaPage() {
     if (editorSaving) return;
     setEditorItemId(null);
     setEditorCorners([]);
+    setEditorEdgeMidpoints([]);
     setEditorImageSize(null);
   }, [editorSaving]);
 
   const handleSaveEditor = useCallback(async () => {
     const item = queueRef.current.find((it) => it.localId === editorItemId);
-    if (!item || editorCorners.length !== 4) return;
+    if (!item || editorCorners.length !== 4 || editorEdgeMidpoints.length !== 4) return;
 
     setEditorSaving(true);
     try {
-      const corrected = await correctPerspectiveWithCorners(item.originalSrc, editorCorners);
+      const corrected = await correctPerspectiveWithEdgePoints(
+        item.originalSrc,
+        editorCorners,
+        editorEdgeMidpoints
+      );
       const thumbSrc = await makeThumbnail(corrected);
       setQueue((prev) =>
         prev.map((it) =>
@@ -306,6 +332,7 @@ export function CapturaMapaPage() {
                 thumbSrc,
                 correctedSrc: corrected,
                 corners: editorCorners,
+                edgeMidpoints: editorEdgeMidpoints,
                 confidence: 'high',
                 status: 'aguardando',
                 erro: null,
@@ -319,7 +346,7 @@ export function CapturaMapaPage() {
     } finally {
       setEditorSaving(false);
     }
-  }, [editorCorners, editorItemId, handleCloseEditor, setQueue, toast]);
+  }, [editorCorners, editorEdgeMidpoints, editorItemId, handleCloseEditor, setQueue, toast]);
 
   const handleCornerPointerMove = useCallback(
     (index: number, e: React.PointerEvent<HTMLButtonElement>) => {
@@ -342,6 +369,31 @@ export function CapturaMapaPage() {
         )
       );
       setEditorCorners((prev) => prev.map((point, i) => (i === index ? [x, y] : point)));
+    },
+    [editorImageSize]
+  );
+
+  const handleEdgePointerMove = useCallback(
+    (index: number, e: React.PointerEvent<HTMLButtonElement>) => {
+      if (!(e.currentTarget as HTMLButtonElement).hasPointerCapture(e.pointerId)) return;
+      const board = e.currentTarget.parentElement;
+      if (!board || !editorImageSize) return;
+      const rect = board.getBoundingClientRect();
+      const x = Math.max(
+        0,
+        Math.min(
+          editorImageSize.width,
+          ((e.clientX - rect.left) / rect.width) * editorImageSize.width
+        )
+      );
+      const y = Math.max(
+        0,
+        Math.min(
+          editorImageSize.height,
+          ((e.clientY - rect.top) / rect.height) * editorImageSize.height
+        )
+      );
+      setEditorEdgeMidpoints((prev) => prev.map((point, i) => (i === index ? [x, y] : point)));
     },
     [editorImageSize]
   );
@@ -789,7 +841,7 @@ export function CapturaMapaPage() {
         open={!!editorItem && !!editorImageSize}
         onClose={handleCloseEditor}
         title="Ajustar bordas"
-        subtitle="Arraste os pontos para os quatro cantos externos do papel."
+        subtitle="Arraste os cantos e os pontos do meio para acompanhar a curva do papel."
         size="xl"
         footer={
           <div className="flex flex-wrap justify-end gap-2 p-4">
@@ -834,7 +886,22 @@ export function CapturaMapaPage() {
                 preserveAspectRatio="none"
               >
                 <polygon
-                  points={editorCorners.map(([x, y]) => `${x},${y}`).join(' ')}
+                  points={
+                    editorCorners.length === 4 && editorEdgeMidpoints.length === 4
+                      ? [
+                          editorCorners[0]!,
+                          editorEdgeMidpoints[0]!,
+                          editorCorners[1]!,
+                          editorEdgeMidpoints[1]!,
+                          editorCorners[2]!,
+                          editorEdgeMidpoints[2]!,
+                          editorCorners[3]!,
+                          editorEdgeMidpoints[3]!,
+                        ]
+                          .map(([x, y]) => `${x},${y}`)
+                          .join(' ')
+                      : editorCorners.map(([x, y]) => `${x},${y}`).join(' ')
+                  }
                   fill="rgba(14, 165, 233, 0.12)"
                   stroke="rgb(14, 165, 233)"
                   strokeWidth={Math.max(editorImageSize.width, editorImageSize.height) * 0.004}
@@ -855,6 +922,25 @@ export function CapturaMapaPage() {
                   }}
                   onPointerMove={(e) => handleCornerPointerMove(index, e)}
                   aria-label={`Canto ${index + 1}`}
+                >
+                  {index + 1}
+                </button>
+              ))}
+              {editorEdgeMidpoints.map(([x, y], index) => (
+                <button
+                  key={`edge-${index}`}
+                  type="button"
+                  className="absolute flex h-6 w-6 -translate-x-1/2 -translate-y-1/2 touch-none items-center justify-center rounded-full border-2 border-white bg-warning-500 text-[10px] font-bold text-white shadow-lg"
+                  style={{
+                    left: `${(x / editorImageSize.width) * 100}%`,
+                    top: `${(y / editorImageSize.height) * 100}%`,
+                  }}
+                  onPointerDown={(e) => {
+                    e.currentTarget.setPointerCapture(e.pointerId);
+                    handleEdgePointerMove(index, e);
+                  }}
+                  onPointerMove={(e) => handleEdgePointerMove(index, e)}
+                  aria-label={`Curva da borda ${index + 1}`}
                 >
                   {index + 1}
                 </button>
