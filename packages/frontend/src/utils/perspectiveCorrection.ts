@@ -5,10 +5,9 @@
  * Algoritmo:
  *  1. Reduz para 600 px para análise rápida
  *  2. Converte para escala de cinza (somente para detecção)
- *  3. Suavização Gaussiana (2 passagens) para suprimir texto e detalhes do mapa
- *  4. Limiarização de Otsu — separa papel (claro) do fundo (escuro)
- *  5. Localiza os 4 cantos extremos da região do papel via score diagonal:
- *       TL = min(x+y),  TR = max(x–y),  BR = max(x+y),  BL = min(x–y)
+ *  3. Gradiente Sobel — detecta bordas do documento independente do brilho de fundo
+ *  4. Threshold adaptativo (Otsu sobre bordas, fallback P75) + closing morfológico
+ *  5. Score diagonal por célula de grade para localizar os 4 cantos extremos
  *  6. Valida a detecção; se não confiante, devolve a imagem original intacta
  *  7. Calcula a homografia inversa (retângulo → quadrilátero fonte)
  *  8. Aplica o warp prospectivo com interpolação bilinear na imagem COLORIDA
@@ -203,70 +202,184 @@ function morphClose(mask: Uint8Array, w: number, h: number, r: number): Uint8Arr
 // ── Detecção dos 4 cantos do documento ──────────────────────────────────────
 
 /**
- * Encontra os 4 cantos extremos da região clara (papel) usando pontuação diagonal:
- *   TL = min(x+y)   TR = max(x−y)   BR = max(x+y)   BL = min(x−y)
+ * Magnitude do gradiente Sobel 3×3.
+ * Funciona tanto em imagens com fundo escuro como em fotos onde o mapa
+ * preenche toda a cena — porque usa bordas reais (transições), não brilho.
+ */
+function sobelMag(gray: Uint8Array, w: number, h: number): Uint8Array {
+  const out = new Uint8Array(gray.length);
+  for (let y = 1; y < h - 1; y++) {
+    for (let x = 1; x < w - 1; x++) {
+      const tl = gray[(y - 1) * w + x - 1],
+        tc = gray[(y - 1) * w + x],
+        tr = gray[(y - 1) * w + x + 1];
+      const ml = gray[y * w + x - 1],
+        mr = gray[y * w + x + 1];
+      const bl = gray[(y + 1) * w + x - 1],
+        bc = gray[(y + 1) * w + x],
+        br = gray[(y + 1) * w + x + 1];
+      const gx = -tl - 2 * ml - bl + tr + 2 * mr + br;
+      const gy = -tl - 2 * tc - tr + bl + 2 * bc + br;
+      const mag = (Math.sqrt(gx * gx + gy * gy) * 0.25) | 0; // escala para 0-255
+      out[y * w + x] = mag > 255 ? 255 : mag;
+    }
+  }
+  return out;
+}
+
+/**
+ * Encontra os 4 cantos do documento via scoring diagonal sobre o mapa de bordas.
  *
- * Retorna null se a detecção não for confiável.
+ * Estratégia (robusta para fundos mistos):
+ *  1. Suavização leve (1 passo Gauss) para suprimir ruído pontual
+ *  2. Gradiente Sobel — detecta bordas independente de brilho de fundo
+ *  3. Threshold adaptativo: usa Otsu sobre o mapa de bordas (ou fallback ao P75)
+ *  4. Closing morfológico leve (r=6) para conectar bordas fragmentadas
+ *  5. Score diagonal para extrair TL/TR/BR/BL
+ *  6. Validação mínima: apenas rejeita quads claramente degenerados
+ *
+ * Retorna null somente se o quad detectado for inválido ou muito pequeno.
  */
 function findDocumentCorners(gray: Uint8Array, w: number, h: number): Point[] | null {
-  // Duas passagens de suavização para suprimir conteúdo do mapa/texto
-  const b1 = gaussBlur(gray, w, h);
-  const blurred = gaussBlur(b1, w, h);
-  const threshold = otsu(blurred);
+  // 1. Suavização leve antes de Sobel para suprimir ruído de sensor
+  const smoothed = gaussBlur(gray, w, h);
 
-  // Máscara binária + closing morfológico para preencher buracos escuros
-  // causados por texto e símbolos impressos no papel.
-  // r=8 em 600px ≈ 1.3% da largura — preenche símbolos de até ~16 px.
-  const rawMask = new Uint8Array(blurred.length);
-  for (let i = 0; i < blurred.length; i++) rawMask[i] = blurred[i] >= threshold ? 1 : 0;
-  const mask = morphClose(rawMask, w, h, 8);
+  // 2. Gradiente Sobel
+  const edges = sobelMag(smoothed, w, h);
 
-  const margin = Math.floor(Math.min(w, h) * 0.04);
+  // 3. Threshold sobre o mapa de bordas
+  //    Otsu sobre bordas tende a separar "sem borda" de "com borda" bem.
+  //    Fallback: P75 caso Otsu retorne valor muito baixo (cena de baixo contraste).
+  let edgeThresh = otsu(edges);
+  if (edgeThresh < 15) {
+    // Cena de baixo contraste — usa percentil 75 das magnitudes > 0
+    const sorted = Array.from(edges)
+      .filter((v) => v > 0)
+      .sort((a, b) => a - b);
+    edgeThresh = sorted[Math.floor(sorted.length * 0.75)] ?? 20;
+  }
 
-  let tlS = Infinity,
-    trS = -Infinity,
-    brS = -Infinity,
-    blS = Infinity;
-  let tl: Point = [margin, margin];
-  let tr: Point = [w - margin, margin];
-  let br: Point = [w - margin, h - margin];
-  let bl: Point = [margin, h - margin];
-  let bright = 0;
+  const edgeMask = new Uint8Array(edges.length);
+  for (let i = 0; i < edges.length; i++) edgeMask[i] = edges[i] >= edgeThresh ? 1 : 0;
+
+  // 4. Closing morfológico para conectar bordas fragmentadas pelo conteúdo do mapa
+  const mask = morphClose(edgeMask, w, h, 6);
+
+  // 5. Score diagonal: varre pixels de borda e acumula scores por posição
+  //    Para mapear bordas dispersas a um único ponto de canto, usamos
+  //    "ponto mais extremo com densidade local" — janela 5% × 5% da imagem.
+  const margin = Math.floor(Math.min(w, h) * 0.03);
+  const wz = Math.max(1, Math.floor(w * 0.05)); // janela de agrupamento horizontal
+  const hz = Math.max(1, Math.floor(h * 0.05)); // janela de agrupamento vertical
+
+  // Acumula score (soma do inverso da distância diagonal) por quadrante de 5%
+  const qw = Math.ceil(w / wz);
+  const qh = Math.ceil(h / hz);
+  const tlScore = new Float32Array(qw * qh);
+  const trScore = new Float32Array(qw * qh);
+  const brScore = new Float32Array(qw * qh);
+  const blScore = new Float32Array(qw * qh);
 
   for (let y = margin; y < h - margin; y++) {
     for (let x = margin; x < w - margin; x++) {
       if (!mask[y * w + x]) continue;
-      bright++;
-      const sp = x + y; // soma  → TL = mín, BR = máx
-      const dp = x - y; // dif   → TR = máx, BL = mín
-      if (sp < tlS) {
-        tlS = sp;
-        tl = [x, y];
-      }
-      if (dp > trS) {
-        trS = dp;
-        tr = [x, y];
-      }
-      if (sp > brS) {
-        brS = sp;
-        br = [x, y];
-      }
-      if (dp < blS) {
-        blS = dp;
-        bl = [x, y];
-      }
+      const qi = Math.floor(x / wz) + Math.floor(y / hz) * qw;
+      const sp = x + y;
+      const dp = x - y;
+      // Valores menores de sp = mais próximo de TL; maiores = mais próximo de BR
+      // Valores maiores de dp = mais próximo de TR; menores = mais próximo de BL
+      // Pontuamos cada célula com o valor extremo que encontrou
+      const tlv = -sp; // queremos mínimo sp → máximo de -sp
+      const trv = dp;
+      const brv = sp;
+      const blv = -dp; // queremos mínimo dp → máximo de -dp
+      if (tlv > tlScore[qi]) tlScore[qi] = tlv;
+      if (trv > trScore[qi]) trScore[qi] = trv;
+      if (brv > brScore[qi]) brScore[qi] = brv;
+      if (blv > blScore[qi]) blScore[qi] = blv;
     }
   }
 
-  const inner = (w - 2 * margin) * (h - 2 * margin);
-  const coverage = bright / inner;
+  // Para cada canto, encontra a célula com score máximo e retorna centro da célula
+  function bestCell(scores: Float32Array): Point {
+    let best = -Infinity,
+      bi = 0;
+    for (let i = 0; i < scores.length; i++) {
+      if (scores[i] > best) {
+        best = scores[i];
+        bi = i;
+      }
+    }
+    const cx = (bi % qw) * wz + wz / 2;
+    const cy = Math.floor(bi / qw) * hz + hz / 2;
+    return [Math.min(cx, w - 1), Math.min(cy, h - 1)];
+  }
 
-  // Rejeita: papel cobre quase tudo (sem fundo visível) ou quase nada
-  if (coverage < 0.15 || coverage > 0.9) return null;
+  // Mas queremos o pixel exato de borda mais extremo dentro da célula vencedora
+  function extremePixelInCell(qi: number, scoreType: 'tl' | 'tr' | 'br' | 'bl'): Point {
+    const cellX0 = (qi % qw) * wz;
+    const cellY0 = Math.floor(qi / qw) * hz;
+    const cellX1 = Math.min(cellX0 + wz, w);
+    const cellY1 = Math.min(cellY0 + hz, h);
+    let best = -Infinity;
+    let bp: Point = [cellX0 + wz / 2, cellY0 + hz / 2];
+    for (let y = cellY0; y < cellY1; y++) {
+      for (let x = cellX0; x < cellX1; x++) {
+        if (!mask[y * w + x]) continue;
+        const sp = x + y,
+          dp = x - y;
+        const v =
+          scoreType === 'tl' ? -sp : scoreType === 'tr' ? dp : scoreType === 'br' ? sp : -dp;
+        if (v > best) {
+          best = v;
+          bp = [x, y];
+        }
+      }
+    }
+    return bp;
+  }
 
-  // Rejeita quads degenerados (cantos muito próximos)
-  if (Math.abs(tl[0] - br[0]) < w * 0.2) return null;
-  if (Math.abs(tl[1] - br[1]) < h * 0.2) return null;
+  let bestTlIdx = 0,
+    bestTrIdx = 0,
+    bestBrIdx = 0,
+    bestBlIdx = 0;
+  let bestTlV = -Infinity,
+    bestTrV = -Infinity,
+    bestBrV = -Infinity,
+    bestBlV = -Infinity;
+  for (let i = 0; i < qw * qh; i++) {
+    if (tlScore[i] > bestTlV) {
+      bestTlV = tlScore[i];
+      bestTlIdx = i;
+    }
+    if (trScore[i] > bestTrV) {
+      bestTrV = trScore[i];
+      bestTrIdx = i;
+    }
+    if (brScore[i] > bestBrV) {
+      bestBrV = brScore[i];
+      bestBrIdx = i;
+    }
+    if (blScore[i] > bestBlV) {
+      bestBlV = blScore[i];
+      bestBlIdx = i;
+    }
+  }
+
+  const tl = extremePixelInCell(bestTlIdx, 'tl');
+  const tr = extremePixelInCell(bestTrIdx, 'tr');
+  const br = extremePixelInCell(bestBrIdx, 'br');
+  const bl = extremePixelInCell(bestBlIdx, 'bl');
+
+  // 6. Validação mínima: rejeita apenas quads claramente degenerados
+  const diagW = Math.hypot(br[0] - tl[0], br[1] - tl[1]);
+  const diagH = Math.hypot(bl[0] - tr[0], bl[1] - tr[1]);
+  const minDiag = Math.min(w, h) * 0.25; // exige ao menos 25% da dimensão menor
+  if (diagW < minDiag && diagH < minDiag) return null;
+
+  // Rejeita se todos os 4 cantos colapsaram para o mesmo ponto (sem bordas)
+  const edgeCount = edgeMask.reduce((s, v) => s + v, 0);
+  if (edgeCount < w * h * 0.005) return null; // < 0.5% de pixels de borda = cena sem bordas
 
   return [tl, tr, br, bl];
 }
