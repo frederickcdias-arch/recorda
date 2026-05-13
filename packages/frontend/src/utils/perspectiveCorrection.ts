@@ -960,11 +960,45 @@ function scaleGeometry(geometry: DocumentGeometry, sx: number, sy: number): Docu
     right: geometry.right?.map(scalePoint),
     bottom: geometry.bottom?.map(scalePoint),
     left: geometry.left?.map(scalePoint),
+    manualCurves: geometry.manualCurves,
   };
 }
 
 function scalePoints(points: Point[], sx: number, sy: number): Point[] {
   return points.map(([x, y]) => [x * sx, y * sy]);
+}
+
+function expandGeometry(geometry: DocumentGeometry, w: number, h: number): DocumentGeometry {
+  const [tl, tr, br, bl] = geometry.corners;
+  const cx = (tl[0] + tr[0] + br[0] + bl[0]) / 4;
+  const cy = (tl[1] + tr[1] + br[1] + bl[1]) / 4;
+  const minEdge = Math.min(
+    Math.hypot(tr[0] - tl[0], tr[1] - tl[1]),
+    Math.hypot(br[0] - bl[0], br[1] - bl[1]),
+    Math.hypot(bl[0] - tl[0], bl[1] - tl[1]),
+    Math.hypot(br[0] - tr[0], br[1] - tr[1])
+  );
+  const pad = minEdge * (geometry.manualCurves ? 0.04 : 0.015);
+
+  function expandPoint([x, y]: Point): Point {
+    const dx = x - cx;
+    const dy = y - cy;
+    const len = Math.hypot(dx, dy);
+    if (len < 1e-6) return [x, y];
+    return [
+      Math.max(0, Math.min(w - 1, x + (dx / len) * pad)),
+      Math.max(0, Math.min(h - 1, y + (dy / len) * pad)),
+    ];
+  }
+
+  return {
+    corners: geometry.corners.map(expandPoint),
+    top: geometry.top?.map(expandPoint),
+    right: geometry.right?.map(expandPoint),
+    bottom: geometry.bottom?.map(expandPoint),
+    left: geometry.left?.map(expandPoint),
+    manualCurves: geometry.manualCurves,
+  };
 }
 
 function estimateGeometryConfidence(
@@ -1241,8 +1275,9 @@ function enhanceScannedPage(canvas: HTMLCanvasElement): void {
 }
 
 function warpDocument(src: HTMLCanvasElement, geometry: DocumentGeometry): string {
-  const curved = warpCurvedDocumentCanvas(src, geometry);
-  const canvas = curved || warpPerspectiveCanvas(src, geometry.corners);
+  const safeGeometry = expandGeometry(geometry, src.width, src.height);
+  const curved = warpCurvedDocumentCanvas(src, safeGeometry);
+  const canvas = curved || warpPerspectiveCanvas(src, safeGeometry.corners);
   enhanceScannedPage(canvas);
   return canvas.toDataURL('image/jpeg', 0.92);
 }
