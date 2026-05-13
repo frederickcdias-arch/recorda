@@ -5,9 +5,11 @@
  * Algoritmo:
  *  1. Reduz para 600 px para análise rápida
  *  2. Converte para escala de cinza (somente para detecção)
- *  3. Gradiente Sobel — detecta bordas do documento independente do brilho de fundo
- *  4. Threshold adaptativo (Otsu sobre bordas, fallback P75) + closing morfológico
- *  5. Score diagonal por célula de grade para localizar os 4 cantos extremos
+ *  3. Distância RGB ao fundo (estimado das 4 extremidades) — distingue papel e mapa
+ *     colorido da mesa, mesmo quando têm brilho similar
+ *  4. Closing morfológico em 2 estágios: r1 (~6 %) para texto/símbolos,
+ *     r2 (~18 %) para preencher o bloco inteiro da foto satélite
+ *  5. Score diagonal extrai os 4 pixels extremos da máscara final
  *  6. Valida a detecção; se não confiante, devolve a imagem original intacta
  *  7. Calcula a homografia inversa (retângulo → quadrilátero fonte)
  *  8. Aplica o warp prospectivo com interpolação bilinear na imagem COLORIDA
@@ -202,184 +204,125 @@ function morphClose(mask: Uint8Array, w: number, h: number, r: number): Uint8Arr
 // ── Detecção dos 4 cantos do documento ──────────────────────────────────────
 
 /**
- * Magnitude do gradiente Sobel 3×3.
- * Funciona tanto em imagens com fundo escuro como em fotos onde o mapa
- * preenche toda a cena — porque usa bordas reais (transições), não brilho.
+ * Encontra os 4 cantos do papel via distância de cor RGB ao fundo (mesa) +
+ * closing morfológico de dois estágios.
+ *
+ * Estratégia (robusta para papéis com fotos satélite coloridas no interior):
+ *  1. Estima a cor da mesa a partir das 4 extremidades da imagem
+ *  2. Máscara de documento: pixels com distância RGB > 30 ao fundo
+ *     Detecta margens brancas (muito mais claras) E a foto satélite
+ *     (muito diferente em matiz do cinza neutro da mesa)
+ *  3. Closing r1 (~6 %) preenche pequenos buracos (texto, símbolos)
+ *  4. Closing r2 (~18 %) preenche o bloco do mapa satélite inteiro
+ *  5. Score diagonal extrai os 4 pixels de canto mais extremos
+ *  6. Rejeita apenas cenas quase sem documento (< 8 %) ou quads degenerados
+ *
+ * Retorna null se a detecção for inválida.
  */
-function sobelMag(gray: Uint8Array, w: number, h: number): Uint8Array {
-  const out = new Uint8Array(gray.length);
-  for (let y = 1; y < h - 1; y++) {
-    for (let x = 1; x < w - 1; x++) {
-      const tl = gray[(y - 1) * w + x - 1],
-        tc = gray[(y - 1) * w + x],
-        tr = gray[(y - 1) * w + x + 1];
-      const ml = gray[y * w + x - 1],
-        mr = gray[y * w + x + 1];
-      const bl = gray[(y + 1) * w + x - 1],
-        bc = gray[(y + 1) * w + x],
-        br = gray[(y + 1) * w + x + 1];
-      const gx = -tl - 2 * ml - bl + tr + 2 * mr + br;
-      const gy = -tl - 2 * tc - tr + bl + 2 * bc + br;
-      const mag = (Math.sqrt(gx * gx + gy * gy) * 0.25) | 0; // escala para 0-255
-      out[y * w + x] = mag > 255 ? 255 : mag;
+function findDocumentCorners(
+  gray: Uint8Array,
+  rgba: Uint8ClampedArray,
+  w: number,
+  h: number
+): Point[] | null {
+  void gray; // usado apenas para manter assinatura compatível com fallback futuro
+
+  // 1. Estima a cor de fundo (mesa) a partir das 4 extremidades da imagem.
+  //    Usa patch de 6 % da dimensão menor em cada canto.
+  const patchSz = Math.max(6, Math.floor(Math.min(w, h) * 0.06));
+  let bgR = 0,
+    bgG = 0,
+    bgB = 0,
+    bgN = 0;
+  const patches: Array<[number, number]> = [
+    [0, 0],
+    [w - patchSz, 0],
+    [0, h - patchSz],
+    [w - patchSz, h - patchSz],
+  ];
+  for (const [x0, y0] of patches) {
+    for (let y = y0; y < Math.min(y0 + patchSz, h); y++) {
+      for (let x = x0; x < Math.min(x0 + patchSz, w); x++) {
+        const i4 = (y * w + x) * 4;
+        bgR += rgba[i4];
+        bgG += rgba[i4 + 1];
+        bgB += rgba[i4 + 2];
+        bgN++;
+      }
     }
   }
-  return out;
-}
+  bgR /= bgN;
+  bgG /= bgN;
+  bgB /= bgN;
 
-/**
- * Encontra os 4 cantos do documento via scoring diagonal sobre o mapa de bordas.
- *
- * Estratégia (robusta para fundos mistos):
- *  1. Suavização leve (1 passo Gauss) para suprimir ruído pontual
- *  2. Gradiente Sobel — detecta bordas independente de brilho de fundo
- *  3. Threshold adaptativo: usa Otsu sobre o mapa de bordas (ou fallback ao P75)
- *  4. Closing morfológico leve (r=6) para conectar bordas fragmentadas
- *  5. Score diagonal para extrair TL/TR/BR/BL
- *  6. Validação mínima: apenas rejeita quads claramente degenerados
- *
- * Retorna null somente se o quad detectado for inválido ou muito pequeno.
- */
-function findDocumentCorners(gray: Uint8Array, w: number, h: number): Point[] | null {
-  // 1. Suavização leve antes de Sobel para suprimir ruído de sensor
-  const smoothed = gaussBlur(gray, w, h);
-
-  // 2. Gradiente Sobel
-  const edges = sobelMag(smoothed, w, h);
-
-  // 3. Threshold sobre o mapa de bordas
-  //    Otsu sobre bordas tende a separar "sem borda" de "com borda" bem.
-  //    Fallback: P75 caso Otsu retorne valor muito baixo (cena de baixo contraste).
-  let edgeThresh = otsu(edges);
-  if (edgeThresh < 15) {
-    // Cena de baixo contraste — usa percentil 75 das magnitudes > 0
-    const sorted = Array.from(edges)
-      .filter((v) => v > 0)
-      .sort((a, b) => a - b);
-    edgeThresh = sorted[Math.floor(sorted.length * 0.75)] ?? 20;
+  // 2. Máscara de documento: pixels com distância euclidiana RGB > distThresh ao fundo.
+  //    A mesa é cinza neutro; as margens do papel são muito mais claras;
+  //    a foto satélite é muito diferente em matiz mesmo quando de brilho similar.
+  const distThresh = 30;
+  const dt2 = distThresh * distThresh;
+  const rawMask = new Uint8Array(w * h);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const i4 = (y * w + x) * 4;
+      const dr = rgba[i4] - bgR;
+      const dg = rgba[i4 + 1] - bgG;
+      const db = rgba[i4 + 2] - bgB;
+      rawMask[y * w + x] = dr * dr + dg * dg + db * db > dt2 ? 1 : 0;
+    }
   }
 
-  const edgeMask = new Uint8Array(edges.length);
-  for (let i = 0; i < edges.length; i++) edgeMask[i] = edges[i] >= edgeThresh ? 1 : 0;
+  // 3. Closing em dois estágios para preencher a área colorida do mapa dentro do papel.
+  //    r1 (~6 %) conecta pixels próximos e preenche texto/símbolos;
+  //    r2 (~18 %) preenche o bloco do mapa satélite inteiro (~300 px em 600 px scale).
+  const r1 = Math.max(8, Math.floor(Math.min(w, h) * 0.06));
+  const r2 = Math.max(20, Math.floor(Math.min(w, h) * 0.18));
+  const closed1 = morphClose(rawMask, w, h, r1);
+  const mask = morphClose(closed1, w, h, r2);
 
-  // 4. Closing morfológico para conectar bordas fragmentadas pelo conteúdo do mapa
-  const mask = morphClose(edgeMask, w, h, 6);
-
-  // 5. Score diagonal: varre pixels de borda e acumula scores por posição
-  //    Para mapear bordas dispersas a um único ponto de canto, usamos
-  //    "ponto mais extremo com densidade local" — janela 5% × 5% da imagem.
-  const margin = Math.floor(Math.min(w, h) * 0.03);
-  const wz = Math.max(1, Math.floor(w * 0.05)); // janela de agrupamento horizontal
-  const hz = Math.max(1, Math.floor(h * 0.05)); // janela de agrupamento vertical
-
-  // Acumula score (soma do inverso da distância diagonal) por quadrante de 5%
-  const qw = Math.ceil(w / wz);
-  const qh = Math.ceil(h / hz);
-  const tlScore = new Float32Array(qw * qh);
-  const trScore = new Float32Array(qw * qh);
-  const brScore = new Float32Array(qw * qh);
-  const blScore = new Float32Array(qw * qh);
+  // 4. Score diagonal: encontra os 4 pixels de canto mais extremos da máscara.
+  const margin = Math.floor(Math.min(w, h) * 0.02);
+  let tlS = Infinity,
+    trS = -Infinity,
+    brS = -Infinity,
+    blS = Infinity;
+  let tl: Point = [margin, margin];
+  let tr: Point = [w - margin, margin];
+  let br: Point = [w - margin, h - margin];
+  let bl: Point = [margin, h - margin];
+  let fgCount = 0;
 
   for (let y = margin; y < h - margin; y++) {
     for (let x = margin; x < w - margin; x++) {
       if (!mask[y * w + x]) continue;
-      const qi = Math.floor(x / wz) + Math.floor(y / hz) * qw;
+      fgCount++;
       const sp = x + y;
       const dp = x - y;
-      // Valores menores de sp = mais próximo de TL; maiores = mais próximo de BR
-      // Valores maiores de dp = mais próximo de TR; menores = mais próximo de BL
-      // Pontuamos cada célula com o valor extremo que encontrou
-      const tlv = -sp; // queremos mínimo sp → máximo de -sp
-      const trv = dp;
-      const brv = sp;
-      const blv = -dp; // queremos mínimo dp → máximo de -dp
-      if (tlv > tlScore[qi]) tlScore[qi] = tlv;
-      if (trv > trScore[qi]) trScore[qi] = trv;
-      if (brv > brScore[qi]) brScore[qi] = brv;
-      if (blv > blScore[qi]) blScore[qi] = blv;
-    }
-  }
-
-  // Para cada canto, encontra a célula com score máximo e retorna centro da célula
-  function bestCell(scores: Float32Array): Point {
-    let best = -Infinity,
-      bi = 0;
-    for (let i = 0; i < scores.length; i++) {
-      if (scores[i] > best) {
-        best = scores[i];
-        bi = i;
+      if (sp < tlS) {
+        tlS = sp;
+        tl = [x, y];
+      }
+      if (dp > trS) {
+        trS = dp;
+        tr = [x, y];
+      }
+      if (sp > brS) {
+        brS = sp;
+        br = [x, y];
+      }
+      if (dp < blS) {
+        blS = dp;
+        bl = [x, y];
       }
     }
-    const cx = (bi % qw) * wz + wz / 2;
-    const cy = Math.floor(bi / qw) * hz + hz / 2;
-    return [Math.min(cx, w - 1), Math.min(cy, h - 1)];
   }
 
-  // Mas queremos o pixel exato de borda mais extremo dentro da célula vencedora
-  function extremePixelInCell(qi: number, scoreType: 'tl' | 'tr' | 'br' | 'bl'): Point {
-    const cellX0 = (qi % qw) * wz;
-    const cellY0 = Math.floor(qi / qw) * hz;
-    const cellX1 = Math.min(cellX0 + wz, w);
-    const cellY1 = Math.min(cellY0 + hz, h);
-    let best = -Infinity;
-    let bp: Point = [cellX0 + wz / 2, cellY0 + hz / 2];
-    for (let y = cellY0; y < cellY1; y++) {
-      for (let x = cellX0; x < cellX1; x++) {
-        if (!mask[y * w + x]) continue;
-        const sp = x + y,
-          dp = x - y;
-        const v =
-          scoreType === 'tl' ? -sp : scoreType === 'tr' ? dp : scoreType === 'br' ? sp : -dp;
-        if (v > best) {
-          best = v;
-          bp = [x, y];
-        }
-      }
-    }
-    return bp;
-  }
+  // 5. Validação: rejeita se há pixels de frente-plano insuficientes ou quad degenerado.
+  const inner = (w - 2 * margin) * (h - 2 * margin);
+  if (fgCount / inner < 0.08) return null;
 
-  let bestTlIdx = 0,
-    bestTrIdx = 0,
-    bestBrIdx = 0,
-    bestBlIdx = 0;
-  let bestTlV = -Infinity,
-    bestTrV = -Infinity,
-    bestBrV = -Infinity,
-    bestBlV = -Infinity;
-  for (let i = 0; i < qw * qh; i++) {
-    if (tlScore[i] > bestTlV) {
-      bestTlV = tlScore[i];
-      bestTlIdx = i;
-    }
-    if (trScore[i] > bestTrV) {
-      bestTrV = trScore[i];
-      bestTrIdx = i;
-    }
-    if (brScore[i] > bestBrV) {
-      bestBrV = brScore[i];
-      bestBrIdx = i;
-    }
-    if (blScore[i] > bestBlV) {
-      bestBlV = blScore[i];
-      bestBlIdx = i;
-    }
-  }
-
-  const tl = extremePixelInCell(bestTlIdx, 'tl');
-  const tr = extremePixelInCell(bestTrIdx, 'tr');
-  const br = extremePixelInCell(bestBrIdx, 'br');
-  const bl = extremePixelInCell(bestBlIdx, 'bl');
-
-  // 6. Validação mínima: rejeita apenas quads claramente degenerados
   const diagW = Math.hypot(br[0] - tl[0], br[1] - tl[1]);
   const diagH = Math.hypot(bl[0] - tr[0], bl[1] - tr[1]);
-  const minDiag = Math.min(w, h) * 0.25; // exige ao menos 25% da dimensão menor
-  if (diagW < minDiag && diagH < minDiag) return null;
-
-  // Rejeita se todos os 4 cantos colapsaram para o mesmo ponto (sem bordas)
-  const edgeCount = edgeMask.reduce((s, v) => s + v, 0);
-  if (edgeCount < w * h * 0.005) return null; // < 0.5% de pixels de borda = cena sem bordas
+  if (diagW < Math.min(w, h) * 0.2 && diagH < Math.min(w, h) * 0.2) return null;
 
   return [tl, tr, br, bl];
 }
@@ -672,7 +615,7 @@ export async function correctPerspective(dataUrl: string): Promise<string> {
 
   let corners: Point[] | null;
   try {
-    corners = findDocumentCorners(gray, dw, dh);
+    corners = findDocumentCorners(gray, dd, dw, dh);
   } catch {
     return dataUrl;
   }
