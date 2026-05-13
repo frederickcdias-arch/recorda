@@ -8,6 +8,7 @@ import { api } from '../../services/api';
 import { buildApiUrl } from '../../services/api';
 import { getToken } from '../../services/tokenStorage';
 import { formatDateBR } from '../../utils/date';
+import { correctPerspective } from '../../utils/perspectiveCorrection';
 
 interface CapturaMapa {
   id: string;
@@ -49,6 +50,7 @@ export function CapturaMapaPage() {
   const [baixandoId, setBaixandoId] = useState<string | null>(null);
   const [excluindoId, setExcluindoId] = useState<string | null>(null);
   const [listaExpandida, setListaExpandida] = useState(false);
+  const [analisando, setAnalisando] = useState(false);
 
   // ── Leitura de arquivo / captura de câmera ─────────────────────────────────
   const handleFileChange = useCallback(
@@ -64,9 +66,19 @@ export function CapturaMapaPage() {
       const reader = new FileReader();
       reader.onload = (ev) => {
         const dataUrl = ev.target?.result as string;
-        setOriginalSrc(dataUrl);
-        setPreviewSrc(null);
-        setUltimaCaptura(null);
+        setAnalisando(true);
+        correctPerspective(dataUrl)
+          .then((corrected) => {
+            setOriginalSrc(corrected);
+            setPreviewSrc(null);
+            setUltimaCaptura(null);
+          })
+          .catch(() => {
+            setOriginalSrc(dataUrl);
+            setPreviewSrc(null);
+            setUltimaCaptura(null);
+          })
+          .finally(() => setAnalisando(false));
       };
       reader.readAsDataURL(file);
 
@@ -198,45 +210,54 @@ export function CapturaMapaPage() {
       {/* Área de captura / preview */}
       <Card>
         <div className="p-6">
-          {/* Sem imagem selecionada */}
+          {/* Sem imagem selecionada / analisando perspectiva */}
           {!originalSrc && (
             <div className="flex flex-col items-center gap-4">
-              <div className="flex h-40 w-full flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-neutral-300 bg-neutral-50 text-neutral-500 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-400">
-                <Icon name="camera" className="h-10 w-10 opacity-50" />
-                <p className="text-sm">Selecione ou fotografe um mapa para começar</p>
-              </div>
+              {analisando ? (
+                <div className="flex h-40 w-full flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-primary-300 bg-primary-50 text-primary-700 dark:border-primary-700 dark:bg-primary-950 dark:text-primary-300">
+                  <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary-200 border-t-primary-600 dark:border-primary-800 dark:border-t-primary-400" />
+                  <p className="text-sm font-medium">Corrigindo perspectiva…</p>
+                </div>
+              ) : (
+                <div className="flex h-40 w-full flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-neutral-300 bg-neutral-50 text-neutral-500 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-400">
+                  <Icon name="camera" className="h-10 w-10 opacity-50" />
+                  <p className="text-sm">Selecione ou fotografe um mapa para começar</p>
+                </div>
+              )}
 
-              <div className="flex flex-col items-center gap-2 sm:flex-row">
-                {/* Câmera (mobile) */}
-                <Button
-                  variant="primary"
-                  size="md"
-                  icon="camera"
-                  onClick={() => {
-                    if (fileInputRef.current) {
-                      fileInputRef.current.setAttribute('capture', 'environment');
-                      fileInputRef.current.click();
-                    }
-                  }}
-                >
-                  Usar Câmera
-                </Button>
+              {!analisando && (
+                <div className="flex flex-col items-center gap-2 sm:flex-row">
+                  {/* Câmera (mobile) */}
+                  <Button
+                    variant="primary"
+                    size="md"
+                    icon="camera"
+                    onClick={() => {
+                      if (fileInputRef.current) {
+                        fileInputRef.current.setAttribute('capture', 'environment');
+                        fileInputRef.current.click();
+                      }
+                    }}
+                  >
+                    Usar Câmera
+                  </Button>
 
-                {/* Galeria / picker (desktop/mobile) */}
-                <Button
-                  variant="secondary"
-                  size="md"
-                  icon="image"
-                  onClick={() => {
-                    if (fileInputRef.current) {
-                      fileInputRef.current.removeAttribute('capture');
-                      fileInputRef.current.click();
-                    }
-                  }}
-                >
-                  Escolher Arquivo
-                </Button>
-              </div>
+                  {/* Galeria / picker (desktop/mobile) */}
+                  <Button
+                    variant="secondary"
+                    size="md"
+                    icon="image"
+                    onClick={() => {
+                      if (fileInputRef.current) {
+                        fileInputRef.current.removeAttribute('capture');
+                        fileInputRef.current.click();
+                      }
+                    }}
+                  >
+                    Escolher Arquivo
+                  </Button>
+                </div>
+              )}
 
               <input
                 ref={fileInputRef}
