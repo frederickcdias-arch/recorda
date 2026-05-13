@@ -1125,21 +1125,57 @@ function enhanceScannedPage(canvas: HTMLCanvasElement): void {
   const ctx = canvas.getContext('2d')!;
   const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const d = img.data;
+  const totalPixels = canvas.width * canvas.height;
+  const originalLuma = new Uint8Array(totalPixels);
   const lumas: number[] = [];
   const step = Math.max(1, Math.floor((canvas.width * canvas.height) / 80000));
   for (let i = 0, p = 0; i < d.length; i += 4, p++) {
+    originalLuma[p] = Math.max(
+      0,
+      Math.min(255, d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114)
+    );
     if (p % step !== 0) continue;
-    lumas.push(d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114);
+    lumas.push(originalLuma[p]);
   }
   const black = percentileOf([...lumas], 0.04);
   const white = percentileOf([...lumas], 0.93);
   const span = Math.max(40, white - black);
+  let colorMinX = canvas.width;
+  let colorMinY = canvas.height;
+  let colorMaxX = 0;
+  let colorMaxY = 0;
+  let colorCount = 0;
 
-  for (let i = 0; i < d.length; i += 4) {
+  for (let i = 0, p = 0; i < d.length; i += 4, p++) {
+    const r = d[i];
+    const g = d[i + 1];
+    const b = d[i + 2];
+    const chroma = Math.max(r, g, b) - Math.min(r, g, b);
+    const luma = originalLuma[p];
+    const x = p % canvas.width;
+    const y = (p / canvas.width) | 0;
+    if (y < canvas.height * 0.72 && chroma > 55 && luma > 35 && luma < 230) {
+      colorMinX = Math.min(colorMinX, x);
+      colorMinY = Math.min(colorMinY, y);
+      colorMaxX = Math.max(colorMaxX, x);
+      colorMaxY = Math.max(colorMaxY, y);
+      colorCount++;
+    }
+  }
+
+  const hasColorMap = colorCount > totalPixels * 0.08;
+  const pad = Math.round(Math.min(canvas.width, canvas.height) * 0.015);
+  colorMinX = Math.max(0, colorMinX - pad);
+  colorMinY = Math.max(0, colorMinY - pad);
+  colorMaxX = Math.min(canvas.width - 1, colorMaxX + pad);
+  colorMaxY = Math.min(canvas.height - 1, colorMaxY + pad);
+
+  for (let i = 0, p = 0; i < d.length; i += 4, p++) {
     const r = d[i];
     const g = d[i + 1];
     const b = d[i + 2];
     const luma = r * 0.299 + g * 0.587 + b * 0.114;
+    const chroma = Math.max(r, g, b) - Math.min(r, g, b);
     const target = Math.max(0, Math.min(255, ((luma - black) / span) * 238 + 10));
     const factor = luma > 1 ? target / luma : 1;
     let nr = Math.max(0, Math.min(255, r * factor));
@@ -1147,12 +1183,46 @@ function enhanceScannedPage(canvas: HTMLCanvasElement): void {
     let nb = Math.max(0, Math.min(255, b * factor));
     const maxC = Math.max(nr, ng, nb);
     const minC = Math.min(nr, ng, nb);
-    if (target > 170 && maxC - minC < 42) {
+    const x = p % canvas.width;
+    const y = (p / canvas.width) | 0;
+    const insideColorMap =
+      hasColorMap && x >= colorMinX && x <= colorMaxX && y >= colorMinY && y <= colorMaxY;
+
+    if (target > 166 && maxC - minC < (insideColorMap ? 26 : 56)) {
       const paper = Math.max(target, 232);
-      nr = nr * 0.35 + paper * 0.65;
-      ng = ng * 0.35 + paper * 0.65;
-      nb = nb * 0.35 + paper * 0.65;
+      const keep = insideColorMap ? 0.35 : 0.22;
+      const lift = 1 - keep;
+      nr = nr * keep + paper * lift;
+      ng = ng * keep + paper * lift;
+      nb = nb * keep + paper * lift;
     }
+
+    const shadowChromaLimit = insideColorMap ? 20 : 82;
+    const shadowLumaLimit = insideColorMap ? 215 : 42;
+    if (chroma < shadowChromaLimit && luma > shadowLumaLimit) {
+      let darkNeighborCount = 0;
+      for (let dy = -2; dy <= 2; dy++) {
+        const yy = y + dy;
+        if (yy < 0 || yy >= canvas.height) continue;
+        for (let dx = -2; dx <= 2; dx++) {
+          const xx = x + dx;
+          if (xx < 0 || xx >= canvas.width) continue;
+          if (originalLuma[yy * canvas.width + xx] < 88) {
+            darkNeighborCount++;
+          }
+        }
+      }
+
+      if (darkNeighborCount < 3 || luma > 118) {
+        const paper = luma > 130 ? 252 : 247;
+        const keep = insideColorMap ? 0.12 : 0.03;
+        const lift = 1 - keep;
+        nr = nr * keep + paper * lift;
+        ng = ng * keep + paper * lift;
+        nb = nb * keep + paper * lift;
+      }
+    }
+
     d[i] = nr | 0;
     d[i + 1] = ng | 0;
     d[i + 2] = nb | 0;
