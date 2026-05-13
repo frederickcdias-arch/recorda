@@ -9,7 +9,8 @@
  *     mesmo quando o papel ocupa > 90 % do quadro
  *  4. Distância RGB ao fundo (threshold 25) + flood-fill a partir da borda da
  *     imagem: preenche o interior do papel sem efeito de borda morfológico
- *  5. Score diagonal extrai os 4 pixels extremos da máscara sólida resultante
+ *  5. Varredura das bordas ajusta 4 retas do primeiro contato mesa→papel; se
+ *     não houver pontos confiáveis, usa score diagonal na máscara sólida
  *  6. Valida a detecção; se não confiante, devolve a imagem original intacta
  *  7. Calcula a homografia inversa (retângulo → quadrilátero fonte)
  *  8. Aplica o warp prospectivo com interpolação bilinear na imagem COLORIDA
@@ -201,6 +202,246 @@ function morphClose(mask: Uint8Array, w: number, h: number, r: number): Uint8Arr
   return ev;
 }
 
+// ── Ajuste geométrico simples para detecção de bordas ─────────────────────────
+
+type Line = { m: number; b: number };
+
+type DocumentGeometry = {
+  corners: Point[];
+  top?: Point[];
+  right?: Point[];
+  bottom?: Point[];
+  left?: Point[];
+};
+
+export interface PerspectiveDetection {
+  corners: Point[] | null;
+  confidence: 'high' | 'low' | 'none';
+}
+
+function medianOf(values: number[]): number {
+  values.sort((a, b) => a - b);
+  return values[values.length >> 1];
+}
+
+function percentileOf(values: number[], p: number): number {
+  values.sort((a, b) => a - b);
+  return values[Math.min(values.length - 1, Math.max(0, Math.floor(values.length * p)))];
+}
+
+function fitLine(points: Point[]): Line | null {
+  if (points.length < 8) return null;
+
+  function fit(sample: Point[]): Line | null {
+    let sx = 0,
+      sy = 0,
+      sxx = 0,
+      sxy = 0;
+    for (const [x, y] of sample) {
+      sx += x;
+      sy += y;
+      sxx += x * x;
+      sxy += x * y;
+    }
+    const n = sample.length;
+    const den = n * sxx - sx * sx;
+    if (Math.abs(den) < 1e-6) return null;
+    const m = (n * sxy - sx * sy) / den;
+    return { m, b: (sy - m * sx) / n };
+  }
+
+  let line = fit(points);
+  if (!line) return null;
+
+  const residuals = points.map(([x, y]) => Math.abs(y - (line!.m * x + line!.b)));
+  const cutoff = Math.max(3, percentileOf(residuals, 0.72));
+  const trimmed = points.filter(([x, y]) => Math.abs(y - (line!.m * x + line!.b)) <= cutoff);
+  if (trimmed.length < 8) return line;
+  return fit(trimmed) || line;
+}
+
+function fitSwappedLine(points: Point[]): Line | null {
+  return fitLine(points.map(([x, y]) => [y, x] as Point));
+}
+
+function intersectHorizontalVertical(hLine: Line, vLine: Line, w: number, h: number): Point | null {
+  const den = 1 - vLine.m * hLine.m;
+  if (Math.abs(den) < 1e-6) return null;
+  const x = (vLine.m * hLine.b + vLine.b) / den;
+  const y = hLine.m * x + hLine.b;
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+  return [Math.max(0, Math.min(w - 1, Math.round(x))), Math.max(0, Math.min(h - 1, Math.round(y)))];
+}
+
+function polygonArea(points: Point[]): number {
+  let area = 0;
+  for (let i = 0; i < points.length; i++) {
+    const [x1, y1] = points[i];
+    const [x2, y2] = points[(i + 1) % points.length];
+    area += x1 * y2 - x2 * y1;
+  }
+  return Math.abs(area) / 2;
+}
+
+function isValidDocumentQuad(corners: Point[], w: number, h: number): boolean {
+  const [tl, tr, br, bl] = corners;
+  const minDim = Math.min(w, h);
+  const top = Math.hypot(tr[0] - tl[0], tr[1] - tl[1]);
+  const right = Math.hypot(br[0] - tr[0], br[1] - tr[1]);
+  const bottom = Math.hypot(br[0] - bl[0], br[1] - bl[1]);
+  const left = Math.hypot(bl[0] - tl[0], bl[1] - tl[1]);
+  if (Math.min(top, right, bottom, left) < minDim * 0.18) return false;
+  if (Math.min(left, right) / Math.max(left, right) < 0.76) return false;
+  if (Math.min(top, bottom) / Math.max(top, bottom) < 0.76) return false;
+  if (polygonArea(corners) < w * h * 0.08) return false;
+  return true;
+}
+
+function hasForegroundRun(
+  mask: Uint8Array,
+  start: number,
+  step: number,
+  maxLen: number,
+  run: number
+): boolean {
+  for (let k = 0; k < run; k++) {
+    if (k >= maxLen || !mask[start + step * k]) return false;
+  }
+  return true;
+}
+
+function sortEdge(points: Point[], coord: 0 | 1): Point[] {
+  return points
+    .filter(([x, y]) => Number.isFinite(x) && Number.isFinite(y))
+    .sort((a, b) => a[coord] - b[coord]);
+}
+
+function findEdgeGeometry(mask: Uint8Array, w: number, h: number): DocumentGeometry | null {
+  const minDim = Math.min(w, h);
+  const step = Math.max(2, Math.floor(minDim / 180));
+  const run = Math.max(5, Math.floor(minDim * 0.012));
+  const inset = Math.max(2, Math.floor(minDim * 0.01));
+
+  const leftPts: Point[] = [];
+  const rightPts: Point[] = [];
+  const topPts: Point[] = [];
+  const bottomPts: Point[] = [];
+
+  for (let y = inset; y < h - inset; y += step) {
+    for (let x = inset; x < w - inset - run; x++) {
+      if (hasForegroundRun(mask, y * w + x, 1, w - x, run)) {
+        leftPts.push([x, y]);
+        break;
+      }
+    }
+    for (let x = w - inset - 1; x >= inset + run; x--) {
+      if (hasForegroundRun(mask, y * w + x, -1, x + 1, run)) {
+        rightPts.push([x, y]);
+        break;
+      }
+    }
+  }
+
+  for (let x = inset; x < w - inset; x += step) {
+    for (let y = inset; y < h - inset - run; y++) {
+      if (hasForegroundRun(mask, y * w + x, w, h - y, run)) {
+        topPts.push([x, y]);
+        break;
+      }
+    }
+    for (let y = h - inset - 1; y >= inset + run; y--) {
+      if (hasForegroundRun(mask, y * w + x, -w, y + 1, run)) {
+        bottomPts.push([x, y]);
+        break;
+      }
+    }
+  }
+
+  const minPts = Math.max(12, Math.floor(minDim / step) * 0.18);
+  if (
+    leftPts.length < minPts ||
+    rightPts.length < minPts ||
+    topPts.length < minPts ||
+    bottomPts.length < minPts
+  ) {
+    return null;
+  }
+
+  const topLine = fitLine(topPts);
+  const bottomLine = fitLine(bottomPts);
+  const leftLine = fitSwappedLine(leftPts);
+  const rightLine = fitSwappedLine(rightPts);
+  if (!topLine || !bottomLine || !leftLine || !rightLine) return null;
+
+  const tl = intersectHorizontalVertical(topLine, leftLine, w, h);
+  const tr = intersectHorizontalVertical(topLine, rightLine, w, h);
+  const br = intersectHorizontalVertical(bottomLine, rightLine, w, h);
+  const bl = intersectHorizontalVertical(bottomLine, leftLine, w, h);
+  if (!tl || !tr || !br || !bl) return null;
+
+  const corners = [tl, tr, br, bl];
+  if (!isValidDocumentQuad(corners, w, h)) return null;
+
+  return {
+    corners,
+    top: sortEdge([tl, ...topPts, tr], 0),
+    right: sortEdge([tr, ...rightPts, br], 1),
+    bottom: sortEdge([bl, ...bottomPts, br], 0),
+    left: sortEdge([tl, ...leftPts, bl], 1),
+  };
+}
+
+function findMaskDiagonalGeometry(mask: Uint8Array, w: number, h: number): DocumentGeometry | null {
+  const margin = Math.floor(Math.min(w, h) * 0.01);
+  let tlS = Infinity;
+  let trS = -Infinity;
+  let brS = -Infinity;
+  let blS = Infinity;
+  let tl: Point = [margin, margin];
+  let tr: Point = [w - margin, margin];
+  let br: Point = [w - margin, h - margin];
+  let bl: Point = [margin, h - margin];
+  let count = 0;
+
+  for (let y = margin; y < h - margin; y++) {
+    for (let x = margin; x < w - margin; x++) {
+      if (!mask[y * w + x]) continue;
+      count++;
+      const sp = x + y;
+      const dp = x - y;
+      if (sp < tlS) {
+        tlS = sp;
+        tl = [x, y];
+      }
+      if (dp > trS) {
+        trS = dp;
+        tr = [x, y];
+      }
+      if (sp > brS) {
+        brS = sp;
+        br = [x, y];
+      }
+      if (dp < blS) {
+        blS = dp;
+        bl = [x, y];
+      }
+    }
+  }
+
+  const inner = (w - 2 * margin) * (h - 2 * margin);
+  const corners = [tl, tr, br, bl];
+  const minDim = Math.min(w, h);
+  const minEdge = Math.min(
+    Math.hypot(tr[0] - tl[0], tr[1] - tl[1]),
+    Math.hypot(br[0] - tr[0], br[1] - tr[1]),
+    Math.hypot(br[0] - bl[0], br[1] - bl[1]),
+    Math.hypot(bl[0] - tl[0], bl[1] - tl[1])
+  );
+  if (count / inner < 0.08 || minEdge < minDim * 0.18 || polygonArea(corners) < w * h * 0.08)
+    return null;
+  return { corners };
+}
+
 // ── Detecção dos 4 cantos do documento ──────────────────────────────────────
 
 /**
@@ -217,56 +458,82 @@ function morphClose(mask: Uint8Array, w: number, h: number, r: number): Uint8Arr
  *     "fora" (mesa acessível a partir das bordas). Pixels de fundo não alcançados
  *     estão dentro do papel → são preenchidos como primeiro plano.
  *     Não há efeito de borda morfológico: funciona para qualquer tamanho de interior.
- *  5. Score diagonal extrai os 4 pixels extremos da máscara sólida resultante.
- *  6. Rejeita quads degenerados ou cenas sem documento.
+ *  5. Varredura das bordas coleta o primeiro trecho contínuo de papel em cada
+ *     linha/coluna, ajusta 4 retas e cruza essas retas para achar os cantos.
+ *     Isso evita que o mapa colorido interno domine os extremos.
+ *  6. Se a varredura não for confiável, score diagonal extrai os 4 pixels
+ *     extremos da máscara sólida resultante.
+ *  7. Rejeita quads degenerados ou cenas sem documento.
  */
-function findDocumentCorners(
+function findDocumentGeometry(
   gray: Uint8Array,
   rgba: Uint8ClampedArray,
   w: number,
   h: number
-): Point[] | null {
+): DocumentGeometry | null {
   void gray;
 
-  // 1. Estima fundo pela mediana R/G/B do strip de borda (outermost borderW pixels).
-  //    Mediana é robusta: mesmo com até 50% de pixels de papel no strip, o valor
-  //    mediano reflete a cor da mesa.
+  // 1. Estima fundo pela mediana R/G/B da borda. O perímetro puro tem prioridade
+  //    quando o strip externo fica contaminado por papel ocupando quase todo o quadro.
   const borderW = Math.max(4, Math.floor(Math.min(w, h) * 0.03));
   const rBuf: number[] = [];
   const gBuf: number[] = [];
   const bBuf: number[] = [];
+  const prBuf: number[] = [];
+  const pgBuf: number[] = [];
+  const pbBuf: number[] = [];
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
-      if (y >= borderW && y < h - borderW && x >= borderW && x < w - borderW) continue;
       const i4 = (y * w + x) * 4;
+      const isPerimeter = y === 0 || y === h - 1 || x === 0 || x === w - 1;
+      if (isPerimeter) {
+        prBuf.push(rgba[i4]);
+        pgBuf.push(rgba[i4 + 1]);
+        pbBuf.push(rgba[i4 + 2]);
+      }
+      if (y >= borderW && y < h - borderW && x >= borderW && x < w - borderW) continue;
       rBuf.push(rgba[i4]);
       gBuf.push(rgba[i4 + 1]);
       bBuf.push(rgba[i4 + 2]);
     }
   }
-  rBuf.sort((a, b) => a - b);
-  gBuf.sort((a, b) => a - b);
-  bBuf.sort((a, b) => a - b);
-  const mid = rBuf.length >> 1;
-  const bgR = rBuf[mid];
-  const bgG = gBuf[mid];
-  const bgB = bBuf[mid];
+  const stripR = medianOf(rBuf);
+  const stripG = medianOf(gBuf);
+  const stripB = medianOf(bBuf);
+  const perimeterR = medianOf(prBuf);
+  const perimeterG = medianOf(pgBuf);
+  const perimeterB = medianOf(pbBuf);
+  const stripLuma = stripR * 0.299 + stripG * 0.587 + stripB * 0.114;
+  const perimeterLuma = perimeterR * 0.299 + perimeterG * 0.587 + perimeterB * 0.114;
+  const usePerimeter = stripLuma > perimeterLuma + 18;
+  const bgR = usePerimeter ? perimeterR : stripR;
+  const bgG = usePerimeter ? perimeterG : stripG;
+  const bgB = usePerimeter ? perimeterB : stripB;
+  const bgLuma = bgR * 0.299 + bgG * 0.587 + bgB * 0.114;
 
   // 2. Máscara de primeiro plano: distância RGB ao fundo > 25.
   const dt2 = 25 * 25;
   const rawMask = new Uint8Array(w * h);
+  const paperMask = new Uint8Array(w * h);
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
       const i4 = (y * w + x) * 4;
-      const dr = rgba[i4] - bgR;
-      const dg = rgba[i4 + 1] - bgG;
-      const db = rgba[i4 + 2] - bgB;
+      const r = rgba[i4];
+      const g = rgba[i4 + 1];
+      const b = rgba[i4 + 2];
+      const dr = r - bgR;
+      const dg = g - bgG;
+      const db = b - bgB;
+      const luma = r * 0.299 + g * 0.587 + b * 0.114;
+      const chroma = Math.max(r, g, b) - Math.min(r, g, b);
       rawMask[y * w + x] = dr * dr + dg * dg + db * db > dt2 ? 1 : 0;
+      paperMask[y * w + x] = luma > Math.max(145, bgLuma + 18) && chroma < 58 ? 1 : 0;
     }
   }
 
   // 3. Pequeno closing para selar lacunas mínimas nas margens (r=5).
   const sealed = morphClose(rawMask, w, h, 5);
+  const paperSealed = morphClose(paperMask, w, h, 3);
 
   // 4. Flood-fill a partir de todos os pixels de fundo na borda da imagem.
   //    Marca tudo que é "fora" (mesa acessível pelas bordas).
@@ -309,6 +576,15 @@ function findDocumentCorners(
   for (let i = 0; i < w * h; i++) {
     mask[i] = sealed[i] || (!outside[i] ? 1 : 0);
   }
+
+  const paperDiagonalGeometry = findMaskDiagonalGeometry(paperSealed, w, h);
+  if (paperDiagonalGeometry) return paperDiagonalGeometry;
+
+  const edgeGeometry =
+    findEdgeGeometry(paperSealed, w, h) ||
+    findEdgeGeometry(mask, w, h) ||
+    findEdgeGeometry(sealed, w, h);
+  if (edgeGeometry) return edgeGeometry;
 
   // 5. Score diagonal: pixels mais extremos em cada diagonal.
   const margin = Math.floor(Math.min(w, h) * 0.02);
@@ -355,7 +631,16 @@ function findDocumentCorners(
   const diagH = Math.hypot(bl[0] - tr[0], bl[1] - tr[1]);
   if (diagW < Math.min(w, h) * 0.2 && diagH < Math.min(w, h) * 0.2) return null;
 
-  return [tl, tr, br, bl];
+  return { corners: [tl, tr, br, bl] };
+}
+
+function findDocumentCorners(
+  gray: Uint8Array,
+  rgba: Uint8ClampedArray,
+  w: number,
+  h: number
+): Point[] | null {
+  return findDocumentGeometry(gray, rgba, w, h)?.corners || null;
 }
 
 // ── Homografia (transformação projetiva) ─────────────────────────────────────
@@ -421,7 +706,7 @@ function warpPerspectiveGL(
   Hinv: number[],
   outW: number,
   outH: number
-): string | null {
+): HTMLCanvasElement | null {
   const canvas = mkCanvas(outW, outH);
   const gl = canvas.getContext('webgl');
   if (!gl) return null;
@@ -519,23 +804,43 @@ function warpPerspectiveGL(
   gl.deleteShader(fs);
   gl.deleteProgram(prog);
 
-  return canvas.toDataURL('image/jpeg', 0.92);
+  return canvas;
 }
 
 /**
  * Aplica o warp prospectivo à imagem colorida de `src`.
  * Tenta o caminho WebGL (GPU) primeiro; cai para loop JS se não disponível.
  */
-function warpPerspective(src: HTMLCanvasElement, corners: Point[]): string {
+function getAseriesOutputSize(corners: Point[]): [number, number] {
+  const [tl, tr, br, bl] = corners;
+  const top = Math.hypot(tr[0] - tl[0], tr[1] - tl[1]);
+  const bottom = Math.hypot(br[0] - bl[0], br[1] - bl[1]);
+  const left = Math.hypot(bl[0] - tl[0], bl[1] - tl[1]);
+  const right = Math.hypot(br[0] - tr[0], br[1] - tr[1]);
+  const detectedW = Math.max(top, bottom);
+  const detectedH = Math.max(left, right);
+  const portrait = detectedH >= detectedW;
+  const sqrt2 = Math.SQRT2;
+  let outW: number;
+  let outH: number;
+
+  if (portrait) {
+    outH = Math.round(Math.max(detectedH, detectedW * sqrt2));
+    outW = Math.round(outH / sqrt2);
+  } else {
+    outW = Math.round(Math.max(detectedW, detectedH * sqrt2));
+    outH = Math.round(outW / sqrt2);
+  }
+
+  const scale = Math.min(1, OUTPUT_MAX / Math.max(outW, outH));
+  return [Math.max(1, Math.round(outW * scale)), Math.max(1, Math.round(outH * scale))];
+}
+
+function warpPerspectiveCanvas(src: HTMLCanvasElement, corners: Point[]): HTMLCanvasElement {
   let [tl, tr, br, bl] = corners;
 
-  // Dimensões de saída = máximo das arestas opostas do quadrilátero
-  let outW = Math.round(
-    Math.max(Math.hypot(tr[0] - tl[0], tr[1] - tl[1]), Math.hypot(br[0] - bl[0], br[1] - bl[1]))
-  );
-  let outH = Math.round(
-    Math.max(Math.hypot(bl[0] - tl[0], bl[1] - tl[1]), Math.hypot(br[0] - tr[0], br[1] - tr[1]))
-  );
+  // Dimensões de saída normalizadas para a proporção ISO 216 (A1/A2/A3/A4 etc.).
+  let [outW, outH] = getAseriesOutputSize(corners);
 
   // Correção de orientação: se a fonte for retrato mas a saída sair paisagem
   // (ou vice-versa), roda 90° reordenando os cantos e trocando as dimensões.
@@ -547,6 +852,7 @@ function warpPerspective(src: HTMLCanvasElement, corners: Point[]): string {
     [tl, tr, br, bl] = [bl, tl, tr, br];
     [outW, outH] = [outH, outW];
   }
+  corners = [tl, tr, br, bl];
 
   // Homografia inversa: retângulo de saída → quadrilátero na fonte
   const dstRect: Point[] = [
@@ -559,7 +865,11 @@ function warpPerspective(src: HTMLCanvasElement, corners: Point[]): string {
 
   // Caminho rápido: WebGL delega o warp à GPU (~20× mais rápido que JS)
   const glResult = warpPerspectiveGL(src, Hinv, outW, outH);
-  if (glResult) return glResult;
+  if (glResult) {
+    const copy = mkCanvas(outW, outH);
+    copy.getContext('2d')!.drawImage(glResult, 0, 0);
+    return copy;
+  }
 
   // Fallback JS: interpolação bilinear por pixel (mesma lógica, mesma qualidade)
   const sctx = src.getContext('2d')!;
@@ -616,7 +926,246 @@ function warpPerspective(src: HTMLCanvasElement, corners: Point[]): string {
   }
 
   octx.putImageData(outImg, 0, 0);
-  return outCanvas.toDataURL('image/jpeg', 0.92);
+  return outCanvas;
+}
+
+function sampleEdge(points: Point[], t: number, coord: 0 | 1): Point {
+  if (points.length === 0) return [0, 0];
+  if (points.length === 1) return points[0];
+
+  const first = points[0][coord];
+  const last = points[points.length - 1][coord];
+  const target = first + (last - first) * t;
+  for (let i = 1; i < points.length; i++) {
+    const prev = points[i - 1];
+    const next = points[i];
+    const a = prev[coord];
+    const b = next[coord];
+    if ((a <= target && target <= b) || (b <= target && target <= a)) {
+      const local = Math.abs(b - a) < 1e-6 ? 0 : (target - a) / (b - a);
+      return [prev[0] + (next[0] - prev[0]) * local, prev[1] + (next[1] - prev[1]) * local];
+    }
+  }
+  return points[points.length - 1];
+}
+
+function scaleGeometry(geometry: DocumentGeometry, sx: number, sy: number): DocumentGeometry {
+  function scalePoint([x, y]: Point): Point {
+    return [x * sx, y * sy];
+  }
+  return {
+    corners: geometry.corners.map(scalePoint),
+    top: geometry.top?.map(scalePoint),
+    right: geometry.right?.map(scalePoint),
+    bottom: geometry.bottom?.map(scalePoint),
+    left: geometry.left?.map(scalePoint),
+  };
+}
+
+function scalePoints(points: Point[], sx: number, sy: number): Point[] {
+  return points.map(([x, y]) => [x * sx, y * sy]);
+}
+
+function estimateGeometryConfidence(
+  geometry: DocumentGeometry,
+  w: number,
+  h: number
+): 'high' | 'low' {
+  const [tl, tr, br, bl] = geometry.corners;
+  const areaRatio = polygonArea(geometry.corners) / (w * h);
+  const top = Math.hypot(tr[0] - tl[0], tr[1] - tl[1]);
+  const right = Math.hypot(br[0] - tr[0], br[1] - tr[1]);
+  const bottom = Math.hypot(br[0] - bl[0], br[1] - bl[1]);
+  const left = Math.hypot(bl[0] - tl[0], bl[1] - tl[1]);
+  const horizontalBalance = Math.min(top, bottom) / Math.max(top, bottom);
+  const verticalBalance = Math.min(left, right) / Math.max(left, right);
+  const hasEdges =
+    (geometry.top?.length || 0) >= 16 &&
+    (geometry.right?.length || 0) >= 16 &&
+    (geometry.bottom?.length || 0) >= 16 &&
+    (geometry.left?.length || 0) >= 16;
+
+  if (hasEdges && areaRatio >= 0.22 && horizontalBalance >= 0.82 && verticalBalance >= 0.82) {
+    return 'high';
+  }
+  return 'low';
+}
+
+function distanceToSegmentLine([x, y]: Point, [ax, ay]: Point, [bx, by]: Point): number {
+  const dx = bx - ax;
+  const dy = by - ay;
+  const den = Math.hypot(dx, dy);
+  if (den < 1e-6) return Infinity;
+  return Math.abs(dy * x - dx * y + bx * ay - by * ax) / den;
+}
+
+function edgeResidualOk(
+  points: Point[] | undefined,
+  a: Point,
+  b: Point,
+  maxResidual: number
+): boolean {
+  if (!points || points.length < 16) return false;
+  const residuals = points.map((p) => distanceToSegmentLine(p, a, b));
+  return percentileOf(residuals, 0.9) <= maxResidual;
+}
+
+function hasCurvedEdges(geometry: DocumentGeometry): boolean {
+  const [tl, tr, br, bl] = geometry.corners;
+  const minDim = Math.min(
+    Math.hypot(tr[0] - tl[0], tr[1] - tl[1]),
+    Math.hypot(br[0] - bl[0], br[1] - bl[1]),
+    Math.hypot(bl[0] - tl[0], bl[1] - tl[1]),
+    Math.hypot(br[0] - tr[0], br[1] - tr[1])
+  );
+  const maxResidual = Math.max(4, minDim * 0.055);
+  return (
+    edgeResidualOk(geometry.top, tl, tr, maxResidual) &&
+    edgeResidualOk(geometry.right, tr, br, maxResidual) &&
+    edgeResidualOk(geometry.bottom, bl, br, maxResidual) &&
+    edgeResidualOk(geometry.left, tl, bl, maxResidual)
+  );
+}
+
+function sampleBilinear(
+  sd: Uint8ClampedArray,
+  sw: number,
+  sh: number,
+  sx: number,
+  sy: number,
+  od: Uint8ClampedArray,
+  oi: number
+): void {
+  const swm1 = sw - 1;
+  const shm1 = sh - 1;
+  if (sx < 0 || sy < 0 || sx >= swm1 || sy >= shm1) {
+    od[oi] = 255;
+    od[oi + 1] = 255;
+    od[oi + 2] = 255;
+    od[oi + 3] = 255;
+    return;
+  }
+  const xi = sx | 0;
+  const yi = sy | 0;
+  const fx = sx - xi;
+  const fy = sy - yi;
+  const i00 = (yi * sw + xi) * 4;
+  const i10 = i00 + 4;
+  const i01 = ((yi + 1) * sw + xi) * 4;
+  const i11 = i01 + 4;
+  const w00 = (1 - fx) * (1 - fy);
+  const w10 = fx * (1 - fy);
+  const w01 = (1 - fx) * fy;
+  const w11 = fx * fy;
+  od[oi] = (sd[i00] * w00 + sd[i10] * w10 + sd[i01] * w01 + sd[i11] * w11) | 0;
+  od[oi + 1] = (sd[i00 + 1] * w00 + sd[i10 + 1] * w10 + sd[i01 + 1] * w01 + sd[i11 + 1] * w11) | 0;
+  od[oi + 2] = (sd[i00 + 2] * w00 + sd[i10 + 2] * w10 + sd[i01 + 2] * w01 + sd[i11 + 2] * w11) | 0;
+  od[oi + 3] = 255;
+}
+
+function warpCurvedDocumentCanvas(
+  src: HTMLCanvasElement,
+  geometry: DocumentGeometry
+): HTMLCanvasElement | null {
+  if (
+    !geometry.top ||
+    !geometry.right ||
+    !geometry.bottom ||
+    !geometry.left ||
+    !hasCurvedEdges(geometry)
+  ) {
+    return null;
+  }
+
+  let { corners } = geometry;
+  let [outW, outH] = getAseriesOutputSize(corners);
+  const [tl, tr, br, bl] = corners;
+  const srcPortrait = src.height > src.width * 1.1;
+  const srcLandscape = src.width > src.height * 1.1;
+  const outPortrait = outH > outW * 1.1;
+  const outLandscape = outW > outH * 1.1;
+  if ((srcPortrait && outLandscape) || (srcLandscape && outPortrait)) {
+    return null;
+  }
+
+  const [ctl, ctr, cbr, cbl] = corners;
+  const sctx = src.getContext('2d')!;
+  const srcImg = sctx.getImageData(0, 0, src.width, src.height);
+  const sd = srcImg.data;
+  const outCanvas = mkCanvas(outW, outH);
+  const octx = outCanvas.getContext('2d')!;
+  const outImg = octx.createImageData(outW, outH);
+  const od = outImg.data;
+
+  for (let y = 0; y < outH; y++) {
+    const v = outH <= 1 ? 0 : y / (outH - 1);
+    const left = sampleEdge(geometry.left, v, 1);
+    const right = sampleEdge(geometry.right, v, 1);
+    for (let x = 0; x < outW; x++) {
+      const u = outW <= 1 ? 0 : x / (outW - 1);
+      const top = sampleEdge(geometry.top, u, 0);
+      const bottom = sampleEdge(geometry.bottom, u, 0);
+      const bilinearCorner: Point = [
+        (1 - u) * (1 - v) * ctl[0] + u * (1 - v) * ctr[0] + u * v * cbr[0] + (1 - u) * v * cbl[0],
+        (1 - u) * (1 - v) * ctl[1] + u * (1 - v) * ctr[1] + u * v * cbr[1] + (1 - u) * v * cbl[1],
+      ];
+      const sx =
+        (1 - v) * top[0] + v * bottom[0] + (1 - u) * left[0] + u * right[0] - bilinearCorner[0];
+      const sy =
+        (1 - v) * top[1] + v * bottom[1] + (1 - u) * left[1] + u * right[1] - bilinearCorner[1];
+      sampleBilinear(sd, src.width, src.height, sx, sy, od, (y * outW + x) * 4);
+    }
+  }
+
+  octx.putImageData(outImg, 0, 0);
+  return outCanvas;
+}
+
+function enhanceScannedPage(canvas: HTMLCanvasElement): void {
+  const ctx = canvas.getContext('2d')!;
+  const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const d = img.data;
+  const lumas: number[] = [];
+  const step = Math.max(1, Math.floor((canvas.width * canvas.height) / 80000));
+  for (let i = 0, p = 0; i < d.length; i += 4, p++) {
+    if (p % step !== 0) continue;
+    lumas.push(d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114);
+  }
+  const black = percentileOf([...lumas], 0.04);
+  const white = percentileOf([...lumas], 0.93);
+  const span = Math.max(40, white - black);
+
+  for (let i = 0; i < d.length; i += 4) {
+    const r = d[i];
+    const g = d[i + 1];
+    const b = d[i + 2];
+    const luma = r * 0.299 + g * 0.587 + b * 0.114;
+    const target = Math.max(0, Math.min(255, ((luma - black) / span) * 238 + 10));
+    const factor = luma > 1 ? target / luma : 1;
+    let nr = Math.max(0, Math.min(255, r * factor));
+    let ng = Math.max(0, Math.min(255, g * factor));
+    let nb = Math.max(0, Math.min(255, b * factor));
+    const maxC = Math.max(nr, ng, nb);
+    const minC = Math.min(nr, ng, nb);
+    if (target > 170 && maxC - minC < 42) {
+      const paper = Math.max(target, 232);
+      nr = nr * 0.35 + paper * 0.65;
+      ng = ng * 0.35 + paper * 0.65;
+      nb = nb * 0.35 + paper * 0.65;
+    }
+    d[i] = nr | 0;
+    d[i + 1] = ng | 0;
+    d[i + 2] = nb | 0;
+    d[i + 3] = 255;
+  }
+  ctx.putImageData(img, 0, 0);
+}
+
+function warpDocument(src: HTMLCanvasElement, geometry: DocumentGeometry): string {
+  const curved = warpCurvedDocumentCanvas(src, geometry);
+  const canvas = curved || warpPerspectiveCanvas(src, geometry.corners);
+  enhanceScannedPage(canvas);
+  return canvas.toDataURL('image/jpeg', 0.92);
 }
 
 // ── API pública ───────────────────────────────────────────────────────────────
@@ -644,14 +1193,14 @@ export async function correctPerspective(dataUrl: string): Promise<string> {
   const dd = dc.getContext('2d')!.getImageData(0, 0, dw, dh).data;
   const gray = toGray(dd, dw * dh);
 
-  let corners: Point[] | null;
+  let geometry: DocumentGeometry | null;
   try {
-    corners = findDocumentCorners(gray, dd, dw, dh);
+    geometry = findDocumentGeometry(gray, dd, dw, dh);
   } catch {
     return dataUrl;
   }
 
-  if (!corners) return dataUrl;
+  if (!geometry) return dataUrl;
 
   // — Warp na resolução de saída (máx OUTPUT_MAX) —
   const oScale = Math.min(1, OUTPUT_MAX / Math.max(iw, ih));
@@ -662,14 +1211,57 @@ export async function correctPerspective(dataUrl: string): Promise<string> {
   wc.getContext('2d')!.drawImage(img, 0, 0, ow, oh);
 
   // Escala os cantos detectados para a resolução de saída
-  const scaledCorners: Point[] = corners.map(([x, y]) => [
-    Math.round(x * (ow / dw)),
-    Math.round(y * (oh / dh)),
-  ]);
+  const scaledGeometry = scaleGeometry(geometry, ow / dw, oh / dh);
 
   try {
-    return warpPerspective(wc, scaledCorners);
+    return warpDocument(wc, scaledGeometry);
   } catch {
     return dataUrl;
   }
+}
+
+export async function detectPerspective(dataUrl: string): Promise<PerspectiveDetection> {
+  const img = await loadImage(dataUrl);
+  const iw = img.width;
+  const ih = img.height;
+  const dScale = DETECT_SIZE / Math.max(iw, ih);
+  const dw = Math.round(iw * dScale);
+  const dh = Math.round(ih * dScale);
+
+  const dc = mkCanvas(dw, dh);
+  dc.getContext('2d')!.drawImage(img, 0, 0, dw, dh);
+  const dd = dc.getContext('2d')!.getImageData(0, 0, dw, dh).data;
+  const gray = toGray(dd, dw * dh);
+
+  try {
+    const geometry = findDocumentGeometry(gray, dd, dw, dh);
+    if (!geometry) return { corners: null, confidence: 'none' };
+    return {
+      corners: scalePoints(geometry.corners, iw / dw, ih / dh),
+      confidence: estimateGeometryConfidence(geometry, dw, dh),
+    };
+  } catch {
+    return { corners: null, confidence: 'none' };
+  }
+}
+
+export async function correctPerspectiveWithCorners(
+  dataUrl: string,
+  corners: Point[]
+): Promise<string> {
+  const img = await loadImage(dataUrl);
+  const iw = img.width;
+  const ih = img.height;
+  const oScale = Math.min(1, OUTPUT_MAX / Math.max(iw, ih));
+  const ow = Math.round(iw * oScale);
+  const oh = Math.round(ih * oScale);
+
+  const wc = mkCanvas(ow, oh);
+  wc.getContext('2d')!.drawImage(img, 0, 0, ow, oh);
+
+  const scaledGeometry: DocumentGeometry = {
+    corners: scalePoints(corners, ow / iw, oh / ih),
+  };
+
+  return warpDocument(wc, scaledGeometry);
 }

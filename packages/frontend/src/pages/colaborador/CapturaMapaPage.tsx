@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
+import { Modal } from '../../components/ui/Modal';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { useToastHelpers } from '../../components/ui/Toast';
 import { Icon } from '../../components/ui/Icon';
@@ -8,7 +9,11 @@ import { api } from '../../services/api';
 import { buildApiUrl } from '../../services/api';
 import { getToken } from '../../services/tokenStorage';
 import { formatDateBR } from '../../utils/date';
-import { correctPerspective } from '../../utils/perspectiveCorrection';
+import {
+  correctPerspective,
+  correctPerspectiveWithCorners,
+  detectPerspective,
+} from '../../utils/perspectiveCorrection';
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -33,15 +38,24 @@ interface ProcessarResponse {
   imagemProcessada: string;
 }
 
-type ItemStatus = 'corrigindo' | 'aguardando' | 'processando' | 'concluido' | 'erro';
+type Point = [number, number];
+type ItemStatus = 'corrigindo' | 'revisar' | 'aguardando' | 'processando' | 'concluido' | 'erro';
 
 interface QueueItem {
   localId: string;
+  originalSrc: string;
   thumbSrc: string;
   correctedSrc: string | null;
+  corners: Point[] | null;
+  confidence: 'high' | 'low' | 'none';
   status: ItemStatus;
   result: ProcessarResponse | null;
   erro: string | null;
+}
+
+interface ImageSize {
+  width: number;
+  height: number;
 }
 
 // ── Utilitários ───────────────────────────────────────────────────────────────
@@ -77,12 +91,33 @@ async function makeThumbnail(dataUrl: string): Promise<string> {
   });
 }
 
+function getImageSize(dataUrl: string): Promise<ImageSize> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve({ width: img.width, height: img.height });
+    img.onerror = reject;
+    img.src = dataUrl;
+  });
+}
+
+function defaultCorners(size: ImageSize): Point[] {
+  const mx = size.width * 0.08;
+  const my = size.height * 0.08;
+  return [
+    [mx, my],
+    [size.width - mx, my],
+    [size.width - mx, size.height - my],
+    [mx, size.height - my],
+  ];
+}
+
 function plural(n: number, singular: string, pluralForm: string): string {
   return `${n} ${n === 1 ? singular : pluralForm}`;
 }
 
 const STATUS_LABEL: Record<ItemStatus, string> = {
   corrigindo: 'Corrigindo...',
+  revisar: 'Revisar bordas',
   aguardando: 'Aguardando',
   processando: 'Processando...',
   concluido: 'Concluido',
@@ -91,6 +126,7 @@ const STATUS_LABEL: Record<ItemStatus, string> = {
 
 const STATUS_COLOR: Record<ItemStatus, string> = {
   corrigindo: 'text-primary-600 dark:text-primary-400',
+  revisar: 'text-warning-700 dark:text-warning-300',
   aguardando: 'text-neutral-500 dark:text-neutral-400',
   processando: 'text-primary-600 dark:text-primary-400',
   concluido: 'text-success-600 dark:text-success-400',
@@ -113,6 +149,11 @@ export function CapturaMapaPage() {
   const [baixandoId, setBaixandoId] = useState<string | null>(null);
   const [excluindoId, setExcluindoId] = useState<string | null>(null);
   const [listaExpandida, setListaExpandida] = useState(false);
+  const [editorItemId, setEditorItemId] = useState<string | null>(null);
+  const [editorCorners, setEditorCorners] = useState<Point[]>([]);
+  const [editorImageSize, setEditorImageSize] = useState<ImageSize | null>(null);
+  const [editorSaving, setEditorSaving] = useState(false);
+  const [previewItemId, setPreviewItemId] = useState<string | null>(null);
 
   const setQueue = useCallback((updater: (prev: QueueItem[]) => QueueItem[]) => {
     setQueueState((prev) => {
@@ -139,8 +180,11 @@ export function CapturaMapaPage() {
             ...prev,
             {
               localId,
+              originalSrc: dataUrl,
               thumbSrc,
               correctedSrc: null,
+              corners: null,
+              confidence: 'none',
               status: 'corrigindo',
               result: null,
               erro: null,
@@ -148,18 +192,35 @@ export function CapturaMapaPage() {
           ]);
 
           try {
-            const corrected = await correctPerspective(dataUrl);
+            const detection = await detectPerspective(dataUrl);
+            const corrected = detection.corners
+              ? await correctPerspectiveWithCorners(dataUrl, detection.corners)
+              : await correctPerspective(dataUrl);
             setQueue((prev) =>
               prev.map((it) =>
                 it.localId === localId
-                  ? { ...it, correctedSrc: corrected, status: 'aguardando' }
+                  ? {
+                      ...it,
+                      correctedSrc: corrected,
+                      corners: detection.corners,
+                      confidence: detection.confidence,
+                      status: detection.confidence === 'high' ? 'aguardando' : 'revisar',
+                    }
                   : it
               )
             );
           } catch {
             setQueue((prev) =>
               prev.map((it) =>
-                it.localId === localId ? { ...it, correctedSrc: dataUrl, status: 'aguardando' } : it
+                it.localId === localId
+                  ? {
+                      ...it,
+                      correctedSrc: dataUrl,
+                      corners: null,
+                      confidence: 'none',
+                      status: 'revisar',
+                    }
+                  : it
               )
             );
           }
@@ -206,10 +267,96 @@ export function CapturaMapaPage() {
     [setQueue]
   );
 
+  const handleAprovarRevisao = useCallback(
+    (localId: string) => {
+      setQueue((prev) =>
+        prev.map((it) => (it.localId === localId ? { ...it, status: 'aguardando' } : it))
+      );
+    },
+    [setQueue]
+  );
+
+  const handleOpenEditor = useCallback(async (item: QueueItem) => {
+    const size = await getImageSize(item.originalSrc);
+    setEditorImageSize(size);
+    setEditorCorners(item.corners ?? defaultCorners(size));
+    setEditorItemId(item.localId);
+  }, []);
+
+  const handleCloseEditor = useCallback(() => {
+    if (editorSaving) return;
+    setEditorItemId(null);
+    setEditorCorners([]);
+    setEditorImageSize(null);
+  }, [editorSaving]);
+
+  const handleSaveEditor = useCallback(async () => {
+    const item = queueRef.current.find((it) => it.localId === editorItemId);
+    if (!item || editorCorners.length !== 4) return;
+
+    setEditorSaving(true);
+    try {
+      const corrected = await correctPerspectiveWithCorners(item.originalSrc, editorCorners);
+      const thumbSrc = await makeThumbnail(corrected);
+      setQueue((prev) =>
+        prev.map((it) =>
+          it.localId === item.localId
+            ? {
+                ...it,
+                thumbSrc,
+                correctedSrc: corrected,
+                corners: editorCorners,
+                confidence: 'high',
+                status: 'aguardando',
+                erro: null,
+              }
+            : it
+        )
+      );
+      handleCloseEditor();
+    } catch {
+      toast.error('Nao foi possivel aplicar as bordas ajustadas.');
+    } finally {
+      setEditorSaving(false);
+    }
+  }, [editorCorners, editorItemId, handleCloseEditor, setQueue, toast]);
+
+  const handleCornerPointerMove = useCallback(
+    (index: number, e: React.PointerEvent<HTMLButtonElement>) => {
+      if (!(e.currentTarget as HTMLButtonElement).hasPointerCapture(e.pointerId)) return;
+      const board = e.currentTarget.parentElement;
+      if (!board || !editorImageSize) return;
+      const rect = board.getBoundingClientRect();
+      const x = Math.max(
+        0,
+        Math.min(
+          editorImageSize.width,
+          ((e.clientX - rect.left) / rect.width) * editorImageSize.width
+        )
+      );
+      const y = Math.max(
+        0,
+        Math.min(
+          editorImageSize.height,
+          ((e.clientY - rect.top) / rect.height) * editorImageSize.height
+        )
+      );
+      setEditorCorners((prev) => prev.map((point, i) => (i === index ? [x, y] : point)));
+    },
+    [editorImageSize]
+  );
+
   // ── Processar lote (paralelo com concorrência limitada) ──────────────────
 
   const handleProcessarLote = useCallback(async () => {
     if (processandoLote) return;
+    const bloqueadas = queueRef.current.some(
+      (it) => it.status === 'corrigindo' || it.status === 'revisar'
+    );
+    if (bloqueadas) {
+      toast.error('Revise as bordas pendentes antes de processar o lote.');
+      return;
+    }
     setProcessandoLote(true);
 
     const pending = queueRef.current
@@ -353,10 +500,13 @@ export function CapturaMapaPage() {
   // ── Dados derivados ───────────────────────────────────────────────────────
 
   const aguardando = queue.filter((it) => it.status === 'aguardando').length;
+  const revisar = queue.filter((it) => it.status === 'revisar').length;
   const corrigindo = queue.filter((it) => it.status === 'corrigindo').length;
   const concluidos = queue.filter((it) => it.status === 'concluido').length;
   const temErro = queue.some((it) => it.status === 'erro');
   const processandoAlgum = queue.some((it) => it.status === 'processando');
+  const editorItem = queue.find((it) => it.localId === editorItemId) ?? null;
+  const previewItem = queue.find((it) => it.localId === previewItemId) ?? null;
 
   // ── Renderizacao ──────────────────────────────────────────────────────────
 
@@ -443,6 +593,12 @@ export function CapturaMapaPage() {
                   {aguardando > 0 && (
                     <span className="ml-2 text-neutral-500"> {aguardando} aguardando</span>
                   )}
+                  {revisar > 0 && (
+                    <span className="ml-2 text-warning-700 dark:text-warning-300">
+                      {' '}
+                      {revisar} para revisar
+                    </span>
+                  )}
                   {concluidos > 0 && (
                     <span className="ml-2 text-success-600 dark:text-success-400">
                       {' '}
@@ -462,7 +618,7 @@ export function CapturaMapaPage() {
                       Baixar Todos
                     </Button>
                   )}
-                  {aguardando > 0 && (
+                  {aguardando > 0 && revisar === 0 && corrigindo === 0 && (
                     <Button
                       variant="primary"
                       size="sm"
@@ -473,6 +629,11 @@ export function CapturaMapaPage() {
                       {processandoLote || processandoAlgum
                         ? 'Processando...'
                         : `Processar ${plural(aguardando, 'Imagem', 'Imagens')}`}
+                    </Button>
+                  )}
+                  {aguardando > 0 && (revisar > 0 || corrigindo > 0) && (
+                    <Button variant="secondary" size="sm" icon="alert-triangle" disabled>
+                      {revisar > 0 ? 'Revise as bordas' : 'Aguarde a correcao'}
                     </Button>
                   )}
                   {temErro && (
@@ -533,6 +694,15 @@ export function CapturaMapaPage() {
                         </div>
                       )}
 
+                      {item.status === 'revisar' && (
+                        <button
+                          className="absolute inset-x-2 bottom-2 rounded-md bg-warning-500 px-2 py-1 text-xs font-medium text-white shadow-sm"
+                          onClick={() => void handleOpenEditor(item)}
+                        >
+                          Ajustar bordas
+                        </button>
+                      )}
+
                       {/* Botao remover */}
                       {item.status !== 'processando' && (
                         <button
@@ -558,13 +728,43 @@ export function CapturaMapaPage() {
                       </span>
 
                       {item.status === 'concluido' && item.result && (
-                        <button
-                          className="flex-none text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300"
-                          onClick={() => handleDownloadItem(item)}
-                          aria-label="Baixar"
-                        >
-                          <Icon name="download" className="h-3.5 w-3.5" />
-                        </button>
+                        <div className="flex flex-none gap-1">
+                          <button
+                            className="text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300"
+                            onClick={() => setPreviewItemId(item.localId)}
+                            aria-label="Visualizar"
+                          >
+                            <Icon name="eye" className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            className="text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300"
+                            onClick={() => handleDownloadItem(item)}
+                            aria-label="Baixar"
+                          >
+                            <Icon name="download" className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      )}
+
+                      {item.status === 'revisar' && (
+                        <div className="flex flex-none gap-1">
+                          <button
+                            className="text-primary-600 hover:text-primary-800 dark:text-primary-400"
+                            onClick={() => void handleOpenEditor(item)}
+                            aria-label="Ajustar bordas"
+                          >
+                            <Icon name="edit" className="h-3.5 w-3.5" />
+                          </button>
+                          {item.correctedSrc && (
+                            <button
+                              className="text-success-600 hover:text-success-800 dark:text-success-400"
+                              onClick={() => handleAprovarRevisao(item.localId)}
+                              aria-label="Aprovar"
+                            >
+                              <Icon name="check" className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </div>
                       )}
 
                       {item.status === 'erro' && (
@@ -584,6 +784,126 @@ export function CapturaMapaPage() {
           )}
         </div>
       </Card>
+
+      <Modal
+        open={!!editorItem && !!editorImageSize}
+        onClose={handleCloseEditor}
+        title="Ajustar bordas"
+        subtitle="Arraste os pontos para os quatro cantos externos do papel."
+        size="xl"
+        footer={
+          <div className="flex flex-wrap justify-end gap-2 p-4">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleCloseEditor}
+              disabled={editorSaving}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              icon="check"
+              loading={editorSaving}
+              onClick={handleSaveEditor}
+            >
+              Aplicar bordas
+            </Button>
+          </div>
+        }
+      >
+        {editorItem && editorImageSize && (
+          <div className="p-4">
+            <div
+              className="relative mx-auto overflow-hidden rounded-lg bg-neutral-900"
+              style={{
+                maxWidth: 'min(100%, 760px)',
+                aspectRatio: `${editorImageSize.width} / ${editorImageSize.height}`,
+              }}
+            >
+              <img
+                src={editorItem.originalSrc}
+                alt="Imagem para ajuste"
+                className="h-full w-full select-none object-contain"
+                draggable={false}
+              />
+              <svg
+                className="pointer-events-none absolute inset-0 h-full w-full"
+                viewBox={`0 0 ${editorImageSize.width} ${editorImageSize.height}`}
+                preserveAspectRatio="none"
+              >
+                <polygon
+                  points={editorCorners.map(([x, y]) => `${x},${y}`).join(' ')}
+                  fill="rgba(14, 165, 233, 0.12)"
+                  stroke="rgb(14, 165, 233)"
+                  strokeWidth={Math.max(editorImageSize.width, editorImageSize.height) * 0.004}
+                />
+              </svg>
+              {editorCorners.map(([x, y], index) => (
+                <button
+                  key={index}
+                  type="button"
+                  className="absolute flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 touch-none items-center justify-center rounded-full border-2 border-white bg-primary-600 text-xs font-bold text-white shadow-lg"
+                  style={{
+                    left: `${(x / editorImageSize.width) * 100}%`,
+                    top: `${(y / editorImageSize.height) * 100}%`,
+                  }}
+                  onPointerDown={(e) => {
+                    e.currentTarget.setPointerCapture(e.pointerId);
+                    handleCornerPointerMove(index, e);
+                  }}
+                  onPointerMove={(e) => handleCornerPointerMove(index, e)}
+                  aria-label={`Canto ${index + 1}`}
+                >
+                  {index + 1}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      <Modal
+        open={!!previewItem?.result}
+        onClose={() => setPreviewItemId(null)}
+        title="Preview da imagem processada"
+        subtitle={previewItem?.result?.nomeArquivo}
+        size="xl"
+        footer={
+          <div className="flex flex-wrap justify-end gap-2 p-4">
+            <Button variant="secondary" size="sm" onClick={() => setPreviewItemId(null)}>
+              Fechar
+            </Button>
+            {previewItem?.result && (
+              <Button
+                variant="primary"
+                size="sm"
+                icon="download"
+                onClick={() => handleDownloadItem(previewItem)}
+              >
+                Baixar imagem
+              </Button>
+            )}
+          </div>
+        }
+      >
+        {previewItem?.result && (
+          <div className="p-4">
+            <div className="overflow-hidden rounded-lg border border-neutral-200 bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-900">
+              <img
+                src={previewItem.result.imagemProcessada}
+                alt="Preview da imagem processada"
+                className="max-h-[70vh] w-full object-contain"
+              />
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-neutral-500 dark:text-neutral-400">
+              <span>{previewItem.result.nomeArquivo}</span>
+              <span>{formatBytes(previewItem.result.tamanhoBytes)}</span>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       {/* Capturas recentes (servidor) */}
       <Card>
