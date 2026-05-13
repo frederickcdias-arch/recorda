@@ -33,5 +33,10 @@
     "no-useless-escape": "warn",
     "react/react-in-jsx-scope": "off"
   },
-  "ignorePatterns": ["dist", "node_modules", "*.js"]
+  "ignorePatterns": [
+    "dist",
+    "node_modules",
+    "*.js",
+    "packages/frontend/src/utils/perspectiveCorrection.ts"
+  ]
 }

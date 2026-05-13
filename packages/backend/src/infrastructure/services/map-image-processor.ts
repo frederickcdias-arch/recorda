@@ -85,12 +85,15 @@ function applyWhiteBalance(buf: Buffer, channels: number): void {
   for (let ch = 0; ch < Math.min(channels, 3); ch++) {
     // Histograma em O(n) para encontrar o percentil 95
     const hist = new Uint32Array(256);
-    for (let i = 0; i < n; i++) hist[buf[i * channels + ch]]++;
+    for (let i = 0; i < n; i++) {
+      const k = buf[i * channels + ch]!;
+      hist[k] = (hist[k] || 0) + 1;
+    }
 
     let cum = 0;
     let p95 = 255;
     for (let v = 0; v < 256; v++) {
-      cum += hist[v];
+      cum += hist[v]!;
       if (cum >= target) {
         p95 = v;
         break;
@@ -103,7 +106,7 @@ function applyWhiteBalance(buf: Buffer, channels: number): void {
     if (scale < 1.02) continue;
 
     for (let i = 0; i < n; i++) {
-      const v = buf[i * channels + ch] * scale + 0.5;
+      const v = buf[i * channels + ch]! * scale + 0.5;
       buf[i * channels + ch] = v > 255 ? 255 : v | 0;
     }
   }
