@@ -13,6 +13,14 @@
  *  8. Aplica o warp prospectivo com interpolação bilinear na imagem COLORIDA
  *
  * As cores são totalmente preservadas — nenhum canal é descartado.
+ *
+ * Melhorias:
+ *  - Fechamento morfológico na máscara binária: preenche buracos causados por
+ *    texto e símbolos impressos no papel antes da detecção de cantos.
+ *  - Correção de orientação: se fonte e saída divergirem em retrato/paisagem,
+ *    roda 90° reordenando os cantos.
+ *  - Saída em PNG lossless: elimina dupla compressão JPEG (o backend faz o único
+ *    encode JPEG final com mozjpeg).
  */
 
 type Point = [number, number];
@@ -122,6 +130,75 @@ function otsu(gray: Uint8Array): number {
   return t;
 }
 
+// ── Fechamento morfológico (closing) ────────────────────────────────────────
+
+/**
+ * Closing morfológico separável (dilatar → erodir) com kernel caixa de raio r.
+ * Preenche buracos escuros dentro da região branca do documento (texto,
+ * símbolos cartográficos) para que a máscara fique contínua antes da detecção.
+ */
+function morphClose(mask: Uint8Array, w: number, h: number, r: number): Uint8Array {
+  const n = mask.length;
+
+  // ── Dilatar horizontal ──
+  const dh = new Uint8Array(n);
+  for (let y = 0; y < h; y++) {
+    let s = 0;
+    for (let k = 0; k <= r && k < w; k++) s += mask[y * w + k];
+    dh[y * w] = s > 0 ? 1 : 0;
+    for (let x = 1; x < w; x++) {
+      if (x + r < w) s += mask[y * w + x + r];
+      if (x - r - 1 >= 0) s -= mask[y * w + x - r - 1];
+      dh[y * w + x] = s > 0 ? 1 : 0;
+    }
+  }
+
+  // ── Dilatar vertical ──
+  const dv = new Uint8Array(n);
+  for (let x = 0; x < w; x++) {
+    let s = 0;
+    for (let k = 0; k <= r && k < h; k++) s += dh[k * w + x];
+    dv[x] = s > 0 ? 1 : 0;
+    for (let y = 1; y < h; y++) {
+      if (y + r < h) s += dh[(y + r) * w + x];
+      if (y - r - 1 >= 0) s -= dh[(y - r - 1) * w + x];
+      dv[y * w + x] = s > 0 ? 1 : 0;
+    }
+  }
+
+  // ── Erodir horizontal ──
+  const eh = new Uint8Array(n);
+  for (let y = 0; y < h; y++) {
+    let s = 0;
+    for (let k = 0; k <= r && k < w; k++) s += dv[y * w + k];
+    let ws = Math.min(r, w - 1) + 1;
+    eh[y * w] = s === ws ? 1 : 0;
+    for (let x = 1; x < w; x++) {
+      if (x + r < w) s += dv[y * w + x + r];
+      if (x - r - 1 >= 0) s -= dv[y * w + x - r - 1];
+      ws = Math.min(x + r, w - 1) - Math.max(x - r, 0) + 1;
+      eh[y * w + x] = s === ws ? 1 : 0;
+    }
+  }
+
+  // ── Erodir vertical ──
+  const ev = new Uint8Array(n);
+  for (let x = 0; x < w; x++) {
+    let s = 0;
+    for (let k = 0; k <= r && k < h; k++) s += eh[k * w + x];
+    let ws = Math.min(r, h - 1) + 1;
+    ev[x] = s === ws ? 1 : 0;
+    for (let y = 1; y < h; y++) {
+      if (y + r < h) s += eh[(y + r) * w + x];
+      if (y - r - 1 >= 0) s -= eh[(y - r - 1) * w + x];
+      ws = Math.min(y + r, h - 1) - Math.max(y - r, 0) + 1;
+      ev[y * w + x] = s === ws ? 1 : 0;
+    }
+  }
+
+  return ev;
+}
+
 // ── Detecção dos 4 cantos do documento ──────────────────────────────────────
 
 /**
@@ -135,6 +212,13 @@ function findDocumentCorners(gray: Uint8Array, w: number, h: number): Point[] | 
   const b1 = gaussBlur(gray, w, h);
   const blurred = gaussBlur(b1, w, h);
   const threshold = otsu(blurred);
+
+  // Máscara binária + closing morfológico para preencher buracos escuros
+  // causados por texto e símbolos impressos no papel.
+  // r=8 em 600px ≈ 1.3% da largura — preenche símbolos de até ~16 px.
+  const rawMask = new Uint8Array(blurred.length);
+  for (let i = 0; i < blurred.length; i++) rawMask[i] = blurred[i] >= threshold ? 1 : 0;
+  const mask = morphClose(rawMask, w, h, 8);
 
   const margin = Math.floor(Math.min(w, h) * 0.04);
 
@@ -150,7 +234,7 @@ function findDocumentCorners(gray: Uint8Array, w: number, h: number): Point[] | 
 
   for (let y = margin; y < h - margin; y++) {
     for (let x = margin; x < w - margin; x++) {
-      if (blurred[y * w + x] < threshold) continue;
+      if (!mask[y * w + x]) continue;
       bright++;
       const sp = x + y; // soma  → TL = mín, BR = máx
       const dp = x - y; // dif   → TR = máx, BL = mín
@@ -255,15 +339,26 @@ function applyH(H: number[], x: number, y: number): Point {
  * bilinear. As cores RGB são preservadas integralmente.
  */
 function warpPerspective(src: HTMLCanvasElement, corners: Point[]): string {
-  const [tl, tr, br, bl] = corners;
+  let [tl, tr, br, bl] = corners;
 
   // Dimensões de saída = máximo das arestas opostas do quadrilátero
-  const outW = Math.round(
+  let outW = Math.round(
     Math.max(Math.hypot(tr[0] - tl[0], tr[1] - tl[1]), Math.hypot(br[0] - bl[0], br[1] - bl[1]))
   );
-  const outH = Math.round(
+  let outH = Math.round(
     Math.max(Math.hypot(bl[0] - tl[0], bl[1] - tl[1]), Math.hypot(br[0] - tr[0], br[1] - tr[1]))
   );
+
+  // Correção de orientação: se a fonte for retrato mas a saída sair paisagem
+  // (ou vice-versa), roda 90° reordenando os cantos e trocando as dimensões.
+  const srcPortrait = src.height > src.width * 1.1;
+  const srcLandscape = src.width > src.height * 1.1;
+  const outPortrait = outH > outW * 1.1;
+  const outLandscape = outW > outH * 1.1;
+  if ((srcPortrait && outLandscape) || (srcLandscape && outPortrait)) {
+    [tl, tr, br, bl] = [bl, tl, tr, br];
+    [outW, outH] = [outH, outW];
+  }
 
   // Homografia inversa: retângulo de saída → quadrilátero na fonte
   const dstRect: Point[] = [
@@ -314,8 +409,8 @@ function warpPerspective(src: HTMLCanvasElement, corners: Point[]): string {
   }
 
   octx.putImageData(outImg, 0, 0);
-  // JPEG 92% — qualidade alta; o backend aplicará mozjpeg na passagem final
-  return outCanvas.toDataURL('image/jpeg', 0.92);
+  // PNG lossless — evita dupla compressão JPEG; o backend faz o único encode final
+  return outCanvas.toDataURL('image/png');
 }
 
 // ── API pública ───────────────────────────────────────────────────────────────
