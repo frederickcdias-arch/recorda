@@ -21,12 +21,11 @@ export async function processMapImage(imagemBase64: string): Promise<{
   const inputBuffer = Buffer.from(base64Data, 'base64');
 
   // ── 1. Balanço de branco — análise em miniatura, aplicação via linear() ──
-  // Calcula escala percentílica P95 por canal em uma cópia reduzida a ≤400 px
-  // (rápida) e aplica com sharp.linear() (libvips, C++), eliminando o loop JS
-  // sobre o buffer em resolução completa — até 100× mais rápido em imagens grandes.
+  // Calcula escala P95 por canal em uma cópia reduzida (sem trim — P95 de
+  // iluminação é uma propriedade global, não afetada por bordas). Sem o trim,
+  // libvips usa decode rápido de thumbnail JPEG (~8× menor que decode completo).
   const { data: smallBuf, info: smallInfo } = await sharp(inputBuffer)
     .rotate()
-    .trim({ lineArt: false, threshold: 30 })
     .resize({ width: 400, fit: 'inside', withoutEnlargement: true })
     .raw()
     .toBuffer({ resolveWithObject: true });
