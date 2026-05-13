@@ -5,11 +5,11 @@
  * Algoritmo:
  *  1. Reduz para 600 px para análise rápida
  *  2. Converte para escala de cinza (somente para detecção)
- *  3. Distância RGB ao fundo (estimado das 4 extremidades) — distingue papel e mapa
- *     colorido da mesa, mesmo quando têm brilho similar
- *  4. Closing morfológico em 2 estágios: r1 (~6 %) para texto/símbolos,
- *     r2 (~18 %) para preencher o bloco inteiro da foto satélite
- *  5. Score diagonal extrai os 4 pixels extremos da máscara final
+ *  3. Mediana RGB do strip de borda inteiro → estimativa robusta do fundo (mesa),
+ *     mesmo quando o papel ocupa > 90 % do quadro
+ *  4. Distância RGB ao fundo (threshold 25) + flood-fill a partir da borda da
+ *     imagem: preenche o interior do papel sem efeito de borda morfológico
+ *  5. Score diagonal extrai os 4 pixels extremos da máscara sólida resultante
  *  6. Valida a detecção; se não confiante, devolve a imagem original intacta
  *  7. Calcula a homografia inversa (retângulo → quadrilátero fonte)
  *  8. Aplica o warp prospectivo com interpolação bilinear na imagem COLORIDA
@@ -204,20 +204,21 @@ function morphClose(mask: Uint8Array, w: number, h: number, r: number): Uint8Arr
 // ── Detecção dos 4 cantos do documento ──────────────────────────────────────
 
 /**
- * Encontra os 4 cantos do papel via distância de cor RGB ao fundo (mesa) +
- * closing morfológico de dois estágios.
+ * Encontra os 4 cantos do papel via distância RGB ao fundo + flood-fill da borda.
  *
- * Estratégia (robusta para papéis com fotos satélite coloridas no interior):
- *  1. Estima a cor da mesa a partir das 4 extremidades da imagem
- *  2. Máscara de documento: pixels com distância RGB > 30 ao fundo
- *     Detecta margens brancas (muito mais claras) E a foto satélite
- *     (muito diferente em matiz do cinza neutro da mesa)
- *  3. Closing r1 (~6 %) preenche pequenos buracos (texto, símbolos)
- *  4. Closing r2 (~18 %) preenche o bloco do mapa satélite inteiro
- *  5. Score diagonal extrai os 4 pixels de canto mais extremos
- *  6. Rejeita apenas cenas quase sem documento (< 8 %) ou quads degenerados
- *
- * Retorna null se a detecção for inválida.
+ * Estratégia:
+ *  1. Estima a cor da mesa pela MEDIANA do strip de borda inteiro da imagem.
+ *     Usar todos os pixels da borda (não apenas 4 cantos) torna a estimativa
+ *     robusta mesmo quando o papel ocupa >90% do quadro.
+ *  2. Máscara de primeiro plano: pixels com distância RGB > 25 ao fundo.
+ *     Captura margens brancas E interior colorido do mapa.
+ *  3. Pequeno closing (r=5) para selar lacunas mínimas nas margens do papel.
+ *  4. Flood-fill a partir de todos os pixels de borda com fundo → marca região
+ *     "fora" (mesa acessível a partir das bordas). Pixels de fundo não alcançados
+ *     estão dentro do papel → são preenchidos como primeiro plano.
+ *     Não há efeito de borda morfológico: funciona para qualquer tamanho de interior.
+ *  5. Score diagonal extrai os 4 pixels extremos da máscara sólida resultante.
+ *  6. Rejeita quads degenerados ou cenas sem documento.
  */
 function findDocumentCorners(
   gray: Uint8Array,
@@ -225,41 +226,34 @@ function findDocumentCorners(
   w: number,
   h: number
 ): Point[] | null {
-  void gray; // usado apenas para manter assinatura compatível com fallback futuro
+  void gray;
 
-  // 1. Estima a cor de fundo (mesa) a partir das 4 extremidades da imagem.
-  //    Usa patch de 6 % da dimensão menor em cada canto.
-  const patchSz = Math.max(6, Math.floor(Math.min(w, h) * 0.06));
-  let bgR = 0,
-    bgG = 0,
-    bgB = 0,
-    bgN = 0;
-  const patches: Array<[number, number]> = [
-    [0, 0],
-    [w - patchSz, 0],
-    [0, h - patchSz],
-    [w - patchSz, h - patchSz],
-  ];
-  for (const [x0, y0] of patches) {
-    for (let y = y0; y < Math.min(y0 + patchSz, h); y++) {
-      for (let x = x0; x < Math.min(x0 + patchSz, w); x++) {
-        const i4 = (y * w + x) * 4;
-        bgR += rgba[i4];
-        bgG += rgba[i4 + 1];
-        bgB += rgba[i4 + 2];
-        bgN++;
-      }
+  // 1. Estima fundo pela mediana R/G/B do strip de borda (outermost borderW pixels).
+  //    Mediana é robusta: mesmo com até 50% de pixels de papel no strip, o valor
+  //    mediano reflete a cor da mesa.
+  const borderW = Math.max(4, Math.floor(Math.min(w, h) * 0.03));
+  const rBuf: number[] = [];
+  const gBuf: number[] = [];
+  const bBuf: number[] = [];
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      if (y >= borderW && y < h - borderW && x >= borderW && x < w - borderW) continue;
+      const i4 = (y * w + x) * 4;
+      rBuf.push(rgba[i4]);
+      gBuf.push(rgba[i4 + 1]);
+      bBuf.push(rgba[i4 + 2]);
     }
   }
-  bgR /= bgN;
-  bgG /= bgN;
-  bgB /= bgN;
+  rBuf.sort((a, b) => a - b);
+  gBuf.sort((a, b) => a - b);
+  bBuf.sort((a, b) => a - b);
+  const mid = rBuf.length >> 1;
+  const bgR = rBuf[mid];
+  const bgG = gBuf[mid];
+  const bgB = bBuf[mid];
 
-  // 2. Máscara de documento: pixels com distância euclidiana RGB > distThresh ao fundo.
-  //    A mesa é cinza neutro; as margens do papel são muito mais claras;
-  //    a foto satélite é muito diferente em matiz mesmo quando de brilho similar.
-  const distThresh = 30;
-  const dt2 = distThresh * distThresh;
+  // 2. Máscara de primeiro plano: distância RGB ao fundo > 25.
+  const dt2 = 25 * 25;
   const rawMask = new Uint8Array(w * h);
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
@@ -271,15 +265,52 @@ function findDocumentCorners(
     }
   }
 
-  // 3. Closing em dois estágios para preencher a área colorida do mapa dentro do papel.
-  //    r1 (~6 %) conecta pixels próximos e preenche texto/símbolos;
-  //    r2 (~18 %) preenche o bloco do mapa satélite inteiro (~300 px em 600 px scale).
-  const r1 = Math.max(8, Math.floor(Math.min(w, h) * 0.06));
-  const r2 = Math.max(20, Math.floor(Math.min(w, h) * 0.18));
-  const closed1 = morphClose(rawMask, w, h, r1);
-  const mask = morphClose(closed1, w, h, r2);
+  // 3. Pequeno closing para selar lacunas mínimas nas margens (r=5).
+  const sealed = morphClose(rawMask, w, h, 5);
 
-  // 4. Score diagonal: encontra os 4 pixels de canto mais extremos da máscara.
+  // 4. Flood-fill a partir de todos os pixels de fundo na borda da imagem.
+  //    Marca tudo que é "fora" (mesa acessível pelas bordas).
+  //    O interior fechado do papel NÃO é alcançável e permanece como buraco.
+  const outside = new Uint8Array(w * h);
+  // Buffer com índices de pixels a processar (simulação de fila com head pointer)
+  const queue = new Int32Array(w * h);
+  let qHead = 0,
+    qTail = 0;
+
+  function seedBorder(idx: number): void {
+    if (!sealed[idx] && !outside[idx]) {
+      outside[idx] = 1;
+      queue[qTail++] = idx;
+    }
+  }
+
+  for (let x = 0; x < w; x++) {
+    seedBorder(x); // linha de topo
+    seedBorder((h - 1) * w + x); // linha de base
+  }
+  for (let y = 1; y < h - 1; y++) {
+    seedBorder(y * w); // coluna esquerda
+    seedBorder(y * w + w - 1); // coluna direita
+  }
+
+  while (qHead < qTail) {
+    const idx = queue[qHead++];
+    const px = idx % w;
+    const py = (idx / w) | 0;
+    // 4 vizinhos
+    if (px > 0) seedBorder(idx - 1);
+    if (px < w - 1) seedBorder(idx + 1);
+    if (py > 0) seedBorder(idx - w);
+    if (py < h - 1) seedBorder(idx + w);
+  }
+
+  // Máscara final: primeiro plano original OU fundo não alcançado (interior do papel).
+  const mask = new Uint8Array(w * h);
+  for (let i = 0; i < w * h; i++) {
+    mask[i] = sealed[i] || (!outside[i] ? 1 : 0);
+  }
+
+  // 5. Score diagonal: pixels mais extremos em cada diagonal.
   const margin = Math.floor(Math.min(w, h) * 0.02);
   let tlS = Infinity,
     trS = -Infinity,
@@ -316,7 +347,7 @@ function findDocumentCorners(
     }
   }
 
-  // 5. Validação: rejeita se há pixels de frente-plano insuficientes ou quad degenerado.
+  // 6. Rejeita cenas sem documento ou quads degenerados.
   const inner = (w - 2 * margin) * (h - 2 * margin);
   if (fgCount / inner < 0.08) return null;
 
