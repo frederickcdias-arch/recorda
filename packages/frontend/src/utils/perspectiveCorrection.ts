@@ -1230,10 +1230,28 @@ function enhanceScannedPage(canvas: HTMLCanvasElement): void {
     const y = (p / canvas.width) | 0;
     const insideColorMap =
       hasColorMap && x >= colorMinX && x <= colorMaxX && y >= colorMinY && y <= colorMaxY;
+    let localMinLuma = 255;
+    let localMaxLuma = 0;
+    for (let dy = -2; dy <= 2; dy++) {
+      const yy = y + dy;
+      if (yy < 0 || yy >= canvas.height) continue;
+      for (let dx = -2; dx <= 2; dx++) {
+        const xx = x + dx;
+        if (xx < 0 || xx >= canvas.width) continue;
+        const neighborLuma = originalLuma[yy * canvas.width + xx];
+        localMinLuma = Math.min(localMinLuma, neighborLuma);
+        localMaxLuma = Math.max(localMaxLuma, neighborLuma);
+      }
+    }
+    const localSpread = localMaxLuma - localMinLuma;
 
-    if (target > 166 && maxC - minC < (insideColorMap ? 26 : 56)) {
+    if (
+      target > 166 &&
+      maxC - minC < (insideColorMap ? 20 : 56) &&
+      localSpread < (insideColorMap ? 12 : 22)
+    ) {
       const paper = Math.max(target, 232);
-      const keep = insideColorMap ? 0.35 : 0.22;
+      const keep = insideColorMap ? 0.55 : 0.22;
       const lift = 1 - keep;
       nr = nr * keep + paper * lift;
       ng = ng * keep + paper * lift;
@@ -1256,9 +1274,9 @@ function enhanceScannedPage(canvas: HTMLCanvasElement): void {
         }
       }
 
-      if (darkNeighborCount < 3 || luma > 118) {
+      if ((darkNeighborCount < 3 || luma > 118) && localSpread < (insideColorMap ? 10 : 24)) {
         const paper = luma > 130 ? 252 : 247;
-        const keep = insideColorMap ? 0.12 : 0.03;
+        const keep = insideColorMap ? 0.4 : 0.03;
         const lift = 1 - keep;
         nr = nr * keep + paper * lift;
         ng = ng * keep + paper * lift;
