@@ -1,3 +1,7 @@
+import dotenv from 'dotenv';
+
+dotenv.config();
+
 export interface DatabaseConfig {
   host: string;
   port: number;
@@ -11,9 +15,20 @@ export interface ServerConfig {
   host: string;
 }
 
+export interface DocumentProcessorConfig {
+  enabled: boolean;
+  runtime: 'auto' | 'python' | 'docker';
+  pythonBinary: string;
+  scriptPath: string;
+  tempDir: string;
+  dockerImage: string;
+  dockerBootstrap: string;
+}
+
 export interface Config {
   database: DatabaseConfig;
   server: ServerConfig;
+  documentProcessor: DocumentProcessorConfig;
 }
 
 function getEnvOrDefault(key: string, defaultValue: string): string {
@@ -65,6 +80,23 @@ function createConfig(): Config {
     server: {
       port: parseInt(getEnvOrDefault('PORT', '3000'), 10),
       host: getEnvOrDefault('HOST', '0.0.0.0'),
+    },
+    documentProcessor: {
+      enabled: getEnvOrDefault('DOCUMENT_PROCESSOR_ENABLED', 'false') === 'true',
+      runtime: (() => {
+        const runtime = getEnvOrDefault('DOCUMENT_PROCESSOR_RUNTIME', 'python');
+        if (runtime === 'docker') return 'docker';
+        if (runtime === 'auto') return 'auto';
+        return 'python';
+      })(),
+      pythonBinary: getEnvOrDefault('DOCUMENT_PROCESSOR_PYTHON', 'python'),
+      scriptPath: getEnvOrDefault(
+        'DOCUMENT_PROCESSOR_SCRIPT',
+        'packages/backend/python/document_processor.py'
+      ),
+      tempDir: getEnvOrDefault('DOCUMENT_PROCESSOR_TEMP_DIR', '.tmp/document-processor'),
+      dockerImage: getEnvOrDefault('DOCUMENT_PROCESSOR_DOCKER_IMAGE', ''),
+      dockerBootstrap: getEnvOrDefault('DOCUMENT_PROCESSOR_DOCKER_BOOTSTRAP', ''),
     },
   };
 }

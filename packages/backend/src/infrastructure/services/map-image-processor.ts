@@ -1,45 +1,79 @@
-import sharp from 'sharp';
+import {
+  decodeImageDataUrl,
+  processDocumentImage,
+  type DocumentImagePoint,
+} from './document-image-processor.js';
+
+export interface ProcessMapImageResult {
+  processedBase64: string;
+  tamanhoBytes: number;
+  confiancaDeteccao: number;
+  fallbackUsado: boolean;
+  dimensoesFinais: {
+    width: number;
+    height: number;
+  };
+  processador: 'python-opencv' | 'sharp-fallback' | 'frontend-assisted';
+  thumbnailBase64?: string;
+  metadata?: {
+    originalWidth?: number;
+    originalHeight?: number;
+    corners?: DocumentImagePoint[];
+    warnings?: string[];
+  };
+}
+
+export interface ProcessMapImageInput {
+  imagemBase64: string;
+  imagemCorrigidaBase64?: string;
+  manualCorners?: DocumentImagePoint[];
+}
 
 /**
  * Processa uma imagem de mapa capturada pelo colaborador.
- * Diferente do OCR preprocessor, MANTÉM as cores originais.
- *
- * Pipeline focado em simetria/alinhamento:
- *  1. EXIF rotate + Trim — corrige orientação EXIF e remove bordas uniformes
- *  2. Resize             — limita a 4000 px para não gerar arquivos gigantes
- *  3. Sharpen            — nitidez leve para traçados e texto do mapa
- *  4. JPEG 90 %          — alta qualidade com compressão eficiente (mozjpeg)
+ * Preserva o fluxo atual do frontend e consolida o processamento final no backend.
  */
-export async function processMapImage(imagemBase64: string): Promise<{
-  processedBase64: string;
-  tamanhoBytes: number;
-}> {
-  const base64Data = imagemBase64.replace(/^data:image\/\w+;base64,/, '');
-  const inputBuffer = Buffer.from(base64Data, 'base64');
+export async function processMapImage(
+  input: string | ProcessMapImageInput
+): Promise<ProcessMapImageResult> {
+  const payload: ProcessMapImageInput = typeof input === 'string' ? { imagemBase64: input } : input;
 
-  // ── 1. EXIF rotate + Trim ────────────────────────────────────────────────
-  // Corrige a orientação gravada pelo sensor da câmera e apara bordas
-  // uniformes (ex.: margens pretas de fotos tiradas em ângulo).
-  let pipeline = sharp(inputBuffer).rotate().trim({ lineArt: false, threshold: 30 });
+  const original = decodeImageDataUrl(payload.imagemBase64);
+  const assisted = payload.imagemCorrigidaBase64
+    ? decodeImageDataUrl(payload.imagemCorrigidaBase64)
+    : null;
 
-  // ── 2. Resize ────────────────────────────────────────────────────────────
-  // withoutEnlargement garante que imagens menores não sejam ampliadas.
-  pipeline = pipeline.resize({
-    width: 4000,
-    height: 4000,
-    fit: 'inside',
-    withoutEnlargement: true,
+  const result = await processDocumentImage({
+    imageBuffer: original.buffer,
+    mimeType: original.mimeType,
+    manualCorners: payload.manualCorners,
+    assistedImageBuffer: assisted?.buffer,
+    assistedMimeType: assisted?.mimeType,
+    options: {
+      preserveColors: true,
+      outputFormat: 'jpeg',
+      quality: 92,
+    },
   });
 
-  // ── 3. Sharpen ───────────────────────────────────────────────────────────
-  // Nitidez leve para traçados e texto do mapa, sem artefatos.
-  pipeline = pipeline.sharpen({ sigma: 1.5, m1: 0.5, m2: 2.0 });
-
-  // ── 4. JPEG 90% ──────────────────────────────────────────────────────────
-  const outputBuffer = await pipeline.jpeg({ quality: 90, mozjpeg: true }).toBuffer();
-
   return {
-    processedBase64: `data:image/jpeg;base64,${outputBuffer.toString('base64')}`,
-    tamanhoBytes: outputBuffer.length,
+    processedBase64: `data:${result.outputMimeType};base64,${result.processedBuffer.toString('base64')}`,
+    thumbnailBase64: result.thumbnailBuffer
+      ? `data:image/jpeg;base64,${result.thumbnailBuffer.toString('base64')}`
+      : undefined,
+    tamanhoBytes: result.processedBuffer.length,
+    confiancaDeteccao: result.metadata.confidence,
+    fallbackUsado: result.metadata.fallback,
+    dimensoesFinais: {
+      width: result.metadata.width,
+      height: result.metadata.height,
+    },
+    processador: result.metadata.engine as ProcessMapImageResult['processador'],
+    metadata: {
+      originalWidth: result.metadata.originalWidth,
+      originalHeight: result.metadata.originalHeight,
+      corners: result.metadata.corners,
+      warnings: result.metadata.warnings,
+    },
   };
 }

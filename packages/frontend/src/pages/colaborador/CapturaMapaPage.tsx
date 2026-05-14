@@ -36,7 +36,21 @@ interface ProcessarResponse {
   tamanhoBytes: number;
   criadoEm: string;
   expiraEm: string;
+  arquivoPath: string;
+  arquivoOriginalPath: string | null;
+  arquivoCorrigidoPath: string | null;
+  thumbnailPath: string | null;
   imagemProcessada: string;
+  processamento: {
+    status: 'concluido' | 'processado_com_fallback' | 'falhou_processamento' | string;
+    engine: string | null;
+    confidence: number | null;
+    fallback: boolean;
+    metadata: {
+      warnings?: string[];
+      [key: string]: unknown;
+    } | null;
+  };
 }
 
 type Point = [number, number];
@@ -128,6 +142,27 @@ function defaultEdgeMidpoints(corners: Point[]): Point[] {
 
 function plural(n: number, singular: string, pluralForm: string): string {
   return `${n} ${n === 1 ? singular : pluralForm}`;
+}
+
+function toManualCorners(points: Point[] | null): Array<{ x: number; y: number }> | undefined {
+  if (!points || points.length !== 4) return undefined;
+  return points.map(([x, y]) => ({ x, y }));
+}
+
+function getProcessingBadge(result: ProcessarResponse | null): string {
+  if (!result) return '';
+  if (result.processamento.status === 'falhou_processamento') {
+    return 'Nao foi possivel corrigir automaticamente';
+  }
+  if (result.processamento.fallback) {
+    return 'Correcao parcial';
+  }
+  return 'Imagem corrigida';
+}
+
+function formatConfidence(confidence: number | null): string | null {
+  if (confidence === null || Number.isNaN(confidence)) return null;
+  return `${Math.round(confidence * 100)}%`;
 }
 
 const STATUS_LABEL: Record<ItemStatus, string> = {
@@ -412,7 +447,7 @@ export function CapturaMapaPage() {
     setProcessandoLote(true);
 
     const pending = queueRef.current
-      .filter((it) => it.status === 'aguardando' && it.correctedSrc)
+      .filter((it) => it.status === 'aguardando')
       .map((it) => it.localId);
 
     let ok = 0;
@@ -424,10 +459,12 @@ export function CapturaMapaPage() {
         prev.map((it) => (it.localId === localId ? { ...it, status: 'processando' } : it))
       );
       const item = queueRef.current.find((it) => it.localId === localId);
-      if (!item?.correctedSrc) return;
+      if (!item?.originalSrc) return;
       try {
         const result = await api.post<ProcessarResponse>('/colaborador/capturas-mapa', {
-          imagemBase64: item.correctedSrc,
+          imagemBase64: item.originalSrc,
+          imagemCorrigidaBase64: item.correctedSrc ?? undefined,
+          manualCorners: toManualCorners(item.corners),
         });
         setQueue((prev) =>
           prev.map((it) => (it.localId === localId ? { ...it, status: 'concluido', result } : it))
@@ -768,65 +805,92 @@ export function CapturaMapaPage() {
                     </div>
 
                     {/* Rodape do card */}
-                    <div className="flex items-center justify-between gap-1 px-2 py-1.5">
-                      <span className={`truncate text-xs font-medium ${STATUS_COLOR[item.status]}`}>
-                        {STATUS_LABEL[item.status]}
+                    <div className="px-2 py-1.5">
+                      <div className="flex items-center justify-between gap-1">
+                        <span
+                          className={`truncate text-xs font-medium ${STATUS_COLOR[item.status]}`}
+                        >
+                          {item.status === 'concluido' && item.result
+                            ? getProcessingBadge(item.result)
+                            : STATUS_LABEL[item.status]}
+                          {item.status === 'concluido' && item.result && (
+                            <span className="ml-1 font-normal text-neutral-400">
+                              {' '}
+                              {formatBytes(item.result.tamanhoBytes)}
+                            </span>
+                          )}
+                        </span>
+
                         {item.status === 'concluido' && item.result && (
-                          <span className="ml-1 font-normal text-neutral-400">
-                            {' '}
-                            {formatBytes(item.result.tamanhoBytes)}
-                          </span>
+                          <div className="flex flex-none gap-1">
+                            <button
+                              className="text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300"
+                              onClick={() => setPreviewItemId(item.localId)}
+                              aria-label="Visualizar"
+                            >
+                              <Icon name="eye" className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              className="text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300"
+                              onClick={() => handleDownloadItem(item)}
+                              aria-label="Baixar"
+                            >
+                              <Icon name="download" className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
                         )}
-                      </span>
+
+                        {item.status === 'revisar' && (
+                          <div className="flex flex-none gap-1">
+                            <button
+                              className="text-primary-600 hover:text-primary-800 dark:text-primary-400"
+                              onClick={() => void handleOpenEditor(item)}
+                              aria-label="Ajustar bordas"
+                            >
+                              <Icon name="edit" className="h-3.5 w-3.5" />
+                            </button>
+                            {item.correctedSrc && (
+                              <button
+                                className="text-success-600 hover:text-success-800 dark:text-success-400"
+                                onClick={() => handleAprovarRevisao(item.localId)}
+                                aria-label="Aprovar"
+                              >
+                                <Icon name="check" className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        )}
+
+                        {item.status === 'erro' && (
+                          <button
+                            className="flex-none text-error-600 hover:text-error-800 dark:text-error-400"
+                            onClick={() => handleRetry(item.localId)}
+                            aria-label="Tentar novamente"
+                          >
+                            <Icon name="refresh-cw" className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </div>
 
                       {item.status === 'concluido' && item.result && (
-                        <div className="flex flex-none gap-1">
-                          <button
-                            className="text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300"
-                            onClick={() => setPreviewItemId(item.localId)}
-                            aria-label="Visualizar"
-                          >
-                            <Icon name="eye" className="h-3.5 w-3.5" />
-                          </button>
-                          <button
-                            className="text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300"
-                            onClick={() => handleDownloadItem(item)}
-                            aria-label="Baixar"
-                          >
-                            <Icon name="download" className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      )}
-
-                      {item.status === 'revisar' && (
-                        <div className="flex flex-none gap-1">
-                          <button
-                            className="text-primary-600 hover:text-primary-800 dark:text-primary-400"
-                            onClick={() => void handleOpenEditor(item)}
-                            aria-label="Ajustar bordas"
-                          >
-                            <Icon name="edit" className="h-3.5 w-3.5" />
-                          </button>
-                          {item.correctedSrc && (
-                            <button
-                              className="text-success-600 hover:text-success-800 dark:text-success-400"
-                              onClick={() => handleAprovarRevisao(item.localId)}
-                              aria-label="Aprovar"
-                            >
-                              <Icon name="check" className="h-3.5 w-3.5" />
-                            </button>
+                        <div className="mt-1 space-y-1 text-[11px] leading-4 text-neutral-500 dark:text-neutral-400">
+                          <div className="flex flex-wrap gap-x-2">
+                            {formatConfidence(item.result.processamento.confidence) && (
+                              <span>
+                                Confianca {formatConfidence(item.result.processamento.confidence)}
+                              </span>
+                            )}
+                            {item.result.processamento.engine && (
+                              <span>{item.result.processamento.engine}</span>
+                            )}
+                          </div>
+                          {item.result.processamento.fallback && (
+                            <p className="text-warning-700 dark:text-warning-300">
+                              Nao conseguimos detectar a folha com seguranca. Salvamos a imagem
+                              original com melhoria leve.
+                            </p>
                           )}
                         </div>
-                      )}
-
-                      {item.status === 'erro' && (
-                        <button
-                          className="flex-none text-error-600 hover:text-error-800 dark:text-error-400"
-                          onClick={() => handleRetry(item.localId)}
-                          aria-label="Tentar novamente"
-                        >
-                          <Icon name="refresh-cw" className="h-3.5 w-3.5" />
-                        </button>
                       )}
                     </div>
                   </div>
@@ -976,17 +1040,44 @@ export function CapturaMapaPage() {
       >
         {previewItem?.result && (
           <div className="p-4">
-            <div className="overflow-hidden rounded-lg border border-neutral-200 bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-900">
-              <img
-                src={previewItem.result.imagemProcessada}
-                alt="Preview da imagem processada"
-                className="max-h-[70vh] w-full object-contain"
-              />
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="overflow-hidden rounded-lg border border-neutral-200 bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-900">
+                <div className="border-b border-neutral-200 px-3 py-2 text-xs font-medium text-neutral-500 dark:border-neutral-700 dark:text-neutral-400">
+                  Original
+                </div>
+                <img
+                  src={previewItem.originalSrc}
+                  alt="Imagem original"
+                  className="max-h-[70vh] w-full object-contain"
+                />
+              </div>
+              <div className="overflow-hidden rounded-lg border border-neutral-200 bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-900">
+                <div className="border-b border-neutral-200 px-3 py-2 text-xs font-medium text-neutral-500 dark:border-neutral-700 dark:text-neutral-400">
+                  Corrigida
+                </div>
+                <img
+                  src={previewItem.result.imagemProcessada}
+                  alt="Preview da imagem processada"
+                  className="max-h-[70vh] w-full object-contain"
+                />
+              </div>
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-neutral-500 dark:text-neutral-400">
               <span>{previewItem.result.nomeArquivo}</span>
               <span>{formatBytes(previewItem.result.tamanhoBytes)}</span>
+              {formatConfidence(previewItem.result.processamento.confidence) && (
+                <span>
+                  Confianca {formatConfidence(previewItem.result.processamento.confidence)}
+                </span>
+              )}
+              <span>{getProcessingBadge(previewItem.result)}</span>
             </div>
+            {previewItem.result.processamento.fallback && (
+              <p className="mt-2 text-xs text-warning-700 dark:text-warning-300">
+                Nao conseguimos detectar a folha com seguranca. Salvamos a imagem original com
+                melhoria leve.
+              </p>
+            )}
           </div>
         )}
       </Modal>

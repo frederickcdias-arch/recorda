@@ -10,6 +10,7 @@ Sistema de gestão de processos administrativos com rastreamento de produção e
 - [Timezone oficial](docs/regras-de-negocio/TIMEZONE.md)
 - [Importação legada](docs/regras-de-negocio/IMPORTACAO_LEGADO.md)
 - [Deploy](docs/operacao/DEPLOY.md)
+- [Processamento de documento fotografado](docs/operacao/PROCESSAMENTO_DOCUMENTO.md)
 
 ## Requisitos
 

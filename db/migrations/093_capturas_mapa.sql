@@ -12,5 +12,5 @@ CREATE TABLE IF NOT EXISTS capturas_mapa (
   expira_em     TIMESTAMPTZ NOT NULL DEFAULT NOW() + INTERVAL '30 days'
 );
 
-CREATE INDEX idx_capturas_mapa_usuario   ON capturas_mapa(usuario_id);
-CREATE INDEX idx_capturas_mapa_expira    ON capturas_mapa(expira_em);
+CREATE INDEX IF NOT EXISTS idx_capturas_mapa_usuario ON capturas_mapa(usuario_id);
+CREATE INDEX IF NOT EXISTS idx_capturas_mapa_expira ON capturas_mapa(expira_em);
