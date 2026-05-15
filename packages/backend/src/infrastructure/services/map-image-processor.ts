@@ -18,6 +18,19 @@ export interface ProcessMapImageResult {
   metadata?: {
     originalWidth?: number;
     originalHeight?: number;
+    documentClass?: 'map_document' | 'color_document' | 'text_document' | 'low_confidence_capture';
+    decision?:
+      | 'frontend_assisted'
+      | 'python_detected'
+      | 'safe_fallback'
+      | 'manual_review_recommended';
+    analysis?: {
+      paperLikeRatio: number;
+      colorRatio: number;
+      edgeDensity: number;
+      dynamicRange: number;
+      fillFrameLikelihood: number;
+    };
     corners?: DocumentImagePoint[];
     warnings?: string[];
   };
@@ -50,6 +63,7 @@ export async function processMapImage(
     assistedImageBuffer: assisted?.buffer,
     assistedMimeType: assisted?.mimeType,
     options: {
+      processingMode: 'map_document',
       preserveColors: true,
       outputFormat: 'jpeg',
       quality: 92,
@@ -72,6 +86,9 @@ export async function processMapImage(
     metadata: {
       originalWidth: result.metadata.originalWidth,
       originalHeight: result.metadata.originalHeight,
+      documentClass: result.metadata.documentClass,
+      decision: result.metadata.decision,
+      analysis: result.metadata.analysis,
       corners: result.metadata.corners,
       warnings: result.metadata.warnings,
     },

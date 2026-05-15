@@ -1,6 +1,18 @@
 import sharp from 'sharp';
 import { tryProcessDocumentImageWithPython } from './document-image-python-processor.js';
 
+export type DocumentProcessingMode = 'color_document' | 'map_document' | 'text_document';
+export type DocumentClassificationKind =
+  | 'map_document'
+  | 'color_document'
+  | 'text_document'
+  | 'low_confidence_capture';
+export type DocumentProcessingDecision =
+  | 'frontend_assisted'
+  | 'python_detected'
+  | 'safe_fallback'
+  | 'manual_review_recommended';
+
 export interface DocumentImagePoint {
   x: number;
   y: number;
@@ -13,6 +25,7 @@ export interface ProcessDocumentImageInput {
   assistedImageBuffer?: Buffer;
   assistedMimeType?: string;
   options?: {
+    processingMode?: DocumentProcessingMode;
     preserveColors?: boolean;
     outputFormat?: 'jpeg' | 'png' | 'webp';
     quality?: number;
@@ -32,6 +45,15 @@ export interface ProcessDocumentImageResult {
     height: number;
     originalWidth?: number;
     originalHeight?: number;
+    documentClass?: DocumentClassificationKind;
+    decision?: DocumentProcessingDecision;
+    analysis?: {
+      paperLikeRatio: number;
+      colorRatio: number;
+      edgeDensity: number;
+      dynamicRange: number;
+      fillFrameLikelihood: number;
+    };
     corners?: DocumentImagePoint[];
     warnings?: string[];
   };
@@ -39,6 +61,16 @@ export interface ProcessDocumentImageResult {
 
 const MAX_OUTPUT_DIMENSION = 2600;
 const MAX_THUMB_DIMENSION = 320;
+const ANALYSIS_SIZE = 256;
+
+interface DocumentImageAnalysis {
+  kind: DocumentClassificationKind;
+  paperLikeRatio: number;
+  colorRatio: number;
+  edgeDensity: number;
+  dynamicRange: number;
+  fillFrameLikelihood: number;
+}
 
 function isSupportedMimeType(mimeType: string): boolean {
   return ['image/jpeg', 'image/png', 'image/webp'].includes(mimeType);
@@ -84,11 +116,155 @@ export function decodeImageDataUrl(dataUrl: string): { mimeType: string; buffer:
   };
 }
 
+async function analyzeImageBuffer(imageBuffer: Buffer): Promise<DocumentImageAnalysis> {
+  const { data, info } = await sharp(imageBuffer, { failOn: 'none' })
+    .rotate()
+    .resize({
+      width: ANALYSIS_SIZE,
+      height: ANALYSIS_SIZE,
+      fit: 'inside',
+      withoutEnlargement: true,
+    })
+    .removeAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+
+  const { width, height, channels } = info;
+  const total = Math.max(1, width * height);
+  const border = Math.max(2, Math.round(Math.min(width, height) * 0.08));
+
+  let paperLike = 0;
+  let strongColor = 0;
+  let lowTexturePaper = 0;
+  let edgeHits = 0;
+  let minLuma = 255;
+  let maxLuma = 0;
+  let borderPaper = 0;
+  let borderPixels = 0;
+
+  const lumaAt = (x: number, y: number): number => {
+    const idx = (y * width + x) * channels;
+    const r = data[idx] ?? 0;
+    const g = data[idx + 1] ?? 0;
+    const b = data[idx + 2] ?? 0;
+    return r * 0.299 + g * 0.587 + b * 0.114;
+  };
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const idx = (y * width + x) * channels;
+      const r = data[idx] ?? 0;
+      const g = data[idx + 1] ?? 0;
+      const b = data[idx + 2] ?? 0;
+      const luma = r * 0.299 + g * 0.587 + b * 0.114;
+      const chroma = Math.max(r, g, b) - Math.min(r, g, b);
+
+      minLuma = Math.min(minLuma, luma);
+      maxLuma = Math.max(maxLuma, luma);
+
+      const isPaperLike = luma > 150 && chroma < 36;
+      if (isPaperLike) {
+        paperLike++;
+      }
+      if (chroma > 46 && luma > 35 && luma < 235) {
+        strongColor++;
+      }
+
+      if (x > 0 && y > 0) {
+        const diff = Math.abs(luma - lumaAt(x - 1, y)) + Math.abs(luma - lumaAt(x, y - 1));
+        if (diff > 52) {
+          edgeHits++;
+        }
+        if (isPaperLike && diff < 20) {
+          lowTexturePaper++;
+        }
+      }
+
+      const onBorder = x < border || y < border || x >= width - border || y >= height - border;
+      if (onBorder) {
+        borderPixels++;
+        if (isPaperLike) {
+          borderPaper++;
+        }
+      }
+    }
+  }
+
+  const paperLikeRatio = paperLike / total;
+  const colorRatio = strongColor / total;
+  const edgeDensity = edgeHits / total;
+  const dynamicRange = (maxLuma - minLuma) / 255;
+  const fillFrameLikelihood = borderPixels > 0 ? borderPaper / borderPixels : 0;
+  const smoothPaperRatio = lowTexturePaper / total;
+
+  let kind: DocumentClassificationKind;
+  if (paperLikeRatio < 0.12 || dynamicRange < 0.16) {
+    kind = 'low_confidence_capture';
+  } else if (colorRatio > 0.18) {
+    kind = 'map_document';
+  } else if (colorRatio > 0.06 || smoothPaperRatio < 0.08) {
+    kind = 'color_document';
+  } else {
+    kind = 'text_document';
+  }
+
+  if (fillFrameLikelihood > 0.72 && colorRatio < 0.08 && paperLikeRatio < 0.22) {
+    kind = 'low_confidence_capture';
+  }
+
+  return {
+    kind,
+    paperLikeRatio,
+    colorRatio,
+    edgeDensity,
+    dynamicRange,
+    fillFrameLikelihood,
+  };
+}
+
+function decideProcessingMode(
+  requestedMode: DocumentProcessingMode | undefined,
+  analysis: DocumentImageAnalysis
+): DocumentProcessingMode {
+  if (requestedMode) {
+    return requestedMode;
+  }
+  if (analysis.kind === 'text_document') {
+    return 'text_document';
+  }
+  return 'color_document';
+}
+
+function buildWarnings(
+  analysis: DocumentImageAnalysis,
+  manualCorners?: DocumentImagePoint[],
+  assistedImageBuffer?: Buffer
+): string[] {
+  const warnings: string[] = [];
+  if (analysis.kind === 'low_confidence_capture') {
+    warnings.push(
+      'Captura com baixa confianca geometrica; revisar enquadramento ou ajustar bordas.'
+    );
+  }
+  if (analysis.fillFrameLikelihood > 0.78 && !assistedImageBuffer && !manualCorners?.length) {
+    warnings.push(
+      'A folha ocupa quase todo o quadro; a deteccao automatica pode confundir papel e fundo.'
+    );
+  }
+  if (analysis.paperLikeRatio < 0.18 && !assistedImageBuffer) {
+    warnings.push(
+      'Pouca area de papel isolada na imagem original; o sistema deve preferir revisao manual.'
+    );
+  }
+  return warnings;
+}
+
 async function finalizeOutput(
   buffer: Buffer,
   format: 'jpeg' | 'png' | 'webp',
   quality: number,
-  preserveColors: boolean
+  preserveColors: boolean,
+  processingMode: DocumentProcessingMode
 ): Promise<{ buffer: Buffer; width: number; height: number; mimeType: string }> {
   let pipeline = sharp(buffer, { failOn: 'none' }).rotate().resize({
     width: MAX_OUTPUT_DIMENSION,
@@ -99,6 +275,18 @@ async function finalizeOutput(
 
   if (preserveColors) {
     pipeline = pipeline.toColourspace('srgb');
+  }
+
+  if (processingMode === 'map_document' || processingMode === 'color_document') {
+    pipeline = pipeline
+      .gamma(1.025)
+      .modulate({ brightness: 1.006, saturation: 1.012 })
+      .sharpen({ sigma: 0.6, m1: 0.1, m2: 0.58 });
+  } else {
+    pipeline = pipeline
+      .gamma(1.06)
+      .modulate({ brightness: 1.012, saturation: 1 })
+      .sharpen({ sigma: 0.85, m1: 0.18, m2: 0.95 });
   }
 
   if (format === 'png') {
@@ -135,6 +323,7 @@ async function processWithSharpFallback(
   imageBuffer: Buffer,
   format: 'jpeg' | 'png' | 'webp',
   quality: number,
+  processingMode: DocumentProcessingMode,
   warnings: string[]
 ): Promise<{
   buffer: Buffer;
@@ -142,17 +331,27 @@ async function processWithSharpFallback(
   height: number;
   mimeType: string;
 }> {
-  let pipeline = sharp(imageBuffer, { failOn: 'none' })
-    .rotate()
-    .resize({
-      width: MAX_OUTPUT_DIMENSION,
-      height: MAX_OUTPUT_DIMENSION,
-      fit: 'inside',
-      withoutEnlargement: true,
-    })
-    .normalize()
-    .modulate({ brightness: 1.02, saturation: 1.01 })
-    .sharpen({ sigma: 1.15, m1: 0.3, m2: 1.3 });
+  let pipeline = sharp(imageBuffer, { failOn: 'none' }).rotate().resize({
+    width: MAX_OUTPUT_DIMENSION,
+    height: MAX_OUTPUT_DIMENSION,
+    fit: 'inside',
+    withoutEnlargement: true,
+  });
+
+  if (processingMode === 'map_document' || processingMode === 'color_document') {
+    pipeline = pipeline
+      .toColourspace('srgb')
+      .gamma(1.018)
+      .modulate({ brightness: 1.006, saturation: 1.015 })
+      .linear(1.02, -1)
+      .sharpen({ sigma: 0.58, m1: 0.08, m2: 0.55 });
+  } else {
+    pipeline = pipeline
+      .normalize()
+      .gamma(1.04)
+      .modulate({ brightness: 1.01, saturation: 1 })
+      .sharpen({ sigma: 0.85, m1: 0.18, m2: 0.95 });
+  }
 
   if (format === 'png') {
     pipeline = pipeline.png({ compressionLevel: 4, adaptiveFiltering: true });
@@ -184,9 +383,11 @@ export async function processDocumentImage(
   }
 
   const preserveColors = options?.preserveColors ?? true;
+  const analysis = await analyzeImageBuffer(imageBuffer);
+  const processingMode = decideProcessingMode(options?.processingMode, analysis);
   const outputFormat = options?.outputFormat ?? 'jpeg';
   const quality = Math.min(100, Math.max(60, options?.quality ?? 92));
-  const warnings: string[] = [];
+  const warnings: string[] = buildWarnings(analysis, manualCorners, assistedImageBuffer);
 
   const originalMetadata = await sharp(imageBuffer, { failOn: 'none' }).metadata();
   const originalWidth = originalMetadata.width ?? 0;
@@ -201,7 +402,8 @@ export async function processDocumentImage(
       assistedImageBuffer,
       outputFormat,
       quality,
-      preserveColors
+      preserveColors,
+      processingMode
     );
     const thumbnailBuffer = await createThumbnail(finalized.buffer);
     return {
@@ -217,11 +419,22 @@ export async function processDocumentImage(
         height: finalized.height,
         originalWidth,
         originalHeight,
+        documentClass: analysis.kind,
+        decision: 'frontend_assisted',
+        analysis: {
+          paperLikeRatio: Number(analysis.paperLikeRatio.toFixed(3)),
+          colorRatio: Number(analysis.colorRatio.toFixed(3)),
+          edgeDensity: Number(analysis.edgeDensity.toFixed(3)),
+          dynamicRange: Number(analysis.dynamicRange.toFixed(3)),
+          fillFrameLikelihood: Number(analysis.fillFrameLikelihood.toFixed(3)),
+        },
         corners: manualCorners,
-        warnings:
-          assistedMime !== finalized.mimeType
+        warnings: [
+          ...(assistedMime !== finalized.mimeType
             ? ['Imagem corrigida no frontend e reencodada no backend.']
-            : undefined,
+            : []),
+          ...warnings,
+        ].filter(Boolean),
       },
     };
   }
@@ -236,7 +449,8 @@ export async function processDocumentImage(
         processed.buffer,
         outputFormat,
         quality,
-        preserveColors
+        preserveColors,
+        processingMode
       );
       const thumbnailBuffer = await createThumbnail(finalized.buffer);
       return {
@@ -252,10 +466,22 @@ export async function processDocumentImage(
           height: finalized.height,
           originalWidth,
           originalHeight,
+          documentClass: analysis.kind,
+          decision: pythonResult.fallbackUsado ? 'safe_fallback' : 'python_detected',
+          analysis: {
+            paperLikeRatio: Number(analysis.paperLikeRatio.toFixed(3)),
+            colorRatio: Number(analysis.colorRatio.toFixed(3)),
+            edgeDensity: Number(analysis.edgeDensity.toFixed(3)),
+            dynamicRange: Number(analysis.dynamicRange.toFixed(3)),
+            fillFrameLikelihood: Number(analysis.fillFrameLikelihood.toFixed(3)),
+          },
           corners: manualCorners,
-          warnings: pythonResult.fallbackUsado
-            ? ['Nao foi possivel detectar a folha com seguranca. Aplicado fallback seguro.']
-            : undefined,
+          warnings: [
+            ...(pythonResult.fallbackUsado
+              ? ['Nao foi possivel detectar a folha com seguranca. Aplicado fallback seguro.']
+              : []),
+            ...warnings,
+          ].filter(Boolean),
         },
       };
     }
@@ -267,7 +493,13 @@ export async function processDocumentImage(
     );
   }
 
-  const fallback = await processWithSharpFallback(imageBuffer, outputFormat, quality, warnings);
+  const fallback = await processWithSharpFallback(
+    imageBuffer,
+    outputFormat,
+    quality,
+    processingMode,
+    warnings
+  );
   const thumbnailBuffer = await createThumbnail(fallback.buffer);
   return {
     success: true,
@@ -282,6 +514,16 @@ export async function processDocumentImage(
       height: fallback.height,
       originalWidth,
       originalHeight,
+      documentClass: analysis.kind,
+      decision:
+        analysis.kind === 'low_confidence_capture' ? 'manual_review_recommended' : 'safe_fallback',
+      analysis: {
+        paperLikeRatio: Number(analysis.paperLikeRatio.toFixed(3)),
+        colorRatio: Number(analysis.colorRatio.toFixed(3)),
+        edgeDensity: Number(analysis.edgeDensity.toFixed(3)),
+        dynamicRange: Number(analysis.dynamicRange.toFixed(3)),
+        fillFrameLikelihood: Number(analysis.fillFrameLikelihood.toFixed(3)),
+      },
       corners: manualCorners,
       warnings,
     },

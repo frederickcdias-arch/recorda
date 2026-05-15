@@ -14,6 +14,8 @@ import numpy as np
 DETECT_MAX = 1400
 OUTPUT_MAX = 2600
 MIN_CONFIDENCE = 0.58
+OUTPUT_MARGIN_RATIO = 0.018
+FRINGE_CROP_RATIO = 0.004
 
 
 @dataclass
@@ -211,26 +213,77 @@ def output_size_from_quad(quad: np.ndarray) -> tuple[int, int]:
 def reduce_shadows_and_balance(image: np.ndarray) -> np.ndarray:
     lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
     l_channel, a_channel, b_channel = cv2.split(lab)
-    clahe = cv2.createCLAHE(clipLimit=1.6, tileGridSize=(8, 8))
+    clahe = cv2.createCLAHE(clipLimit=1.25, tileGridSize=(8, 8))
     l_eq = clahe.apply(l_channel)
 
-    blur = cv2.GaussianBlur(l_eq, (0, 0), sigmaX=17, sigmaY=17)
-    normalized = cv2.divide(l_eq, blur, scale=164)
-    normalized = cv2.addWeighted(l_eq, 0.68, normalized, 0.32, 0)
+    blur = cv2.GaussianBlur(l_eq, (0, 0), sigmaX=21, sigmaY=21)
+    normalized = cv2.divide(l_eq, blur, scale=156)
+    normalized = cv2.addWeighted(l_eq, 0.82, normalized, 0.18, 0)
     merged = cv2.merge((normalized.astype(np.uint8), a_channel, b_channel))
     return cv2.cvtColor(merged, cv2.COLOR_LAB2BGR)
 
 
 def denoise_and_sharpen(image: np.ndarray) -> np.ndarray:
-    denoised = cv2.fastNlMeansDenoisingColored(image, None, 2, 2, 7, 15)
-    blur = cv2.GaussianBlur(denoised, (0, 0), sigmaX=0.9, sigmaY=0.9)
-    sharpened = cv2.addWeighted(denoised, 1.08, blur, -0.08, 0)
+    denoised = cv2.fastNlMeansDenoisingColored(image, None, 2, 2, 7, 11)
+    blur = cv2.GaussianBlur(denoised, (0, 0), sigmaX=0.75, sigmaY=0.75)
+    sharpened = cv2.addWeighted(denoised, 1.04, blur, -0.04, 0)
     return np.clip(sharpened, 0, 255).astype(np.uint8)
 
 
-def enhance_document(image: np.ndarray) -> np.ndarray:
+def clean_paper_background(image: np.ndarray) -> np.ndarray:
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    edges = cv2.Canny(gray, 70, 160)
+    edges = cv2.dilate(edges, cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3)), iterations=1)
+    blur = cv2.GaussianBlur(gray, (0, 0), sigmaX=27, sigmaY=27)
+
+    paper_mask = ((gray > 138) & (hsv[:, :, 1] < 46) & (edges == 0)).astype(np.uint8) * 255
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+    paper_mask = cv2.morphologyEx(paper_mask, cv2.MORPH_OPEN, kernel, iterations=1)
+    paper_mask = cv2.morphologyEx(paper_mask, cv2.MORPH_CLOSE, kernel, iterations=2)
+
+    result = image.astype(np.float32)
+    gray_f = gray.astype(np.float32)
+    blur_f = blur.astype(np.float32)
+    edge_gap = np.abs(gray_f - blur_f)
+    lift = np.clip((248.0 - blur_f) / 95.0, 0.0, 0.42) + 0.08
+    lift *= np.clip((170.0 - edge_gap) / 170.0, 0.0, 1.0)
+    target = np.full_like(result, 246.0)
+    mask = (paper_mask > 0)[..., None]
+    result = np.where(mask, result * (1.0 - lift[..., None]) + target * lift[..., None], result)
+
+    height, width = gray.shape[:2]
+    band = max(6, int(round(min(height, width) * 0.018)))
+    outer = np.zeros_like(gray, dtype=bool)
+    outer[:band, :] = True
+    outer[-band:, :] = True
+    outer[:, :band] = True
+    outer[:, -band:] = True
+    outer_mask = outer & (hsv[:, :, 1] < 52) & (gray > 128) & (edge_gap < 18) & (edges == 0)
+    result[outer_mask] = 247.0
+
+    return np.clip(result, 0, 255).astype(np.uint8)
+
+
+def enhance_document(image: np.ndarray, *, clean_paper: bool = True) -> np.ndarray:
     balanced = reduce_shadows_and_balance(image)
-    return denoise_and_sharpen(balanced)
+    sharpened = denoise_and_sharpen(balanced)
+    if clean_paper:
+        return clean_paper_background(sharpened)
+    return sharpened
+
+
+def add_scan_margin(image: np.ndarray) -> np.ndarray:
+    height, width = image.shape[:2]
+    crop = max(1, int(round(min(height, width) * FRINGE_CROP_RATIO)))
+    if width > crop * 2 + 8 and height > crop * 2 + 8:
+        image = image[crop : height - crop, crop : width - crop]
+        height, width = image.shape[:2]
+
+    margin = max(8, int(round(min(height, width) * OUTPUT_MARGIN_RATIO)))
+    canvas = np.full((height + margin * 2, width + margin * 2, 3), 245, dtype=np.uint8)
+    canvas[margin : margin + height, margin : margin + width] = image
+    return canvas
 
 
 def warp_document(image: np.ndarray, quad: np.ndarray) -> tuple[np.ndarray, tuple[int, int]]:
@@ -246,7 +299,8 @@ def warp_document(image: np.ndarray, quad: np.ndarray) -> tuple[np.ndarray, tupl
         matrix,
         (out_w, out_h),
         flags=cv2.INTER_CUBIC,
-        borderMode=cv2.BORDER_REPLICATE,
+        borderMode=cv2.BORDER_CONSTANT,
+        borderValue=(245, 245, 245),
     )
     return warped, (out_w, out_h)
 
@@ -280,7 +334,9 @@ def process_document_image(input_path: str, output_path: str) -> dict[str, Any]:
 
     if detection.corners is not None and detection.confidence >= MIN_CONFIDENCE:
         processed, (width, height) = warp_document(source, detection.corners)
-        processed = enhance_document(processed)
+        processed = enhance_document(processed, clean_paper=True)
+        processed = add_scan_margin(processed)
+        height, width = processed.shape[:2]
         output_file = write_output(processed, output_path)
         return {
             'success': True,
@@ -291,7 +347,8 @@ def process_document_image(input_path: str, output_path: str) -> dict[str, Any]:
             'output_format': Path(output_file).suffix.lower().lstrip('.'),
         }
 
-    fallback = enhance_document(source)
+    fallback = enhance_document(source, clean_paper=False)
+    fallback = add_scan_margin(fallback)
     height, width = fallback.shape[:2]
     output_file = write_output(fallback, output_path)
     return {

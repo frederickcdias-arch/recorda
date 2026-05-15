@@ -47,6 +47,23 @@ interface ProcessarResponse {
     confidence: number | null;
     fallback: boolean;
     metadata: {
+      documentClass?:
+        | 'map_document'
+        | 'color_document'
+        | 'text_document'
+        | 'low_confidence_capture';
+      decision?:
+        | 'frontend_assisted'
+        | 'python_detected'
+        | 'safe_fallback'
+        | 'manual_review_recommended';
+      analysis?: {
+        paperLikeRatio: number;
+        colorRatio: number;
+        edgeDensity: number;
+        dynamicRange: number;
+        fillFrameLikelihood: number;
+      };
       warnings?: string[];
       [key: string]: unknown;
     } | null;
@@ -163,6 +180,40 @@ function getProcessingBadge(result: ProcessarResponse | null): string {
 function formatConfidence(confidence: number | null): string | null {
   if (confidence === null || Number.isNaN(confidence)) return null;
   return `${Math.round(confidence * 100)}%`;
+}
+
+function formatDocumentClass(result: ProcessarResponse | null): string | null {
+  const kind = result?.processamento.metadata?.documentClass;
+  if (!kind) return null;
+  switch (kind) {
+    case 'map_document':
+      return 'Mapa colorido';
+    case 'color_document':
+      return 'Documento colorido';
+    case 'text_document':
+      return 'Documento de texto';
+    case 'low_confidence_capture':
+      return 'Captura de baixa confianca';
+    default:
+      return null;
+  }
+}
+
+function getDecisionHint(result: ProcessarResponse | null): string | null {
+  const decision = result?.processamento.metadata?.decision;
+  if (!decision) return null;
+  switch (decision) {
+    case 'frontend_assisted':
+      return 'Bordas revisadas no frontend';
+    case 'python_detected':
+      return 'Folha detectada automaticamente';
+    case 'manual_review_recommended':
+      return 'Revisao manual recomendada';
+    case 'safe_fallback':
+      return 'Fallback seguro aplicado';
+    default:
+      return null;
+  }
 }
 
 const STATUS_LABEL: Record<ItemStatus, string> = {
@@ -883,12 +934,21 @@ export function CapturaMapaPage() {
                             {item.result.processamento.engine && (
                               <span>{item.result.processamento.engine}</span>
                             )}
+                            {formatDocumentClass(item.result) && (
+                              <span>{formatDocumentClass(item.result)}</span>
+                            )}
+                            {getDecisionHint(item.result) && (
+                              <span>{getDecisionHint(item.result)}</span>
+                            )}
                           </div>
                           {item.result.processamento.fallback && (
                             <p className="text-warning-700 dark:text-warning-300">
                               Nao conseguimos detectar a folha com seguranca. Salvamos a imagem
                               original com melhoria leve.
                             </p>
+                          )}
+                          {item.result.processamento.metadata?.warnings?.[0] && (
+                            <p>{item.result.processamento.metadata.warnings[0]}</p>
                           )}
                         </div>
                       )}
@@ -1070,6 +1130,12 @@ export function CapturaMapaPage() {
                   Confianca {formatConfidence(previewItem.result.processamento.confidence)}
                 </span>
               )}
+              {formatDocumentClass(previewItem.result) && (
+                <span>{formatDocumentClass(previewItem.result)}</span>
+              )}
+              {getDecisionHint(previewItem.result) && (
+                <span>{getDecisionHint(previewItem.result)}</span>
+              )}
               <span>{getProcessingBadge(previewItem.result)}</span>
             </div>
             {previewItem.result.processamento.fallback && (
@@ -1078,6 +1144,11 @@ export function CapturaMapaPage() {
                 melhoria leve.
               </p>
             )}
+            {previewItem.result.processamento.metadata?.warnings?.map((warning) => (
+              <p key={warning} className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                {warning}
+              </p>
+            ))}
           </div>
         )}
       </Modal>

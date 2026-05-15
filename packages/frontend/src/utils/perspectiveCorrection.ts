@@ -1164,12 +1164,32 @@ function warpCurvedDocumentCanvas(
   return outCanvas;
 }
 
+function addCleanScanMargin(canvas: HTMLCanvasElement): HTMLCanvasElement {
+  const fringe = Math.max(1, Math.round(Math.min(canvas.width, canvas.height) * 0.004));
+  const innerW = Math.max(1, canvas.width - fringe * 2);
+  const innerH = Math.max(1, canvas.height - fringe * 2);
+  const margin = Math.max(8, Math.round(Math.min(innerW, innerH) * 0.018));
+  const out = mkCanvas(innerW + margin * 2, innerH + margin * 2);
+  const octx = out.getContext('2d')!;
+  octx.fillStyle = 'rgb(245,245,245)';
+  octx.fillRect(0, 0, out.width, out.height);
+  octx.drawImage(canvas, fringe, fringe, innerW, innerH, margin, margin, innerW, innerH);
+  return out;
+}
+
 function enhanceScannedPage(canvas: HTMLCanvasElement): void {
   const ctx = canvas.getContext('2d')!;
   const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const d = img.data;
   const totalPixels = canvas.width * canvas.height;
   const originalLuma = new Uint8Array(totalPixels);
+  const blurCanvas = mkCanvas(canvas.width, canvas.height);
+  const blurCtx = blurCanvas.getContext('2d')!;
+  blurCtx.filter = `blur(${Math.max(12, Math.round(Math.min(canvas.width, canvas.height) * 0.012))}px)`;
+  blurCtx.drawImage(canvas, 0, 0);
+  blurCtx.filter = 'none';
+  const blurData = blurCtx.getImageData(0, 0, canvas.width, canvas.height).data;
+  const blurredLuma = new Uint8Array(totalPixels);
   const lumas: number[] = [];
   const step = Math.max(1, Math.floor((canvas.width * canvas.height) / 80000));
   for (let i = 0, p = 0; i < d.length; i += 4, p++) {
@@ -1177,12 +1197,16 @@ function enhanceScannedPage(canvas: HTMLCanvasElement): void {
       0,
       Math.min(255, d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114)
     );
+    blurredLuma[p] = Math.max(
+      0,
+      Math.min(255, blurData[i] * 0.299 + blurData[i + 1] * 0.587 + blurData[i + 2] * 0.114)
+    );
     if (p % step !== 0) continue;
     lumas.push(originalLuma[p]);
   }
   const black = percentileOf([...lumas], 0.04);
-  const white = percentileOf([...lumas], 0.93);
-  const span = Math.max(40, white - black);
+  const white = percentileOf([...lumas], 0.965);
+  const span = Math.max(52, white - black);
   let colorMinX = canvas.width;
   let colorMinY = canvas.height;
   let colorMaxX = 0;
@@ -1212,6 +1236,7 @@ function enhanceScannedPage(canvas: HTMLCanvasElement): void {
   colorMinY = Math.max(0, colorMinY - pad);
   colorMaxX = Math.min(canvas.width - 1, colorMaxX + pad);
   colorMaxY = Math.min(canvas.height - 1, colorMaxY + pad);
+  const borderBand = Math.max(6, Math.round(Math.min(canvas.width, canvas.height) * 0.018));
 
   for (let i = 0, p = 0; i < d.length; i += 4, p++) {
     const r = d[i];
@@ -1219,69 +1244,48 @@ function enhanceScannedPage(canvas: HTMLCanvasElement): void {
     const b = d[i + 2];
     const luma = r * 0.299 + g * 0.587 + b * 0.114;
     const chroma = Math.max(r, g, b) - Math.min(r, g, b);
-    const target = Math.max(0, Math.min(255, ((luma - black) / span) * 238 + 10));
+    const blurL = blurredLuma[p];
+    const edgeStrength = Math.abs(luma - blurL);
+    const target = Math.max(0, Math.min(255, ((luma - black) / span) * 236 + 8));
     const factor = luma > 1 ? target / luma : 1;
-    let nr = Math.max(0, Math.min(255, r * factor));
-    let ng = Math.max(0, Math.min(255, g * factor));
-    let nb = Math.max(0, Math.min(255, b * factor));
-    const maxC = Math.max(nr, ng, nb);
-    const minC = Math.min(nr, ng, nb);
     const x = p % canvas.width;
     const y = (p / canvas.width) | 0;
     const insideColorMap =
       hasColorMap && x >= colorMinX && x <= colorMaxX && y >= colorMinY && y <= colorMaxY;
-    let localMinLuma = 255;
-    let localMaxLuma = 0;
-    for (let dy = -2; dy <= 2; dy++) {
-      const yy = y + dy;
-      if (yy < 0 || yy >= canvas.height) continue;
-      for (let dx = -2; dx <= 2; dx++) {
-        const xx = x + dx;
-        if (xx < 0 || xx >= canvas.width) continue;
-        const neighborLuma = originalLuma[yy * canvas.width + xx];
-        localMinLuma = Math.min(localMinLuma, neighborLuma);
-        localMaxLuma = Math.max(localMaxLuma, neighborLuma);
-      }
-    }
-    const localSpread = localMaxLuma - localMinLuma;
+    const preserveColor = insideColorMap || chroma > 38;
+    const keep = preserveColor ? 0.9 : 0.72;
+    let nr = Math.max(0, Math.min(255, r * keep + r * factor * (1 - keep)));
+    let ng = Math.max(0, Math.min(255, g * keep + g * factor * (1 - keep)));
+    let nb = Math.max(0, Math.min(255, b * keep + b * factor * (1 - keep)));
+    const paperCandidate =
+      chroma < (insideColorMap ? 22 : 32) &&
+      luma > 128 &&
+      edgeStrength < (insideColorMap ? 12 : 18);
 
-    if (
-      target > 166 &&
-      maxC - minC < (insideColorMap ? 20 : 56) &&
-      localSpread < (insideColorMap ? 12 : 22)
-    ) {
-      const paper = Math.max(target, 232);
-      const keep = insideColorMap ? 0.55 : 0.22;
-      const lift = 1 - keep;
-      nr = nr * keep + paper * lift;
-      ng = ng * keep + paper * lift;
-      nb = nb * keep + paper * lift;
+    if (paperCandidate) {
+      const shadowLift = Math.max(0, Math.min(0.42, (246 - blurL) / 92));
+      const paper = insideColorMap ? 242 : 247;
+      const whiten = insideColorMap ? 0.08 + shadowLift * 0.3 : 0.18 + shadowLift;
+      nr = nr * (1 - whiten) + paper * whiten;
+      ng = ng * (1 - whiten) + paper * whiten;
+      nb = nb * (1 - whiten) + paper * whiten;
+    } else if (chroma < 28 && luma > 136 && edgeStrength < 22) {
+      const paper = insideColorMap ? 241 : 246;
+      const whiten = insideColorMap ? 0.05 : 0.12;
+      nr = nr * (1 - whiten) + paper * whiten;
+      ng = ng * (1 - whiten) + paper * whiten;
+      nb = nb * (1 - whiten) + paper * whiten;
     }
 
-    const shadowChromaLimit = insideColorMap ? 20 : 82;
-    const shadowLumaLimit = insideColorMap ? 215 : 42;
-    if (chroma < shadowChromaLimit && luma > shadowLumaLimit) {
-      let darkNeighborCount = 0;
-      for (let dy = -2; dy <= 2; dy++) {
-        const yy = y + dy;
-        if (yy < 0 || yy >= canvas.height) continue;
-        for (let dx = -2; dx <= 2; dx++) {
-          const xx = x + dx;
-          if (xx < 0 || xx >= canvas.width) continue;
-          if (originalLuma[yy * canvas.width + xx] < 88) {
-            darkNeighborCount++;
-          }
-        }
-      }
-
-      if ((darkNeighborCount < 3 || luma > 118) && localSpread < (insideColorMap ? 10 : 24)) {
-        const paper = luma > 130 ? 252 : 247;
-        const keep = insideColorMap ? 0.4 : 0.03;
-        const lift = 1 - keep;
-        nr = nr * keep + paper * lift;
-        ng = ng * keep + paper * lift;
-        nb = nb * keep + paper * lift;
-      }
+    const inOuterBand =
+      x < borderBand ||
+      y < borderBand ||
+      x >= canvas.width - borderBand ||
+      y >= canvas.height - borderBand;
+    if (inOuterBand && chroma < 30 && luma > 126 && edgeStrength < 18) {
+      nr = 246;
+      ng = 246;
+      nb = 246;
     }
 
     d[i] = nr | 0;
@@ -1295,9 +1299,9 @@ function enhanceScannedPage(canvas: HTMLCanvasElement): void {
 function warpDocument(src: HTMLCanvasElement, geometry: DocumentGeometry): string {
   const safeGeometry = expandGeometry(geometry, src.width, src.height);
   const curved = warpCurvedDocumentCanvas(src, safeGeometry);
-  const canvas = curved || warpPerspectiveCanvas(src, safeGeometry.corners);
+  const canvas = addCleanScanMargin(curved || warpPerspectiveCanvas(src, safeGeometry.corners));
   enhanceScannedPage(canvas);
-  return canvas.toDataURL('image/jpeg', 0.92);
+  return canvas.toDataURL('image/jpeg', 0.93);
 }
 
 // ── API pública ───────────────────────────────────────────────────────────────

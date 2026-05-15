@@ -151,6 +151,23 @@ export function createCapturasMapaRoutes(): FastifyPluginAsync {
             | {
                 originalWidth?: number;
                 originalHeight?: number;
+                documentClass?:
+                  | 'map_document'
+                  | 'color_document'
+                  | 'text_document'
+                  | 'low_confidence_capture';
+                decision?:
+                  | 'frontend_assisted'
+                  | 'python_detected'
+                  | 'safe_fallback'
+                  | 'manual_review_recommended';
+                analysis?: {
+                  paperLikeRatio: number;
+                  colorRatio: number;
+                  edgeDensity: number;
+                  dynamicRange: number;
+                  fillFrameLikelihood: number;
+                };
                 corners?: ManualCorner[];
                 warnings?: string[];
               }
@@ -218,6 +235,9 @@ export function createCapturasMapaRoutes(): FastifyPluginAsync {
             originalHeight: metadata?.originalHeight ?? null,
             width: dimensoesFinais.width,
             height: dimensoesFinais.height,
+            documentClass: metadata?.documentClass ?? null,
+            decision: metadata?.decision ?? null,
+            analysis: metadata?.analysis ?? null,
             manualCorners: safeCorners ?? null,
             frontendCorrigida: Boolean(correctedPreview),
             warnings: metadata?.warnings ?? [],

@@ -9,6 +9,7 @@
     "start": "node dist/main.js",
     "typecheck": "tsc --noEmit",
     "migrate": "tsx src/infrastructure/database/migrate.ts",
+    "evaluate:documents": "tsx scripts/evaluate-document-pipeline.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:integration": "vitest run --reporter=verbose src/**/*.integration.test.ts"
