@@ -14,8 +14,12 @@ import numpy as np
 DETECT_MAX = 1400
 OUTPUT_MAX = 2600
 MIN_CONFIDENCE = 0.58
-OUTPUT_MARGIN_RATIO = 0.018
-FRINGE_CROP_RATIO = 0.004
+OUTPUT_MARGIN_RATIO = 0.03
+FRINGE_CROP_RATIO = 0.012
+MARGIN_FILL_VALUE = 248
+MANUAL_MODE_DEFAULT = 'faithful-document'
+# Reservado para um modo futuro mais agressivo, sem ativacao por padrao no fluxo manual.
+MANUAL_MODE_ENHANCED = 'enhanced-document'
 
 
 @dataclass
@@ -24,6 +28,47 @@ class DetectionResult:
     confidence: float
     fallback_used: bool
     message: str | None = None
+
+
+def build_postprocess_metadata(
+    *,
+    manual_mode: str | None = None,
+    border_cleanup: bool = True,
+    paper_normalization: str | bool = 'soft',
+    corners_source: str = 'auto-detect',
+    manual_corners_received: bool = False,
+    python_used: bool = True,
+    manual_finalize_used: bool = False,
+    isolate_exterior: bool = True,
+    shadow_balance: bool = True,
+    only_warp_and_margin: bool = False,
+) -> dict[str, Any]:
+    return {
+        'manualMode': manual_mode,
+        'cornersSource': corners_source,
+        'manualCornersReceived': manual_corners_received,
+        'pythonUsed': python_used,
+        'manualFinalizeUsed': manual_finalize_used,
+        'borderCleanup': border_cleanup,
+        'isolateExterior': isolate_exterior,
+        'marginMode': 'clean-white',
+        'paperNormalization': paper_normalization,
+        'shadowBalance': shadow_balance,
+        'onlyWarpAndMargin': only_warp_and_margin,
+        'contentPreserved': True,
+    }
+
+
+def load_corners_file(corners_file: str | None) -> np.ndarray | None:
+    if not corners_file:
+        return None
+    payload = json.loads(Path(corners_file).read_text(encoding='utf-8'))
+    if not isinstance(payload, list) or len(payload) != 4:
+        raise ValueError('Arquivo de cantos invalido: esperado array com 4 pontos.')
+    points = np.asarray([[float(p['x']), float(p['y'])] for p in payload], dtype=np.float32)
+    if points.shape != (4, 2):
+        raise ValueError('Arquivo de cantos invalido: formato incorreto.')
+    return order_points(points)
 
 
 def order_points(points: np.ndarray) -> np.ndarray:
@@ -210,6 +255,17 @@ def output_size_from_quad(quad: np.ndarray) -> tuple[int, int]:
     return max(1, int(round(width * scale))), max(1, int(round(height * scale)))
 
 
+def validate_supplied_corners(quad: np.ndarray, width: int, height: int) -> bool:
+    area_ratio = quad_area_ratio(quad, width, height)
+    if area_ratio < 0.12 or area_ratio > 0.98:
+        return False
+    if edge_balance(quad) < 0.55:
+        return False
+    if quad_border_margin_ratio(quad, width, height) < 0.002:
+        return False
+    return True
+
+
 def reduce_shadows_and_balance(image: np.ndarray) -> np.ndarray:
     lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
     l_channel, a_channel, b_channel = cv2.split(lab)
@@ -230,58 +286,162 @@ def denoise_and_sharpen(image: np.ndarray) -> np.ndarray:
     return np.clip(sharpened, 0, 255).astype(np.uint8)
 
 
-def clean_paper_background(image: np.ndarray) -> np.ndarray:
+def normalize_paper_tone(image: np.ndarray) -> np.ndarray:
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
     edges = cv2.Canny(gray, 70, 160)
     edges = cv2.dilate(edges, cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3)), iterations=1)
-    blur = cv2.GaussianBlur(gray, (0, 0), sigmaX=27, sigmaY=27)
+    illum = cv2.GaussianBlur(gray, (0, 0), sigmaX=31, sigmaY=31)
 
-    paper_mask = ((gray > 138) & (hsv[:, :, 1] < 46) & (edges == 0)).astype(np.uint8) * 255
+    paper_mask = ((gray > 142) & (hsv[:, :, 1] < 52) & (edges == 0)).astype(np.uint8) * 255
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
     paper_mask = cv2.morphologyEx(paper_mask, cv2.MORPH_OPEN, kernel, iterations=1)
     paper_mask = cv2.morphologyEx(paper_mask, cv2.MORPH_CLOSE, kernel, iterations=2)
 
     result = image.astype(np.float32)
     gray_f = gray.astype(np.float32)
-    blur_f = blur.astype(np.float32)
-    edge_gap = np.abs(gray_f - blur_f)
-    lift = np.clip((248.0 - blur_f) / 95.0, 0.0, 0.42) + 0.08
-    lift *= np.clip((170.0 - edge_gap) / 170.0, 0.0, 1.0)
+    illum_f = illum.astype(np.float32)
+    edge_gap = np.abs(gray_f - illum_f)
+    lift = np.clip((242.0 - illum_f) / 120.0, 0.0, 0.24) + 0.03
+    lift *= np.clip((135.0 - edge_gap) / 135.0, 0.0, 1.0)
     target = np.full_like(result, 246.0)
     mask = (paper_mask > 0)[..., None]
     result = np.where(mask, result * (1.0 - lift[..., None]) + target * lift[..., None], result)
+    return np.clip(result, 0, 255).astype(np.uint8)
+
+
+def build_page_mask(image: np.ndarray) -> np.ndarray | None:
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    mask = ((gray > 122) & (hsv[:, :, 1] < 96)).astype(np.uint8) * 255
+    mask = cv2.morphologyEx(
+        mask,
+        cv2.MORPH_CLOSE,
+        cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (11, 11)),
+        iterations=2,
+    )
+    mask = cv2.morphologyEx(
+        mask,
+        cv2.MORPH_OPEN,
+        cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5)),
+        iterations=1,
+    )
+
+    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    if not contours:
+        return None
 
     height, width = gray.shape[:2]
-    band = max(6, int(round(min(height, width) * 0.018)))
-    outer = np.zeros_like(gray, dtype=bool)
-    outer[:band, :] = True
-    outer[-band:, :] = True
-    outer[:, :band] = True
-    outer[:, -band:] = True
-    outer_mask = outer & (hsv[:, :, 1] < 52) & (gray > 128) & (edge_gap < 18) & (edges == 0)
-    result[outer_mask] = 247.0
+    image_area = float(height * width)
+    center = (width * 0.5, height * 0.5)
+    selected = None
+    selected_area = 0.0
 
+    for contour in contours:
+        area = cv2.contourArea(contour)
+        area_ratio = area / max(image_area, 1.0)
+        if area_ratio < 0.32 or area_ratio > 0.97:
+            continue
+        if cv2.pointPolygonTest(contour, center, False) < 0:
+            continue
+        if area > selected_area:
+            selected = contour
+            selected_area = area
+
+    if selected is None:
+        return None
+
+    page_mask = np.zeros_like(gray, dtype=np.uint8)
+    cv2.drawContours(page_mask, [selected], -1, 255, thickness=cv2.FILLED)
+    page_mask = cv2.dilate(
+        page_mask,
+        cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7)),
+        iterations=1,
+    )
+    return page_mask
+
+
+def clean_border_noise(image: np.ndarray, page_mask: np.ndarray | None = None) -> np.ndarray:
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    local_blur = cv2.GaussianBlur(gray, (0, 0), sigmaX=9, sigmaY=9)
+    local_gap = np.abs(gray.astype(np.float32) - local_blur.astype(np.float32))
+    edges = cv2.Canny(gray, 60, 150)
+    edges = cv2.dilate(edges, cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5)), iterations=1)
+
+    height, width = gray.shape[:2]
+    if page_mask is not None and np.any(page_mask > 0):
+        distance_to_exterior = cv2.distanceTransform((page_mask > 0).astype(np.uint8), cv2.DIST_L2, 3)
+        inner_band = distance_to_exterior <= max(10.0, min(height, width) * 0.024)
+        bottom_guard = np.zeros_like(gray, dtype=bool)
+        footer_limit = max(18, int(round(height * 0.13)))
+        bottom_guard[-footer_limit:, :] = True
+        outer_zone = inner_band | ((page_mask > 0) & bottom_guard & (distance_to_exterior <= max(12.0, height * 0.032)))
+    else:
+        top_band = max(10, int(round(height * 0.022)))
+        side_band = max(10, int(round(width * 0.02)))
+        bottom_band = max(14, int(round(height * 0.03)))
+        outer_zone = np.zeros_like(gray, dtype=bool)
+        outer_zone[:top_band, :] = True
+        outer_zone[-bottom_band:, :] = True
+        outer_zone[:, :side_band] = True
+        outer_zone[:, -side_band:] = True
+
+    protect = (edges > 0) | (gray < 108) | (hsv[:, :, 1] > 88)
+    candidate = outer_zone & ~protect & (gray > 136) & (local_gap < 16)
+    candidate = cv2.morphologyEx(
+        candidate.astype(np.uint8) * 255,
+        cv2.MORPH_CLOSE,
+        cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5)),
+        iterations=1,
+    ) > 0
+
+    alpha = np.clip((gray.astype(np.float32) - 142.0) / 64.0, 0.0, 0.46)
+    alpha *= candidate.astype(np.float32)
+    alpha = cv2.GaussianBlur(alpha, (0, 0), sigmaX=2.8, sigmaY=2.8)
+
+    result = image.astype(np.float32)
+    target = np.full_like(result, float(MARGIN_FILL_VALUE))
+    result = result * (1.0 - alpha[..., None]) + target * alpha[..., None]
     return np.clip(result, 0, 255).astype(np.uint8)
+
+
+def isolate_document_exterior(image: np.ndarray) -> np.ndarray:
+    page_mask = build_page_mask(image)
+    if page_mask is None:
+        return image
+
+    result = np.full_like(image, MARGIN_FILL_VALUE)
+    keep = page_mask > 0
+    result[keep] = image[keep]
+    return result
 
 
 def enhance_document(image: np.ndarray, *, clean_paper: bool = True) -> np.ndarray:
     balanced = reduce_shadows_and_balance(image)
     sharpened = denoise_and_sharpen(balanced)
     if clean_paper:
-        return clean_paper_background(sharpened)
+        normalized = normalize_paper_tone(sharpened)
+        page_mask = build_page_mask(normalized)
+        isolated = isolate_document_exterior(normalized) if page_mask is not None else normalized
+        return clean_border_noise(isolated, page_mask)
     return sharpened
 
 
-def add_scan_margin(image: np.ndarray) -> np.ndarray:
+def finalize_manual_document(image: np.ndarray) -> np.ndarray:
+    balanced = reduce_shadows_and_balance(image)
+    return normalize_paper_tone(balanced)
+
+
+def add_scan_margin(image: np.ndarray, *, trim_fringe: bool = True) -> np.ndarray:
     height, width = image.shape[:2]
-    crop = max(1, int(round(min(height, width) * FRINGE_CROP_RATIO)))
-    if width > crop * 2 + 8 and height > crop * 2 + 8:
+    crop = max(1, int(round(min(height, width) * FRINGE_CROP_RATIO))) if trim_fringe else 0
+    if crop > 0 and width > crop * 2 + 8 and height > crop * 2 + 8:
         image = image[crop : height - crop, crop : width - crop]
         height, width = image.shape[:2]
 
     margin = max(8, int(round(min(height, width) * OUTPUT_MARGIN_RATIO)))
-    canvas = np.full((height + margin * 2, width + margin * 2, 3), 245, dtype=np.uint8)
+    canvas = np.full((height + margin * 2, width + margin * 2, 3), MARGIN_FILL_VALUE, dtype=np.uint8)
     canvas[margin : margin + height, margin : margin + width] = image
     return canvas
 
@@ -318,7 +478,7 @@ def write_output(image: np.ndarray, output_path: str) -> str:
     return str(out_path)
 
 
-def process_document_image(input_path: str, output_path: str) -> dict[str, Any]:
+def process_document_image(input_path: str, output_path: str, corners_file: str | None = None) -> dict[str, Any]:
     source = cv2.imread(input_path, cv2.IMREAD_COLOR)
     if source is None:
         return {
@@ -329,6 +489,34 @@ def process_document_image(input_path: str, output_path: str) -> dict[str, Any]:
             'fallback_used': True,
             'error': f'Nao foi possivel abrir a imagem: {input_path}',
         }
+
+    supplied_corners = load_corners_file(corners_file)
+    if supplied_corners is not None:
+        height, width = source.shape[:2]
+        if validate_supplied_corners(supplied_corners, width, height):
+            processed, _ = warp_document(source, supplied_corners)
+            processed = add_scan_margin(processed, trim_fringe=False)
+            out_h, out_w = processed.shape[:2]
+            output_file = write_output(processed, output_path)
+            return {
+                'success': True,
+                'output_path': output_file,
+                'confidence': 0.995,
+                'final_dimensions': {'width': out_w, 'height': out_h},
+                'fallback_used': False,
+                'output_format': Path(output_file).suffix.lower().lstrip('.'),
+                'postprocess': build_postprocess_metadata(
+                    manual_mode=MANUAL_MODE_DEFAULT,
+                    border_cleanup=False,
+                    corners_source='manual',
+                    manual_corners_received=True,
+                    manual_finalize_used=False,
+                    isolate_exterior=False,
+                    paper_normalization=False,
+                    shadow_balance=False,
+                    only_warp_and_margin=True,
+                ),
+            }
 
     detection = detect_document(source)
 
@@ -345,6 +533,12 @@ def process_document_image(input_path: str, output_path: str) -> dict[str, Any]:
             'final_dimensions': {'width': width, 'height': height},
             'fallback_used': False,
             'output_format': Path(output_file).suffix.lower().lstrip('.'),
+            'postprocess': build_postprocess_metadata(
+                corners_source='auto-detect',
+                manual_corners_received=False,
+                manual_finalize_used=False,
+                isolate_exterior=True,
+            ),
         }
 
     fallback = enhance_document(source, clean_paper=False)
@@ -359,6 +553,14 @@ def process_document_image(input_path: str, output_path: str) -> dict[str, Any]:
         'fallback_used': True,
         'output_format': Path(output_file).suffix.lower().lstrip('.'),
         'error': detection.message,
+        'postprocess': build_postprocess_metadata(
+            border_cleanup=False,
+            corners_source='fallback',
+            manual_corners_received=False,
+            manual_finalize_used=False,
+            isolate_exterior=False,
+            paper_normalization='minimal',
+        ),
     }
 
 
@@ -366,6 +568,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description='Recorda document image processor')
     parser.add_argument('--input', required=True, dest='input_path')
     parser.add_argument('--output', required=True, dest='output_path')
+    parser.add_argument('--corners-file', dest='corners_file')
     parser.add_argument('--json', action='store_true', dest='emit_json')
     return parser
 
@@ -373,7 +576,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
 def main() -> int:
     parser = build_arg_parser()
     args = parser.parse_args()
-    result = process_document_image(args.input_path, args.output_path)
+    result = process_document_image(args.input_path, args.output_path, args.corners_file)
     if args.emit_json:
         print(json.dumps(result, ensure_ascii=True))
     else:

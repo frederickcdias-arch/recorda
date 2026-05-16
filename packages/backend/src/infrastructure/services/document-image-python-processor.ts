@@ -15,7 +15,21 @@ export interface PythonDocumentProcessorResult {
     width: number;
     height: number;
   };
-  processador: 'python-opencv';
+  processador: 'python-opencv' | 'opencv-manual-corners' | 'opencv-detected-corners';
+  postprocess?: {
+    manualMode?: string | null;
+    cornersSource: string;
+    manualCornersReceived: boolean;
+    pythonUsed: boolean;
+    manualFinalizeUsed: boolean;
+    borderCleanup: boolean;
+    isolateExterior: boolean;
+    marginMode: string;
+    paperNormalization: string | boolean;
+    shadowBalance: boolean;
+    onlyWarpAndMargin?: boolean;
+    contentPreserved: boolean;
+  };
 }
 
 interface PythonDocumentProcessorPayload {
@@ -29,6 +43,25 @@ interface PythonDocumentProcessorPayload {
   fallback_used: boolean;
   error?: string;
   output_format?: string;
+  postprocess?: {
+    manualMode?: string | null;
+    cornersSource?: string;
+    manualCornersReceived?: boolean;
+    pythonUsed?: boolean;
+    manualFinalizeUsed?: boolean;
+    borderCleanup?: boolean;
+    isolateExterior?: boolean;
+    marginMode?: string;
+    paperNormalization?: string | boolean;
+    shadowBalance?: boolean;
+    onlyWarpAndMargin?: boolean;
+    contentPreserved?: boolean;
+  };
+}
+
+export interface PythonProcessorCornersInput {
+  points: Array<{ x: number; y: number }>;
+  source: 'manual' | 'detected';
 }
 
 const serviceDir = path.dirname(fileURLToPath(import.meta.url));
@@ -104,14 +137,15 @@ function outputMimeType(format?: string): string {
 async function runPythonProcessor(
   scriptPath: string,
   inputPath: string,
-  outputPath: string
+  outputPath: string,
+  cornersFilePath?: string
 ): Promise<PythonDocumentProcessorPayload> {
   if (config.documentProcessor.runtime === 'docker') {
-    return await runDockerProcessor(scriptPath, inputPath, outputPath);
+    return await runDockerProcessor(scriptPath, inputPath, outputPath, cornersFilePath);
   }
 
   try {
-    return await runLocalPythonProcessor(scriptPath, inputPath, outputPath);
+    return await runLocalPythonProcessor(scriptPath, inputPath, outputPath, cornersFilePath);
   } catch (error) {
     const shouldTryDocker =
       config.documentProcessor.runtime === 'auto' &&
@@ -123,17 +157,21 @@ async function runPythonProcessor(
       throw error;
     }
 
-    return await runDockerProcessor(scriptPath, inputPath, outputPath);
+    return await runDockerProcessor(scriptPath, inputPath, outputPath, cornersFilePath);
   }
 }
 
 async function runLocalPythonProcessor(
   scriptPath: string,
   inputPath: string,
-  outputPath: string
+  outputPath: string,
+  cornersFilePath?: string
 ): Promise<PythonDocumentProcessorPayload> {
   return await new Promise((resolve, reject) => {
     const args = [scriptPath, '--input', inputPath, '--output', outputPath, '--json'];
+    if (cornersFilePath) {
+      args.push('--corners-file', cornersFilePath);
+    }
     const child = spawn(config.documentProcessor.pythonBinary, args, {
       cwd: process.cwd(),
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -174,7 +212,8 @@ async function runLocalPythonProcessor(
 async function runDockerProcessor(
   scriptPath: string,
   inputPath: string,
-  outputPath: string
+  outputPath: string,
+  cornersFilePath?: string
 ): Promise<PythonDocumentProcessorPayload> {
   const dockerImage = config.documentProcessor.dockerImage.trim();
   if (!dockerImage) {
@@ -188,14 +227,19 @@ async function runDockerProcessor(
   const containerScriptPath = toContainerPath(path.relative(workspacePath, scriptPath));
   const containerInputPath = `/work/${path.basename(inputPath)}`;
   const containerOutputPath = `/work/${path.basename(outputPath)}`;
+  const containerCornersPath = cornersFilePath ? `/work/${path.basename(cornersFilePath)}` : null;
   const bootstrap = config.documentProcessor.dockerBootstrap.trim();
   const commandParts = bootstrap
     ? [
         bootstrap,
-        `python ${containerScriptPath} --input ${containerInputPath} --output ${containerOutputPath} --json`,
+        `python ${containerScriptPath} --input ${containerInputPath} --output ${containerOutputPath} --json${
+          containerCornersPath ? ` --corners-file ${containerCornersPath}` : ''
+        }`,
       ]
     : [
-        `python ${containerScriptPath} --input ${containerInputPath} --output ${containerOutputPath} --json`,
+        `python ${containerScriptPath} --input ${containerInputPath} --output ${containerOutputPath} --json${
+          containerCornersPath ? ` --corners-file ${containerCornersPath}` : ''
+        }`,
       ];
 
   return await new Promise((resolve, reject) => {
@@ -266,7 +310,8 @@ async function runDockerProcessor(
 }
 
 export async function tryProcessDocumentImageWithPython(
-  imagemBase64: string
+  imagemBase64: string,
+  cornersInput?: PythonProcessorCornersInput
 ): Promise<PythonDocumentProcessorResult | null> {
   if (!config.documentProcessor.enabled) {
     return null;
@@ -279,12 +324,16 @@ export async function tryProcessDocumentImageWithPython(
   const tempDir = path.join(tempRoot, randomUUID());
   const inputPath = path.join(tempDir, `input${imageExtensionFromMimeType(mimeType)}`);
   const outputPath = path.join(tempDir, 'output.jpg');
+  const cornersFilePath = cornersInput ? path.join(tempDir, 'corners.json') : undefined;
 
   await fs.mkdir(tempDir, { recursive: true });
 
   try {
     await fs.writeFile(inputPath, buffer);
-    const payload = await runPythonProcessor(scriptPath, inputPath, outputPath);
+    if (cornersFilePath && cornersInput) {
+      await fs.writeFile(cornersFilePath, JSON.stringify(cornersInput.points), 'utf8');
+    }
+    const payload = await runPythonProcessor(scriptPath, inputPath, outputPath, cornersFilePath);
     if (!payload.success) {
       throw new Error(payload.error || 'Processamento do documento falhou.');
     }
@@ -303,7 +352,52 @@ export async function tryProcessDocumentImageWithPython(
       confiancaDeteccao: payload.confidence,
       fallbackUsado: payload.fallback_used,
       dimensoesFinais: payload.final_dimensions,
-      processador: 'python-opencv',
+      processador: cornersInput
+        ? cornersInput.source === 'manual'
+          ? 'opencv-manual-corners'
+          : 'opencv-detected-corners'
+        : 'python-opencv',
+      postprocess: payload.postprocess
+        ? {
+            manualMode: payload.postprocess.manualMode ?? null,
+            cornersSource:
+              payload.postprocess.cornersSource || (cornersInput?.source ?? 'auto-detect'),
+            manualCornersReceived:
+              payload.postprocess.manualCornersReceived === undefined
+                ? Boolean(cornersInput?.source === 'manual')
+                : Boolean(payload.postprocess.manualCornersReceived),
+            pythonUsed:
+              payload.postprocess.pythonUsed === undefined
+                ? true
+                : Boolean(payload.postprocess.pythonUsed),
+            manualFinalizeUsed:
+              payload.postprocess.manualFinalizeUsed === undefined
+                ? Boolean(cornersInput?.source === 'manual')
+                : Boolean(payload.postprocess.manualFinalizeUsed),
+            borderCleanup: Boolean(payload.postprocess.borderCleanup),
+            isolateExterior:
+              payload.postprocess.isolateExterior === undefined
+                ? cornersInput?.source !== 'manual'
+                : Boolean(payload.postprocess.isolateExterior),
+            marginMode: payload.postprocess.marginMode || 'clean-white',
+            paperNormalization:
+              payload.postprocess.paperNormalization === undefined
+                ? 'soft'
+                : payload.postprocess.paperNormalization,
+            shadowBalance:
+              payload.postprocess.shadowBalance === undefined
+                ? true
+                : Boolean(payload.postprocess.shadowBalance),
+            onlyWarpAndMargin:
+              payload.postprocess.onlyWarpAndMargin === undefined
+                ? false
+                : Boolean(payload.postprocess.onlyWarpAndMargin),
+            contentPreserved:
+              payload.postprocess.contentPreserved === undefined
+                ? true
+                : Boolean(payload.postprocess.contentPreserved),
+          }
+        : undefined,
     };
   } finally {
     await fs.rm(tempDir, { recursive: true, force: true }).catch(() => undefined);

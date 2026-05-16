@@ -13,7 +13,12 @@ export interface ProcessMapImageResult {
     width: number;
     height: number;
   };
-  processador: 'python-opencv' | 'sharp-fallback' | 'frontend-assisted';
+  processador:
+    | 'python-opencv'
+    | 'opencv-manual-corners'
+    | 'opencv-detected-corners'
+    | 'sharp-fallback'
+    | 'frontend-assisted';
   thumbnailBase64?: string;
   metadata?: {
     originalWidth?: number;
@@ -22,6 +27,8 @@ export interface ProcessMapImageResult {
     decision?:
       | 'frontend_assisted'
       | 'python_detected'
+      | 'backend_manual_corners'
+      | 'backend_detected_corners'
       | 'safe_fallback'
       | 'manual_review_recommended';
     analysis?: {
@@ -30,6 +37,20 @@ export interface ProcessMapImageResult {
       edgeDensity: number;
       dynamicRange: number;
       fillFrameLikelihood: number;
+    };
+    postprocess?: {
+      manualMode?: string | null;
+      cornersSource: string;
+      manualCornersReceived: boolean;
+      pythonUsed: boolean;
+      manualFinalizeUsed: boolean;
+      borderCleanup: boolean;
+      isolateExterior: boolean;
+      marginMode: string;
+      paperNormalization: string | boolean;
+      shadowBalance: boolean;
+      onlyWarpAndMargin?: boolean;
+      contentPreserved: boolean;
     };
     corners?: DocumentImagePoint[];
     warnings?: string[];
@@ -40,6 +61,7 @@ export interface ProcessMapImageInput {
   imagemBase64: string;
   imagemCorrigidaBase64?: string;
   manualCorners?: DocumentImagePoint[];
+  detectedCorners?: DocumentImagePoint[];
 }
 
 /**
@@ -60,6 +82,7 @@ export async function processMapImage(
     imageBuffer: original.buffer,
     mimeType: original.mimeType,
     manualCorners: payload.manualCorners,
+    detectedCorners: payload.detectedCorners,
     assistedImageBuffer: assisted?.buffer,
     assistedMimeType: assisted?.mimeType,
     options: {
@@ -89,6 +112,7 @@ export async function processMapImage(
       documentClass: result.metadata.documentClass,
       decision: result.metadata.decision,
       analysis: result.metadata.analysis,
+      postprocess: result.metadata.postprocess,
       corners: result.metadata.corners,
       warnings: result.metadata.warnings,
     },

@@ -14,6 +14,7 @@ import {
   correctPerspectiveWithCorners,
   correctPerspectiveWithEdgePoints,
   detectPerspective,
+  validateCorrectedDocument,
 } from '../../utils/perspectiveCorrection';
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
@@ -55,6 +56,8 @@ interface ProcessarResponse {
       decision?:
         | 'frontend_assisted'
         | 'python_detected'
+        | 'backend_manual_corners'
+        | 'backend_detected_corners'
         | 'safe_fallback'
         | 'manual_review_recommended';
       analysis?: {
@@ -79,7 +82,9 @@ interface QueueItem {
   thumbSrc: string;
   correctedSrc: string | null;
   corners: Point[] | null;
+  detectedCorners: Point[] | null;
   edgeMidpoints: Point[] | null;
+  cornersSource: 'manual' | 'detected' | 'none';
   confidence: 'high' | 'low' | 'none';
   status: ItemStatus;
   result: ProcessarResponse | null;
@@ -102,6 +107,42 @@ function formatBytes(bytes: number): string {
 let _seq = 0;
 function newLocalId(): string {
   return `${Date.now()}-${++_seq}`;
+}
+
+function pointsEqual(a: Point[] | null, b: Point[]): boolean {
+  if (!a || a.length !== b.length) return false;
+  return a.every((point, index) => {
+    const other = b[index];
+    if (!other) return false;
+    return Math.abs(point[0] - other[0]) < 1 && Math.abs(point[1] - other[1]) < 1;
+  });
+}
+
+function polygonArea(points: Point[]): number {
+  if (points.length < 3) return 0;
+  let area = 0;
+  for (let i = 0; i < points.length; i++) {
+    const [x1, y1] = points[i]!;
+    const [x2, y2] = points[(i + 1) % points.length]!;
+    area += x1 * y2 - x2 * y1;
+  }
+  return Math.abs(area) / 2;
+}
+
+function isLikelyFullSceneCrop(points: Point[], size: ImageSize): boolean {
+  const areaRatio = polygonArea(points) / (size.width * size.height);
+  const minX = Math.min(...points.map(([x]) => x));
+  const maxX = Math.max(...points.map(([x]) => x));
+  const minY = Math.min(...points.map(([, y]) => y));
+  const maxY = Math.max(...points.map(([, y]) => y));
+  const borderX = size.width * 0.03;
+  const borderY = size.height * 0.03;
+  const huggingFrame =
+    minX <= borderX &&
+    minY <= borderY &&
+    maxX >= size.width - borderX &&
+    maxY >= size.height - borderY;
+  return areaRatio > 0.9 || huggingFrame;
 }
 
 /** Miniatura 200 px JPEG 75% para exibicao na grade. */
@@ -134,13 +175,18 @@ function getImageSize(dataUrl: string): Promise<ImageSize> {
 }
 
 function defaultCorners(size: ImageSize): Point[] {
-  const mx = size.width * 0.08;
-  const my = size.height * 0.08;
+  const portrait = size.height >= size.width;
+  const targetHeight = portrait ? size.height * 0.82 : size.height * 0.72;
+  const targetWidth = portrait ? targetHeight / Math.SQRT2 : targetHeight * Math.SQRT2;
+  const fittedWidth = Math.min(targetWidth, size.width * 0.86);
+  const fittedHeight = portrait ? fittedWidth * Math.SQRT2 : fittedWidth / Math.SQRT2;
+  const mx = (size.width - fittedWidth) / 2;
+  const my = (size.height - fittedHeight) / 2;
   return [
     [mx, my],
-    [size.width - mx, my],
-    [size.width - mx, size.height - my],
-    [mx, size.height - my],
+    [mx + fittedWidth, my],
+    [mx + fittedWidth, my + fittedHeight],
+    [mx, my + fittedHeight],
   ];
 }
 
@@ -204,7 +250,11 @@ function getDecisionHint(result: ProcessarResponse | null): string | null {
   if (!decision) return null;
   switch (decision) {
     case 'frontend_assisted':
-      return 'Bordas revisadas no frontend';
+      return 'Fallback da imagem assistida';
+    case 'backend_manual_corners':
+      return 'Warp final com cantos manuais';
+    case 'backend_detected_corners':
+      return 'Warp final com cantos detectados';
     case 'python_detected':
       return 'Folha detectada automaticamente';
     case 'manual_review_recommended':
@@ -286,7 +336,9 @@ export function CapturaMapaPage() {
               thumbSrc,
               correctedSrc: null,
               corners: null,
+              detectedCorners: null,
               edgeMidpoints: null,
+              cornersSource: 'none',
               confidence: 'none',
               status: 'corrigindo',
               result: null,
@@ -299,16 +351,34 @@ export function CapturaMapaPage() {
             const corrected = detection.corners
               ? await correctPerspectiveWithCorners(dataUrl, detection.corners)
               : await correctPerspective(dataUrl);
+            const correctedConfidence =
+              detection.confidence === 'high' ? await validateCorrectedDocument(corrected) : 'low';
             setQueue((prev) =>
               prev.map((it) =>
                 it.localId === localId
                   ? {
                       ...it,
-                      correctedSrc: corrected,
+                      correctedSrc:
+                        detection.confidence === 'high' && correctedConfidence === 'high'
+                          ? corrected
+                          : null,
                       corners: detection.corners,
+                      detectedCorners: detection.corners,
                       edgeMidpoints: null,
-                      confidence: detection.confidence,
-                      status: detection.confidence === 'high' ? 'aguardando' : 'revisar',
+                      cornersSource:
+                        detection.confidence === 'high' && correctedConfidence === 'high'
+                          ? 'detected'
+                          : detection.corners
+                            ? 'detected'
+                            : 'none',
+                      confidence:
+                        detection.confidence === 'high' && correctedConfidence === 'high'
+                          ? 'high'
+                          : 'low',
+                      status:
+                        detection.confidence === 'high' && correctedConfidence === 'high'
+                          ? 'aguardando'
+                          : 'revisar',
                     }
                   : it
               )
@@ -319,9 +389,11 @@ export function CapturaMapaPage() {
                 it.localId === localId
                   ? {
                       ...it,
-                      correctedSrc: dataUrl,
+                      correctedSrc: null,
                       corners: null,
+                      detectedCorners: null,
                       edgeMidpoints: null,
+                      cornersSource: 'none',
                       confidence: 'none',
                       status: 'revisar',
                     }
@@ -365,17 +437,10 @@ export function CapturaMapaPage() {
     (localId: string) => {
       setQueue((prev) =>
         prev.map((it) =>
-          it.localId === localId ? { ...it, status: 'aguardando', erro: null } : it
+          it.localId === localId
+            ? { ...it, status: it.correctedSrc ? 'aguardando' : 'revisar', erro: null }
+            : it
         )
-      );
-    },
-    [setQueue]
-  );
-
-  const handleAprovarRevisao = useCallback(
-    (localId: string) => {
-      setQueue((prev) =>
-        prev.map((it) => (it.localId === localId ? { ...it, status: 'aguardando' } : it))
       );
     },
     [setQueue]
@@ -383,7 +448,10 @@ export function CapturaMapaPage() {
 
   const handleOpenEditor = useCallback(async (item: QueueItem) => {
     const size = await getImageSize(item.originalSrc);
-    const corners = item.corners ?? defaultCorners(size);
+    const corners =
+      item.corners && !isLikelyFullSceneCrop(item.corners, size)
+        ? item.corners
+        : defaultCorners(size);
     setEditorImageSize(size);
     setEditorCorners(corners);
     setEditorEdgeMidpoints(item.edgeMidpoints ?? defaultEdgeMidpoints(corners));
@@ -400,7 +468,18 @@ export function CapturaMapaPage() {
 
   const handleSaveEditor = useCallback(async () => {
     const item = queueRef.current.find((it) => it.localId === editorItemId);
-    if (!item || editorCorners.length !== 4 || editorEdgeMidpoints.length !== 4) return;
+    if (!item || editorCorners.length !== 4 || editorEdgeMidpoints.length !== 4 || !editorImageSize)
+      return;
+
+    const suggestedCorners = item.corners ?? defaultCorners(editorImageSize);
+    if (!item.corners && pointsEqual(editorCorners, suggestedCorners)) {
+      toast.error('Posicione as bordas sobre a folha antes de aplicar a correcao.');
+      return;
+    }
+    if (isLikelyFullSceneCrop(editorCorners, editorImageSize)) {
+      toast.error('As bordas ainda estao pegando a cena inteira. Ajuste somente a folha.');
+      return;
+    }
 
     setEditorSaving(true);
     try {
@@ -409,6 +488,13 @@ export function CapturaMapaPage() {
         editorCorners,
         editorEdgeMidpoints
       );
+      const correctedConfidence = await validateCorrectedDocument(corrected);
+      if (correctedConfidence !== 'high') {
+        toast.error(
+          'A imagem corrigida ainda manteve contexto externo demais. Ajuste os cantos no limite da folha.'
+        );
+        return;
+      }
       const thumbSrc = await makeThumbnail(corrected);
       setQueue((prev) =>
         prev.map((it) =>
@@ -418,7 +504,9 @@ export function CapturaMapaPage() {
                 thumbSrc,
                 correctedSrc: corrected,
                 corners: editorCorners,
+                detectedCorners: it.detectedCorners ?? it.corners,
                 edgeMidpoints: editorEdgeMidpoints,
+                cornersSource: 'manual',
                 confidence: 'high',
                 status: 'aguardando',
                 erro: null,
@@ -432,7 +520,15 @@ export function CapturaMapaPage() {
     } finally {
       setEditorSaving(false);
     }
-  }, [editorCorners, editorEdgeMidpoints, editorItemId, handleCloseEditor, setQueue, toast]);
+  }, [
+    editorCorners,
+    editorEdgeMidpoints,
+    editorImageSize,
+    editorItemId,
+    handleCloseEditor,
+    setQueue,
+    toast,
+  ]);
 
   const handleCornerPointerMove = useCallback(
     (index: number, e: React.PointerEvent<HTMLButtonElement>) => {
@@ -515,7 +611,14 @@ export function CapturaMapaPage() {
         const result = await api.post<ProcessarResponse>('/colaborador/capturas-mapa', {
           imagemBase64: item.originalSrc,
           imagemCorrigidaBase64: item.correctedSrc ?? undefined,
-          manualCorners: toManualCorners(item.corners),
+          manualCorners:
+            item.cornersSource === 'manual' ? toManualCorners(item.corners) : undefined,
+          detectedCorners:
+            item.detectedCorners && item.detectedCorners.length === 4
+              ? toManualCorners(item.detectedCorners)
+              : item.cornersSource === 'detected'
+                ? toManualCorners(item.corners)
+                : undefined,
         });
         setQueue((prev) =>
           prev.map((it) => (it.localId === localId ? { ...it, status: 'concluido', result } : it))
@@ -900,15 +1003,6 @@ export function CapturaMapaPage() {
                             >
                               <Icon name="edit" className="h-3.5 w-3.5" />
                             </button>
-                            {item.correctedSrc && (
-                              <button
-                                className="text-success-600 hover:text-success-800 dark:text-success-400"
-                                onClick={() => handleAprovarRevisao(item.localId)}
-                                aria-label="Aprovar"
-                              >
-                                <Icon name="check" className="h-3.5 w-3.5" />
-                              </button>
-                            )}
                           </div>
                         )}
 
@@ -965,7 +1059,7 @@ export function CapturaMapaPage() {
         open={!!editorItem && !!editorImageSize}
         onClose={handleCloseEditor}
         title="Ajustar bordas"
-        subtitle="Arraste os cantos e os pontos do meio para acompanhar a curva do papel."
+        subtitle="Arraste os cantos e os pontos do meio para enquadrar apenas a folha. A correcao final deve remover a mesa da imagem."
         size="xl"
         footer={
           <div className="flex flex-wrap justify-end gap-2 p-4">

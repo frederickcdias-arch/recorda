@@ -459,8 +459,26 @@ export function createAdminRoutes(): FastifyPluginAsync {
           // Log the optimization
           await server.database.query(
             `
-          INSERT INTO auditoria (entidade, entidade_id, acao, usuario_id, ip_address, user_agent)
-          VALUES ('sistema', 'otimizacao', 'otimizar_banco', $1, $2, $3)
+          INSERT INTO auditoria (
+            tabela,
+            registro_id,
+            operacao,
+            usuario_id,
+            ip_origem,
+            user_agent,
+            dados_anteriores,
+            dados_novos
+          )
+          VALUES (
+            'sistema',
+            $1,
+            'UPDATE',
+            $1,
+            $2,
+            $3,
+            NULL,
+            jsonb_build_object('acao', 'otimizar_banco')
+          )
         `,
             [user.id, request.ip, request.headers['user-agent'] || '']
           );

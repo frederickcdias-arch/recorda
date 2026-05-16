@@ -1,5 +1,8 @@
 import sharp from 'sharp';
-import { tryProcessDocumentImageWithPython } from './document-image-python-processor.js';
+import {
+  tryProcessDocumentImageWithPython,
+  type PythonProcessorCornersInput,
+} from './document-image-python-processor.js';
 
 export type DocumentProcessingMode = 'color_document' | 'map_document' | 'text_document';
 export type DocumentClassificationKind =
@@ -10,6 +13,8 @@ export type DocumentClassificationKind =
 export type DocumentProcessingDecision =
   | 'frontend_assisted'
   | 'python_detected'
+  | 'backend_manual_corners'
+  | 'backend_detected_corners'
   | 'safe_fallback'
   | 'manual_review_recommended';
 
@@ -22,6 +27,7 @@ export interface ProcessDocumentImageInput {
   imageBuffer: Buffer;
   mimeType: string;
   manualCorners?: DocumentImagePoint[];
+  detectedCorners?: DocumentImagePoint[];
   assistedImageBuffer?: Buffer;
   assistedMimeType?: string;
   options?: {
@@ -53,6 +59,20 @@ export interface ProcessDocumentImageResult {
       edgeDensity: number;
       dynamicRange: number;
       fillFrameLikelihood: number;
+    };
+    postprocess?: {
+      manualMode?: string | null;
+      cornersSource: string;
+      manualCornersReceived: boolean;
+      pythonUsed: boolean;
+      manualFinalizeUsed: boolean;
+      borderCleanup: boolean;
+      isolateExterior: boolean;
+      marginMode: string;
+      paperNormalization: string | boolean;
+      shadowBalance: boolean;
+      onlyWarpAndMargin?: boolean;
+      contentPreserved: boolean;
     };
     corners?: DocumentImagePoint[];
     warnings?: string[];
@@ -238,6 +258,7 @@ function decideProcessingMode(
 function buildWarnings(
   analysis: DocumentImageAnalysis,
   manualCorners?: DocumentImagePoint[],
+  detectedCorners?: DocumentImagePoint[],
   assistedImageBuffer?: Buffer
 ): string[] {
   const warnings: string[] = [];
@@ -246,17 +267,69 @@ function buildWarnings(
       'Captura com baixa confianca geometrica; revisar enquadramento ou ajustar bordas.'
     );
   }
-  if (analysis.fillFrameLikelihood > 0.78 && !assistedImageBuffer && !manualCorners?.length) {
+  if (
+    analysis.fillFrameLikelihood > 0.78 &&
+    !assistedImageBuffer &&
+    !manualCorners?.length &&
+    !detectedCorners?.length
+  ) {
     warnings.push(
       'A folha ocupa quase todo o quadro; a deteccao automatica pode confundir papel e fundo.'
     );
   }
-  if (analysis.paperLikeRatio < 0.18 && !assistedImageBuffer) {
+  if (analysis.paperLikeRatio < 0.18 && !assistedImageBuffer && !detectedCorners?.length) {
     warnings.push(
       'Pouca area de papel isolada na imagem original; o sistema deve preferir revisao manual.'
     );
   }
   return warnings;
+}
+
+function polygonArea(points: DocumentImagePoint[]): number {
+  if (points.length < 3) return 0;
+  let area = 0;
+  for (let i = 0; i < points.length; i++) {
+    const current = points[i]!;
+    const next = points[(i + 1) % points.length]!;
+    area += current.x * next.y - next.x * current.y;
+  }
+  return Math.abs(area) / 2;
+}
+
+function sanitizeCorners(
+  corners: DocumentImagePoint[] | undefined,
+  originalWidth: number,
+  originalHeight: number
+): DocumentImagePoint[] | undefined {
+  if (!corners || corners.length !== 4 || originalWidth <= 0 || originalHeight <= 0) {
+    return undefined;
+  }
+
+  const normalized = corners.map((corner) => ({
+    x: Number(corner.x),
+    y: Number(corner.y),
+  }));
+
+  if (
+    normalized.some(
+      (corner) =>
+        !Number.isFinite(corner.x) ||
+        !Number.isFinite(corner.y) ||
+        corner.x < 0 ||
+        corner.y < 0 ||
+        corner.x > originalWidth ||
+        corner.y > originalHeight
+    )
+  ) {
+    return undefined;
+  }
+
+  const areaRatio = polygonArea(normalized) / Math.max(1, originalWidth * originalHeight);
+  if (areaRatio < 0.1 || areaRatio > 0.98) {
+    return undefined;
+  }
+
+  return normalized;
 }
 
 async function finalizeOutput(
@@ -375,8 +448,15 @@ async function processWithSharpFallback(
 export async function processDocumentImage(
   input: ProcessDocumentImageInput
 ): Promise<ProcessDocumentImageResult> {
-  const { imageBuffer, mimeType, manualCorners, assistedImageBuffer, assistedMimeType, options } =
-    input;
+  const {
+    imageBuffer,
+    mimeType,
+    manualCorners,
+    detectedCorners,
+    assistedImageBuffer,
+    assistedMimeType,
+    options,
+  } = input;
 
   if (!isSupportedMimeType(mimeType)) {
     throw new Error('Tipo de imagem nao suportado. Use JPEG, PNG ou WEBP.');
@@ -387,56 +467,95 @@ export async function processDocumentImage(
   const processingMode = decideProcessingMode(options?.processingMode, analysis);
   const outputFormat = options?.outputFormat ?? 'jpeg';
   const quality = Math.min(100, Math.max(60, options?.quality ?? 92));
-  const warnings: string[] = buildWarnings(analysis, manualCorners, assistedImageBuffer);
 
   const originalMetadata = await sharp(imageBuffer, { failOn: 'none' }).metadata();
   const originalWidth = originalMetadata.width ?? 0;
   const originalHeight = originalMetadata.height ?? 0;
+  const normalizedManualCorners = sanitizeCorners(manualCorners, originalWidth, originalHeight);
+  const normalizedDetectedCorners = sanitizeCorners(detectedCorners, originalWidth, originalHeight);
+  const preferredCorners = normalizedManualCorners ?? normalizedDetectedCorners;
+  const warnings: string[] = buildWarnings(
+    analysis,
+    normalizedManualCorners,
+    normalizedDetectedCorners,
+    assistedImageBuffer
+  );
+  const analysisMetadata = {
+    paperLikeRatio: Number(analysis.paperLikeRatio.toFixed(3)),
+    colorRatio: Number(analysis.colorRatio.toFixed(3)),
+    edgeDensity: Number(analysis.edgeDensity.toFixed(3)),
+    dynamicRange: Number(analysis.dynamicRange.toFixed(3)),
+    fillFrameLikelihood: Number(analysis.fillFrameLikelihood.toFixed(3)),
+  };
 
-  if (assistedImageBuffer) {
-    const assistedMime =
-      assistedMimeType && isSupportedMimeType(assistedMimeType)
-        ? assistedMimeType
-        : mimeTypeFromFormat(outputFormat);
-    const finalized = await finalizeOutput(
-      assistedImageBuffer,
-      outputFormat,
-      quality,
-      preserveColors,
-      processingMode
+  if (manualCorners?.length === 4 && !normalizedManualCorners) {
+    warnings.push('Os cantos manuais recebidos nao passaram na validacao geometrica do backend.');
+  }
+  if (detectedCorners?.length === 4 && !normalizedDetectedCorners) {
+    warnings.push(
+      'Os cantos detectados recebidos nao passaram na validacao geometrica do backend.'
     );
-    const thumbnailBuffer = await createThumbnail(finalized.buffer);
-    return {
-      success: true,
-      processedBuffer: finalized.buffer,
-      thumbnailBuffer,
-      outputMimeType: finalized.mimeType,
-      metadata: {
-        engine: 'frontend-assisted',
-        confidence: manualCorners?.length === 4 ? 0.99 : 0.9,
-        fallback: false,
-        width: finalized.width,
-        height: finalized.height,
-        originalWidth,
-        originalHeight,
-        documentClass: analysis.kind,
-        decision: 'frontend_assisted',
-        analysis: {
-          paperLikeRatio: Number(analysis.paperLikeRatio.toFixed(3)),
-          colorRatio: Number(analysis.colorRatio.toFixed(3)),
-          edgeDensity: Number(analysis.edgeDensity.toFixed(3)),
-          dynamicRange: Number(analysis.dynamicRange.toFixed(3)),
-          fillFrameLikelihood: Number(analysis.fillFrameLikelihood.toFixed(3)),
-        },
-        corners: manualCorners,
-        warnings: [
-          ...(assistedMime !== finalized.mimeType
-            ? ['Imagem corrigida no frontend e reencodada no backend.']
-            : []),
-          ...warnings,
-        ].filter(Boolean),
-      },
+  }
+
+  if (preferredCorners) {
+    const cornersInput: PythonProcessorCornersInput = {
+      points: preferredCorners,
+      source: normalizedManualCorners ? 'manual' : 'detected',
     };
+    try {
+      const pythonResult = await tryProcessDocumentImageWithPython(
+        encodeDataUrl(imageBuffer, mimeType),
+        cornersInput
+      );
+      if (pythonResult) {
+        const processed = decodeImageDataUrl(pythonResult.processedBase64);
+        const finalized = await finalizeOutput(
+          processed.buffer,
+          outputFormat,
+          quality,
+          preserveColors,
+          processingMode
+        );
+        const thumbnailBuffer = await createThumbnail(finalized.buffer);
+        return {
+          success: true,
+          processedBuffer: finalized.buffer,
+          thumbnailBuffer,
+          outputMimeType: finalized.mimeType,
+          metadata: {
+            engine: pythonResult.processador,
+            confidence: pythonResult.confiancaDeteccao,
+            fallback: pythonResult.fallbackUsado,
+            width: finalized.width,
+            height: finalized.height,
+            originalWidth,
+            originalHeight,
+            documentClass: analysis.kind,
+            decision: normalizedManualCorners
+              ? 'backend_manual_corners'
+              : 'backend_detected_corners',
+            analysis: analysisMetadata,
+            postprocess: pythonResult.postprocess,
+            corners: preferredCorners,
+            warnings: [
+              normalizedManualCorners
+                ? 'Warp final aplicado no backend a partir dos cantos manuais sobre a imagem original.'
+                : 'Warp final aplicado no backend a partir dos cantos detectados sobre a imagem original.',
+              ...(pythonResult.fallbackUsado
+                ? ['Nao foi possivel aplicar os cantos com seguranca. Aplicado fallback seguro.']
+                : []),
+              ...warnings,
+            ].filter(Boolean),
+          },
+        };
+      }
+    } catch (error) {
+      warnings.push(
+        error instanceof Error
+          ? `Falha ao processar a imagem original com os cantos enviados: ${error.message}`
+          : 'Falha ao processar a imagem original com os cantos enviados.'
+      );
+    }
   }
 
   try {
@@ -468,14 +587,9 @@ export async function processDocumentImage(
           originalHeight,
           documentClass: analysis.kind,
           decision: pythonResult.fallbackUsado ? 'safe_fallback' : 'python_detected',
-          analysis: {
-            paperLikeRatio: Number(analysis.paperLikeRatio.toFixed(3)),
-            colorRatio: Number(analysis.colorRatio.toFixed(3)),
-            edgeDensity: Number(analysis.edgeDensity.toFixed(3)),
-            dynamicRange: Number(analysis.dynamicRange.toFixed(3)),
-            fillFrameLikelihood: Number(analysis.fillFrameLikelihood.toFixed(3)),
-          },
-          corners: manualCorners,
+          analysis: analysisMetadata,
+          postprocess: pythonResult.postprocess,
+          corners: preferredCorners,
           warnings: [
             ...(pythonResult.fallbackUsado
               ? ['Nao foi possivel detectar a folha com seguranca. Aplicado fallback seguro.']
@@ -491,6 +605,47 @@ export async function processDocumentImage(
         ? `Processador Python indisponivel: ${error.message}`
         : 'Processador Python indisponivel.'
     );
+  }
+
+  if (assistedImageBuffer) {
+    const assistedMime =
+      assistedMimeType && isSupportedMimeType(assistedMimeType)
+        ? assistedMimeType
+        : mimeTypeFromFormat(outputFormat);
+    const finalized = await finalizeOutput(
+      assistedImageBuffer,
+      outputFormat,
+      quality,
+      preserveColors,
+      processingMode
+    );
+    const thumbnailBuffer = await createThumbnail(finalized.buffer);
+    return {
+      success: true,
+      processedBuffer: finalized.buffer,
+      thumbnailBuffer,
+      outputMimeType: finalized.mimeType,
+      metadata: {
+        engine: 'frontend-assisted',
+        confidence: preferredCorners ? 0.75 : 0.65,
+        fallback: true,
+        width: finalized.width,
+        height: finalized.height,
+        originalWidth,
+        originalHeight,
+        documentClass: analysis.kind,
+        decision: 'safe_fallback',
+        analysis: analysisMetadata,
+        corners: preferredCorners,
+        warnings: [
+          'Imagem corrigida no frontend usada apenas como fallback, porque o backend nao conseguiu gerar o warp final oficial a partir da original.',
+          ...(assistedMime !== finalized.mimeType
+            ? ['A imagem assistida foi reencodada no backend para armazenamento final.']
+            : []),
+          ...warnings,
+        ].filter(Boolean),
+      },
+    };
   }
 
   const fallback = await processWithSharpFallback(
@@ -517,14 +672,8 @@ export async function processDocumentImage(
       documentClass: analysis.kind,
       decision:
         analysis.kind === 'low_confidence_capture' ? 'manual_review_recommended' : 'safe_fallback',
-      analysis: {
-        paperLikeRatio: Number(analysis.paperLikeRatio.toFixed(3)),
-        colorRatio: Number(analysis.colorRatio.toFixed(3)),
-        edgeDensity: Number(analysis.edgeDensity.toFixed(3)),
-        dynamicRange: Number(analysis.dynamicRange.toFixed(3)),
-        fillFrameLikelihood: Number(analysis.fillFrameLikelihood.toFixed(3)),
-      },
-      corners: manualCorners,
+      analysis: analysisMetadata,
+      corners: preferredCorners,
       warnings,
     },
   };

@@ -1,39 +1,39 @@
-// @ts-nocheck — noUncheckedIndexedAccess gera falsos positivos em arrays tipados numéricos
+﻿// @ts-nocheck â€” noUncheckedIndexedAccess gera falsos positivos em arrays tipados numÃ©ricos
 /**
- * Correção automática de perspectiva para fotos de documentos.
+ * CorreÃ§Ã£o automÃ¡tica de perspectiva para fotos de documentos.
  *
  * Algoritmo:
- *  1. Reduz para 600 px para análise rápida
- *  2. Converte para escala de cinza (somente para detecção)
- *  3. Mediana RGB do strip de borda inteiro → estimativa robusta do fundo (mesa),
+ *  1. Reduz para 600 px para anÃ¡lise rÃ¡pida
+ *  2. Converte para escala de cinza (somente para detecÃ§Ã£o)
+ *  3. Mediana RGB do strip de borda inteiro â†’ estimativa robusta do fundo (mesa),
  *     mesmo quando o papel ocupa > 90 % do quadro
- *  4. Distância RGB ao fundo (threshold 25) + flood-fill a partir da borda da
- *     imagem: preenche o interior do papel sem efeito de borda morfológico
- *  5. Varredura das bordas ajusta 4 retas do primeiro contato mesa→papel; se
- *     não houver pontos confiáveis, usa score diagonal na máscara sólida
- *  6. Valida a detecção; se não confiante, devolve a imagem original intacta
- *  7. Calcula a homografia inversa (retângulo → quadrilátero fonte)
- *  8. Aplica o warp prospectivo com interpolação bilinear na imagem COLORIDA
+ *  4. DistÃ¢ncia RGB ao fundo (threshold 25) + flood-fill a partir da borda da
+ *     imagem: preenche o interior do papel sem efeito de borda morfolÃ³gico
+ *  5. Varredura das bordas ajusta 4 retas do primeiro contato mesaâ†’papel; se
+ *     nÃ£o houver pontos confiÃ¡veis, usa score diagonal na mÃ¡scara sÃ³lida
+ *  6. Valida a detecÃ§Ã£o; se nÃ£o confiante, devolve a imagem original intacta
+ *  7. Calcula a homografia inversa (retÃ¢ngulo â†’ quadrilÃ¡tero fonte)
+ *  8. Aplica o warp prospectivo com interpolaÃ§Ã£o bilinear na imagem COLORIDA
  *
- * As cores são totalmente preservadas — nenhum canal é descartado.
+ * As cores sÃ£o totalmente preservadas â€” nenhum canal Ã© descartado.
  *
  * Melhorias:
- *  - Fechamento morfológico na máscara binária: preenche buracos causados por
- *    texto e símbolos impressos no papel antes da detecção de cantos.
- *  - Correção de orientação: se fonte e saída divergirem em retrato/paisagem,
- *    roda 90° reordenando os cantos.
- *  - Saída em JPEG 92 %: reduz payload ~8× vs PNG, acelerando o upload.
- *  - Warp via WebGL (GPU): ~20× mais rápido que o loop JS; fallback automático.
+ *  - Fechamento morfolÃ³gico na mÃ¡scara binÃ¡ria: preenche buracos causados por
+ *    texto e sÃ­mbolos impressos no papel antes da detecÃ§Ã£o de cantos.
+ *  - CorreÃ§Ã£o de orientaÃ§Ã£o: se fonte e saÃ­da divergirem em retrato/paisagem,
+ *    roda 90Â° reordenando os cantos.
+ *  - SaÃ­da em JPEG 92 %: reduz payload ~8Ã— vs PNG, acelerando o upload.
+ *  - Warp via WebGL (GPU): ~20Ã— mais rÃ¡pido que o loop JS; fallback automÃ¡tico.
  */
 
 type Point = [number, number];
 
-/** Dimensão máxima para a passagem de detecção de cantos */
+/** DimensÃ£o mÃ¡xima para a passagem de detecÃ§Ã£o de cantos */
 const DETECT_SIZE = 600;
-/** Dimensão máxima da imagem corrigida enviada ao backend */
+/** DimensÃ£o mÃ¡xima da imagem corrigida enviada ao backend */
 const OUTPUT_MAX = 2000;
 
-// ── Utilitários de canvas ────────────────────────────────────────────────────
+// â”€â”€ UtilitÃ¡rios de canvas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function mkCanvas(w: number, h: number): HTMLCanvasElement {
   const c = document.createElement('canvas');
@@ -51,9 +51,9 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
-// ── Processamento de imagem (somente para detecção — não afeta cores) ────────
+// â”€â”€ Processamento de imagem (somente para detecÃ§Ã£o â€” nÃ£o afeta cores) â”€â”€â”€â”€â”€â”€â”€â”€
 
-/** RGBA → escala de cinza (pesos inteiros, divisão por shift) */
+/** RGBA â†’ escala de cinza (pesos inteiros, divisÃ£o por shift) */
 function toGray(rgba: Uint8ClampedArray, n: number): Uint8Array {
   const g = new Uint8Array(n);
   for (let i = 0; i < n; i++) {
@@ -63,7 +63,7 @@ function toGray(rgba: Uint8ClampedArray, n: number): Uint8Array {
 }
 
 /**
- * Suavização Gaussiana separável 1D — kernel [1,4,6,4,1]/16.
+ * SuavizaÃ§Ã£o Gaussiana separÃ¡vel 1D â€” kernel [1,4,6,4,1]/16.
  * Passagem horizontal seguida de passagem vertical.
  */
 function gaussBlur(gray: Uint8Array, w: number, h: number): Uint8Array {
@@ -105,7 +105,7 @@ function gaussBlur(gray: Uint8Array, w: number, h: number): Uint8Array {
   return out;
 }
 
-/** Limiar de Otsu: maximiza a variância entre classes clara/escura */
+/** Limiar de Otsu: maximiza a variÃ¢ncia entre classes clara/escura */
 function otsu(gray: Uint8Array): number {
   const hist = new Float64Array(256);
   for (const v of gray) hist[v]++;
@@ -133,17 +133,17 @@ function otsu(gray: Uint8Array): number {
   return t;
 }
 
-// ── Fechamento morfológico (closing) ────────────────────────────────────────
+// â”€â”€ Fechamento morfolÃ³gico (closing) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
- * Closing morfológico separável (dilatar → erodir) com kernel caixa de raio r.
- * Preenche buracos escuros dentro da região branca do documento (texto,
- * símbolos cartográficos) para que a máscara fique contínua antes da detecção.
+ * Closing morfolÃ³gico separÃ¡vel (dilatar â†’ erodir) com kernel caixa de raio r.
+ * Preenche buracos escuros dentro da regiÃ£o branca do documento (texto,
+ * sÃ­mbolos cartogrÃ¡ficos) para que a mÃ¡scara fique contÃ­nua antes da detecÃ§Ã£o.
  */
 function morphClose(mask: Uint8Array, w: number, h: number, r: number): Uint8Array {
   const n = mask.length;
 
-  // ── Dilatar horizontal ──
+  // â”€â”€ Dilatar horizontal â”€â”€
   const dh = new Uint8Array(n);
   for (let y = 0; y < h; y++) {
     let s = 0;
@@ -156,7 +156,7 @@ function morphClose(mask: Uint8Array, w: number, h: number, r: number): Uint8Arr
     }
   }
 
-  // ── Dilatar vertical ──
+  // â”€â”€ Dilatar vertical â”€â”€
   const dv = new Uint8Array(n);
   for (let x = 0; x < w; x++) {
     let s = 0;
@@ -169,7 +169,7 @@ function morphClose(mask: Uint8Array, w: number, h: number, r: number): Uint8Arr
     }
   }
 
-  // ── Erodir horizontal ──
+  // â”€â”€ Erodir horizontal â”€â”€
   const eh = new Uint8Array(n);
   for (let y = 0; y < h; y++) {
     let s = 0;
@@ -184,7 +184,7 @@ function morphClose(mask: Uint8Array, w: number, h: number, r: number): Uint8Arr
     }
   }
 
-  // ── Erodir vertical ──
+  // â”€â”€ Erodir vertical â”€â”€
   const ev = new Uint8Array(n);
   for (let x = 0; x < w; x++) {
     let s = 0;
@@ -202,7 +202,7 @@ function morphClose(mask: Uint8Array, w: number, h: number, r: number): Uint8Arr
   return ev;
 }
 
-// ── Ajuste geométrico simples para detecção de bordas ─────────────────────────
+// â”€â”€ Ajuste geomÃ©trico simples para detecÃ§Ã£o de bordas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 type Line = { m: number; b: number };
 
@@ -219,6 +219,8 @@ export interface PerspectiveDetection {
   corners: Point[] | null;
   confidence: 'high' | 'low' | 'none';
 }
+
+export type CorrectedDocumentConfidence = 'high' | 'low';
 
 function medianOf(values: number[]): number {
   values.sort((a, b) => a - b);
@@ -282,6 +284,37 @@ function polygonArea(points: Point[]): number {
     area += x1 * y2 - x2 * y1;
   }
   return Math.abs(area) / 2;
+}
+
+function getGeometryBounds(geometry: DocumentGeometry): {
+  minX: number;
+  minY: number;
+  maxX: number;
+  maxY: number;
+  areaRatio: number;
+} {
+  const xs = geometry.corners.map(([x]) => x);
+  const ys = geometry.corners.map(([, y]) => y);
+  return {
+    minX: Math.min(...xs),
+    minY: Math.min(...ys),
+    maxX: Math.max(...xs),
+    maxY: Math.max(...ys),
+    areaRatio: 0,
+  };
+}
+
+function isSceneLikeGeometry(geometry: DocumentGeometry, w: number, h: number): boolean {
+  const bounds = getGeometryBounds(geometry);
+  const areaRatio = polygonArea(geometry.corners) / (w * h);
+  const borderX = w * 0.025;
+  const borderY = h * 0.025;
+  const hugsFrame =
+    bounds.minX <= borderX &&
+    bounds.minY <= borderY &&
+    bounds.maxX >= w - borderX &&
+    bounds.maxY >= h - borderY;
+  return areaRatio > 0.94 || (areaRatio > 0.9 && hugsFrame);
 }
 
 function isValidDocumentQuad(corners: Point[], w: number, h: number): boolean {
@@ -443,27 +476,27 @@ function findMaskDiagonalGeometry(mask: Uint8Array, w: number, h: number): Docum
   return { corners };
 }
 
-// ── Detecção dos 4 cantos do documento ──────────────────────────────────────
+// â”€â”€ DetecÃ§Ã£o dos 4 cantos do documento â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
- * Encontra os 4 cantos do papel via distância RGB ao fundo + flood-fill da borda.
+ * Encontra os 4 cantos do papel via distÃ¢ncia RGB ao fundo + flood-fill da borda.
  *
- * Estratégia:
+ * EstratÃ©gia:
  *  1. Estima a cor da mesa pela MEDIANA do strip de borda inteiro da imagem.
- *     Usar todos os pixels da borda (não apenas 4 cantos) torna a estimativa
+ *     Usar todos os pixels da borda (nÃ£o apenas 4 cantos) torna a estimativa
  *     robusta mesmo quando o papel ocupa >90% do quadro.
- *  2. Máscara de primeiro plano: pixels com distância RGB > 25 ao fundo.
+ *  2. MÃ¡scara de primeiro plano: pixels com distÃ¢ncia RGB > 25 ao fundo.
  *     Captura margens brancas E interior colorido do mapa.
- *  3. Pequeno closing (r=5) para selar lacunas mínimas nas margens do papel.
- *  4. Flood-fill a partir de todos os pixels de borda com fundo → marca região
- *     "fora" (mesa acessível a partir das bordas). Pixels de fundo não alcançados
- *     estão dentro do papel → são preenchidos como primeiro plano.
- *     Não há efeito de borda morfológico: funciona para qualquer tamanho de interior.
- *  5. Varredura das bordas coleta o primeiro trecho contínuo de papel em cada
+ *  3. Pequeno closing (r=5) para selar lacunas mÃ­nimas nas margens do papel.
+ *  4. Flood-fill a partir de todos os pixels de borda com fundo â†’ marca regiÃ£o
+ *     "fora" (mesa acessÃ­vel a partir das bordas). Pixels de fundo nÃ£o alcanÃ§ados
+ *     estÃ£o dentro do papel â†’ sÃ£o preenchidos como primeiro plano.
+ *     NÃ£o hÃ¡ efeito de borda morfolÃ³gico: funciona para qualquer tamanho de interior.
+ *  5. Varredura das bordas coleta o primeiro trecho contÃ­nuo de papel em cada
  *     linha/coluna, ajusta 4 retas e cruza essas retas para achar os cantos.
  *     Isso evita que o mapa colorido interno domine os extremos.
- *  6. Se a varredura não for confiável, score diagonal extrai os 4 pixels
- *     extremos da máscara sólida resultante.
+ *  6. Se a varredura nÃ£o for confiÃ¡vel, score diagonal extrai os 4 pixels
+ *     extremos da mÃ¡scara sÃ³lida resultante.
  *  7. Rejeita quads degenerados ou cenas sem documento.
  */
 function findDocumentGeometry(
@@ -474,7 +507,7 @@ function findDocumentGeometry(
 ): DocumentGeometry | null {
   void gray;
 
-  // 1. Estima fundo pela mediana R/G/B da borda. O perímetro puro tem prioridade
+  // 1. Estima fundo pela mediana R/G/B da borda. O perÃ­metro puro tem prioridade
   //    quando o strip externo fica contaminado por papel ocupando quase todo o quadro.
   const borderW = Math.max(4, Math.floor(Math.min(w, h) * 0.03));
   const rBuf: number[] = [];
@@ -512,7 +545,7 @@ function findDocumentGeometry(
   const bgB = usePerimeter ? perimeterB : stripB;
   const bgLuma = bgR * 0.299 + bgG * 0.587 + bgB * 0.114;
 
-  // 2. Máscara de primeiro plano: distância RGB ao fundo > 25.
+  // 2. MÃ¡scara de primeiro plano: distÃ¢ncia RGB ao fundo > 25.
   const dt2 = 25 * 25;
   const rawMask = new Uint8Array(w * h);
   const paperMask = new Uint8Array(w * h);
@@ -532,15 +565,15 @@ function findDocumentGeometry(
     }
   }
 
-  // 3. Pequeno closing para selar lacunas mínimas nas margens (r=5).
+  // 3. Pequeno closing para selar lacunas mÃ­nimas nas margens (r=5).
   const sealed = morphClose(rawMask, w, h, 5);
   const paperSealed = morphClose(paperMask, w, h, 3);
 
   // 4. Flood-fill a partir de todos os pixels de fundo na borda da imagem.
-  //    Marca tudo que é "fora" (mesa acessível pelas bordas).
-  //    O interior fechado do papel NÃO é alcançável e permanece como buraco.
+  //    Marca tudo que Ã© "fora" (mesa acessÃ­vel pelas bordas).
+  //    O interior fechado do papel NÃƒO Ã© alcanÃ§Ã¡vel e permanece como buraco.
   const outside = new Uint8Array(w * h);
-  // Buffer com índices de pixels a processar (simulação de fila com head pointer)
+  // Buffer com Ã­ndices de pixels a processar (simulaÃ§Ã£o de fila com head pointer)
   const queue = new Int32Array(w * h);
   let qHead = 0,
     qTail = 0;
@@ -572,19 +605,22 @@ function findDocumentGeometry(
     if (py < h - 1) seedBorder(idx + w);
   }
 
-  // Máscara final: primeiro plano original OU fundo não alcançado (interior do papel).
+  // MÃ¡scara final: primeiro plano original OU fundo nÃ£o alcanÃ§ado (interior do papel).
   const mask = new Uint8Array(w * h);
   for (let i = 0; i < w * h; i++) {
     mask[i] = sealed[i] || (!outside[i] ? 1 : 0);
   }
 
-  const paperDiagonalGeometry = findMaskDiagonalGeometry(paperSealed, w, h);
-  if (paperDiagonalGeometry) return paperDiagonalGeometry;
-
   const edgeGeometry =
     findEdgeGeometry(paperSealed, w, h) ||
     findEdgeGeometry(mask, w, h) ||
     findEdgeGeometry(sealed, w, h);
+  if (edgeGeometry && !isSceneLikeGeometry(edgeGeometry, w, h)) return edgeGeometry;
+
+  const paperDiagonalGeometry = findMaskDiagonalGeometry(paperSealed, w, h);
+  if (paperDiagonalGeometry && !isSceneLikeGeometry(paperDiagonalGeometry, w, h)) {
+    return paperDiagonalGeometry;
+  }
   if (edgeGeometry) return edgeGeometry;
 
   // 5. Score diagonal: pixels mais extremos em cada diagonal.
@@ -644,18 +680,18 @@ function findDocumentCorners(
   return findDocumentGeometry(gray, rgba, w, h)?.corners || null;
 }
 
-// ── Homografia (transformação projetiva) ─────────────────────────────────────
+// â”€â”€ Homografia (transformaÃ§Ã£o projetiva) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
- * Eliminação de Gauss–Jordan em sistema 8×8 aumentado.
- * Retorna o vetor solução x tal que A·x = b.
+ * EliminaÃ§Ã£o de Gaussâ€“Jordan em sistema 8Ã—8 aumentado.
+ * Retorna o vetor soluÃ§Ã£o x tal que AÂ·x = b.
  */
 function gaussJordan(A: number[][], b: number[]): number[] {
   const n = 8;
   const M = A.map((row, i) => [...row, b[i]]);
 
   for (let col = 0; col < n; col++) {
-    // Pivô parcial
+    // PivÃ´ parcial
     let maxRow = col;
     for (let r = col + 1; r < n; r++) {
       if (Math.abs(M[r][col]) > Math.abs(M[maxRow][col])) maxRow = r;
@@ -665,7 +701,7 @@ function gaussJordan(A: number[][], b: number[]): number[] {
     const pivot = M[col][col];
     if (Math.abs(pivot) < 1e-10) throw new Error('Homografia singular');
 
-    // Elimina todas as linhas (Gauss–Jordan, não apenas abaixo)
+    // Elimina todas as linhas (Gaussâ€“Jordan, nÃ£o apenas abaixo)
     for (let r = 0; r < n; r++) {
       if (r === col) continue;
       const f = M[r][col] / pivot;
@@ -677,7 +713,7 @@ function gaussJordan(A: number[][], b: number[]): number[] {
 }
 
 /**
- * Calcula a homografia H (9 coeficientes, último = 1) que mapeia
+ * Calcula a homografia H (9 coeficientes, Ãºltimo = 1) que mapeia
  * cada ponto de `src` para o ponto correspondente em `dst`.
  */
 function solveHomography(src: Point[], dst: Point[]): number[] {
@@ -695,12 +731,12 @@ function solveHomography(src: Point[], dst: Point[]): number[] {
   return [...h, 1];
 }
 
-// ── Warp prospectivo ────────────────────────────────────────────────────────
+// â”€â”€ Warp prospectivo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Warp perspectivo GPU-acelerado via WebGL.
- * Usa hardware bilinear sampling e executa em paralelo no driver gráfico.
- * Retorna null se WebGL não estiver disponível — o chamador usa o fallback JS.
+ * Usa hardware bilinear sampling e executa em paralelo no driver grÃ¡fico.
+ * Retorna null se WebGL nÃ£o estiver disponÃ­vel â€” o chamador usa o fallback JS.
  */
 function warpPerspectiveGL(
   src: HTMLCanvasElement,
@@ -725,7 +761,7 @@ function warpPerspectiveGL(
   // Sistema de coords: vUv.y=0 = fundo da tela (canvas bottom), vUv.y=1 = topo.
   // py = (1 - vUv.y) * dstH converte para canvas y-down.
   // Sem UNPACK_FLIP_Y: textura t=0 mapeia para canvas row 0 (topo da fonte),
-  // portanto texV = sy / srcH está correto sem inversão adicional.
+  // portanto texV = sy / srcH estÃ¡ correto sem inversÃ£o adicional.
   const fsSource = `
     precision mediump float;
     uniform sampler2D uTex;
@@ -767,7 +803,7 @@ function warpPerspectiveGL(
   if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) return null;
   gl.useProgram(prog);
 
-  // Quad de tela cheia (2 triângulos)
+  // Quad de tela cheia (2 triÃ¢ngulos)
   const vbuf = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, vbuf);
   gl.bufferData(
@@ -779,7 +815,7 @@ function warpPerspectiveGL(
   gl.enableVertexAttribArray(aPos);
   gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
 
-  // Canvas fonte → textura (sem UNPACK_FLIP_Y: row 0 da imagem = t=0)
+  // Canvas fonte â†’ textura (sem UNPACK_FLIP_Y: row 0 da imagem = t=0)
   const tex = gl.createTexture();
   gl.bindTexture(gl.TEXTURE_2D, tex);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -809,53 +845,25 @@ function warpPerspectiveGL(
 }
 
 /**
- * Aplica o warp prospectivo à imagem colorida de `src`.
- * Tenta o caminho WebGL (GPU) primeiro; cai para loop JS se não disponível.
+ * Aplica o warp prospectivo Ã  imagem colorida de `src`.
+ * Tenta o caminho WebGL (GPU) primeiro; cai para loop JS se nÃ£o disponÃ­vel.
  */
-function getAseriesOutputSize(corners: Point[]): [number, number] {
+function getDocumentOutputSize(corners: Point[]): [number, number] {
   const [tl, tr, br, bl] = corners;
   const top = Math.hypot(tr[0] - tl[0], tr[1] - tl[1]);
   const bottom = Math.hypot(br[0] - bl[0], br[1] - bl[1]);
   const left = Math.hypot(bl[0] - tl[0], bl[1] - tl[1]);
   const right = Math.hypot(br[0] - tr[0], br[1] - tr[1]);
-  const detectedW = Math.max(top, bottom);
-  const detectedH = Math.max(left, right);
-  const portrait = detectedH >= detectedW;
-  const sqrt2 = Math.SQRT2;
-  let outW: number;
-  let outH: number;
-
-  if (portrait) {
-    outH = Math.round(Math.max(detectedH, detectedW * sqrt2));
-    outW = Math.round(outH / sqrt2);
-  } else {
-    outW = Math.round(Math.max(detectedW, detectedH * sqrt2));
-    outH = Math.round(outW / sqrt2);
-  }
-
+  let outW = Math.max(1, Math.round((top + bottom) * 0.5));
+  let outH = Math.max(1, Math.round((left + right) * 0.5));
   const scale = Math.min(1, OUTPUT_MAX / Math.max(outW, outH));
   return [Math.max(1, Math.round(outW * scale)), Math.max(1, Math.round(outH * scale))];
 }
 
 function warpPerspectiveCanvas(src: HTMLCanvasElement, corners: Point[]): HTMLCanvasElement {
-  let [tl, tr, br, bl] = corners;
+  const [outW, outH] = getDocumentOutputSize(corners);
 
-  // Dimensões de saída normalizadas para a proporção ISO 216 (A1/A2/A3/A4 etc.).
-  let [outW, outH] = getAseriesOutputSize(corners);
-
-  // Correção de orientação: se a fonte for retrato mas a saída sair paisagem
-  // (ou vice-versa), roda 90° reordenando os cantos e trocando as dimensões.
-  const srcPortrait = src.height > src.width * 1.1;
-  const srcLandscape = src.width > src.height * 1.1;
-  const outPortrait = outH > outW * 1.1;
-  const outLandscape = outW > outH * 1.1;
-  if ((srcPortrait && outLandscape) || (srcLandscape && outPortrait)) {
-    [tl, tr, br, bl] = [bl, tl, tr, br];
-    [outW, outH] = [outH, outW];
-  }
-  corners = [tl, tr, br, bl];
-
-  // Homografia inversa: retângulo de saída → quadrilátero na fonte
+  // Homografia inversa: retÃ¢ngulo de saÃ­da â†’ quadrilÃ¡tero na fonte
   const dstRect: Point[] = [
     [0, 0],
     [outW, 0],
@@ -864,7 +872,7 @@ function warpPerspectiveCanvas(src: HTMLCanvasElement, corners: Point[]): HTMLCa
   ];
   const Hinv = solveHomography(dstRect, corners);
 
-  // Caminho rápido: WebGL delega o warp à GPU (~20× mais rápido que JS)
+  // Caminho rÃ¡pido: WebGL delega o warp Ã  GPU (~20Ã— mais rÃ¡pido que JS)
   const glResult = warpPerspectiveGL(src, Hinv, outW, outH);
   if (glResult) {
     const copy = mkCanvas(outW, outH);
@@ -872,7 +880,7 @@ function warpPerspectiveCanvas(src: HTMLCanvasElement, corners: Point[]): HTMLCa
     return copy;
   }
 
-  // Fallback JS: interpolação bilinear por pixel (mesma lógica, mesma qualidade)
+  // Fallback JS: interpolaÃ§Ã£o bilinear por pixel (mesma lÃ³gica, mesma qualidade)
   const sctx = src.getContext('2d')!;
   const srcImg = sctx.getImageData(0, 0, src.width, src.height);
   const sd = srcImg.data;
@@ -1020,6 +1028,10 @@ function estimateGeometryConfidence(
     (geometry.bottom?.length || 0) >= 16 &&
     (geometry.left?.length || 0) >= 16;
 
+  if (isSceneLikeGeometry(geometry, w, h)) {
+    return 'low';
+  }
+
   if (hasEdges && areaRatio >= 0.22 && horizontalBalance >= 0.82 && verticalBalance >= 0.82) {
     return 'high';
   }
@@ -1120,17 +1132,8 @@ function warpCurvedDocumentCanvas(
     return null;
   }
 
-  let { corners } = geometry;
-  let [outW, outH] = getAseriesOutputSize(corners);
-  const [tl, tr, br, bl] = corners;
-  const srcPortrait = src.height > src.width * 1.1;
-  const srcLandscape = src.width > src.height * 1.1;
-  const outPortrait = outH > outW * 1.1;
-  const outLandscape = outW > outH * 1.1;
-  if ((srcPortrait && outLandscape) || (srcLandscape && outPortrait)) {
-    return null;
-  }
-
+  const { corners } = geometry;
+  const [outW, outH] = getDocumentOutputSize(corners);
   const [ctl, ctr, cbr, cbl] = corners;
   const sctx = src.getContext('2d')!;
   const srcImg = sctx.getImageData(0, 0, src.width, src.height);
@@ -1165,15 +1168,140 @@ function warpCurvedDocumentCanvas(
 }
 
 function addCleanScanMargin(canvas: HTMLCanvasElement): HTMLCanvasElement {
-  const fringe = Math.max(1, Math.round(Math.min(canvas.width, canvas.height) * 0.004));
-  const innerW = Math.max(1, canvas.width - fringe * 2);
-  const innerH = Math.max(1, canvas.height - fringe * 2);
-  const margin = Math.max(8, Math.round(Math.min(innerW, innerH) * 0.018));
-  const out = mkCanvas(innerW + margin * 2, innerH + margin * 2);
+  const margin = Math.max(10, Math.round(Math.min(canvas.width, canvas.height) * 0.024));
+  const out = mkCanvas(canvas.width + margin * 2, canvas.height + margin * 2);
   const octx = out.getContext('2d')!;
-  octx.fillStyle = 'rgb(245,245,245)';
+  octx.fillStyle = 'rgb(248,248,248)';
   octx.fillRect(0, 0, out.width, out.height);
-  octx.drawImage(canvas, fringe, fringe, innerW, innerH, margin, margin, innerW, innerH);
+  octx.drawImage(canvas, margin, margin);
+  return out;
+}
+
+function cropWarpedDocument(canvas: HTMLCanvasElement): HTMLCanvasElement {
+  const scale = Math.min(1, 900 / Math.max(canvas.width, canvas.height));
+  const sw = Math.max(1, Math.round(canvas.width * scale));
+  const sh = Math.max(1, Math.round(canvas.height * scale));
+  const sample = mkCanvas(sw, sh);
+  const sctx = sample.getContext('2d')!;
+  sctx.drawImage(canvas, 0, 0, sw, sh);
+  const data = sctx.getImageData(0, 0, sw, sh).data;
+  const mask = new Uint8Array(sw * sh);
+
+  for (let i = 0, p = 0; i < data.length; i += 4, p++) {
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+    const luma = r * 0.299 + g * 0.587 + b * 0.114;
+    const chroma = Math.max(r, g, b) - Math.min(r, g, b);
+    mask[p] = luma > 155 && chroma < 72 ? 1 : 0;
+  }
+
+  const closed = morphClose(mask, sw, sh, Math.max(2, Math.round(Math.min(sw, sh) * 0.004)));
+  const seen = new Uint8Array(sw * sh);
+  const queue = new Int32Array(sw * sh);
+  let best: {
+    area: number;
+    minX: number;
+    minY: number;
+    maxX: number;
+    maxY: number;
+    score: number;
+  } | null = null;
+
+  for (let start = 0; start < closed.length; start++) {
+    if (!closed[start] || seen[start]) continue;
+    let head = 0;
+    let tail = 0;
+    let area = 0;
+    let minX = sw;
+    let minY = sh;
+    let maxX = 0;
+    let maxY = 0;
+    seen[start] = 1;
+    queue[tail++] = start;
+    while (head < tail) {
+      const idx = queue[head++];
+      const x = idx % sw;
+      const y = (idx / sw) | 0;
+      area++;
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+      if (x > 0) {
+        const n = idx - 1;
+        if (closed[n] && !seen[n]) {
+          seen[n] = 1;
+          queue[tail++] = n;
+        }
+      }
+      if (x < sw - 1) {
+        const n = idx + 1;
+        if (closed[n] && !seen[n]) {
+          seen[n] = 1;
+          queue[tail++] = n;
+        }
+      }
+      if (y > 0) {
+        const n = idx - sw;
+        if (closed[n] && !seen[n]) {
+          seen[n] = 1;
+          queue[tail++] = n;
+        }
+      }
+      if (y < sh - 1) {
+        const n = idx + sw;
+        if (closed[n] && !seen[n]) {
+          seen[n] = 1;
+          queue[tail++] = n;
+        }
+      }
+    }
+
+    const boxW = maxX - minX + 1;
+    const boxH = maxY - minY + 1;
+    const boxAreaRatio = (boxW * boxH) / (sw * sh);
+    if (boxAreaRatio < 0.18) continue;
+    const aspect = boxH / Math.max(1, boxW);
+    const aspectPenalty = Math.abs(aspect - Math.SQRT2);
+    const cx = (minX + maxX) / 2;
+    const cy = (minY + maxY) / 2;
+    const centerDx = Math.abs(cx - sw / 2) / (sw / 2);
+    const centerDy = Math.abs(cy - sh / 2) / (sh / 2);
+    const touches =
+      (minX <= 1 ? 1 : 0) +
+      (minY <= 1 ? 1 : 0) +
+      (maxX >= sw - 2 ? 1 : 0) +
+      (maxY >= sh - 2 ? 1 : 0);
+    const touchPenalty = touches >= 3 ? 0.45 : 1;
+    const score =
+      area *
+      (1 / (1 + aspectPenalty * 2.2)) *
+      (1 - Math.min(0.65, (centerDx + centerDy) * 0.22)) *
+      touchPenalty;
+
+    if (!best || score > best.score) {
+      best = { area, minX, minY, maxX, maxY, score };
+    }
+  }
+
+  if (!best) return canvas;
+
+  const boxW = best.maxX - best.minX + 1;
+  const boxH = best.maxY - best.minY + 1;
+  const cropAreaRatio = (boxW * boxH) / (sw * sh);
+  if (cropAreaRatio > 0.985) return canvas;
+
+  const pad = Math.max(8, Math.round(Math.min(boxW, boxH) * 0.015));
+  const x = Math.max(0, Math.round((best.minX - pad) / scale));
+  const y = Math.max(0, Math.round((best.minY - pad) / scale));
+  const right = Math.min(canvas.width, Math.round((best.maxX + pad + 1) / scale));
+  const bottom = Math.min(canvas.height, Math.round((best.maxY + pad + 1) / scale));
+  const outW = Math.max(1, right - x);
+  const outH = Math.max(1, bottom - y);
+
+  const out = mkCanvas(outW, outH);
+  out.getContext('2d')!.drawImage(canvas, x, y, outW, outH, 0, 0, outW, outH);
   return out;
 }
 
@@ -1297,29 +1425,140 @@ function enhanceScannedPage(canvas: HTMLCanvasElement): void {
 }
 
 function warpDocument(src: HTMLCanvasElement, geometry: DocumentGeometry): string {
-  const safeGeometry = expandGeometry(geometry, src.width, src.height);
-  const curved = warpCurvedDocumentCanvas(src, safeGeometry);
-  const canvas = addCleanScanMargin(curved || warpPerspectiveCanvas(src, safeGeometry.corners));
+  const warped =
+    warpCurvedDocumentCanvas(src, geometry) || warpPerspectiveCanvas(src, geometry.corners);
+  const canvas = addCleanScanMargin(warped);
   enhanceScannedPage(canvas);
   return canvas.toDataURL('image/jpeg', 0.93);
 }
 
-// ── API pública ───────────────────────────────────────────────────────────────
+function assessCorrectedCanvas(canvas: HTMLCanvasElement): CorrectedDocumentConfidence {
+  const scale = Math.min(1, 800 / Math.max(canvas.width, canvas.height));
+  const sw = Math.max(1, Math.round(canvas.width * scale));
+  const sh = Math.max(1, Math.round(canvas.height * scale));
+  const sample = mkCanvas(sw, sh);
+  const sctx = sample.getContext('2d')!;
+  sctx.drawImage(canvas, 0, 0, sw, sh);
+  const data = sctx.getImageData(0, 0, sw, sh).data;
+  const paperMask = new Uint8Array(sw * sh);
+  let borderPaper = 0;
+  let borderCount = 0;
+  const band = Math.max(6, Math.round(Math.min(sw, sh) * 0.06));
+
+  for (let i = 0, p = 0; i < data.length; i += 4, p++) {
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+    const luma = r * 0.299 + g * 0.587 + b * 0.114;
+    const chroma = Math.max(r, g, b) - Math.min(r, g, b);
+    const isPaper = luma > 170 && chroma < 58;
+    paperMask[p] = isPaper ? 1 : 0;
+
+    const x = p % sw;
+    const y = (p / sw) | 0;
+    const inBand = x < band || y < band || x >= sw - band || y >= sh - band;
+    if (inBand) {
+      borderCount++;
+      if (isPaper) borderPaper++;
+    }
+  }
+
+  const closed = morphClose(paperMask, sw, sh, Math.max(2, Math.round(Math.min(sw, sh) * 0.005)));
+  const seen = new Uint8Array(sw * sh);
+  const queue = new Int32Array(sw * sh);
+  let bestArea = 0;
+  let bestMinX = sw;
+  let bestMinY = sh;
+  let bestMaxX = 0;
+  let bestMaxY = 0;
+
+  for (let start = 0; start < closed.length; start++) {
+    if (!closed[start] || seen[start]) continue;
+    let head = 0;
+    let tail = 0;
+    let area = 0;
+    let minX = sw;
+    let minY = sh;
+    let maxX = 0;
+    let maxY = 0;
+    seen[start] = 1;
+    queue[tail++] = start;
+
+    while (head < tail) {
+      const idx = queue[head++];
+      const x = idx % sw;
+      const y = (idx / sw) | 0;
+      area++;
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+
+      if (x > 0) {
+        const n = idx - 1;
+        if (closed[n] && !seen[n]) {
+          seen[n] = 1;
+          queue[tail++] = n;
+        }
+      }
+      if (x < sw - 1) {
+        const n = idx + 1;
+        if (closed[n] && !seen[n]) {
+          seen[n] = 1;
+          queue[tail++] = n;
+        }
+      }
+      if (y > 0) {
+        const n = idx - sw;
+        if (closed[n] && !seen[n]) {
+          seen[n] = 1;
+          queue[tail++] = n;
+        }
+      }
+      if (y < sh - 1) {
+        const n = idx + sw;
+        if (closed[n] && !seen[n]) {
+          seen[n] = 1;
+          queue[tail++] = n;
+        }
+      }
+    }
+
+    if (area > bestArea) {
+      bestArea = area;
+      bestMinX = minX;
+      bestMinY = minY;
+      bestMaxX = maxX;
+      bestMaxY = maxY;
+    }
+  }
+
+  const widthRatio = bestArea > 0 ? (bestMaxX - bestMinX + 1) / sw : 0;
+  const heightRatio = bestArea > 0 ? (bestMaxY - bestMinY + 1) / sh : 0;
+  const borderPaperRatio = borderCount > 0 ? borderPaper / borderCount : 0;
+
+  if (widthRatio >= 0.88 && heightRatio >= 0.88 && borderPaperRatio >= 0.84) {
+    return 'high';
+  }
+  return 'low';
+}
+
+// â”€â”€ API pÃºblica â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Detecta automaticamente os cantos do documento em `dataUrl` e aplica a
- * correção de perspectiva.  A imagem retornada é uma data URL JPEG com as
+ * correÃ§Ã£o de perspectiva.  A imagem retornada Ã© uma data URL JPEG com as
  * cores RGB intactas.
  *
- * Se a detecção não for confiável (papel preenche todo o quadro, fundo muito
- * claro, etc.), retorna `dataUrl` sem alterações.
+ * Se a detecÃ§Ã£o nÃ£o for confiÃ¡vel (papel preenche todo o quadro, fundo muito
+ * claro, etc.), retorna `dataUrl` sem alteraÃ§Ãµes.
  */
 export async function correctPerspective(dataUrl: string): Promise<string> {
   const img = await loadImage(dataUrl);
   const iw = img.width,
     ih = img.height;
 
-  // — Detecção de cantos na cópia reduzida —
+  // â€” DetecÃ§Ã£o de cantos na cÃ³pia reduzida â€”
   const dScale = DETECT_SIZE / Math.max(iw, ih);
   const dw = Math.round(iw * dScale);
   const dh = Math.round(ih * dScale);
@@ -1337,8 +1576,9 @@ export async function correctPerspective(dataUrl: string): Promise<string> {
   }
 
   if (!geometry) return dataUrl;
+  if (estimateGeometryConfidence(geometry, dw, dh) !== 'high') return dataUrl;
 
-  // — Warp na resolução de saída (máx OUTPUT_MAX) —
+  // â€” Warp na resoluÃ§Ã£o de saÃ­da (mÃ¡x OUTPUT_MAX) â€”
   const oScale = Math.min(1, OUTPUT_MAX / Math.max(iw, ih));
   const ow = Math.round(iw * oScale);
   const oh = Math.round(ih * oScale);
@@ -1346,7 +1586,7 @@ export async function correctPerspective(dataUrl: string): Promise<string> {
   const wc = mkCanvas(ow, oh);
   wc.getContext('2d')!.drawImage(img, 0, 0, ow, oh);
 
-  // Escala os cantos detectados para a resolução de saída
+  // Escala os cantos detectados para a resoluÃ§Ã£o de saÃ­da
   const scaledGeometry = scaleGeometry(geometry, ow / dw, oh / dh);
 
   try {
@@ -1379,6 +1619,15 @@ export async function detectPerspective(dataUrl: string): Promise<PerspectiveDet
   } catch {
     return { corners: null, confidence: 'none' };
   }
+}
+
+export async function validateCorrectedDocument(
+  dataUrl: string
+): Promise<CorrectedDocumentConfidence> {
+  const img = await loadImage(dataUrl);
+  const canvas = mkCanvas(img.width, img.height);
+  canvas.getContext('2d')!.drawImage(img, 0, 0);
+  return assessCorrectedCanvas(canvas);
 }
 
 export async function correctPerspectiveWithCorners(
