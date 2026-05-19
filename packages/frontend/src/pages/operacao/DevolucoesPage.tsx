@@ -392,7 +392,9 @@ function ModalNovaDevolucao({ onClose, onSaved }: ModalDevolucaoProps): JSX.Elem
                 {mostrarBusca && (
                   <div className="max-h-48 overflow-y-auto space-y-1">
                     {resultadosBusca.length === 0 ? (
-                      <p className="text-sm text-gray-500 text-center py-2">Nenhum resultado</p>
+                      <p className="text-sm text-gray-500 text-center py-2">
+                        Nenhum resultado para os filtros informados.
+                      </p>
                     ) : (
                       resultadosBusca.map((proc) => (
                         <button
@@ -594,7 +596,9 @@ function ModalNovaDevolucao({ onClose, onSaved }: ModalDevolucaoProps): JSX.Elem
                   </tbody>
                 </table>
               ) : (
-                <p className="text-xs text-gray-400 italic">Nenhum item adicionado ainda.</p>
+                <p className="text-xs text-gray-400 italic">
+                  Nenhum item adicionado. Adicione ao menos um item para continuar.
+                </p>
               )}
             </div>
           </div>
@@ -1002,7 +1006,7 @@ export function DevolucoesPage(): JSX.Element {
             </div>
             {(busca || coordenadoriaFiltro || dataInicio || dataFim) && (
               <Button type="button" variant="ghost" size="md" onClick={handleLimparFiltros}>
-                Limpar
+                Limpar filtros
               </Button>
             )}
           </div>

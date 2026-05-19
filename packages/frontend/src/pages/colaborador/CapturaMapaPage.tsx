@@ -215,7 +215,7 @@ function toManualCorners(points: Point[] | null): Array<{ x: number; y: number }
 function getProcessingBadge(result: ProcessarResponse | null): string {
   if (!result) return '';
   if (result.processamento.status === 'falhou_processamento') {
-    return 'Nao foi possivel corrigir automaticamente';
+    return 'Não foi possivel corrigir automaticamente';
   }
   if (result.processamento.fallback) {
     return 'Correcao parcial';
@@ -473,11 +473,11 @@ export function CapturaMapaPage() {
 
     const suggestedCorners = item.corners ?? defaultCorners(editorImageSize);
     if (!item.corners && pointsEqual(editorCorners, suggestedCorners)) {
-      toast.error('Posicione as bordas sobre a folha antes de aplicar a correcao.');
+      toast.error('Posicione as bordas sobre a folha antes de aplicar a correção.');
       return;
     }
     if (isLikelyFullSceneCrop(editorCorners, editorImageSize)) {
-      toast.error('As bordas ainda estao pegando a cena inteira. Ajuste somente a folha.');
+      toast.error('As bordas ainda estão pegando a cena inteira. Ajuste somente a folha.');
       return;
     }
 
@@ -516,7 +516,7 @@ export function CapturaMapaPage() {
       );
       handleCloseEditor();
     } catch {
-      toast.error('Nao foi possivel aplicar as bordas ajustadas.');
+      toast.error('Não foi possivel aplicar as bordas ajustadas.');
     } finally {
       setEditorSaving(false);
     }
@@ -730,7 +730,7 @@ export function CapturaMapaPage() {
       try {
         await api.delete(`/colaborador/capturas-mapa/${id}`);
         setCapturasRecentes((prev) => prev?.filter((c) => c.id !== id) ?? null);
-        toast.success('Captura excluida.');
+        toast.success('Captura excluída.');
       } catch {
         toast.error('Erro ao excluir captura.');
       } finally {
@@ -768,7 +768,7 @@ export function CapturaMapaPage() {
         />
         <span>
           <strong>Atencao:</strong> As imagens sao armazenadas por <strong>30 dias</strong> e
-          excluidas automaticamente apos esse prazo. Faca o download antes do vencimento.
+          excluídas automaticamente apos esse prazo. Faca o download antes do vencimento.
         </span>
       </div>
 
@@ -876,7 +876,7 @@ export function CapturaMapaPage() {
                   )}
                   {aguardando > 0 && (revisar > 0 || corrigindo > 0) && (
                     <Button variant="secondary" size="sm" icon="alert-triangle" disabled>
-                      {revisar > 0 ? 'Revise as bordas' : 'Aguarde a correcao'}
+                      {revisar > 0 ? 'Revise as bordas' : 'Aguarde a correção'}
                     </Button>
                   )}
                   {temErro && (
@@ -1037,7 +1037,7 @@ export function CapturaMapaPage() {
                           </div>
                           {item.result.processamento.fallback && (
                             <p className="text-warning-700 dark:text-warning-300">
-                              Nao conseguimos detectar a folha com seguranca. Salvamos a imagem
+                              Não conseguimos detectar a folha com seguranca. Salvamos a imagem
                               original com melhoria leve.
                             </p>
                           )}
@@ -1059,7 +1059,7 @@ export function CapturaMapaPage() {
         open={!!editorItem && !!editorImageSize}
         onClose={handleCloseEditor}
         title="Ajustar bordas"
-        subtitle="Arraste os cantos e os pontos do meio para enquadrar apenas a folha. A correcao final deve remover a mesa da imagem."
+        subtitle="Arraste os cantos e os pontos do meio para enquadrar apenas a folha. A correção final deve remover a mesa da imagem."
         size="xl"
         footer={
           <div className="flex flex-wrap justify-end gap-2 p-4">
@@ -1234,7 +1234,7 @@ export function CapturaMapaPage() {
             </div>
             {previewItem.result.processamento.fallback && (
               <p className="mt-2 text-xs text-warning-700 dark:text-warning-300">
-                Nao conseguimos detectar a folha com seguranca. Salvamos a imagem original com
+                Não conseguimos detectar a folha com seguranca. Salvamos a imagem original com
                 melhoria leve.
               </p>
             )}
@@ -1267,7 +1267,8 @@ export function CapturaMapaPage() {
 
           {!listaExpandida && (
             <p className="text-sm text-neutral-500 dark:text-neutral-400">
-              Clique em &ldquo;Carregar&rdquo; para ver as imagens salvas nos ultimos 30 dias.
+              Clique em &ldquo;Carregar capturas recentes&rdquo; para ver as imagens salvas nos
+              últimos 30 dias.
             </p>
           )}
 
@@ -1275,7 +1276,7 @@ export function CapturaMapaPage() {
             <div className="flex flex-col items-center gap-2 py-8 text-sm text-neutral-500 dark:text-neutral-400">
               <Icon name="image" className="h-8 w-8 opacity-40" />
               <p className="font-medium">Nenhuma captura encontrada</p>
-              <p>Voce nao possui imagens salvas no momento.</p>
+              <p>Você nao possui imagens salvas no momento.</p>
             </div>
           )}
 

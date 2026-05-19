@@ -63,7 +63,7 @@ export function EmpresaPage(): JSX.Element {
   const carregando = empresaQuery.isLoading;
   const erro = empresaQuery.error
     ? {
-        message: 'Erro ao Carregar Configurações',
+        message: 'Erro ao carregar configurações',
         details:
           empresaQuery.error instanceof Error
             ? empresaQuery.error.message
@@ -196,14 +196,14 @@ export function EmpresaPage(): JSX.Element {
   return (
     <PageState
       loading={carregando}
-      loadingMessage="Carregando Configurações..."
+      loadingMessage="Carregando configurações..."
       error={erroComAcao}
     >
       <div className="space-y-6 max-w-3xl">
         {mensagem && (
           <ActionFeedback
             type={mensagem.tipo}
-            title={mensagem.tipo === 'success' ? 'Configurações Salvas' : 'Erro ao Salvar'}
+            title={mensagem.tipo === 'success' ? 'Configurações salvas' : 'Erro ao salvar'}
             message={mensagem.texto}
             onDismiss={() => setMensagem(null)}
           />

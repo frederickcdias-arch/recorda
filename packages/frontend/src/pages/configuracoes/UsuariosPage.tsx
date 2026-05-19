@@ -34,7 +34,7 @@ export function UsuariosPage(): JSX.Element {
   const carregando = usuariosQuery.isLoading;
   const erro = usuariosQuery.error
     ? {
-        message: 'Erro ao Carregar Usuários',
+        message: 'Erro ao carregar usuários',
         details: usuariosQuery.error instanceof Error ? usuariosQuery.error.message : '',
       }
     : null;
@@ -147,10 +147,10 @@ export function UsuariosPage(): JSX.Element {
       <div className="space-y-6">
         <PageHeader
           title="Usuários"
-          subtitle="Gerencie os Usuários do sistema"
+          subtitle="Gerencie os usuários do sistema"
           actions={
             <Button variant="primary" icon="plus" onClick={handleAbrirModalNovo}>
-              Novo Usuário
+              Novo usuário
             </Button>
           }
         />
@@ -176,7 +176,7 @@ export function UsuariosPage(): JSX.Element {
                     Email
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Papel
+                    Perfil
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                     Status
@@ -191,7 +191,7 @@ export function UsuariosPage(): JSX.Element {
                   <tr>
                     <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
                       <Icon name="users" className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                      <p>Nenhum Usuário encontrado</p>
+                      <p>Nenhum usuário encontrado.</p>
                     </td>
                   </tr>
                 ) : (
@@ -256,7 +256,7 @@ export function UsuariosPage(): JSX.Element {
           >
             <div className="bg-[var(--color-bg-primary)] rounded-xl p-6 max-w-md w-full shadow-2xl animate-scale-in">
               <h3 id="modal-usuario-titulo" className="text-lg font-semibold mb-4">
-                {usuarioEditando ? 'Editar Usuário' : 'Novo Usuário'}
+                {usuarioEditando ? 'Editar usuário' : 'Novo usuário'}
               </h3>
               <div className="space-y-4">
                 <Input
@@ -282,7 +282,7 @@ export function UsuariosPage(): JSX.Element {
                   required={!usuarioEditando}
                 />
                 <Select
-                  label="Papel"
+                  label="Perfil"
                   value={formData.perfil}
                   onChange={(e) =>
                     setFormData((p) => ({
@@ -301,7 +301,7 @@ export function UsuariosPage(): JSX.Element {
                   Cancelar
                 </Button>
                 <Button variant="primary" onClick={handleSalvar} loading={salvando}>
-                  {usuarioEditando ? 'Salvar' : 'Criar'}
+                  {usuarioEditando ? 'Salvar usuário' : 'Criar usuário'}
                 </Button>
               </div>
             </div>

@@ -187,7 +187,7 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
   const loading = docsQuery.isLoading;
   const error = docsQuery.error
     ? {
-        message: 'Erro ao Carregar Base de Conhecimento Operacional',
+        message: 'Erro ao carregar a base de conhecimento operacional',
         details: docsQuery.error instanceof Error ? docsQuery.error.message : 'Falha desconhecida',
       }
     : null;
@@ -544,7 +544,7 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
                     label="Buscar (título, descrição ou conteúdo)"
                     value={busca}
                     onChange={(e) => setBusca(e.target.value)}
-                    placeholder="Busca full-text em português..."
+                    placeholder="Busque por título, descrição ou conteúdo..."
                   />
                 </div>
                 <div className="w-48">
@@ -575,7 +575,7 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
                   onClick={() => invalidateDocs()}
                   loading={saving}
                 >
-                  Atualizar
+                  Atualizar lista
                 </Button>
               </div>
             </Card>

@@ -276,7 +276,9 @@ function DashboardColaborador(): JSX.Element {
         <Card padding="lg">
           <h3 className="font-semibold text-[var(--color-text-primary)] mb-4">Por Tipo</h3>
           {producaoPorTipo.length === 0 ? (
-            <p className="text-gray-500 text-sm py-4">Nenhum dado</p>
+            <p className="text-gray-500 text-sm py-4">
+              Nenhum dado disponível para o período selecionado.
+            </p>
           ) : (
             <div className="space-y-3">
               {producaoPorTipo.map((item) => {

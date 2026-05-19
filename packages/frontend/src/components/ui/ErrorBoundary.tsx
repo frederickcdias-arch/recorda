@@ -51,7 +51,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
           </div>
           <h2 className="text-xl font-semibold text-gray-900 mb-2">Erro inesperado</h2>
           <p className="text-sm text-gray-500 mb-4">
-            Ocorreu um erro na aplicação. Tente recarregar a página.
+            Ocorreu uma falha inesperada. Recarregue a página e tente novamente.
           </p>
           {this.state.error && process.env.NODE_ENV !== 'production' && (
             <pre className="text-xs text-left bg-gray-50 border rounded-lg p-3 mb-4 overflow-auto max-h-40 text-gray-700">

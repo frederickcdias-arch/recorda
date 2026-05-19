@@ -75,7 +75,7 @@ export function ActionMenu({ items, disabled = false }: ActionMenuProps): JSX.El
         className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-[var(--color-text-tertiary)] hover:bg-[var(--color-gray-100)] hover:text-[var(--color-text-primary)] transition-colors disabled:opacity-40"
         onClick={() => setOpen((p) => !p)}
         disabled={disabled}
-        aria-label="AÃ§Ãµes"
+        aria-label="Ações"
       >
         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
           <path d="M10 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4z" />

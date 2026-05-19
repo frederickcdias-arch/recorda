@@ -406,7 +406,7 @@ export function ControleQualidadePanel({
           <input
             type="text"
             className="h-8 px-3 border rounded-lg text-sm w-44 focus:outline-none focus:ring-2 focus:ring-blue-200"
-            placeholder="Buscar repositorio..."
+            placeholder="Buscar repositório..."
             value={buscaRepo}
             onChange={(e) => setBuscaRepo(e.target.value)}
           />

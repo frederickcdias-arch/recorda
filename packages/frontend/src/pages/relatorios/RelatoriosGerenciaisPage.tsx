@@ -145,7 +145,7 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
     if (!dataInicio || !dataFim) {
       setMensagem({
         tipo: 'error',
-        texto: 'Período Obrigatório',
+        texto: 'Período obrigatório',
         detalhes: 'Selecione a data de início e fim para gerar o relatório',
       });
       return false;
@@ -153,7 +153,7 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
     if (new Date(dataInicio) > new Date(dataFim)) {
       setMensagem({
         tipo: 'error',
-        texto: 'Período Inválido',
+        texto: 'Período inválido',
         detalhes: 'A data de início deve ser anterior à data de fim',
       });
       return false;
@@ -179,7 +179,7 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
         error instanceof Error
           ? error.message
           : ((error as { error?: string })?.error ?? 'Erro ao carregar relatório');
-      setMensagem({ tipo: 'error', texto: 'Erro ao Gerar Relatório', detalhes: msg });
+      setMensagem({ tipo: 'error', texto: 'Erro ao gerar relatório', detalhes: msg });
     } finally {
       setCarregandoRelatorio(false);
     }
@@ -194,7 +194,7 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
     if (new Date(dataInicio) > new Date(dataFim)) {
       setMensagem({
         tipo: 'error',
-        texto: 'Período Inválido',
+        texto: 'Período inválido',
         detalhes: 'A data de início deve ser anterior à data de fim',
       });
       return;
@@ -231,7 +231,7 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
       } else {
         setMensagem({
           tipo: 'error',
-          texto: 'Erro ao Exportar Relatório',
+          texto: 'Erro ao exportar relatório',
           detalhes:
             error instanceof Error ? error.message : 'Verifique sua conexão e tente novamente',
         });
@@ -309,7 +309,7 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Relatórios Gerenciais"
+        title="Relatórios gerenciais"
         subtitle="Resumo consolidado da produção por período, coordenadoria e colaborador."
       />
 
@@ -333,7 +333,7 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
               loading={carregandoRelatorio}
               disabled={carregandoRelatorio || gerando !== null}
             >
-              Visualizar
+              Gerar visualização
             </Button>
             <Button
               variant="secondary"
@@ -517,11 +517,11 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
             </div>
           </div>
 
-          {/* PRODUÇÃO POR COLABORADOR */}
+          {/* Produção por colaborador */}
           <div className="bg-[var(--color-bg-primary)] rounded-xl shadow-xs border border-[var(--color-border-primary)] overflow-hidden">
             <div className="flex items-center gap-2 px-5 py-3 bg-primary-600 text-white">
               <Icon name="users" className="w-4 h-4" />
-              <h3 className="font-semibold text-sm">PRODUÇÃO POR COLABORADOR</h3>
+              <h3 className="font-semibold text-sm">Produção por colaborador</h3>
             </div>
             <div className="space-y-2 p-3 md:hidden">
               {colabRows.length === 0 ? (
@@ -577,7 +577,7 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
           <div className="bg-[var(--color-bg-primary)] rounded-xl shadow-xs border border-[var(--color-border-primary)] overflow-hidden">
             <div className="flex items-center gap-2 px-5 py-3 bg-[var(--color-gray-600)] text-white">
               <Icon name="book" className="w-4 h-4" />
-              <h3 className="font-semibold text-sm">GLOSSÁRIO DAS ETAPAS</h3>
+              <h3 className="font-semibold text-sm">Glossário das etapas</h3>
             </div>
             <div className="p-5 space-y-2">
               {relatorio.glossario.map((item) => (
@@ -596,7 +596,8 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
         <div className="bg-gray-50 rounded-xl p-10 text-center border border-gray-200">
           <Icon name="file-text" className="w-12 h-12 text-gray-300 mx-auto mb-3" />
           <p className="text-gray-500 text-sm">
-            Selecione o período e clique em <strong>Visualizar</strong> para gerar o relatório.
+            Selecione o período e clique em <strong>Gerar visualização</strong> para gerar o
+            relatório.
           </p>
         </div>
       )}

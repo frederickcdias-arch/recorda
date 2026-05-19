@@ -169,7 +169,7 @@ export function useRecebimento() {
       setOcrImagemBase64(base64);
       toast.success('Imagem carregada.');
     } catch (error) {
-      toast.error(extractErrorMessage(error, 'Erro ao Carregar Imagem'));
+      toast.error(extractErrorMessage(error, 'Erro ao carregar imagem'));
     } finally {
       setOcrProcessando(false);
     }

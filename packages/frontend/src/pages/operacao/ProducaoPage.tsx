@@ -172,7 +172,7 @@ export function ProducaoPage(): JSX.Element {
   const atualizando = producaoQuery.isFetching && !producaoQuery.isLoading;
   const erro = producaoQuery.error
     ? {
-        message: 'Erro ao carregar Registros de Produção',
+        message: 'Erro ao carregar registros de produção',
         details:
           producaoQuery.error instanceof Error ? producaoQuery.error.message : 'Falha desconhecida',
       }
@@ -320,7 +320,7 @@ export function ProducaoPage(): JSX.Element {
   return (
     <PageState
       loading={carregando && !dados}
-      loadingMessage="Carregando Produção..."
+      loadingMessage="Carregando registros de produção..."
       error={erroComAcao}
     >
       <div className="space-y-6">
@@ -576,7 +576,7 @@ export function ProducaoPage(): JSX.Element {
                   description={
                     etapa || colaborador || dataInicio || dataFim || busca
                       ? 'Ajuste os filtros ou tente outro período.'
-                      : 'Nenhum registro de produção cadastrado.'
+                      : 'Ainda não há registros de produção cadastrados.'
                   }
                 />
               ) : (

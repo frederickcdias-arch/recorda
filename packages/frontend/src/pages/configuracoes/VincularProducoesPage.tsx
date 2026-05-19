@@ -301,7 +301,7 @@ export function VincularProducoesPage(): JSX.Element {
                   className="text-sm"
                 >
                   <Icon name="eye" className="w-4 h-4" />
-                  {loadingPreview ? 'Carregando...' : 'Visualizar Preview'}
+                  {loadingPreview ? 'Carregando...' : 'Visualizar prévia'}
                 </Button>
               </div>
 
@@ -373,7 +373,7 @@ export function VincularProducoesPage(): JSX.Element {
                   disabled={vincularMutation.isPending || !mostrarPreview}
                 >
                   <Icon name="link" className="w-4 h-4" />
-                  {vincularMutation.isPending ? 'Vinculando...' : 'Confirmar Vinculação'}
+                  {vincularMutation.isPending ? 'Vinculando...' : 'Confirmar vínculo'}
                 </Button>
               </div>
             </div>

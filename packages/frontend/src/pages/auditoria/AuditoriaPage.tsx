@@ -156,7 +156,7 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
   const carregando = auditoriaQuery.isLoading;
   const erro = auditoriaQuery.error
     ? {
-        message: 'Erro ao Carregar Logs de Auditoria',
+        message: 'Erro ao carregar logs de auditoria',
         details:
           auditoriaQuery.error instanceof Error
             ? auditoriaQuery.error.message
@@ -244,14 +244,14 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
   return (
     <PageState
       loading={carregando}
-      loadingMessage="Carregando Logs de Auditoria..."
+      loadingMessage="Carregando logs de auditoria..."
       error={erroComAcao}
     >
       <div className="space-y-6">
         {/* Header */}
         <PageHeader
           title={config?.titulo ?? 'Auditoria'}
-          subtitle={config?.descricao ?? 'Histórico de Alterações no sistema'}
+          subtitle={config?.descricao ?? 'Histórico de alterações no sistema'}
           actions={
             <Button variant="secondary" icon="refresh-cw" onClick={invalidate}>
               Atualizar
@@ -336,7 +336,7 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
                 <p className="text-lg font-medium">
                   {temFiltroAtivo
                     ? 'Nenhum resultado para os filtros aplicados'
-                    : 'Nenhum log registrado'}
+                    : 'Nenhum evento de auditoria encontrado.'}
                 </p>
                 <p className="text-sm">
                   {temFiltroAtivo

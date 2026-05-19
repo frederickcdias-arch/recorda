@@ -153,7 +153,7 @@ export function RecebimentoAvulsosPanel({
             />
           </div>
           <Button size="sm" variant="secondary" onClick={handleBuscar} loading={carregando}>
-            Buscar
+            Buscar avulsos
           </Button>
           <Button
             size="sm"

@@ -226,7 +226,7 @@ export function ImportarProducaoPage(): JSX.Element {
   const carregando = historicoQuery.isLoading || fontesQuery.isLoading;
   const erro =
     historicoQuery.error || fontesQuery.error
-      ? { message: 'Erro ao Carregar Dados', details: 'Falha desconhecida' }
+      ? { message: 'Erro ao carregar dados', details: 'Falha desconhecida' }
       : null;
 
   const invalidate = () => {
@@ -268,7 +268,7 @@ export function ImportarProducaoPage(): JSX.Element {
           `${result.fonte}: Nenhum registro novo. ${result.duplicados} duplicados ignorados.`
         );
       } else {
-        toast.success(`${result.fonte}: Nenhum registro para importar.`);
+        toast.success(`${result.fonte}: nenhum novo registro para importar.`);
       }
       await invalidate();
     } catch (error) {
@@ -316,7 +316,7 @@ export function ImportarProducaoPage(): JSX.Element {
           `Importação em lote: Nenhum registro novo. ${resumo.duplicados} duplicados ignorados.`
         );
       } else {
-        toast.success('Importação em lote: Nenhum registro para importar.');
+        toast.success('Importação em lote: nenhum novo registro para importar.');
       }
 
       await invalidate();
@@ -329,7 +329,7 @@ export function ImportarProducaoPage(): JSX.Element {
 
   const handleExcluirFonte = (id: string, nome: string): void => {
     confirmDialog.confirm({
-      title: 'Excluir Fonte de Importação',
+      title: 'Excluir fonte de importação',
       message: `Deseja excluir a fonte "${nome}"? Isso não remove dados já importados.`,
       confirmLabel: 'Excluir',
       variant: 'danger',
@@ -352,7 +352,7 @@ export function ImportarProducaoPage(): JSX.Element {
       const parsed = parseCsvToProducao(text);
       setRegistrosProducao(parsed);
       setArquivoNomeProducao(file.name);
-      toast.success(`${parsed.length} Registros de Produção prontos para importar.`);
+      toast.success(`${parsed.length} registros de produção prontos para importar.`);
     } catch (error) {
       toast.error(extractErrorMessage(error, 'Falha ao ler CSV'));
       setRegistrosProducao([]);
@@ -379,7 +379,7 @@ export function ImportarProducaoPage(): JSX.Element {
       const parsed = parseCsvToProducao(result.csv);
       setRegistrosProducao(parsed);
       setArquivoNomeProducao('Google Sheets');
-      toast.success(`${parsed.length} Registros de Produção carregados do Sheets.`);
+      toast.success(`${parsed.length} registros de produção carregados do Sheets.`);
     } catch (error) {
       toast.error(extractErrorMessage(error, 'Falha ao buscar dados do Google Sheets'));
       setRegistrosProducao([]);
@@ -398,13 +398,13 @@ export function ImportarProducaoPage(): JSX.Element {
       const parsed = parseCsvToProducao(dadosColados);
       if (parsed.length === 0) {
         toast.error(
-          'Nenhum registro válido encontrado nos dados colados. Verifique se copiou o cabeçalho e os dados.'
+          'Nenhum registro válido encontrado. Verifique se você copiou o cabeçalho e pelo menos uma linha.'
         );
         return;
       }
       setRegistrosProducao(parsed);
       setArquivoNomeProducao('Dados Colados');
-      toast.success(`${parsed.length} Registros de Produção carregados.`);
+      toast.success(`${parsed.length} registros de produção carregados.`);
     } catch (error) {
       toast.error(extractErrorMessage(error, 'Falha ao processar dados colados'));
       setRegistrosProducao([]);
@@ -428,7 +428,7 @@ export function ImportarProducaoPage(): JSX.Element {
       setProcessando(true);
       const result = await importarProdMut.mutateAsync({ registros: regs });
       toast.success(
-        `Importação de Produção concluída. Sucesso: ${result.registrosSucesso} | Erros: ${result.registrosErro}`
+        `Importação de produção concluída. Importados: ${result.registrosSucesso}. Com erro: ${result.registrosErro}.`
       );
       setRegistrosProducao([]);
       setArquivoNomeProducao('');
@@ -466,10 +466,10 @@ export function ImportarProducaoPage(): JSX.Element {
 
   const handleLimparImportacoes = (): void => {
     confirmDialog.confirm({
-      title: 'Limpar Todos os Dados Importados',
+      title: 'Excluir dados importados',
       message:
-        'Isso removerá todas as produções importadas, repositórios legados, checklists legados e histórico de importações. Essa ação não pode ser desfeita.',
-      confirmLabel: 'Limpar Tudo',
+        'Esta ação administrativa excluirá dados importados persistidos, incluindo produções importadas, repositórios legados, checklists legados e histórico de importações. Esta ação não pode ser desfeita.',
+      confirmLabel: 'Excluir definitivamente',
       variant: 'danger',
       onConfirm: async () => {
         try {
@@ -477,7 +477,7 @@ export function ImportarProducaoPage(): JSX.Element {
           const result = await limparMut.mutateAsync();
           const r = result.removidos;
           toast.success(
-            `${result.mensagem} (Produção: ${r.producao}, Repositórios: ${r.repositorios}, Importações: ${r.importacoes})`
+            `Dados importados excluídos. Produção: ${r.producao}. Repositórios: ${r.repositorios}. Importações: ${r.importacoes}.`
           );
           setRegistrosProducao([]);
           setArquivoNomeProducao('');
@@ -505,7 +505,7 @@ export function ImportarProducaoPage(): JSX.Element {
 
   const handleRollbackImportacao = (id: string): void => {
     confirmDialog.confirm({
-      title: 'Desfazer Importação',
+      title: 'Desfazer importação',
       message:
         'Essa ação desfaz inserções e atualizações desta importação de produção. Deseja continuar?',
       confirmLabel: 'Desfazer',
@@ -539,7 +539,7 @@ export function ImportarProducaoPage(): JSX.Element {
       {previewImportacao && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 animate-fade-in">
           <div className="bg-[var(--color-bg-primary)] rounded-xl shadow-xl max-w-lg w-full mx-4 p-6 animate-scale-in">
-            <h3 className="text-lg font-bold text-gray-900 mb-3">Preview de Importação</h3>
+            <h3 className="text-lg font-bold text-gray-900 mb-3">Preview de importação</h3>
             <div className="space-y-3 text-sm text-gray-700">
               <p>
                 <strong>{previewImportacao.totalRegistros}</strong> registros na planilha.
@@ -612,7 +612,7 @@ export function ImportarProducaoPage(): JSX.Element {
             <div className="flex gap-3 mt-5">
               {previewImportacao.registrosValidos > 0 && (
                 <Button onClick={() => void handleConfirmarImportacao()} loading={processando}>
-                  Confirmar Importação ({previewImportacao.registrosValidos})
+                  Confirmar importação ({previewImportacao.registrosValidos})
                 </Button>
               )}
               <Button variant="secondary" onClick={() => setPreviewImportacao(null)}>
@@ -634,7 +634,7 @@ export function ImportarProducaoPage(): JSX.Element {
                 onClick={() => void handleLimparImportacoes()}
                 loading={processando}
               >
-                Limpar Tudo
+                Excluir dados importados
               </Button>
             ) : undefined
           }
@@ -649,7 +649,7 @@ export function ImportarProducaoPage(): JSX.Element {
 
         {/* Fontes Cadastradas */}
         <Card>
-          <h2 className="text-sm font-semibold text-gray-900 mb-3">Fontes Cadastradas</h2>
+          <h2 className="text-sm font-semibold text-gray-900 mb-3">Fontes cadastradas</h2>
           {fontes.length > 0 ? (
             <div className="space-y-2 mb-4">
               {fontes.map((f) => (
@@ -675,7 +675,7 @@ export function ImportarProducaoPage(): JSX.Element {
                       loading={validandoFonteId === f.id}
                       disabled={importandoFonteId !== null || validandoFonteId !== null}
                     >
-                      Validar
+                      Validar duplicatas
                     </Button>
                     <Button
                       size="sm"
@@ -692,7 +692,7 @@ export function ImportarProducaoPage(): JSX.Element {
                     className="text-xs text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)] transition"
                     title="Excluir fonte"
                   >
-                    ✕
+                    ×
                   </button>
                 </div>
               ))}
@@ -728,7 +728,7 @@ export function ImportarProducaoPage(): JSX.Element {
           {validacaoResult && (
             <div className="mb-4 p-3 bg-yellow-50 border border-yellow-100 rounded-lg text-sm">
               <p className="font-medium text-gray-900">
-                {validacaoResult.fonte.nome} - Validação de Duplicatas
+                {validacaoResult.fonte.nome} - Validação de duplicatas
               </p>
               <p className="text-gray-600 mt-1">
                 <span className="font-semibold text-green-700">
@@ -785,7 +785,7 @@ export function ImportarProducaoPage(): JSX.Element {
 
           {resultadoImportacaoTodas && (
             <div className="mb-4 p-3 bg-green-50 border border-green-100 rounded-lg text-sm">
-              <p className="font-medium text-gray-900">Importação em Lote Concluída</p>
+              <p className="font-medium text-gray-900">Importação em lote concluída</p>
               <p className="text-gray-600 mt-1">
                 <span className="font-semibold text-green-700">
                   {resultadoImportacaoTodas.resumo.importados}
@@ -856,7 +856,7 @@ export function ImportarProducaoPage(): JSX.Element {
               onClick={() => void handleSalvarFonte()}
               loading={criarFonteMut.isPending}
             >
-              Salvar
+              Salvar fonte
             </Button>
           </div>
         </Card>
@@ -1028,7 +1028,7 @@ export function ImportarProducaoPage(): JSX.Element {
               className="w-full flex items-center justify-between px-5 py-4 text-left"
             >
               <span className="text-sm font-semibold text-gray-900">
-                Histórico de Importações ({historico.length})
+                Histórico de importações ({historico.length})
               </span>
               <span className="text-xs text-gray-400">
                 {historicoAberto ? 'Recolher' : 'Expandir'}
@@ -1063,7 +1063,7 @@ export function ImportarProducaoPage(): JSX.Element {
                               className="text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] font-medium"
                               onClick={() => void handleBaixarErrosCsv(item.id)}
                             >
-                              Erros CSV
+                              Baixar CSV de erros
                             </button>
                             {isAdmin && item.tipo === 'PRODUCAO' && (
                               <button
