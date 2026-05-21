@@ -59,7 +59,7 @@ export function UsuariosPage(): JSX.Element {
   const registerUsuario = useRegisterUsuario();
   const updateUsuario = useUpdateUsuario();
   const toggleUsuarioAtivo = useToggleUsuarioAtivo();
-  const usuarios = usuariosQuery.data?.usuarios ?? [];
+  const usuarios = useMemo(() => usuariosQuery.data?.usuarios ?? [], [usuariosQuery.data]);
   const carregando = usuariosQuery.isLoading;
   const erro = usuariosQuery.error
     ? {
@@ -90,15 +90,16 @@ export function UsuariosPage(): JSX.Element {
     [usuarios]
   );
 
-  const invalidate = () => void queryClient.invalidateQueries({ queryKey: queryKeys.usuarios });
+  const invalidate = (): void =>
+    void queryClient.invalidateQueries({ queryKey: queryKeys.usuarios });
 
-  const handleAbrirModalNovo = () => {
+  const handleAbrirModalNovo = (): void => {
     setUsuarioEditando(null);
     setFormData({ email: '', nome: '', senha: '', perfil: 'operador' });
     setModalAberto(true);
   };
 
-  const handleAbrirModalEditar = (usuario: Usuario) => {
+  const handleAbrirModalEditar = (usuario: Usuario): void => {
     setUsuarioEditando(usuario);
     setFormData({
       email: usuario.email,
@@ -112,7 +113,7 @@ export function UsuariosPage(): JSX.Element {
     setModalAberto(true);
   };
 
-  const handleSalvar = async () => {
+  const handleSalvar = async (): Promise<void> => {
     if (!formData.email || !formData.nome || (!usuarioEditando && !formData.senha)) {
       setMensagem({ tipo: 'error', texto: 'Preencha todos os campos obrigatórios.' });
       return;
@@ -157,7 +158,7 @@ export function UsuariosPage(): JSX.Element {
     }
   };
 
-  const handleToggleAtivo = async (usuario: Usuario) => {
+  const handleToggleAtivo = async (usuario: Usuario): Promise<void> => {
     try {
       await toggleUsuarioAtivo.mutateAsync(usuario.id);
       setMensagem({

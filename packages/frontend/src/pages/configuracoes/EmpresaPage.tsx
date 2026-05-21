@@ -217,7 +217,7 @@ export function EmpresaPage(): JSX.Element {
         ...erro,
         action: {
           label: 'Tentar novamente',
-          onClick: () => void queryClient.invalidateQueries({ queryKey: queryKeys.empresa }),
+          onClick: (): void => void queryClient.invalidateQueries({ queryKey: queryKeys.empresa }),
         },
       }
     : null;

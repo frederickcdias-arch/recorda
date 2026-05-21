@@ -138,7 +138,10 @@ export function ComunicadosPage(): JSX.Element {
   const comunicados = comunicadosQuery.data?.comunicados ?? [];
   const totalPaginasHistorico = comunicadosQuery.data?.totalPaginas ?? 1;
   const paginaHistoricoAtual = comunicadosQuery.data?.pagina ?? paginaHistorico;
-  const destinatariosDetalhe = detalheQuery.data?.comunicado.destinatarios ?? [];
+  const destinatariosDetalhe = useMemo(
+    () => detalheQuery.data?.comunicado.destinatarios ?? [],
+    [detalheQuery.data]
+  );
   const destinatariosFiltrados = useMemo(() => {
     const termo = buscaDestinatario.trim().toLowerCase();
     return destinatariosDetalhe.filter((item) => {
@@ -427,7 +430,7 @@ export function ComunicadosPage(): JSX.Element {
               details: extractErrorMessage(erro, 'Tente novamente em instantes.'),
               action: {
                 label: 'Atualizar',
-                onClick: () => {
+                onClick: (): void => {
                   void comunicadosQuery.refetch();
                   void usuariosQuery.refetch();
                 },

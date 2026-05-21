@@ -47,6 +47,10 @@ interface PreviewVinculacao {
   totalRegistros: number;
 }
 
+interface VincularProducoesResponse {
+  mensagem: string;
+}
+
 function SelectableCard({
   selected,
   disabled = false,
@@ -121,16 +125,16 @@ export function VincularProducoesPage(): JSX.Element {
 
   const vincularMutation = useMutation({
     mutationFn: (data: { colaboradorNomeLegado: string; usuarioId: string }) =>
-      api.post('/admin/vincular-producoes', data),
-    onSuccess: (data: any) => {
+      api.post<VincularProducoesResponse>('/admin/vincular-producoes', data),
+    onSuccess: (data: VincularProducoesResponse): void => {
       setMensagem({ tipo: 'success', texto: data.mensagem });
       setColaboradorSelecionado('');
       setUsuarioSelecionado('');
       setMostrarPreview(false);
-      queryClient.invalidateQueries({ queryKey: ['colaboradores-legado'] });
-      queryClient.invalidateQueries({ queryKey: ['usuarios-colaboradores'] });
+      void queryClient.invalidateQueries({ queryKey: ['colaboradores-legado'] });
+      void queryClient.invalidateQueries({ queryKey: ['usuarios-colaboradores'] });
     },
-    onError: (error: any) => {
+    onError: (error: { error?: string }): void => {
       setMensagem({
         tipo: 'error',
         texto: error.error || 'Erro ao vincular produções.',
@@ -138,13 +142,13 @@ export function VincularProducoesPage(): JSX.Element {
     },
   });
 
-  const handleVisualizarPreview = () => {
+  const handleVisualizarPreview = (): void => {
     if (colaboradorSelecionado && usuarioSelecionado) {
       setMostrarPreview(true);
     }
   };
 
-  const handleVincular = () => {
+  const handleVincular = (): void => {
     if (colaboradorSelecionado && usuarioSelecionado) {
       vincularMutation.mutate({
         colaboradorNomeLegado: colaboradorSelecionado,

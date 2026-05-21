@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/explicit-function-return-type */
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { api } from '../services/api';
 import type {
@@ -1501,10 +1502,13 @@ export function useValidarDuplicatasImportacao(fonteId: string) {
       api.post<{
         fonte: { id: string; nome: string };
         total: number;
-        novos: { quantidade: number; itens: Array<{ linha: number; dados: any; motivo: string }> };
+        novos: {
+          quantidade: number;
+          itens: Array<{ linha: number; dados: Record<string, unknown>; motivo: string }>;
+        };
         duplicados: {
           quantidade: number;
-          itens: Array<{ linha: number; dados: any; motivo: string }>;
+          itens: Array<{ linha: number; dados: Record<string, unknown>; motivo: string }>;
         };
       }>(`/operacional/fontes-importacao/${fonteId}/validar-duplicatas`),
     enabled: !!fonteId,

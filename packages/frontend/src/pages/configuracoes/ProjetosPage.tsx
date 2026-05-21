@@ -44,7 +44,7 @@ export function ProjetosPage(): JSX.Element {
     null
   );
 
-  const projetos = projetosQuery.data ?? [];
+  const projetos = useMemo(() => projetosQuery.data ?? [], [projetosQuery.data]);
   const carregando = projetosQuery.isLoading;
 
   const projetosFiltrados = useMemo(() => {
@@ -54,12 +54,12 @@ export function ProjetosPage(): JSX.Element {
     return projetos.filter((projeto) => projeto.nome.toLowerCase().includes(termo));
   }, [busca, projetos]);
 
-  const resetForm = () => {
+  const resetForm = (): void => {
     setFormulario(initialForm);
     setMostrarForm(false);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
 
     if (!formulario.nome.trim()) {
