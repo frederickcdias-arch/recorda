@@ -95,8 +95,8 @@ export function AppLayout(): JSX.Element {
   }, [usuario]);
 
   return (
-    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-[var(--color-bg-secondary)]">
-      <div className="hidden md:flex">
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-[var(--color-bg-secondary)] md:flex">
+      <div className="hidden shrink-0 md:flex">
         <Sidebar
           collapsed={sidebarCollapsed}
           onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
@@ -121,7 +121,7 @@ export function AppLayout(): JSX.Element {
         </div>
       )}
 
-      <div className="flex min-h-screen flex-1 flex-col overflow-x-hidden">
+      <div className="flex min-h-screen min-w-0 flex-1 flex-col overflow-x-hidden">
         <Header
           onMenuToggle={() => setMobileMenuOpen(true)}
           title={pageTitle}

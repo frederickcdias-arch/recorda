@@ -104,78 +104,6 @@ async function waitForSubscription(page, timeoutMs) {
   });
 }
 
-async function ensureSubscriptionInPage(page) {
-  if (!vapidPublicKey) {
-    throw new Error('VITE_VAPID_PUBLIC_KEY ou VAPID_PUBLIC_KEY nao configurada para o teste');
-  }
-
-  return page.evaluate(
-    async ({ key, backendBase }) => {
-      function urlBase64ToUint8Array(base64String) {
-        const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-        const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-        const rawData = window.atob(base64);
-        const outputArray = new Uint8Array(rawData.length);
-
-        for (let i = 0; i < rawData.length; i += 1) {
-          outputArray[i] = rawData.charCodeAt(i);
-        }
-
-        return outputArray;
-      }
-
-      const registration = await navigator.serviceWorker.ready;
-      let subscription = await registration.pushManager.getSubscription();
-
-      if (!subscription) {
-        subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(key),
-        });
-      }
-
-      const payload = subscription.toJSON();
-      if (!payload.endpoint || !payload.keys?.p256dh || !payload.keys?.auth) {
-        throw new Error('Subscription sem endpoint ou chaves');
-      }
-
-      const token = sessionStorage.getItem('recorda_access_token');
-      if (!token) {
-        throw new Error('Token de sessao nao encontrado no navegador');
-      }
-
-      const response = await fetch(`${backendBase}/push/subscriptions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          endpoint: payload.endpoint,
-          expirationTime: payload.expirationTime ?? null,
-          keys: {
-            p256dh: payload.keys.p256dh,
-            auth: payload.keys.auth,
-          },
-          userAgent: navigator.userAgent,
-        }),
-      });
-
-      if (!response.ok) {
-        const text = await response.text();
-        throw new Error(`Falha ao registrar subscription: ${text}`);
-      }
-
-      return {
-        permission: Notification.permission,
-        hasSubscription: true,
-        endpoint: payload.endpoint,
-      };
-    },
-    { key: vapidPublicKey, backendBase: backendUrl }
-  );
-}
-
 async function main() {
   const database = createDatabaseClient();
   await database.connect();
@@ -196,12 +124,8 @@ async function main() {
     await page.getByRole('button', { name: 'Entrar' }).click();
     await page.waitForURL(/\/dashboard/, { timeout: 30_000, waitUntil: 'commit' });
 
-    let browserState = await waitForSubscription(page, waitMs);
-    let autoSubscription = browserState.hasSubscription;
-
-    if (!browserState.hasSubscription) {
-      browserState = await ensureSubscriptionInPage(page);
-    }
+    const browserState = await waitForSubscription(page, waitMs);
+    const autoSubscription = browserState.hasSubscription;
 
     const subscriptionsResult = await database.query(
       `SELECT endpoint, ativo
@@ -280,6 +204,10 @@ async function main() {
       unreadTotal: unreadData.totalNaoLidos,
       destinatarioRow: deliveryResult.rows[0] ?? null,
     };
+
+    if (!summary.autoSubscription) {
+      throw new Error(`Auto-subscription nao ocorreu no app: ${JSON.stringify(summary)}`);
+    }
 
     if (!summary.browserState.hasSubscription || summary.subscriptionRows === 0) {
       throw new Error(`Subscription nao registrada corretamente: ${JSON.stringify(summary)}`);

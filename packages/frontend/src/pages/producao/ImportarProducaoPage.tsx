@@ -149,14 +149,14 @@ function parseCsvToProducao(content: string): RegistroProducao[] {
 
   const idxData = indexOf(['data', 'date']);
   const idxColaborador = indexOf(['colaborador', 'nome', 'funcionario']);
-  const idxFuncao = indexOf(['funcao', 'funÃ§Ã£o', 'cargo']);
-  const idxRepositorio = indexOf(['repositorio', 'repositÃ³rio', 'repo']);
+  const idxFuncao = indexOf(['funcao', 'cargo']);
+  const idxRepositorio = indexOf(['repositorio', 'repo']);
   const idxCoordenadoria = indexOf(['coordenadoria', 'coord', 'unidade']);
   const idxQuantidade = indexOf(['quantidade', 'qtd', 'qtde']);
   const idxTipo = indexOf(['tipo']);
 
   if (idxRepositorio < 0 || idxColaborador < 0) {
-    throw new Error('CSV invÃ¡lido: colunas obrigatÃ³rias Colaborador e RepositÃ³rio');
+    throw new Error('CSV invalido: colunas obrigatorias Colaborador e Repositorio');
   }
 
   const registros: RegistroProducao[] = [];
@@ -200,7 +200,7 @@ export function ImportarProducaoPage(): JSX.Element {
   const isAdmin = usuario?.perfil === 'administrador';
   const previewProducao = useMemo(() => registrosProducao.slice(0, 10), [registrosProducao]);
 
-  // Fontes de importaÃ§Ã£o (saved links)
+  // Fontes de importacao (saved links)
   const [novaFonteNome, setNovaFonteNome] = useState('');
   const [novaFonteUrl, setNovaFonteUrl] = useState('');
   const [importandoFonteId, setImportandoFonteId] = useState<string | null>(null);
@@ -245,7 +245,7 @@ export function ImportarProducaoPage(): JSX.Element {
       await criarFonteMut.mutateAsync({ nome: novaFonteNome.trim(), url: novaFonteUrl.trim() });
       setNovaFonteNome('');
       setNovaFonteUrl('');
-      toast.success('Fonte de importaÃ§Ã£o salva.');
+      toast.success('Fonte de importacao salva.');
     } catch (error) {
       toast.error(extractErrorMessage(error, 'Erro ao salvar fonte'));
     }
@@ -299,7 +299,7 @@ export function ImportarProducaoPage(): JSX.Element {
 
   const handleImportarTodas = async (): Promise<void> => {
     if (fontes.length === 0) {
-      toast.error('Nenhuma fonte de importaÃ§Ã£o cadastrada.');
+      toast.error('Nenhuma fonte de importacao cadastrada.');
       return;
     }
 
@@ -312,14 +312,14 @@ export function ImportarProducaoPage(): JSX.Element {
       const { resumo } = result;
       if (resumo.importados > 0) {
         toast.success(
-          `ImportaÃ§Ã£o em lote: ${resumo.importados} novos registros importados. ${resumo.duplicados} duplicados ignorados.`
+          `Importacao em lote: ${resumo.importados} novos registros importados. ${resumo.duplicados} duplicados ignorados.`
         );
       } else if (resumo.duplicados > 0) {
         toast.success(
-          `ImportaÃ§Ã£o em lote: Nenhum registro novo. ${resumo.duplicados} duplicados ignorados.`
+          `Importacao em lote: Nenhum registro novo. ${resumo.duplicados} duplicados ignorados.`
         );
       } else {
-        toast.success('ImportaÃ§Ã£o em lote: nenhum novo registro para importar.');
+        toast.success('Importacao em lote: nenhum novo registro para importar.');
       }
 
       await invalidate();
@@ -332,14 +332,14 @@ export function ImportarProducaoPage(): JSX.Element {
 
   const handleExcluirFonte = (id: string, nome: string): void => {
     confirmDialog.confirm({
-      title: 'Excluir fonte de importaÃ§Ã£o',
-      message: `Deseja excluir a fonte "${nome}"? Isso nÃ£o remove dados jÃ¡ importados.`,
+      title: 'Excluir fonte de importacao',
+      message: `Deseja excluir a fonte "${nome}"? Isso nao remove dados ja importados.`,
       confirmLabel: 'Excluir',
       variant: 'danger',
       onConfirm: async () => {
         try {
           await excluirFonteMut.mutateAsync(id);
-          toast.success('Fonte excluÃ­da.');
+          toast.success('Fonte excluida.');
         } catch (error) {
           toast.error(extractErrorMessage(error, 'Erro ao excluir'));
         }
@@ -355,7 +355,7 @@ export function ImportarProducaoPage(): JSX.Element {
       const parsed = parseCsvToProducao(text);
       setRegistrosProducao(parsed);
       setArquivoNomeProducao(file.name);
-      toast.success(`${parsed.length} registros de produÃ§Ã£o prontos para importar.`);
+      toast.success(`${parsed.length} registros de producao prontos para importar.`);
     } catch (error) {
       toast.error(extractErrorMessage(error, 'Falha ao ler CSV'));
       setRegistrosProducao([]);
@@ -382,7 +382,7 @@ export function ImportarProducaoPage(): JSX.Element {
       const parsed = parseCsvToProducao(result.csv);
       setRegistrosProducao(parsed);
       setArquivoNomeProducao('Google Sheets');
-      toast.success(`${parsed.length} registros de produÃ§Ã£o carregados do Sheets.`);
+      toast.success(`${parsed.length} registros de producao carregados do Sheets.`);
     } catch (error) {
       toast.error(extractErrorMessage(error, 'Falha ao buscar dados do Google Sheets'));
       setRegistrosProducao([]);
@@ -401,13 +401,13 @@ export function ImportarProducaoPage(): JSX.Element {
       const parsed = parseCsvToProducao(dadosColados);
       if (parsed.length === 0) {
         toast.error(
-          'Nenhum registro vÃ¡lido encontrado. Verifique se vocÃª copiou o cabeÃ§alho e pelo menos uma linha.'
+          'Nenhum registro valido encontrado. Verifique se voce copiou o cabecalho e pelo menos uma linha.'
         );
         return;
       }
       setRegistrosProducao(parsed);
       setArquivoNomeProducao('Dados Colados');
-      toast.success(`${parsed.length} registros de produÃ§Ã£o carregados.`);
+      toast.success(`${parsed.length} registros de producao carregados.`);
     } catch (error) {
       toast.error(extractErrorMessage(error, 'Falha ao processar dados colados'));
       setRegistrosProducao([]);
@@ -431,13 +431,13 @@ export function ImportarProducaoPage(): JSX.Element {
       setProcessando(true);
       const result = await importarProdMut.mutateAsync({ registros: regs });
       toast.success(
-        `ImportaÃ§Ã£o de produÃ§Ã£o concluÃ­da. Importados: ${result.registrosSucesso}. Com erro: ${result.registrosErro}.`
+        `Importacao de producao concluida. Importados: ${result.registrosSucesso}. Com erro: ${result.registrosErro}.`
       );
       setRegistrosProducao([]);
       setArquivoNomeProducao('');
       await invalidate();
     } catch (error) {
-      toast.error(extractErrorMessage(error, 'Falha na importaÃ§Ã£o'));
+      toast.error(extractErrorMessage(error, 'Falha na importacao'));
     } finally {
       setProcessando(false);
     }
@@ -450,7 +450,7 @@ export function ImportarProducaoPage(): JSX.Element {
     }
     const preview = await gerarPreviewImportacao(registrosProducao);
     if (!preview) {
-      toast.error('NÃ£o foi possÃ­vel gerar o preview da importaÃ§Ã£o.');
+      toast.error('Nao foi possivel gerar o preview da importacao.');
       return;
     }
     setPreviewImportacao(preview);
@@ -461,7 +461,7 @@ export function ImportarProducaoPage(): JSX.Element {
     const validos = previewImportacao.registrosValidos;
     setPreviewImportacao(null);
     if (validos <= 0) {
-      toast.error('Nenhum registro vÃ¡lido para importar.');
+      toast.error('Nenhum registro valido para importar.');
       return;
     }
     await executarImportacaoProducao(registrosProducao);
@@ -471,7 +471,7 @@ export function ImportarProducaoPage(): JSX.Element {
     confirmDialog.confirm({
       title: 'Excluir dados importados',
       message:
-        'Esta aÃ§Ã£o administrativa excluirÃ¡ dados importados persistidos, incluindo produÃ§Ãµes importadas, repositÃ³rios legados, checklists legados e histÃ³rico de importaÃ§Ãµes. Esta aÃ§Ã£o nÃ£o pode ser desfeita.',
+        'Esta acao administrativa excluira dados importados persistidos, incluindo producoes importadas, repositorios legados, checklists legados e historico de importacoes. Esta acao nao pode ser desfeita.',
       confirmLabel: 'Excluir definitivamente',
       variant: 'danger',
       onConfirm: async () => {
@@ -480,7 +480,7 @@ export function ImportarProducaoPage(): JSX.Element {
           const result = await limparMut.mutateAsync();
           const r = result.removidos;
           toast.success(
-            `Dados importados excluÃ­dos. ProduÃ§Ã£o: ${r.producao}. RepositÃ³rios: ${r.repositorios}. ImportaÃ§Ãµes: ${r.importacoes}.`
+            `Dados importados excluidos. Producao: ${r.producao}. Repositorios: ${r.repositorios}. Importacoes: ${r.importacoes}.`
           );
           setRegistrosProducao([]);
           setArquivoNomeProducao('');
@@ -508,9 +508,9 @@ export function ImportarProducaoPage(): JSX.Element {
 
   const handleRollbackImportacao = (id: string): void => {
     confirmDialog.confirm({
-      title: 'Desfazer importaÃ§Ã£o',
+      title: 'Desfazer importacao',
       message:
-        'Essa aÃ§Ã£o desfaz inserÃ§Ãµes e atualizaÃ§Ãµes desta importaÃ§Ã£o de produÃ§Ã£o. Deseja continuar?',
+        'Essa acao desfaz insercoes e atualizacoes desta importacao de producao. Deseja continuar?',
       confirmLabel: 'Desfazer',
       variant: 'danger',
       onConfirm: async () => {
@@ -552,8 +552,8 @@ export function ImportarProducaoPage(): JSX.Element {
 
       <div className="space-y-6">
         <PageHeader
-          title="Importar ProduÃ§Ã£o"
-          subtitle="Carregue dados de produÃ§Ã£o via CSV, Google Sheets ou colando da planilha."
+          title="Importar Producao"
+          subtitle="Carregue dados de producao via CSV, Google Sheets ou colando da planilha."
           actions={
             isAdmin ? (
               <Button
@@ -589,7 +589,7 @@ export function ImportarProducaoPage(): JSX.Element {
                     <p className="text-xs text-gray-400 truncate">{f.url}</p>
                     {f.ultima_importacao_em && (
                       <p className="text-xs text-gray-400 mt-0.5">
-                        Ãšltima importaÃ§Ã£o:{' '}
+                        Ultima importacao:{' '}
                         {new Date(f.ultima_importacao_em).toLocaleString('pt-BR')}
                       </p>
                     )}
@@ -619,7 +619,7 @@ export function ImportarProducaoPage(): JSX.Element {
                     className="text-xs text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)] transition"
                     title="Excluir fonte"
                   >
-                    Ã—
+                    x
                   </button>
                 </div>
               ))}
@@ -638,13 +638,13 @@ export function ImportarProducaoPage(): JSX.Element {
                   {ultimoResultado.importados}
                 </span>{' '}
                 novos
-                {' Â· '}
+                {' - '}
                 <span className="text-gray-500">
                   {ultimoResultado.duplicados} duplicados ignorados
                 </span>
                 {ultimoResultado.erros > 0 && (
                   <>
-                    {' Â· '}
+                    {' - '}
                     <span className="text-gray-600">{ultimoResultado.erros} erros</span>
                   </>
                 )}
@@ -655,14 +655,14 @@ export function ImportarProducaoPage(): JSX.Element {
           {validacaoResult && (
             <div className="mb-4 p-3 bg-yellow-50 border border-yellow-100 rounded-lg text-sm">
               <p className="font-medium text-gray-900">
-                {validacaoResult.fonte.nome} - ValidaÃ§Ã£o de duplicatas
+                {validacaoResult.fonte.nome} - Validacao de duplicatas
               </p>
               <p className="text-gray-600 mt-1">
                 <span className="font-semibold text-green-700">
                   {validacaoResult.novos.quantidade}
                 </span>{' '}
                 novos registros
-                {' Â· '}
+                {' - '}
                 <span className="text-orange-600">
                   {validacaoResult.duplicados.quantidade} duplicados
                 </span>
@@ -712,7 +712,7 @@ export function ImportarProducaoPage(): JSX.Element {
 
           {resultadoImportacaoTodas && (
             <div className="mb-4 p-3 bg-green-50 border border-green-100 rounded-lg text-sm">
-              <p className="font-medium text-gray-900">ImportaÃ§Ã£o em lote concluÃ­da</p>
+              <p className="font-medium text-gray-900">Importacao em lote concluida</p>
               <p className="text-gray-600 mt-1">
                 <span className="font-semibold text-green-700">
                   {resultadoImportacaoTodas.resumo.importados}
@@ -756,7 +756,7 @@ export function ImportarProducaoPage(): JSX.Element {
           <div className="flex items-center gap-2 mb-4">
             <div className="w-48 shrink-0">
               <Input
-                placeholder="Nome (ex: ProduÃ§Ã£o Janeiro)"
+                placeholder="Nome (ex: Producao Janeiro)"
                 value={novaFonteNome}
                 onChange={(e) => setNovaFonteNome(e.target.value)}
                 inputSize="sm"
@@ -791,7 +791,7 @@ export function ImportarProducaoPage(): JSX.Element {
         {/* Main import card */}
         <Card>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Importar ProduÃ§Ã£o</h2>
+            <h2 className="text-lg font-semibold text-gray-900">Importar Producao</h2>
             {fontes.length > 0 && (
               <Button
                 variant="primary"
@@ -837,8 +837,8 @@ export function ImportarProducaoPage(): JSX.Element {
                   className="block w-full text-sm text-gray-700"
                 />
                 <p className="text-xs text-gray-400">
-                  CSV ou TSV. Colunas obrigatÃ³rias: <strong>Colaborador</strong> e{' '}
-                  <strong>RepositÃ³rio</strong>.
+                  CSV ou TSV. Colunas obrigatorias: <strong>Colaborador</strong> e{' '}
+                  <strong>Repositorio</strong>.
                 </p>
               </div>
             )}
@@ -876,7 +876,7 @@ export function ImportarProducaoPage(): JSX.Element {
               <div className="space-y-2">
                 <textarea
                   placeholder={
-                    'Data\tColaborador\tFunÃ§Ã£o\tRepositÃ³rio\tCoordenadoria\tQuantidade\tTipo\n01/01/2025\tJoÃ£o Silva\tPreparaÃ§Ã£o\tREP-001\tCOORD-A\t50\tProcesso'
+                    'Data\tColaborador\tFuncao\tRepositorio\tCoordenadoria\tQuantidade\tTipo\n01/01/2025\tJoao Silva\tPreparacao\tREP-001\tCOORD-A\t50\tProcesso'
                   }
                   value={dadosColados}
                   onChange={(e) => setDadosColados(e.target.value)}
@@ -897,11 +897,11 @@ export function ImportarProducaoPage(): JSX.Element {
               loading={processando || validando}
               disabled={registrosProducao.length === 0}
             >
-              {validando ? 'Verificando...' : 'Importar ProduÃ§Ã£o'}
+              {validando ? 'Verificando...' : 'Importar Producao'}
             </Button>
             <span className="text-sm text-gray-500">
               {arquivoNomeProducao
-                ? `${arquivoNomeProducao} â€” ${registrosProducao.length} registros`
+                ? `${arquivoNomeProducao} - ${registrosProducao.length} registros`
                 : 'Nenhum dado carregado'}
             </span>
           </div>
@@ -921,8 +921,8 @@ export function ImportarProducaoPage(): JSX.Element {
                   <TableRow>
                     <TableHeader>Data (planilha)</TableHeader>
                     <TableHeader>Colaborador</TableHeader>
-                    <TableHeader>FunÃ§Ã£o</TableHeader>
-                    <TableHeader>RepositÃ³rio</TableHeader>
+                    <TableHeader>Funcao</TableHeader>
+                    <TableHeader>Repositorio</TableHeader>
                     <TableHeader>Coord.</TableHeader>
                     <TableHeader>Qtd</TableHeader>
                     <TableHeader>Tipo</TableHeader>
@@ -955,7 +955,7 @@ export function ImportarProducaoPage(): JSX.Element {
               className="w-full flex items-center justify-between px-5 py-4 text-left"
             >
               <span className="text-sm font-semibold text-gray-900">
-                HistÃ³rico de importaÃ§Ãµes ({historico.length})
+                Historico de importacoes ({historico.length})
               </span>
               <span className="text-xs text-gray-400">
                 {historicoAberto ? 'Recolher' : 'Expandir'}
