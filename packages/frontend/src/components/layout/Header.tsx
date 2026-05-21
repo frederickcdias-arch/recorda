@@ -142,12 +142,12 @@ export function Header({ onMenuToggle, title, unreadComunicados = 0 }: HeaderPro
             to="/comunicados"
             aria-label={
               unreadComunicados > 0
-                ? `${unreadComunicados} comunicado(s) nao lido(s)`
+                ? `${unreadComunicados} comunicado(s) não lido(s)`
                 : 'Abrir comunicados'
             }
             title={
               unreadComunicados > 0
-                ? `${unreadComunicados} comunicado(s) nao lido(s)`
+                ? `${unreadComunicados} comunicado(s) não lido(s)`
                 : 'Abrir comunicados'
             }
             className="relative rounded-xl border border-transparent p-2 text-[var(--color-text-secondary)] transition-colors hover:border-[var(--color-border-primary)] hover:bg-[var(--color-bg-primary)]"

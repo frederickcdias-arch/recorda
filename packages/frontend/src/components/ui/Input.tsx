@@ -129,7 +129,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           <p className="mt-1.5 text-xs text-[var(--color-text-tertiary)]">{helperText}</p>
         )}
         {hint && !error && !helperText && (
-          <p className="mt-1.5 text-sm text-[var(--color-text-tertiary)]">{hint}</p>
+          <p className="mt-1.5 text-xs text-[var(--color-text-tertiary)]">{hint}</p>
         )}
       </div>
     );

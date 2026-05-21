@@ -29,10 +29,7 @@ export function ForgotPasswordPage(): JSX.Element {
       );
       setMensagem({ tipo: 'success', texto: response.message });
       setEnviado(true);
-
-      // Token de reset é enviado por email em produção
-      // Em desenvolvimento, o token é retornado na resposta para facilitar testes
-      void response.resetToken; // Ignorar em produção
+      void response.resetToken;
     } catch (error) {
       const errorMessage =
         error instanceof Error
@@ -45,45 +42,45 @@ export function ForgotPasswordPage(): JSX.Element {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center p-4">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-4">
       <div className="w-full max-w-md">
-        <div className="text-center mb-8 space-y-2">
+        <div className="mb-8 space-y-2 text-center">
           <div
-            className="w-16 h-16 mx-auto rounded-full shadow-lg bg-[var(--color-bg-primary)]"
+            className="mx-auto h-16 w-16 rounded-full bg-[var(--color-bg-primary)] shadow-lg"
             style={{
               backgroundImage: 'url(/images/logo-icon.png)',
               backgroundSize: 'cover',
               backgroundPosition: 'center',
               backgroundRepeat: 'no-repeat',
             }}
-            aria-label="Recorda - Gestão de Produção"
+            aria-label="Recorda - Gestão documental e operacional"
           />
           <div>
-            <p className="text-white font-semibold tracking-wide uppercase text-sm">Recorda</p>
-            <p className="text-blue-100 text-xs">Gestão de Produção</p>
+            <p className="text-sm font-semibold uppercase tracking-wide text-white">Recorda</p>
+            <p className="text-xs text-blue-100">Gestão documental e operacional</p>
           </div>
         </div>
 
-        <div className="bg-[var(--color-bg-primary)] rounded-2xl shadow-2xl p-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-2 text-center">
-            Esqueci minha senha
+        <div className="rounded-2xl bg-[var(--color-bg-primary)] p-8 shadow-2xl">
+          <h2 className="mb-2 text-center text-xl font-semibold text-gray-900">
+            Recuperar acesso
           </h2>
-          <p className="text-gray-500 text-sm text-center mb-6">
-            Digite seu e-mail para receber instruções de redefinição de senha.
+          <p className="mb-6 text-center text-sm text-gray-500">
+            Informe seu e-mail para receber as instruções de redefinição.
           </p>
 
-          {mensagem && (
+          {mensagem ? (
             <div className="mb-4">
               <Alert variant={mensagem.tipo} onClose={() => setMensagem(null)}>
                 {mensagem.texto}
               </Alert>
             </div>
-          )}
+          ) : null}
 
           {!enviado ? (
             <form onSubmit={handleSubmit} className="space-y-5">
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="email" className="mb-1 block text-sm font-medium text-gray-700">
                   E-mail
                 </label>
                 <input
@@ -92,7 +89,7 @@ export function ForgotPasswordPage(): JSX.Element {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="seu@email.com"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  className="w-full rounded-lg border border-gray-300 px-4 py-3 transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                   required
                   disabled={carregando}
                 />
@@ -101,16 +98,16 @@ export function ForgotPasswordPage(): JSX.Element {
               <button
                 type="submit"
                 disabled={carregando}
-                className="w-full py-3 px-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 focus:ring-4 focus:ring-blue-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white transition-all hover:bg-blue-700 focus:ring-4 focus:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {carregando ? 'Enviando...' : 'Enviar instruções'}
               </button>
             </form>
           ) : (
             <div className="text-center">
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-100">
                 <svg
-                  className="w-8 h-8 text-blue-600"
+                  className="h-8 w-8 text-blue-600"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -123,22 +120,20 @@ export function ForgotPasswordPage(): JSX.Element {
                   />
                 </svg>
               </div>
-              <p className="text-gray-600 mb-4">
+              <p className="mb-4 text-gray-600">
                 Verifique sua caixa de entrada e siga as instruções enviadas.
               </p>
             </div>
           )}
 
           <div className="mt-6 text-center">
-            <Link to="/login" className="text-blue-600 hover:text-blue-700 font-medium text-sm">
+            <Link to="/login" className="text-sm font-medium text-blue-600 hover:text-blue-700">
               ← Voltar para o login
             </Link>
           </div>
         </div>
 
-        <p className="text-center text-blue-200 text-sm mt-6">
-          © 2026 Recorda. Todos os direitos reservados.
-        </p>
+        <p className="mt-6 text-center text-sm text-blue-200">Recorda</p>
       </div>
     </div>
   );

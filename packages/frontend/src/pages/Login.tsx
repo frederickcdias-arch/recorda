@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Alert } from '../components/ui/Alert';
-import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
 import { Icon } from '../components/ui/Icon';
+import { Input } from '../components/ui/Input';
 
 function validateEmail(value: string): string {
   if (!value) return 'E-mail é obrigatório';
@@ -56,36 +56,34 @@ export function LoginPage(): JSX.Element {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center p-4">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-4">
       <div className="w-full max-w-md">
-        {/* Logo e Branding */}
-        <div className="text-center mb-8 space-y-2">
-          <div className="w-16 h-16 mx-auto rounded-full shadow-lg bg-[var(--color-bg-primary)] overflow-hidden">
+        <div className="mb-8 space-y-2 text-center">
+          <div className="mx-auto h-16 w-16 overflow-hidden rounded-full bg-[var(--color-bg-primary)] shadow-lg">
             <img
               src="/images/logo-icon.png"
-              alt="Recorda - Gestão de Produção"
-              className="w-full h-full object-cover"
+              alt="Recorda - Gestão documental e operacional"
+              className="h-full w-full object-cover"
             />
           </div>
           <div>
-            <p className="text-white font-semibold tracking-wide uppercase text-sm">Recorda</p>
-            <p className="text-blue-100 text-xs">Gestão de Produção</p>
+            <p className="text-sm font-semibold uppercase tracking-wide text-white">Recorda</p>
+            <p className="text-xs text-blue-100">Gestão documental e operacional</p>
           </div>
         </div>
 
-        {/* Card de Login */}
-        <div className="bg-[var(--color-bg-primary)] rounded-2xl shadow-2xl p-8">
-          <h2 className="text-xl font-semibold text-[var(--color-text-primary)] mb-6 text-center">
+        <div className="rounded-2xl bg-[var(--color-bg-primary)] p-8 shadow-2xl">
+          <h2 className="mb-6 text-center text-xl font-semibold text-[var(--color-text-primary)]">
             Acesse sua conta
           </h2>
 
-          {erro && (
+          {erro ? (
             <div className="mb-4">
               <Alert variant="error" onClose={limparErro}>
                 {erro}
               </Alert>
             </div>
-          )}
+          ) : null}
 
           <form onSubmit={handleSubmit} className="space-y-5" noValidate>
             <Input
@@ -121,7 +119,7 @@ export function LoginPage(): JSX.Element {
             />
 
             <div className="flex items-center justify-between text-sm">
-              <label className="flex items-center gap-2.5 text-[var(--color-text-secondary)] cursor-pointer select-none">
+              <label className="flex cursor-pointer select-none items-center gap-2.5 text-[var(--color-text-secondary)]">
                 <span
                   onClick={() => setLembrarMe((v) => !v)}
                   role="checkbox"
@@ -133,19 +131,19 @@ export function LoginPage(): JSX.Element {
                       setLembrarMe((v) => !v);
                     }
                   }}
-                  className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors duration-150 flex-shrink-0 ${
+                  className={`flex h-4 w-4 flex-shrink-0 items-center justify-center rounded border-2 transition-colors duration-150 ${
                     lembrarMe
-                      ? 'bg-[var(--color-primary-600)] border-[var(--color-primary-600)]'
-                      : 'bg-[var(--color-bg-primary)] border-[var(--color-gray-300)] hover:border-[var(--color-primary-400)]'
+                      ? 'border-[var(--color-primary-600)] bg-[var(--color-primary-600)]'
+                      : 'border-[var(--color-gray-300)] bg-[var(--color-bg-primary)] hover:border-[var(--color-primary-400)]'
                   }`}
                 >
-                  {lembrarMe && <Icon name="check" className="w-2.5 h-2.5 text-white" />}
+                  {lembrarMe ? <Icon name="check" className="h-2.5 w-2.5 text-white" /> : null}
                 </span>
-                Lembrar-me
+                Manter acesso
               </label>
               <Link
                 to="/forgot-password"
-                className="text-[var(--color-primary-600)] hover:text-[var(--color-primary-700)] font-medium"
+                className="font-medium text-[var(--color-primary-600)] hover:text-[var(--color-primary-700)]"
               >
                 Esqueci a senha
               </Link>
@@ -164,10 +162,7 @@ export function LoginPage(): JSX.Element {
           </form>
         </div>
 
-        {/* Footer */}
-        <p className="text-center text-blue-200 text-sm mt-6">
-          © 2026 Recorda. Todos os direitos reservados.
-        </p>
+        <p className="mt-6 text-center text-sm text-blue-200">Recorda</p>
       </div>
     </div>
   );

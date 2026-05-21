@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+﻿import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Badge } from '../components/ui/Badge';
@@ -349,7 +349,7 @@ function DashboardColaborador(): JSX.Element {
         <Card padding="lg">
           <CardHeader
             title="Produção por etapa"
-            description="Distribuição da sua produção por fase do fluxo operacional."
+            description="Distribuição da sua produção por etapa."
           />
           {producaoPorEtapa.length === 0 ? (
             <p className="py-4 text-sm text-[var(--color-text-secondary)]">
@@ -395,7 +395,7 @@ function DashboardColaborador(): JSX.Element {
         <Card padding="lg">
           <CardHeader
             title="Produção por tipo"
-            description="Resumo por classificação principal do que foi lançado."
+            description="Resumo por classificação principal."
           />
           {producaoPorTipo.length === 0 ? (
             <p className="py-4 text-sm text-[var(--color-text-secondary)]">
@@ -514,14 +514,14 @@ function DashboardColaborador(): JSX.Element {
         <div className="space-y-6">
           <InsightCard
             title="Lançamento rápido"
-            description="Registre sua produção diária sem sair do fluxo principal."
+            description="Registre a produção diária no fluxo principal."
             actionLabel="Abrir lançamento"
             onAction={() => navigate('/minha-producao/lancar')}
             icon="plus-circle"
           />
           <InsightCard
             title="Conferência de histórico"
-            description="Revise seus lançamentos anteriores e acompanhe a evolução recente."
+            description="Revise lançamentos anteriores e acompanhe a evolução recente."
             actionLabel="Abrir histórico"
             onAction={() => navigate('/minha-producao/historico')}
             icon="history"
@@ -548,7 +548,7 @@ function DashboardContent({ data }: { data: DashboardData }): JSX.Element {
   return (
     <DashboardShell
       title="Dashboard"
-      subtitle="Visão consolidada da produção, do fluxo e dos principais sinais operacionais."
+      subtitle="Visão consolidada da produção e do fluxo operacional."
     >
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <StatCard
@@ -590,7 +590,7 @@ function DashboardContent({ data }: { data: DashboardData }): JSX.Element {
         <Card padding="lg">
           <CardHeader
             title="Produção por etapa"
-            description="Distribuição consolidada da produção nas fases do fluxo."
+            description="Distribuição consolidada por etapa."
           />
           <div className="space-y-4">
             {producaoPorEtapa.length === 0 ? (
@@ -631,7 +631,7 @@ function DashboardContent({ data }: { data: DashboardData }): JSX.Element {
         <Card padding="lg">
           <CardHeader
             title="Status da produção"
-            description="Situação atual dos indicadores vindos do recebimento e do fluxo."
+            description="Situação atual dos indicadores do fluxo."
           />
           <div className="space-y-3">
             {statusProducao.map((item) => (
@@ -661,7 +661,7 @@ function DashboardContent({ data }: { data: DashboardData }): JSX.Element {
           <Card padding="lg">
             <CardHeader
               title="Retrabalho em CQ"
-              description="Principais motivos e repositórios envolvidos em retrabalho recente."
+              description="Motivos e repositórios envolvidos em retrabalho recente."
             />
             <div className="grid gap-3 lg:grid-cols-3">
               {retrabalhoCQ.map((item, i) => (
@@ -735,3 +735,4 @@ export function DashboardPage(): JSX.Element {
 
   return <DashboardAdminPage />;
 }
+

@@ -104,7 +104,7 @@ export function TableHeader({
   ...rest
 }: TableHeaderProps): JSX.Element {
   const base =
-    'border-b border-[var(--color-border-primary)] px-4 py-3 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-secondary)]';
+    'border-b border-[var(--color-border-primary)] px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-[var(--color-text-secondary)] sm:text-xs';
 
   const icon =
     sortDirection === 'asc'

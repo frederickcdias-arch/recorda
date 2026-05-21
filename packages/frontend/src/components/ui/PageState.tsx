@@ -1,6 +1,6 @@
+import { Button } from './Button';
 import { Icon } from './Icon';
 import { LoadingSpinner } from './LoadingSpinner';
-import { Button } from './Button';
 
 interface ErrorInfo {
   message: string;

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+﻿import { useMemo, useState } from 'react';
 import type { ComunicadoPrioridade, ComunicadoUsuarioItem } from '@recorda/shared';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
@@ -96,7 +96,7 @@ export function ComunicadosPage(): JSX.Element {
       error={
         comunicadosQuery.error
           ? {
-              message: 'Nao foi possivel carregar seus comunicados.',
+              message: 'Não foi possível carregar seus comunicados.',
               details: extractErrorMessage(comunicadosQuery.error, 'Tente novamente em instantes.'),
               action: {
                 label: 'Atualizar',
@@ -109,7 +109,7 @@ export function ComunicadosPage(): JSX.Element {
       <div className="space-y-6">
         <PageHeader
           title="Comunicados"
-          subtitle="Acompanhe orientacoes publicadas pela administracao e marque as leituras concluidas."
+          subtitle="Consulte os comunicados e registre a leitura."
           actions={
             <Button
               variant="secondary"
@@ -132,7 +132,7 @@ export function ComunicadosPage(): JSX.Element {
             </div>
           </Card>
           <Card>
-            <p className="text-sm text-[var(--color-text-secondary)]">Nao lidos</p>
+            <p className="text-sm text-[var(--color-text-secondary)]">Não lidos</p>
             <div className="mt-3 flex items-end justify-between">
               <p className="text-3xl font-bold text-[var(--color-text-primary)]">{totalNaoLidos}</p>
               <Icon name="alert-triangle" className="h-7 w-7 text-[var(--color-warning-600)]" />
@@ -155,7 +155,7 @@ export function ComunicadosPage(): JSX.Element {
                   Caixa de entrada
                 </h2>
                 <p className="text-sm text-[var(--color-text-secondary)]">
-                  Separe ativos do historico e filtre as leituras.
+                  Separe ativos do histórico e filtre as leituras.
                 </p>
               </div>
               <div className="flex flex-col gap-2 sm:items-end">
@@ -172,7 +172,7 @@ export function ComunicadosPage(): JSX.Element {
                     size="sm"
                     onClick={() => setVisao('historico')}
                   >
-                    Historico ({historico.length})
+                    Histórico ({historico.length})
                   </Button>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -188,7 +188,7 @@ export function ComunicadosPage(): JSX.Element {
                     size="sm"
                     onClick={() => setFiltro('nao-lidos')}
                   >
-                    Nao lidos
+                    Não lidos
                   </Button>
                   <Button
                     variant={filtro === 'lidos' ? 'primary' : 'secondary'}
@@ -206,7 +206,7 @@ export function ComunicadosPage(): JSX.Element {
                 label="Buscar"
                 value={busca}
                 onChange={(event) => setBusca(event.target.value)}
-                placeholder="Titulo ou conteudo"
+                placeholder="Título ou conteúdo"
               />
               <Select
                 label="Prioridade"
@@ -215,14 +215,14 @@ export function ComunicadosPage(): JSX.Element {
                 options={[
                   { value: 'todas', label: 'Todas' },
                   { value: 'ALTA', label: 'Alta' },
-                  { value: 'MEDIA', label: 'Media' },
+                  { value: 'MEDIA', label: 'Média' },
                   { value: 'BAIXA', label: 'Baixa' },
                 ]}
               />
               <Select
-                label="Ordenacao"
+                label="Ordenação"
                 value={ordenacao}
-                onChange={(event) => setOrdenacao(event.target.value as FiltroOrdenacao)}
+                    onChange={(event) => setOrdenacao(event.target.value as FiltroOrdenacao)}
                 options={[
                   { value: 'mais-recentes', label: 'Mais recentes' },
                   { value: 'mais-antigos', label: 'Mais antigos' },
@@ -252,12 +252,12 @@ export function ComunicadosPage(): JSX.Element {
           <Card className="text-center">
             <Icon name="mail" className="mx-auto h-12 w-12 text-[var(--color-gray-300)]" />
             <h2 className="mt-4 text-lg font-semibold text-[var(--color-text-primary)]">
-              Nenhum comunicado nesta visualizacao
+              Nenhum comunicado encontrado
             </h2>
             <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
               {visao === 'historico'
-                ? 'Ainda nao existem comunicados encerrados para esta visualizacao.'
-                : 'Ajuste o filtro ou aguarde novos comunicados publicados pela administracao.'}
+                ? 'Ainda não existem comunicados encerrados para esta visualização.'
+                : 'Ajuste os filtros ou aguarde novos comunicados.'}
             </p>
           </Card>
         ) : (
@@ -292,7 +292,7 @@ export function ComunicadosPage(): JSX.Element {
                                 : 'bg-[var(--color-success-50)] text-[var(--color-success-700)]'
                             }`}
                           >
-                            {naoLido ? 'Nao lido' : 'Lido'}
+                            {naoLido ? 'Não lido' : 'Lido'}
                           </span>
                           <span className="rounded-full bg-[var(--color-gray-100)] px-2.5 py-1 text-xs font-medium text-[var(--color-gray-700)]">
                             {comunicado.status === 'ENCERRADO' ? 'Encerrado' : 'Ativo'}
@@ -344,3 +344,5 @@ export function ComunicadosPage(): JSX.Element {
     </PageState>
   );
 }
+
+

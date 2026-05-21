@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useSearchParams, Link, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Alert } from '../components/ui/Alert';
 import { api } from '../services/api';
 
@@ -15,7 +15,6 @@ export function ResetPasswordPage(): JSX.Element {
   );
 
   useEffect(() => {
-    // Se não houver token na URL, redirecionar para forgot-password
     const urlToken = searchParams.get('token');
     if (!urlToken) {
       navigate('/forgot-password');
@@ -27,7 +26,6 @@ export function ResetPasswordPage(): JSX.Element {
     setCarregando(true);
     setMensagem(null);
 
-    // Validações
     if (!token || !novaSenha || !confirmacaoSenha) {
       setMensagem({ tipo: 'error', texto: 'Todos os campos são obrigatórios' });
       setCarregando(false);
@@ -55,7 +53,6 @@ export function ResetPasswordPage(): JSX.Element {
 
       setMensagem({ tipo: 'success', texto: response.message });
 
-      // Redirecionar para login após 3 segundos
       setTimeout(() => {
         navigate('/login');
       }, 3000);
@@ -71,42 +68,42 @@ export function ResetPasswordPage(): JSX.Element {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center p-4">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-4">
       <div className="w-full max-w-md">
-        <div className="text-center mb-8 space-y-2">
+        <div className="mb-8 space-y-2 text-center">
           <div
-            className="w-16 h-16 mx-auto rounded-full shadow-lg bg-[var(--color-bg-primary)]"
+            className="mx-auto h-16 w-16 rounded-full bg-[var(--color-bg-primary)] shadow-lg"
             style={{
               backgroundImage: 'url(/images/logo-icon.png)',
               backgroundSize: 'cover',
               backgroundPosition: 'center',
               backgroundRepeat: 'no-repeat',
             }}
-            aria-label="Recorda - Gestão de Produção"
+            aria-label="Recorda - Gestão documental e operacional"
           />
           <div>
-            <p className="text-white font-semibold tracking-wide uppercase text-sm">Recorda</p>
-            <p className="text-blue-100 text-xs">Gestão de Produção</p>
+            <p className="text-sm font-semibold uppercase tracking-wide text-white">Recorda</p>
+            <p className="text-xs text-blue-100">Gestão documental e operacional</p>
           </div>
         </div>
 
-        <div className="bg-[var(--color-bg-primary)] rounded-2xl shadow-2xl p-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-2 text-center">Redefinir senha</h2>
-          <p className="text-gray-500 text-sm text-center mb-6">
-            Digite o token recebido e sua nova senha.
+        <div className="rounded-2xl bg-[var(--color-bg-primary)] p-8 shadow-2xl">
+          <h2 className="mb-2 text-center text-xl font-semibold text-gray-900">Redefinir senha</h2>
+          <p className="mb-6 text-center text-sm text-gray-500">
+            Informe o token recebido e defina a nova senha.
           </p>
 
-          {mensagem && (
+          {mensagem ? (
             <div className="mb-4">
               <Alert variant={mensagem.tipo} onClose={() => setMensagem(null)}>
                 {mensagem.texto}
               </Alert>
             </div>
-          )}
+          ) : null}
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label htmlFor="token" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="token" className="mb-1 block text-sm font-medium text-gray-700">
                 Token de redefinição
               </label>
               <input
@@ -115,14 +112,14 @@ export function ResetPasswordPage(): JSX.Element {
                 value={token}
                 onChange={(e) => setToken(e.target.value)}
                 placeholder="Cole o token recebido por e-mail"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors font-mono text-sm"
+                className="w-full rounded-lg border border-gray-300 px-4 py-3 font-mono text-sm transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                 required
                 disabled={carregando}
               />
             </div>
 
             <div>
-              <label htmlFor="novaSenha" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="novaSenha" className="mb-1 block text-sm font-medium text-gray-700">
                 Nova senha
               </label>
               <input
@@ -130,8 +127,8 @@ export function ResetPasswordPage(): JSX.Element {
                 type="password"
                 value={novaSenha}
                 onChange={(e) => setNovaSenha(e.target.value)}
-                placeholder="Mínimo 8 caracteres"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                placeholder="Mínimo de 8 caracteres"
+                className="w-full rounded-lg border border-gray-300 px-4 py-3 transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                 required
                 disabled={carregando}
                 minLength={8}
@@ -141,9 +138,9 @@ export function ResetPasswordPage(): JSX.Element {
             <div>
               <label
                 htmlFor="confirmacaoSenha"
-                className="block text-sm font-medium text-gray-700 mb-1"
+                className="mb-1 block text-sm font-medium text-gray-700"
               >
-                Confirme a nova senha
+                Confirmar nova senha
               </label>
               <input
                 id="confirmacaoSenha"
@@ -151,7 +148,7 @@ export function ResetPasswordPage(): JSX.Element {
                 value={confirmacaoSenha}
                 onChange={(e) => setConfirmacaoSenha(e.target.value)}
                 placeholder="Digite a senha novamente"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                className="w-full rounded-lg border border-gray-300 px-4 py-3 transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                 required
                 disabled={carregando}
                 minLength={8}
@@ -161,31 +158,26 @@ export function ResetPasswordPage(): JSX.Element {
             <button
               type="submit"
               disabled={carregando}
-              className="w-full py-3 px-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 focus:ring-4 focus:ring-blue-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white transition-all hover:bg-blue-700 focus:ring-4 focus:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {carregando ? 'Redefinindo...' : 'Redefinir senha'}
             </button>
           </form>
 
-          <div className="mt-6 text-center space-y-2">
+          <div className="mt-6 space-y-2 text-center">
             <Link
               to="/forgot-password"
-              className="text-blue-600 hover:text-blue-700 font-medium text-sm block"
+              className="block text-sm font-medium text-blue-600 hover:text-blue-700"
             >
               ← Solicitar novo token
             </Link>
-            <Link
-              to="/login"
-              className="text-gray-500 hover:text-gray-700 font-medium text-sm block"
-            >
+            <Link to="/login" className="block text-sm font-medium text-gray-500 hover:text-gray-700">
               Voltar para o login
             </Link>
           </div>
         </div>
 
-        <p className="text-center text-blue-200 text-sm mt-6">
-          © 2026 Recorda. Todos os direitos reservados.
-        </p>
+        <p className="mt-6 text-center text-sm text-blue-200">Recorda</p>
       </div>
     </div>
   );
