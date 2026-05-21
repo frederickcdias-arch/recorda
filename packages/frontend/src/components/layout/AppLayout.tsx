@@ -87,11 +87,47 @@ export function AppLayout(): JSX.Element {
   }, [location.pathname, toast, unreadComunicados, usuario]);
 
   useEffect(() => {
-    if (!usuario || !import.meta.env.PROD) {
+    if (!usuario) {
       return;
     }
 
-    void ensurePushSubscription();
+    let cancelled = false;
+    let retryTimeout: number | null = null;
+
+    const attemptSubscription = async (attempt = 1): Promise<void> => {
+      if (cancelled) {
+        return;
+      }
+
+      try {
+        await ensurePushSubscription();
+
+        const registration = await navigator.serviceWorker.ready;
+        const subscription = await registration.pushManager.getSubscription();
+        if (subscription || attempt >= 5) {
+          return;
+        }
+      } catch {
+        if (attempt >= 5 || cancelled) {
+          return;
+        }
+      }
+
+      retryTimeout = window.setTimeout(() => {
+        void attemptSubscription(attempt + 1);
+      }, 1_500);
+    };
+
+    retryTimeout = window.setTimeout(() => {
+      void attemptSubscription();
+    }, 750);
+
+    return () => {
+      cancelled = true;
+      if (retryTimeout) {
+        window.clearTimeout(retryTimeout);
+      }
+    };
   }, [usuario]);
 
   return (

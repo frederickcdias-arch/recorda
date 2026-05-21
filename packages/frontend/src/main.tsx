@@ -17,7 +17,7 @@ if (!rootElement) {
   throw new Error('Root element not found');
 }
 
-if (import.meta.env.PROD) {
+if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
   registerSW({ immediate: true });
 }
 
