@@ -24,6 +24,9 @@ import { createOperacionalRoutes } from './routes/operacional.js';
 import { createConhecimentoOperacionalRoutes } from './routes/conhecimento-operacional.js';
 import { createAdminRoutes } from './routes/admin.js';
 import { createCapturasMapaRoutes } from './routes/capturas-mapa.js';
+import { createComunicadosRoutes } from './routes/comunicados.js';
+import { createPushRoutes } from './routes/push.js';
+import { createWebPushService, type WebPushService } from '../services/web-push-service.js';
 
 export interface ServerDependencies {
   database: DatabaseConnection;
@@ -173,6 +176,7 @@ export async function createServer(dependencies: ServerDependencies): Promise<Fa
           { name: 'auditoria', description: 'Logs de auditoria' },
           { name: 'metas', description: 'Metas de produção' },
           { name: 'conhecimento', description: 'Base de conhecimento' },
+          { name: 'comunicados', description: 'Comunicados internos' },
           { name: 'health', description: 'Health checks e métricas' },
         ],
       },
@@ -189,6 +193,7 @@ export async function createServer(dependencies: ServerDependencies): Promise<Fa
   server.decorate('database', dependencies.database);
   server.decorate('emailService', createEmailService());
   server.decorate('ocrService', dependencies.ocrService ?? createOCRService());
+  server.decorate('webPushService', createWebPushService(dependencies.database));
 
   await server.register(healthRoutes);
   await server.register(authRoutes);
@@ -203,6 +208,8 @@ export async function createServer(dependencies: ServerDependencies): Promise<Fa
   await server.register(createConhecimentoOperacionalRoutes());
   await server.register(createAdminRoutes());
   await server.register(createCapturasMapaRoutes());
+  await server.register(createComunicadosRoutes());
+  await server.register(createPushRoutes());
 
   return server;
 }
@@ -212,5 +219,6 @@ declare module 'fastify' {
     database: DatabaseConnection;
     emailService: EmailService;
     ocrService: OCRService;
+    webPushService: WebPushService;
   }
 }

@@ -1,9 +1,18 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Card } from '../../components/ui/Card';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '../../components/ui/Button';
+import { Card, CardHeader } from '../../components/ui/Card';
 import { Icon } from '../../components/ui/Icon';
-import { PageState } from '../../components/ui/PageState';
+import { ActionFeedback, PageState } from '../../components/ui/PageState';
+import { PageHeader } from '../../components/ui/PageHeader';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../components/ui/Table';
 import { api } from '../../services/api';
 
 interface ColaboradorLegado {
@@ -36,6 +45,42 @@ interface PreviewVinculacao {
     repositorios: string[];
   }>;
   totalRegistros: number;
+}
+
+function SelectableCard({
+  selected,
+  disabled = false,
+  onClick,
+  title,
+  subtitle,
+  meta,
+}: {
+  selected: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+  title: string;
+  subtitle?: string;
+  meta?: React.ReactNode;
+}): JSX.Element {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`w-full rounded-2xl border p-4 text-left transition-all ${
+        selected
+          ? 'border-[var(--color-primary-400)] bg-[var(--color-primary-50)] ring-2 ring-[var(--color-primary-100)]'
+          : disabled
+            ? 'cursor-not-allowed border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] opacity-60'
+            : 'border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] hover:bg-[var(--color-gray-50)]'
+      }`}
+    >
+      <p className="font-medium text-[var(--color-text-primary)]">{title}</p>
+      {subtitle ? (
+        <p className="mt-1 text-sm text-[var(--color-text-secondary)]">{subtitle}</p>
+      ) : null}
+      {meta ? <div className="mt-3 text-xs text-[var(--color-text-tertiary)]">{meta}</div> : null}
+    </button>
+  );
 }
 
 export function VincularProducoesPage(): JSX.Element {
@@ -88,7 +133,7 @@ export function VincularProducoesPage(): JSX.Element {
     onError: (error: any) => {
       setMensagem({
         tipo: 'error',
-        texto: error.error || 'Erro ao vincular produções',
+        texto: error.error || 'Erro ao vincular produções.',
       });
     },
   });
@@ -109,276 +154,217 @@ export function VincularProducoesPage(): JSX.Element {
   };
 
   const loading = loadingColaboradores || loadingUsuarios;
+  const usuarioEscolhido = usuarios?.find((u) => u.id === usuarioSelecionado);
 
   return (
-    <PageState loading={loading} loadingMessage="Carregando dados...">
+    <PageState loading={loading} loadingMessage="Carregando dados para vinculação...">
       <div className="space-y-6">
-        <header>
-          <h1 className="text-2xl font-bold text-gray-900">Vincular Produções Legadas</h1>
-          <p className="mt-1 text-gray-500">
-            Vincule produções antigas (importadas) aos usuários colaboradores criados no sistema
-          </p>
-        </header>
+        <PageHeader
+          title="Vincular produções"
+          subtitle="Associe produções legadas a usuários colaboradores já cadastrados no sistema."
+        />
 
-        {mensagem && (
-          <div
-            className={`rounded-lg p-4 ${
-              mensagem.tipo === 'success'
-                ? 'bg-green-50 text-green-800 border border-green-200'
-                : 'bg-red-50 text-red-800 border border-red-200'
-            }`}
-          >
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <Icon
-                  name={mensagem.tipo === 'success' ? 'check-circle' : 'alert-circle'}
-                  className="w-5 h-5 flex-shrink-0"
-                />
-                <p className="font-medium">{mensagem.texto}</p>
-              </div>
-              <button
-                onClick={() => setMensagem(null)}
-                className="text-current opacity-60 hover:opacity-100"
-                aria-label="Fechar"
-              >
-                <Icon name="x" className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
+        {mensagem ? (
+          <ActionFeedback
+            type={mensagem.tipo}
+            title={
+              mensagem.tipo === 'success' ? 'Vinculação concluída' : 'Não foi possível concluir'
+            }
+            message={mensagem.texto}
+            onDismiss={() => setMensagem(null)}
+          />
+        ) : null}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid gap-6 xl:grid-cols-2">
           <Card>
-            <div className="p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <Icon name="users" className="w-5 h-5 text-blue-600" />
-                <h2 className="text-lg font-semibold text-gray-900">
-                  Colaboradores do Sistema Legado
-                </h2>
-              </div>
+            <CardHeader
+              title="Colaboradores do sistema legado"
+              description="Selecione o nome importado que ainda precisa ser vinculado."
+            />
 
-              <div className="space-y-2 max-h-96 overflow-y-auto">
-                {erroColaboradores ? (
-                  <div className="text-center py-8 text-red-500">
-                    <Icon name="alert-circle" className="w-10 h-10 mx-auto mb-2" />
-                    <p className="text-sm font-medium">Erro ao carregar colaboradores</p>
-                    <p className="text-xs mt-1">Recarregue a página para tentar novamente</p>
-                  </div>
-                ) : !colaboradores || colaboradores.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    <Icon name="users" className="w-12 h-12 mx-auto mb-2 text-gray-300" />
-                    <p className="text-sm">
-                      {loadingColaboradores
-                        ? 'Carregando...'
-                        : 'Nenhum colaborador encontrado no sistema legado'}
-                    </p>
-                    {!loadingColaboradores && (
-                      <p className="text-xs mt-1">
-                        Verifique se as produções foram importadas com colaborador_nome
-                      </p>
-                    )}
-                  </div>
-                ) : (
-                  colaboradores.map((colab) => (
-                    <button
-                      key={colab.nome}
-                      onClick={() => {
-                        setColaboradorSelecionado(
-                          colab.nome === colaboradorSelecionado ? '' : colab.nome
-                        );
-                        setMostrarPreview(false);
-                      }}
-                      className={`w-full text-left p-3 rounded-lg border transition-colors ${
-                        colaboradorSelecionado === colab.nome
-                          ? 'bg-blue-50 border-blue-500 ring-2 ring-blue-200'
-                          : 'bg-[var(--color-bg-primary)] border-gray-200 hover:bg-gray-50'
-                      }`}
-                    >
-                      <p className="font-medium text-gray-900">{colab.nome}</p>
-                      <div className="mt-1 flex flex-wrap gap-2 text-xs text-gray-600">
-                        <span className="flex items-center gap-1">
-                          <Icon name="clipboard" className="w-3 h-3" />
-                          {colab.total_producoes} produções
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Icon name="folder" className="w-3 h-3" />
-                          {colab.total_repositorios} repositórios
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-500 mt-1">
+            <div className="space-y-2">
+              {erroColaboradores ? (
+                <div className="rounded-2xl border border-[var(--color-error-200)] bg-[var(--color-error-50)] p-4 text-sm text-[var(--color-error-700)]">
+                  Erro ao carregar colaboradores. Recarregue a página para tentar novamente.
+                </div>
+              ) : !colaboradores || colaboradores.length === 0 ? (
+                <div className="rounded-2xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-6 text-center">
+                  <Icon
+                    name="users"
+                    className="mx-auto mb-2 h-10 w-10 text-[var(--color-text-tertiary)]"
+                  />
+                  <p className="text-sm text-[var(--color-text-secondary)]">
+                    {loadingColaboradores
+                      ? 'Carregando...'
+                      : 'Nenhum colaborador encontrado no sistema legado.'}
+                  </p>
+                </div>
+              ) : (
+                colaboradores.map((colab) => (
+                  <SelectableCard
+                    key={colab.nome}
+                    selected={colaboradorSelecionado === colab.nome}
+                    onClick={() => {
+                      setColaboradorSelecionado(
+                        colab.nome === colaboradorSelecionado ? '' : colab.nome
+                      );
+                      setMostrarPreview(false);
+                    }}
+                    title={colab.nome}
+                    subtitle={`${colab.total_producoes} produções • ${colab.total_repositorios} repositórios`}
+                    meta={
+                      <>
                         {new Date(colab.primeira_producao).toLocaleDateString('pt-BR')} até{' '}
                         {new Date(colab.ultima_producao).toLocaleDateString('pt-BR')}
-                      </p>
-                    </button>
-                  ))
-                )}
-              </div>
+                      </>
+                    }
+                  />
+                ))
+              )}
             </div>
           </Card>
 
           <Card>
-            <div className="p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <Icon name="user" className="w-5 h-5 text-green-600" />
-                <h2 className="text-lg font-semibold text-gray-900">Usuários Colaboradores</h2>
-              </div>
+            <CardHeader
+              title="Usuários colaboradores"
+              description="Selecione o usuário que deve receber o histórico de produção legado."
+            />
 
-              <div className="space-y-2 max-h-96 overflow-y-auto">
-                {erroUsuarios ? (
-                  <div className="text-center py-8 text-red-500">
-                    <Icon name="alert-circle" className="w-10 h-10 mx-auto mb-2" />
-                    <p className="text-sm font-medium">Erro ao carregar usuários</p>
-                    <p className="text-xs mt-1">Recarregue a página para tentar novamente</p>
-                  </div>
-                ) : !usuarios || usuarios.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    <Icon name="user" className="w-12 h-12 mx-auto mb-2 text-gray-300" />
-                    <p className="text-sm">
-                      {loadingUsuarios ? 'Carregando...' : 'Nenhum usuário colaborador cadastrado'}
-                    </p>
-                    {!loadingUsuarios && (
-                      <p className="text-xs mt-1">
-                        Crie usuários com perfil &quot;Colaborador&quot; em Configurações → Usuários
-                      </p>
-                    )}
-                  </div>
-                ) : (
-                  usuarios.map((usuario) => (
-                    <button
-                      key={usuario.id}
-                      onClick={() => {
-                        setUsuarioSelecionado(usuario.id === usuarioSelecionado ? '' : usuario.id);
-                        setMostrarPreview(false);
-                      }}
-                      disabled={!usuario.ativo}
-                      className={`w-full text-left p-3 rounded-lg border transition-colors ${
-                        usuarioSelecionado === usuario.id
-                          ? 'bg-green-50 border-green-500 ring-2 ring-green-200'
-                          : usuario.ativo
-                            ? 'bg-[var(--color-bg-primary)] border-gray-200 hover:bg-gray-50'
-                            : 'bg-gray-100 border-gray-200 opacity-50 cursor-not-allowed'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <p className="font-medium text-gray-900">{usuario.nome}</p>
-                          <p className="text-sm text-gray-600">{usuario.email}</p>
-                          {usuario.coordenadoria_nome && (
-                            <p className="text-xs text-gray-500 mt-1">
-                              {usuario.coordenadoria_sigla} - {usuario.coordenadoria_nome}
-                            </p>
-                          )}
-                          <p className="text-xs text-gray-500 mt-1">
-                            {usuario.total_producoes_vinculadas} produções já vinculadas
-                          </p>
-                        </div>
-                        {!usuario.ativo && (
-                          <span className="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded">
-                            Inativo
-                          </span>
-                        )}
-                      </div>
-                    </button>
-                  ))
-                )}
-              </div>
+            <div className="space-y-2">
+              {erroUsuarios ? (
+                <div className="rounded-2xl border border-[var(--color-error-200)] bg-[var(--color-error-50)] p-4 text-sm text-[var(--color-error-700)]">
+                  Erro ao carregar usuários. Recarregue a página para tentar novamente.
+                </div>
+              ) : !usuarios || usuarios.length === 0 ? (
+                <div className="rounded-2xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-6 text-center">
+                  <Icon
+                    name="user"
+                    className="mx-auto mb-2 h-10 w-10 text-[var(--color-text-tertiary)]"
+                  />
+                  <p className="text-sm text-[var(--color-text-secondary)]">
+                    {loadingUsuarios ? 'Carregando...' : 'Nenhum usuário colaborador cadastrado.'}
+                  </p>
+                </div>
+              ) : (
+                usuarios.map((usuario) => (
+                  <SelectableCard
+                    key={usuario.id}
+                    selected={usuarioSelecionado === usuario.id}
+                    disabled={!usuario.ativo}
+                    onClick={() => {
+                      setUsuarioSelecionado(usuario.id === usuarioSelecionado ? '' : usuario.id);
+                      setMostrarPreview(false);
+                    }}
+                    title={usuario.nome}
+                    subtitle={usuario.email}
+                    meta={
+                      <>
+                        {usuario.coordenadoria_nome
+                          ? `${usuario.coordenadoria_sigla} - ${usuario.coordenadoria_nome} • `
+                          : ''}
+                        {usuario.total_producoes_vinculadas} produções já vinculadas
+                        {!usuario.ativo ? ' • Usuário inativo' : ''}
+                      </>
+                    }
+                  />
+                ))
+              )}
             </div>
           </Card>
         </div>
 
-        {colaboradorSelecionado && usuarioSelecionado && (
+        {colaboradorSelecionado && usuarioSelecionado ? (
           <Card>
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <Icon name="link" className="w-5 h-5 text-purple-600" />
-                  <h2 className="text-lg font-semibold text-gray-900">Vinculação Selecionada</h2>
-                </div>
+            <CardHeader
+              title="Vinculação selecionada"
+              description="Confira o mapeamento antes de confirmar a importação do histórico."
+              action={
                 <Button
                   variant="outline"
                   onClick={handleVisualizarPreview}
                   disabled={loadingPreview}
-                  className="text-sm"
+                  icon="eye"
                 >
-                  <Icon name="eye" className="w-4 h-4" />
                   {loadingPreview ? 'Carregando...' : 'Visualizar prévia'}
                 </Button>
+              }
+            />
+
+            <div className="grid gap-4 md:grid-cols-[1fr_auto_1fr]">
+              <div className="rounded-2xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
+                  Colaborador legado
+                </p>
+                <p className="mt-2 font-medium text-[var(--color-text-primary)]">
+                  {colaboradorSelecionado}
+                </p>
               </div>
-
-              <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-                <div>
-                  <p className="text-sm text-gray-600">Colaborador (Legado):</p>
-                  <p className="font-medium text-gray-900">{colaboradorSelecionado}</p>
-                </div>
-                <Icon name="arrow-down" className="w-4 h-4 text-gray-400 mx-auto" />
-                <div>
-                  <p className="text-sm text-gray-600">Usuário (Sistema Novo):</p>
-                  <p className="font-medium text-gray-900">
-                    {usuarios?.find((u) => u.id === usuarioSelecionado)?.nome}
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    {usuarios?.find((u) => u.id === usuarioSelecionado)?.email}
-                  </p>
-                </div>
+              <div className="flex items-center justify-center">
+                <Icon
+                  name="arrow-down"
+                  className="h-5 w-5 rotate-[-90deg] text-[var(--color-text-tertiary)] md:rotate-0"
+                />
               </div>
-
-              {mostrarPreview && preview && (
-                <div className="mt-6">
-                  <h3 className="text-sm font-semibold text-gray-900 mb-3">
-                    Preview de Vinculação ({preview.totalRegistros} registros)
-                  </h3>
-                  <div className="bg-[var(--color-bg-primary)] border border-gray-200 rounded-lg overflow-hidden max-h-60 overflow-y-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50 sticky top-0">
-                        <tr>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                            Data
-                          </th>
-                          <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                            Etapa
-                          </th>
-                          <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                            Registros
-                          </th>
-                          <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">
-                            Quantidade
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100">
-                        {preview.preview.map((item, idx) => (
-                          <tr key={idx} className="hover:bg-gray-50">
-                            <td className="px-4 py-2 text-sm text-gray-900">
-                              {new Date(item.data).toLocaleDateString('pt-BR')}
-                            </td>
-                            <td className="px-4 py-2 text-sm text-gray-900">{item.etapa}</td>
-                            <td className="px-4 py-2 text-sm text-gray-900 text-right">
-                              {item.registros}
-                            </td>
-                            <td className="px-4 py-2 text-sm text-gray-900 text-right">
-                              {item.quantidade_total}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-
-              <div className="mt-6 flex items-center justify-end gap-3">
-                <Button
-                  variant="primary"
-                  onClick={handleVincular}
-                  disabled={vincularMutation.isPending || !mostrarPreview}
-                >
-                  <Icon name="link" className="w-4 h-4" />
-                  {vincularMutation.isPending ? 'Vinculando...' : 'Confirmar vínculo'}
-                </Button>
+              <div className="rounded-2xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
+                  Usuário destino
+                </p>
+                <p className="mt-2 font-medium text-[var(--color-text-primary)]">
+                  {usuarioEscolhido?.nome}
+                </p>
+                <p className="text-sm text-[var(--color-text-secondary)]">
+                  {usuarioEscolhido?.email}
+                </p>
               </div>
             </div>
+
+            {mostrarPreview && preview ? (
+              <div className="mt-6 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">
+                    Prévia da vinculação
+                  </h3>
+                  <span className="text-sm text-[var(--color-text-secondary)]">
+                    {preview.totalRegistros} registros
+                  </span>
+                </div>
+
+                <Table>
+                  <TableHead>
+                    <tr>
+                      <TableHeader>Data</TableHeader>
+                      <TableHeader>Etapa</TableHeader>
+                      <TableHeader align="right">Registros</TableHeader>
+                      <TableHeader align="right">Quantidade</TableHeader>
+                    </tr>
+                  </TableHead>
+                  <TableBody>
+                    {preview.preview.map((item, idx) => (
+                      <TableRow key={`${item.data}-${item.etapa}-${idx}`}>
+                        <TableCell>{new Date(item.data).toLocaleDateString('pt-BR')}</TableCell>
+                        <TableCell>{item.etapa}</TableCell>
+                        <TableCell align="right">{item.registros}</TableCell>
+                        <TableCell align="right">{item.quantidade_total}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : null}
+
+            <div className="mt-6 flex justify-end">
+              <Button
+                variant="primary"
+                onClick={handleVincular}
+                disabled={vincularMutation.isPending || !mostrarPreview}
+                icon="link"
+                loading={vincularMutation.isPending}
+              >
+                Confirmar vínculo
+              </Button>
+            </div>
           </Card>
-        )}
+        ) : null}
       </div>
     </PageState>
   );

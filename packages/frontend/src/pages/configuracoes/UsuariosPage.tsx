@@ -1,18 +1,28 @@
-import { useState, useEffect } from 'react';
-import { Icon } from '../../components/ui/Icon';
+import { useMemo, useState } from 'react';
 import { Button } from '../../components/ui/Button';
-import { Card } from '../../components/ui/Card';
-import { PageHeader } from '../../components/ui/PageHeader';
+import { Card, CardHeader } from '../../components/ui/Card';
+import { Icon } from '../../components/ui/Icon';
 import { Input } from '../../components/ui/Input';
+import { Modal } from '../../components/ui/Modal';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { ActionFeedback, PageState } from '../../components/ui/PageState';
 import { Select } from '../../components/ui/Select';
-import { PageState, ActionFeedback } from '../../components/ui/PageState';
 import {
-  useUsuarios,
-  useRegisterUsuario,
-  useUpdateUsuario,
-  useToggleUsuarioAtivo,
-  useQueryClient,
+  Table,
+  TableBody,
+  TableCell,
+  TableEmptyState,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../components/ui/Table';
+import {
   queryKeys,
+  useQueryClient,
+  useRegisterUsuario,
+  useToggleUsuarioAtivo,
+  useUpdateUsuario,
+  useUsuarios,
 } from '../../hooks/useQueries';
 
 interface Usuario {
@@ -22,6 +32,25 @@ interface Usuario {
   papel: string;
   ativo: boolean;
   criado_em: string;
+}
+
+const PERFIL_OPTIONS = [
+  { value: 'colaborador', label: 'Colaborador' },
+  { value: 'operador', label: 'Operador' },
+  { value: 'administrador', label: 'Administrador' },
+] as const;
+
+function formatarPapel(papel: string): string {
+  if (papel === 'ADMIN') return 'Administrador';
+  return papel.charAt(0).toUpperCase() + papel.slice(1).toLowerCase();
+}
+
+function getPerfilBadgeClass(papel: string): string {
+  if (papel === 'ADMIN') {
+    return 'bg-[var(--color-primary-100)] text-[var(--color-primary-700)]';
+  }
+
+  return 'bg-[var(--color-gray-100)] text-[var(--color-text-secondary)]';
 }
 
 export function UsuariosPage(): JSX.Element {
@@ -52,6 +81,15 @@ export function UsuariosPage(): JSX.Element {
   });
   const [salvando, setSalvando] = useState(false);
 
+  const resumo = useMemo(
+    () => ({
+      total: usuarios.length,
+      ativos: usuarios.filter((usuario) => usuario.ativo).length,
+      admins: usuarios.filter((usuario) => usuario.papel === 'ADMIN').length,
+    }),
+    [usuarios]
+  );
+
   const invalidate = () => void queryClient.invalidateQueries({ queryKey: queryKeys.usuarios });
 
   const handleAbrirModalNovo = () => {
@@ -76,14 +114,17 @@ export function UsuariosPage(): JSX.Element {
 
   const handleSalvar = async () => {
     if (!formData.email || !formData.nome || (!usuarioEditando && !formData.senha)) {
-      setMensagem({ tipo: 'error', texto: 'Preencha todos os campos obrigatórios' });
+      setMensagem({ tipo: 'error', texto: 'Preencha todos os campos obrigatórios.' });
       return;
     }
+
     if (formData.senha && formData.senha.length < 8) {
-      setMensagem({ tipo: 'error', texto: 'A senha deve ter no mínimo 8 caracteres' });
+      setMensagem({ tipo: 'error', texto: 'A senha deve ter no mínimo 8 caracteres.' });
       return;
     }
+
     setSalvando(true);
+
     try {
       if (usuarioEditando) {
         await updateUsuario.mutateAsync({
@@ -93,7 +134,7 @@ export function UsuariosPage(): JSX.Element {
           perfil: formData.perfil,
           ...(formData.senha && { senha: formData.senha }),
         });
-        setMensagem({ tipo: 'success', texto: 'Usuário atualizado!' });
+        setMensagem({ tipo: 'success', texto: 'Usuário atualizado com sucesso.' });
       } else {
         await registerUsuario.mutateAsync({
           email: formData.email,
@@ -101,8 +142,9 @@ export function UsuariosPage(): JSX.Element {
           senha: formData.senha,
           perfil: formData.perfil,
         });
-        setMensagem({ tipo: 'success', texto: 'Usuário criado!' });
+        setMensagem({ tipo: 'success', texto: 'Usuário criado com sucesso.' });
       }
+
       setModalAberto(false);
       setUsuarioEditando(null);
       setFormData({ email: '', nome: '', senha: '', perfil: 'operador' });
@@ -120,7 +162,7 @@ export function UsuariosPage(): JSX.Element {
       await toggleUsuarioAtivo.mutateAsync(usuario.id);
       setMensagem({
         tipo: 'success',
-        texto: usuario.ativo ? 'Usuário desativado' : 'Usuário ativado',
+        texto: usuario.ativo ? 'Usuário desativado.' : 'Usuário ativado.',
       });
     } catch (error) {
       const message =
@@ -133,21 +175,12 @@ export function UsuariosPage(): JSX.Element {
     ? { ...erro, action: { label: 'Tentar novamente', onClick: invalidate } }
     : null;
 
-  useEffect(() => {
-    if (!modalAberto) return;
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setModalAberto(false);
-    };
-    document.addEventListener('keydown', onKeyDown);
-    return () => document.removeEventListener('keydown', onKeyDown);
-  }, [modalAberto]);
-
   return (
-    <PageState loading={carregando} loadingMessage="Carregando..." error={erroComAcao}>
+    <PageState loading={carregando} loadingMessage="Carregando usuários..." error={erroComAcao}>
       <div className="space-y-6">
         <PageHeader
           title="Usuários"
-          subtitle="Gerencie os usuários do sistema"
+          subtitle="Gerencie acessos e perfis do sistema sem alterar os fluxos operacionais."
           actions={
             <Button variant="primary" icon="plus" onClick={handleAbrirModalNovo}>
               Novo usuário
@@ -155,158 +188,215 @@ export function UsuariosPage(): JSX.Element {
           }
         />
 
-        {mensagem && (
+        {mensagem ? (
           <ActionFeedback
             type={mensagem.tipo}
-            title=""
+            title={
+              mensagem.tipo === 'success' ? 'Atualização concluída' : 'Não foi possível concluir'
+            }
             message={mensagem.texto}
             onDismiss={() => setMensagem(null)}
           />
-        )}
+        ) : null}
 
-        <Card>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Nome
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Email
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Perfil
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                    Ações
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-[var(--color-bg-primary)] divide-y divide-[var(--color-border-secondary)]">
-                {usuarios.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
-                      <Icon name="users" className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                      <p>Nenhum usuário encontrado.</p>
-                    </td>
-                  </tr>
-                ) : (
-                  usuarios.map((u) => (
-                    <tr key={u.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 font-medium text-gray-900">{u.nome}</td>
-                      <td className="px-6 py-4 text-gray-700">{u.email}</td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={`px-2 py-1 text-xs rounded-full ${u.papel === 'ADMIN' ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-800'}`}
-                        >
-                          {u.papel}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={`px-2 py-1 text-xs rounded-full ${u.ativo ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}`}
-                        >
-                          {u.ativo ? 'Ativo' : 'Inativo'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => handleAbrirModalEditar(u)}
-                            className="text-blue-600 hover:text-blue-800"
-                            aria-label={`Editar usuário ${u.nome}`}
-                            title="Editar usuário"
-                          >
-                            <Icon name="edit" className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleToggleAtivo(u)}
-                            className={
-                              u.ativo
-                                ? 'text-gray-400 hover:text-gray-700'
-                                : 'text-green-600 hover:text-green-800'
-                            }
-                            aria-label={
-                              u.ativo ? `Desativar usuário ${u.nome}` : `Ativar usuário ${u.nome}`
-                            }
-                            title={u.ativo ? 'Desativar usuário' : 'Ativar usuário'}
-                          >
-                            <Icon name={u.ativo ? 'x' : 'check'} className="w-4 h-4" />
-                          </button>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Card padding="sm">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
+              Total
+            </p>
+            <p className="mt-2 text-2xl font-semibold text-[var(--color-text-primary)]">
+              {resumo.total}
+            </p>
+          </Card>
+          <Card padding="sm">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
+              Ativos
+            </p>
+            <p className="mt-2 text-2xl font-semibold text-[var(--color-text-primary)]">
+              {resumo.ativos}
+            </p>
+          </Card>
+          <Card padding="sm">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
+              Administradores
+            </p>
+            <p className="mt-2 text-2xl font-semibold text-[var(--color-text-primary)]">
+              {resumo.admins}
+            </p>
+          </Card>
+        </div>
+
+        <Card padding="none">
+          <CardHeader
+            title="Acessos cadastrados"
+            description="Lista completa de usuários com status, perfil e ações rápidas."
+            className="px-5 pt-5"
+          />
+
+          <Table>
+            <TableHead>
+              <tr>
+                <TableHeader>Usuário</TableHeader>
+                <TableHeader>Email</TableHeader>
+                <TableHeader>Perfil</TableHeader>
+                <TableHeader>Status</TableHeader>
+                <TableHeader align="right">Ações</TableHeader>
+              </tr>
+            </TableHead>
+            <TableBody>
+              {usuarios.length === 0 ? (
+                <TableEmptyState
+                  colSpan={5}
+                  title="Nenhum usuário encontrado"
+                  description="Quando novos acessos forem cadastrados, eles aparecerão aqui."
+                />
+              ) : (
+                usuarios.map((usuario) => (
+                  <TableRow key={usuario.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--color-primary-50)] text-sm font-semibold text-[var(--color-primary-700)]">
+                          {usuario.nome.trim().charAt(0).toUpperCase()}
                         </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                        <div className="min-w-0">
+                          <p className="truncate font-medium text-[var(--color-text-primary)]">
+                            {usuario.nome}
+                          </p>
+                          <p className="truncate text-xs text-[var(--color-text-tertiary)]">
+                            Criado em {new Date(usuario.criado_em).toLocaleDateString('pt-BR')}
+                          </p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-[var(--color-text-secondary)]">
+                      {usuario.email}
+                    </TableCell>
+                    <TableCell>
+                      <span
+                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${getPerfilBadgeClass(usuario.papel)}`}
+                      >
+                        {formatarPapel(usuario.papel)}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <span
+                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
+                          usuario.ativo
+                            ? 'bg-[var(--color-success-100)] text-[var(--color-success-700)]'
+                            : 'bg-[var(--color-gray-100)] text-[var(--color-text-secondary)]'
+                        }`}
+                      >
+                        {usuario.ativo ? 'Ativo' : 'Inativo'}
+                      </span>
+                    </TableCell>
+                    <TableCell align="right">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          icon="edit"
+                          iconOnly
+                          onClick={() => handleAbrirModalEditar(usuario)}
+                          aria-label={`Editar usuário ${usuario.nome}`}
+                          title="Editar usuário"
+                        />
+                        <Button
+                          variant={usuario.ativo ? 'ghost' : 'success'}
+                          size="sm"
+                          icon={usuario.ativo ? 'x' : 'check'}
+                          iconOnly
+                          onClick={() => handleToggleAtivo(usuario)}
+                          aria-label={
+                            usuario.ativo
+                              ? `Desativar usuário ${usuario.nome}`
+                              : `Ativar usuário ${usuario.nome}`
+                          }
+                          title={usuario.ativo ? 'Desativar usuário' : 'Ativar usuário'}
+                        />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
         </Card>
 
-        {modalAberto && (
-          <div
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fade-in"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="modal-usuario-titulo"
-          >
-            <div className="bg-[var(--color-bg-primary)] rounded-xl p-6 max-w-md w-full shadow-2xl animate-scale-in">
-              <h3 id="modal-usuario-titulo" className="text-lg font-semibold mb-4">
-                {usuarioEditando ? 'Editar usuário' : 'Novo usuário'}
-              </h3>
-              <div className="space-y-4">
-                <Input
-                  label="Nome *"
-                  value={formData.nome}
-                  onChange={(e) => setFormData((p) => ({ ...p, nome: e.target.value }))}
-                />
-                <Input
-                  label="Email *"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))}
-                />
-                <Input
-                  label={
-                    usuarioEditando
-                      ? 'Senha (deixe em branco para manter)'
-                      : 'Senha * (mínimo 8 caracteres)'
-                  }
-                  type="password"
-                  value={formData.senha}
-                  onChange={(e) => setFormData((p) => ({ ...p, senha: e.target.value }))}
-                  required={!usuarioEditando}
-                />
-                <Select
-                  label="Perfil"
-                  value={formData.perfil}
-                  onChange={(e) =>
-                    setFormData((p) => ({
-                      ...p,
-                      perfil: e.target.value as 'colaborador' | 'operador' | 'administrador',
-                    }))
-                  }
-                >
-                  <option value="colaborador">Colaborador</option>
-                  <option value="operador">Operador</option>
-                  <option value="administrador">Administrador</option>
-                </Select>
-              </div>
-              <div className="flex gap-3 justify-end mt-6">
-                <Button variant="secondary" onClick={() => setModalAberto(false)}>
-                  Cancelar
-                </Button>
-                <Button variant="primary" onClick={handleSalvar} loading={salvando}>
-                  {usuarioEditando ? 'Salvar usuário' : 'Criar usuário'}
-                </Button>
-              </div>
+        <Modal
+          open={modalAberto}
+          onClose={() => setModalAberto(false)}
+          title={usuarioEditando ? 'Editar usuário' : 'Novo usuário'}
+          subtitle={
+            usuarioEditando
+              ? 'Atualize os dados mantendo o mesmo fluxo de acesso.'
+              : 'Cadastre um novo acesso com perfil e credenciais iniciais.'
+          }
+          footer={
+            <div className="flex flex-col-reverse gap-3 p-5 sm:flex-row sm:justify-end">
+              <Button variant="secondary" onClick={() => setModalAberto(false)}>
+                Cancelar
+              </Button>
+              <Button variant="primary" onClick={handleSalvar} loading={salvando}>
+                {usuarioEditando ? 'Salvar usuário' : 'Criar usuário'}
+              </Button>
             </div>
+          }
+        >
+          <div className="space-y-4 p-5">
+            <Input
+              label="Nome *"
+              value={formData.nome}
+              onChange={(e) => setFormData((p) => ({ ...p, nome: e.target.value }))}
+            />
+            <Input
+              label="Email *"
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))}
+            />
+            <Input
+              label={
+                usuarioEditando
+                  ? 'Senha (deixe em branco para manter)'
+                  : 'Senha * (mínimo 8 caracteres)'
+              }
+              type="password"
+              value={formData.senha}
+              onChange={(e) => setFormData((p) => ({ ...p, senha: e.target.value }))}
+              required={!usuarioEditando}
+            />
+            <Select
+              label="Perfil"
+              value={formData.perfil}
+              onChange={(e) =>
+                setFormData((p) => ({
+                  ...p,
+                  perfil: e.target.value as 'colaborador' | 'operador' | 'administrador',
+                }))
+              }
+            >
+              {PERFIL_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </Select>
+            {!usuarioEditando ? (
+              <div className="rounded-2xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] px-4 py-3 text-sm text-[var(--color-text-secondary)]">
+                <div className="flex items-start gap-3">
+                  <Icon
+                    name="info"
+                    className="mt-0.5 h-4 w-4 shrink-0 text-[var(--color-primary-600)]"
+                  />
+                  <p>
+                    O novo usuário será criado com o perfil selecionado e poderá acessar apenas as
+                    áreas permitidas por esse perfil.
+                  </p>
+                </div>
+              </div>
+            ) : null}
           </div>
-        )}
+        </Modal>
       </div>
     </PageState>
   );

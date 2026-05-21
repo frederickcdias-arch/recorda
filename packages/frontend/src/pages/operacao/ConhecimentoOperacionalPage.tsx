@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import type { EtapaFluxo } from '@recorda/shared';
 import { Card } from '../../components/ui/Card';
@@ -7,7 +7,6 @@ import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { PageState, ActionFeedback } from '../../components/ui/PageState';
 import { PageHeader } from '../../components/ui/PageHeader';
-import { MarkdownEditor, MarkdownViewer } from '../../components/ui/MarkdownEditor';
 import { useAuth } from '../../contexts/AuthContext';
 import {
   useConhecimentoDocs,
@@ -27,6 +26,18 @@ import {
   queryKeys,
 } from '../../hooks/useQueries';
 import type { GlossarioItem, LeiNormaItem } from '../../hooks/useQueries';
+
+const MarkdownEditor = lazy(() =>
+  import('../../components/ui/MarkdownEditor').then((module) => ({
+    default: module.MarkdownEditor,
+  }))
+);
+
+const MarkdownViewer = lazy(() =>
+  import('../../components/ui/MarkdownEditor').then((module) => ({
+    default: module.MarkdownViewer,
+  }))
+);
 
 type KBCategoria =
   | 'MANUAIS'
@@ -76,6 +87,14 @@ type KBTab = 'documentos' | 'glossario' | 'leis';
 
 function isKBTab(value: string | null): value is KBTab {
   return value === 'documentos' || value === 'glossario' || value === 'leis';
+}
+
+function MarkdownFallback({ label }: { label: string }): JSX.Element {
+  return (
+    <div className="rounded-lg border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-4 text-sm text-[var(--color-text-tertiary)]">
+      {label}
+    </div>
+  );
 }
 
 export function ConhecimentoOperacionalPage(): JSX.Element {
@@ -714,7 +733,11 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
                         </span>
                       </div>
                       <div className="p-3">
-                        <MarkdownViewer content={detalhe.versaoAtual?.conteudo ?? ''} />
+                        <Suspense
+                          fallback={<MarkdownFallback label="Carregando visualização..." />}
+                        >
+                          <MarkdownViewer content={detalhe.versaoAtual?.conteudo ?? ''} />
+                        </Suspense>
                       </div>
                     </div>
 
@@ -746,12 +769,14 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
                             setNovaVersao((prev) => ({ ...prev, resumoAlteracao: e.target.value }))
                           }
                         />
-                        <MarkdownEditor
-                          label="Conteúdo (Markdown)"
-                          value={novaVersao.conteudo}
-                          onChange={(v) => setNovaVersao((prev) => ({ ...prev, conteudo: v }))}
-                          minHeight="200px"
-                        />
+                        <Suspense fallback={<MarkdownFallback label="Carregando editor..." />}>
+                          <MarkdownEditor
+                            label="Conteúdo (Markdown)"
+                            value={novaVersao.conteudo}
+                            onChange={(v) => setNovaVersao((prev) => ({ ...prev, conteudo: v }))}
+                            minHeight="200px"
+                          />
+                        </Suspense>
                         <Button
                           size="sm"
                           onClick={() => void handlePublicarNovaVersao()}
@@ -812,13 +837,15 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
                       </button>
                     ))}
                   </div>
-                  <MarkdownEditor
-                    label="Conteúdo inicial (Markdown)"
-                    value={novoDoc.conteudo}
-                    onChange={(v) => setNovoDoc((p) => ({ ...p, conteudo: v }))}
-                    placeholder="# Título&#10;&#10;Escreva o conteúdo em Markdown..."
-                    minHeight="200px"
-                  />
+                  <Suspense fallback={<MarkdownFallback label="Carregando editor..." />}>
+                    <MarkdownEditor
+                      label="Conteúdo inicial (Markdown)"
+                      value={novoDoc.conteudo}
+                      onChange={(v) => setNovoDoc((p) => ({ ...p, conteudo: v }))}
+                      placeholder="# Título&#10;&#10;Escreva o conteúdo em Markdown..."
+                      minHeight="200px"
+                    />
+                  </Suspense>
                   <Button size="sm" onClick={() => void handleCriarDocumento()} loading={saving}>
                     Criar Documento
                   </Button>

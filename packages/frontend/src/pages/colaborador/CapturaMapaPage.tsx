@@ -9,13 +9,6 @@ import { api } from '../../services/api';
 import { buildApiUrl } from '../../services/api';
 import { getToken } from '../../services/tokenStorage';
 import { formatDateBR } from '../../utils/date';
-import {
-  correctPerspective,
-  correctPerspectiveWithCorners,
-  correctPerspectiveWithEdgePoints,
-  detectPerspective,
-  validateCorrectedDocument,
-} from '../../utils/perspectiveCorrection';
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -94,6 +87,17 @@ interface QueueItem {
 interface ImageSize {
   width: number;
   height: number;
+}
+
+type PerspectiveUtils = typeof import('../../utils/perspectiveCorrection');
+
+let perspectiveUtilsPromise: Promise<PerspectiveUtils> | null = null;
+
+function loadPerspectiveUtils(): Promise<PerspectiveUtils> {
+  if (!perspectiveUtilsPromise) {
+    perspectiveUtilsPromise = import('../../utils/perspectiveCorrection');
+  }
+  return perspectiveUtilsPromise;
 }
 
 // ── Utilitários ───────────────────────────────────────────────────────────────
@@ -347,6 +351,12 @@ export function CapturaMapaPage() {
           ]);
 
           try {
+            const {
+              detectPerspective,
+              correctPerspective,
+              correctPerspectiveWithCorners,
+              validateCorrectedDocument,
+            } = await loadPerspectiveUtils();
             const detection = await detectPerspective(dataUrl);
             const corrected = detection.corners
               ? await correctPerspectiveWithCorners(dataUrl, detection.corners)
@@ -483,6 +493,8 @@ export function CapturaMapaPage() {
 
     setEditorSaving(true);
     try {
+      const { correctPerspectiveWithEdgePoints, validateCorrectedDocument } =
+        await loadPerspectiveUtils();
       const corrected = await correctPerspectiveWithEdgePoints(
         item.originalSrc,
         editorCorners,

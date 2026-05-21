@@ -14,7 +14,7 @@ export function FilterBar({ children, actions, className }: FilterBarProps): JSX
   return (
     <div
       className={cn(
-        'rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] p-4 shadow-xs',
+        'rounded-2xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] p-4 shadow-xs',
         className
       )}
     >

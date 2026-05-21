@@ -1,4 +1,5 @@
-﻿import type { MenuSection } from '../types/navigation';
+import type { PerfilUsuario } from '@recorda/shared';
+import type { MenuItem, MenuSection } from '../types/navigation';
 
 export const menuSections: MenuSection[] = [
   {
@@ -23,6 +24,13 @@ export const menuSections: MenuSection[] = [
         path: '/producao/importar',
       },
     ],
+  },
+  {
+    id: 'comunicados',
+    label: 'Comunicados',
+    icon: 'mail',
+    basePath: '/comunicados',
+    items: [],
   },
   {
     id: 'minha-producao',
@@ -87,13 +95,13 @@ export const menuSections: MenuSection[] = [
     allowedProfiles: ['operador', 'administrador'],
     items: [
       {
-        id: 'gerenciais',
+        id: 'relatorios-gerenciais',
         label: 'Relatórios Gerenciais',
         icon: 'briefcase',
         path: '/relatorios/gerenciais',
       },
       {
-        id: 'exportacoes',
+        id: 'relatorios-exportacoes',
         label: 'Exportações',
         icon: 'download',
         path: '/relatorios/exportacoes',
@@ -114,6 +122,12 @@ export const menuSections: MenuSection[] = [
         label: 'Vincular Produções',
         icon: 'link',
         path: '/configuracoes/vincular-producoes',
+      },
+      {
+        id: 'config-comunicados',
+        label: 'Comunicados',
+        icon: 'mail',
+        path: '/configuracoes/comunicados',
       },
       { id: 'admin', label: 'Administração', icon: 'settings', path: '/configuracoes/admin' },
     ],
@@ -137,3 +151,113 @@ export const menuSections: MenuSection[] = [
     ],
   },
 ];
+
+const mobilePrimaryNavMap: Record<PerfilUsuario, string[]> = {
+  administrador: ['dashboard', 'operacao-recebimento', 'producao-painel', 'relatorios-gerenciais'],
+  operador: ['dashboard', 'operacao-recebimento', 'producao-painel', 'relatorios-gerenciais'],
+  colaborador: ['dashboard', 'lancar-producao', 'meu-historico', 'captura-mapa'],
+};
+
+const mobileSheetNavMap: Record<PerfilUsuario, string[]> = {
+  administrador: [
+    'comunicados',
+    'operacao-devolucoes',
+    'operacao-kb',
+    'operacao-cq',
+    'configuracoes',
+    'usuarios',
+    'auditoria',
+  ],
+  operador: ['comunicados', 'operacao-devolucoes', 'operacao-kb', 'operacao-cq'],
+  colaborador: ['comunicados'],
+};
+
+export interface MenuLinkItem {
+  id: string;
+  label: string;
+  icon: string;
+  path: string;
+}
+
+function flattenMenuItems(items: MenuItem[]): MenuLinkItem[] {
+  return items.flatMap((item) => {
+    const current = item.path
+      ? [
+          {
+            id: item.id,
+            label: item.label,
+            icon: item.icon,
+            path: item.path,
+          },
+        ]
+      : [];
+
+    return [...current, ...(item.children ? flattenMenuItems(item.children) : [])];
+  });
+}
+
+const flatMenuItems = menuSections.flatMap((section) => {
+  const sectionEntry: MenuLinkItem[] =
+    section.items.length === 0
+      ? [
+          {
+            id: section.id,
+            label: section.label,
+            icon: section.icon,
+            path: section.basePath,
+          },
+        ]
+      : [];
+
+  return [...sectionEntry, ...flattenMenuItems(section.items)];
+});
+
+function getItemById(id: string): MenuLinkItem | null {
+  return flatMenuItems.find((item) => item.id === id) ?? null;
+}
+
+export function getMobilePrimaryNav(perfil?: PerfilUsuario): MenuLinkItem[] {
+  if (!perfil) return [];
+
+  return (mobilePrimaryNavMap[perfil] ?? [])
+    .map((id) => getItemById(id))
+    .filter((item): item is MenuLinkItem => item !== null);
+}
+
+export function getMobileSheetNav(perfil?: PerfilUsuario): MenuLinkItem[] {
+  if (!perfil) return [];
+
+  return (mobileSheetNavMap[perfil] ?? [])
+    .map((id) => getItemById(id))
+    .filter((item): item is MenuLinkItem => item !== null);
+}
+
+const pageTitleOverrides: Record<string, string> = {
+  '/configuracoes/comunicados': 'Gestão de Comunicados',
+  '/configuracoes/admin': 'Administração',
+};
+
+export function getPageTitle(pathname: string): string {
+  if (pageTitleOverrides[pathname]) {
+    return pageTitleOverrides[pathname]!;
+  }
+
+  const exactItem = flatMenuItems.find((item) => item.path === pathname);
+  if (exactItem) {
+    const parentSection = menuSections.find(
+      (section) =>
+        section.basePath !== exactItem.path &&
+        pathname.startsWith(section.basePath) &&
+        section.items.length > 0
+    );
+
+    return parentSection ? `${parentSection.label} - ${exactItem.label}` : exactItem.label;
+  }
+
+  const parentSection = menuSections.find((section) => pathname.startsWith(section.basePath));
+  if (parentSection) {
+    return parentSection.label;
+  }
+
+  return 'Recorda';
+}

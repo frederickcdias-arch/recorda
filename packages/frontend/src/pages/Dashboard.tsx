@@ -1,26 +1,27 @@
-﻿import { useNavigate } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { Badge } from '../components/ui/Badge';
+import { Button } from '../components/ui/Button';
+import { Card, CardHeader } from '../components/ui/Card';
 import { Icon } from '../components/ui/Icon';
 import { PageHeader } from '../components/ui/PageHeader';
 import { PageState } from '../components/ui';
 import { SkeletonCards } from '../components/ui/Skeleton';
-import { Card } from '../components/ui/Card';
-import { Button } from '../components/ui/Button';
 import {
   Table,
-  TableHead,
   TableBody,
-  TableRow,
-  TableHeader,
   TableCell,
   TableEmptyState,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from '../components/ui/Table';
-import { useDashboard, type DashboardData } from '../hooks/useQueries';
 import { useAuth } from '../contexts/AuthContext';
-import { useQuery } from '@tanstack/react-query';
+import { useDashboard, type DashboardData } from '../hooks/useQueries';
 import { api } from '../services/api';
-import { getEtapaProducaoStyle } from '../utils/etapa';
 import { formatDateBR } from '../utils/date';
+import { getEtapaProducaoStyle } from '../utils/etapa';
 import { formatCriticalNumber, parseFiniteNumber } from '../utils/number';
 
 interface StatCardProps {
@@ -29,62 +30,17 @@ interface StatCardProps {
   rawValue?: number | null;
   icon: string;
   subtitle?: string;
+  tone?: 'primary' | 'success' | 'warning' | 'neutral';
   onClick?: () => void;
   index?: number;
 }
 
-function useCountUp(target: number, duration = 700): number {
-  const [count, setCount] = useState(0);
-  const rafRef = useRef<number>(0);
-  useEffect(() => {
-    if (target === 0) {
-      setCount(0);
-      return;
-    }
-    const start = performance.now();
-    const tick = (now: number) => {
-      const p = Math.min((now - start) / duration, 1);
-      const eased = 1 - Math.pow(1 - p, 3);
-      setCount(Math.round(eased * target));
-      if (p < 1) rafRef.current = requestAnimationFrame(tick);
-    };
-    rafRef.current = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(rafRef.current);
-  }, [target, duration]);
-  return count;
-}
-
-function StatCard({
-  title,
-  value,
-  rawValue,
-  icon,
-  subtitle,
-  onClick,
-  index = 0,
-}: StatCardProps): JSX.Element {
-  const animated = useCountUp(rawValue ?? 0);
-  const displayValue = rawValue != null ? animated.toLocaleString('pt-BR') : value;
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      style={{ animationDelay: `${index * 75}ms` }}
-      className="animate-fade-in-up [animation-fill-mode:both] bg-[var(--color-bg-primary)] rounded-xl p-6 shadow-sm border border-[var(--color-border-secondary)] w-full text-left hover:border-primary-200 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 active:scale-[0.98]"
-    >
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-sm font-medium text-gray-500">{title}</p>
-          <p className="text-2xl font-bold text-gray-900 mt-1">{displayValue}</p>
-          {subtitle ? <p className="text-sm mt-2 text-primary-600">{subtitle}</p> : null}
-        </div>
-        <div className="p-3 rounded-lg bg-primary-50 text-primary-600">
-          <Icon name={icon} className="w-6 h-6" />
-        </div>
-      </div>
-    </button>
-  );
+interface InsightCardProps {
+  title: string;
+  description: string;
+  actionLabel?: string;
+  onAction?: () => void;
+  icon: string;
 }
 
 interface ProducaoItem {
@@ -122,16 +78,170 @@ interface MeuHistoricoResponse {
 }
 
 const tipoCores: Record<string, { bg: string; text: string; icon: string }> = {
-  Imagens: { bg: 'bg-primary-50', text: 'text-primary-700', icon: 'image' },
-  Caixas: { bg: 'bg-amber-50', text: 'text-amber-700', icon: 'box' },
-  'Não informado': { bg: 'bg-gray-50', text: 'text-gray-500', icon: 'help-circle' },
+  Imagens: {
+    bg: 'bg-[var(--color-primary-50)]',
+    text: 'text-[var(--color-primary-700)]',
+    icon: 'image',
+  },
+  Caixas: {
+    bg: 'bg-[var(--color-warning-50)]',
+    text: 'text-[var(--color-warning-700)]',
+    icon: 'box',
+  },
+  'Não informado': {
+    bg: 'bg-[var(--color-gray-100)]',
+    text: 'text-[var(--color-text-secondary)]',
+    icon: 'help-circle',
+  },
 };
+
+const statToneClasses: Record<
+  NonNullable<StatCardProps['tone']>,
+  { surface: string; icon: string; text: string }
+> = {
+  primary: {
+    surface: 'bg-[var(--color-primary-50)]',
+    icon: 'text-[var(--color-primary-700)]',
+    text: 'text-[var(--color-primary-700)]',
+  },
+  success: {
+    surface: 'bg-[var(--color-success-50)]',
+    icon: 'text-[var(--color-success-700)]',
+    text: 'text-[var(--color-success-700)]',
+  },
+  warning: {
+    surface: 'bg-[var(--color-warning-50)]',
+    icon: 'text-[var(--color-warning-700)]',
+    text: 'text-[var(--color-warning-700)]',
+  },
+  neutral: {
+    surface: 'bg-[var(--color-gray-100)]',
+    icon: 'text-[var(--color-text-secondary)]',
+    text: 'text-[var(--color-text-secondary)]',
+  },
+};
+
+function useCountUp(target: number, duration = 700): number {
+  const [count, setCount] = useState(0);
+  const rafRef = useRef<number>(0);
+
+  useEffect(() => {
+    if (target === 0) {
+      setCount(0);
+      return;
+    }
+
+    const start = performance.now();
+    const tick = (now: number) => {
+      const p = Math.min((now - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - p, 3);
+      setCount(Math.round(eased * target));
+      if (p < 1) rafRef.current = requestAnimationFrame(tick);
+    };
+
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [target, duration]);
+
+  return count;
+}
+
+function DashboardShell({
+  title,
+  subtitle,
+  actions,
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  actions?: React.ReactNode;
+  children: React.ReactNode;
+}): JSX.Element {
+  return (
+    <div className="space-y-6">
+      <PageHeader title={title} subtitle={subtitle} actions={actions} />
+      {children}
+    </div>
+  );
+}
+
+function StatCard({
+  title,
+  value,
+  rawValue,
+  icon,
+  subtitle,
+  tone = 'primary',
+  onClick,
+  index = 0,
+}: StatCardProps): JSX.Element {
+  const animated = useCountUp(rawValue ?? 0);
+  const displayValue = rawValue != null ? animated.toLocaleString('pt-BR') : value;
+  const toneClass = statToneClasses[tone];
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{ animationDelay: `${index * 75}ms` }}
+      className="animate-fade-in-up [animation-fill-mode:both] w-full text-left"
+    >
+      <Card padding="sm" hover={!!onClick} className="h-full border-[var(--color-border-primary)]">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-[var(--color-text-secondary)]">{title}</p>
+            <p className="mt-2 text-2xl font-semibold text-[var(--color-text-primary)]">
+              {displayValue}
+            </p>
+            {subtitle ? (
+              <p className={`mt-2 text-sm ${toneClass.text}`}>{subtitle}</p>
+            ) : (
+              <p className="mt-2 text-sm text-[var(--color-text-tertiary)]">Atualizado agora</p>
+            )}
+          </div>
+          <div
+            className={`flex h-12 w-12 items-center justify-center rounded-2xl ${toneClass.surface} ${toneClass.icon}`}
+          >
+            <Icon name={icon} className="h-6 w-6" />
+          </div>
+        </div>
+      </Card>
+    </button>
+  );
+}
+
+function InsightCard({
+  title,
+  description,
+  actionLabel,
+  onAction,
+  icon,
+}: InsightCardProps): JSX.Element {
+  return (
+    <Card padding="lg">
+      <div className="flex items-start gap-4">
+        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--color-primary-50)] text-[var(--color-primary-700)]">
+          <Icon name={icon} className="h-5 w-5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <h3 className="text-base font-semibold text-[var(--color-text-primary)]">{title}</h3>
+          <p className="mt-1 text-sm text-[var(--color-text-secondary)]">{description}</p>
+          {actionLabel && onAction ? (
+            <Button variant="ghost" size="sm" className="mt-3 px-0" onClick={onAction}>
+              {actionLabel}
+            </Button>
+          ) : null}
+        </div>
+      </div>
+    </Card>
+  );
+}
 
 function getTipoCor(tipo: string): { bg: string; text: string; icon: string } {
   const normalizado = Object.keys(tipoCores).find((k) =>
     tipo.toLowerCase().includes(k.toLowerCase())
   );
-  return tipoCores[normalizado ?? ''] ?? { bg: 'bg-gray-50', text: 'text-gray-600', icon: 'file' };
+  return tipoCores[normalizado ?? ''] ?? tipoCores['Não informado']!;
 }
 
 function DashboardColaborador(): JSX.Element {
@@ -155,10 +265,9 @@ function DashboardColaborador(): JSX.Element {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <PageHeader title="Dashboard" subtitle={`Bem-vindo, ${usuario?.nome ?? ''}`} />
+      <DashboardShell title="Dashboard" subtitle={`Bem-vindo, ${usuario?.nome ?? ''}`}>
         <SkeletonCards count={4} />
-      </div>
+      </DashboardShell>
     );
   }
 
@@ -186,80 +295,91 @@ function DashboardColaborador(): JSX.Element {
   }
 
   return (
-    <div className="space-y-6">
-      <PageHeader title="Dashboard" subtitle={`Bem-vindo, ${usuario?.nome ?? ''}`} />
-
-      {/* Estatísticas Pessoais */}
-      <section>
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Minhas Estatísticas</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard
-            title="Total de Registros"
-            value={formatCriticalNumber(totalProducoes)}
-            rawValue={totalProducoes}
-            icon="clipboard"
-            index={0}
-          />
-          <StatCard
-            title="Quantidade Total"
-            value={formatCriticalNumber(totalQuantidade)}
-            rawValue={totalQuantidade}
-            icon="bar-chart"
-            index={1}
-          />
-          <StatCard
-            title="Registros (7 dias)"
-            value={formatCriticalNumber(registrosUltimos7Dias)}
-            rawValue={registrosUltimos7Dias}
-            icon="calendar"
-            subtitle="registros"
-            index={2}
-          />
-          <StatCard
-            title="Quantidade (7 dias)"
-            value={formatCriticalNumber(quantidadeUltimos7Dias)}
-            rawValue={quantidadeUltimos7Dias}
-            icon="trending-up"
-            subtitle="produzidos"
-            index={3}
-          />
-        </div>
+    <DashboardShell
+      title="Dashboard"
+      subtitle={`Bem-vindo, ${usuario?.nome ?? ''}`}
+      actions={
+        <Button
+          variant="primary"
+          icon="plus-circle"
+          onClick={() => navigate('/minha-producao/lancar')}
+        >
+          Lançar produção
+        </Button>
+      }
+    >
+      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard
+          title="Total de registros"
+          value={formatCriticalNumber(totalProducoes)}
+          rawValue={totalProducoes}
+          icon="clipboard"
+          tone="primary"
+          index={0}
+        />
+        <StatCard
+          title="Quantidade total"
+          value={formatCriticalNumber(totalQuantidade)}
+          rawValue={totalQuantidade}
+          icon="bar-chart"
+          tone="success"
+          index={1}
+        />
+        <StatCard
+          title="Registros nos últimos 7 dias"
+          value={formatCriticalNumber(registrosUltimos7Dias)}
+          rawValue={registrosUltimos7Dias}
+          icon="calendar"
+          subtitle="atividade recente"
+          tone="warning"
+          index={2}
+        />
+        <StatCard
+          title="Quantidade nos últimos 7 dias"
+          value={formatCriticalNumber(quantidadeUltimos7Dias)}
+          rawValue={quantidadeUltimos7Dias}
+          icon="trending-up"
+          subtitle="produção recente"
+          tone="neutral"
+          index={3}
+        />
       </section>
 
-      {/* Produção por Etapa + Produção por Tipo */}
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Produção por Etapa */}
-        <Card className="lg:col-span-2" padding="lg">
-          <h3 className="font-semibold text-[var(--color-text-primary)] mb-4">
-            Produção por Etapa
-          </h3>
+      <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1.6fr_1fr]">
+        <Card padding="lg">
+          <CardHeader
+            title="Produção por etapa"
+            description="Distribuição da sua produção por fase do fluxo operacional."
+          />
           {producaoPorEtapa.length === 0 ? (
-            <p className="text-gray-500 text-sm py-4">Nenhuma produção registrada</p>
+            <p className="py-4 text-sm text-[var(--color-text-secondary)]">
+              Nenhuma produção registrada.
+            </p>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {producaoPorEtapa.map((item) => {
                 const cor = getEtapaProducaoStyle(item.etapa);
                 return (
-                  <div key={item.etapa} className="group">
-                    <div className="flex items-center justify-between text-sm mb-1.5">
+                  <div key={item.etapa}>
+                    <div className="mb-1.5 flex items-center justify-between gap-3 text-sm">
                       <div className="flex items-center gap-2">
                         <span
-                          className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${cor.bg} ${cor.text}`}
+                          className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${cor.bg} ${cor.text}`}
                         >
                           {item.etapa}
                         </span>
-                        <span className="text-gray-400 text-xs">
+                        <span className="text-xs text-[var(--color-text-tertiary)]">
                           {item.registros.toLocaleString('pt-BR')} registro
                           {item.registros !== 1 ? 's' : ''}
                         </span>
                       </div>
-                      <span className="font-semibold text-gray-900">
+                      <span className="font-semibold text-[var(--color-text-primary)]">
                         {item.quantidade.toLocaleString('pt-BR')}
                       </span>
                     </div>
-                    <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-3 overflow-hidden rounded-full bg-[var(--color-gray-100)]">
                       <div
-                        className={`h-full ${cor.bar} rounded-full transition-all duration-700`}
+                        className={`h-full rounded-full transition-all duration-700 ${cor.bar}`}
                         style={{
                           width: `${Math.max((item.quantidade / maxQuantidadeEtapa) * 100, 2)}%`,
                         }}
@@ -272,32 +392,39 @@ function DashboardColaborador(): JSX.Element {
           )}
         </Card>
 
-        {/* Produção por Tipo (Imagens / Caixas) */}
         <Card padding="lg">
-          <h3 className="font-semibold text-[var(--color-text-primary)] mb-4">Por Tipo</h3>
+          <CardHeader
+            title="Produção por tipo"
+            description="Resumo por classificação principal do que foi lançado."
+          />
           {producaoPorTipo.length === 0 ? (
-            <p className="text-gray-500 text-sm py-4">
-              Nenhum dado disponível para o período selecionado.
+            <p className="py-4 text-sm text-[var(--color-text-secondary)]">
+              Nenhum dado disponível para o período.
             </p>
           ) : (
             <div className="space-y-3">
               {producaoPorTipo.map((item) => {
                 const cor = getTipoCor(item.tipo);
                 return (
-                  <div key={item.tipo} className={`p-4 rounded-lg border ${cor.bg}`}>
+                  <div
+                    key={item.tipo}
+                    className="rounded-2xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-4"
+                  >
                     <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-lg ${cor.bg} ${cor.text}`}>
-                        <Icon name={cor.icon} className="w-5 h-5" />
+                      <div
+                        className={`flex h-10 w-10 items-center justify-center rounded-xl ${cor.bg} ${cor.text}`}
+                      >
+                        <Icon name={cor.icon} className="h-5 w-5" />
                       </div>
-                      <div className="flex-1 min-w-0">
+                      <div className="min-w-0 flex-1">
                         <p className={`text-sm font-semibold ${cor.text}`}>{item.tipo}</p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-[var(--color-text-tertiary)]">
                           {item.registros.toLocaleString('pt-BR')} registro
                           {item.registros !== 1 ? 's' : ''}
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="text-lg font-bold text-gray-900">
+                        <p className="text-lg font-semibold text-[var(--color-text-primary)]">
                           {item.quantidade.toLocaleString('pt-BR')}
                         </p>
                       </div>
@@ -309,46 +436,34 @@ function DashboardColaborador(): JSX.Element {
           )}
         </Card>
       </section>
-      <section>
-        <Card>
-          <div className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">Lançar Nova Produção</h3>
-                <p className="text-sm text-gray-500 mt-1">
-                  Registre sua produção do dia de forma rápida
-                </p>
-              </div>
-              <Button variant="primary" onClick={() => navigate('/minha-producao/lancar')}>
-                <Icon name="plus-circle" className="w-4 h-4 mr-2" />
-                Lançar Agora
+
+      <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1.7fr_1fr]">
+        <Card padding="none">
+          <CardHeader
+            title="Histórico recente"
+            description="Últimos lançamentos para conferência rápida."
+            className="px-5 pt-5"
+            action={
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/minha-producao/historico')}
+              >
+                Ver histórico completo
               </Button>
-            </div>
-          </div>
-        </Card>
-      </section>
-
-      {/* Histórico Recente */}
-      <section>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">Histórico Recente</h2>
-          <button
-            onClick={() => navigate('/minha-producao/historico')}
-            className="text-sm text-primary-600 hover:text-primary-800 font-medium"
-          >
-            Ver tudo →
-          </button>
-        </div>
-
-        <Card>
+            }
+          />
           {producoesRecentes.length === 0 ? (
             <div className="p-12 text-center">
-              <Icon name="inbox" className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-              <p className="text-[var(--color-text-secondary)] mb-4">
-                Nenhuma produção registrada ainda
+              <Icon
+                name="inbox"
+                className="mx-auto mb-4 h-16 w-16 text-[var(--color-text-tertiary)]"
+              />
+              <p className="mb-4 text-[var(--color-text-secondary)]">
+                Nenhuma produção registrada ainda.
               </p>
               <Button variant="primary" onClick={() => navigate('/minha-producao/lancar')}>
-                Lançar Primeira Produção
+                Lançar primeira produção
               </Button>
             </div>
           ) : (
@@ -371,13 +486,16 @@ function DashboardColaborador(): JSX.Element {
                     const coordenadoria =
                       p.coordenadoria_label ?? p.marcadores?.coordenadoria ?? '—';
                     const cor = getEtapaProducaoStyle(label);
+
                     return (
                       <TableRow key={p.id}>
                         <TableCell>{formatDateBR(p.data_producao)}</TableCell>
                         <TableCell className="font-medium">{p.id_repositorio_ged}</TableCell>
                         <TableCell>{coordenadoria}</TableCell>
                         <TableCell>
-                          <span className={`px-2 py-1 text-xs rounded-full ${cor.bg} ${cor.text}`}>
+                          <span
+                            className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${cor.bg} ${cor.text}`}
+                          >
                             {label}
                           </span>
                         </TableCell>
@@ -392,8 +510,25 @@ function DashboardColaborador(): JSX.Element {
             </Table>
           )}
         </Card>
+
+        <div className="space-y-6">
+          <InsightCard
+            title="Lançamento rápido"
+            description="Registre sua produção diária sem sair do fluxo principal."
+            actionLabel="Abrir lançamento"
+            onAction={() => navigate('/minha-producao/lancar')}
+            icon="plus-circle"
+          />
+          <InsightCard
+            title="Conferência de histórico"
+            description="Revise seus lançamentos anteriores e acompanhe a evolução recente."
+            actionLabel="Abrir histórico"
+            onAction={() => navigate('/minha-producao/historico')}
+            icon="history"
+          />
+        </div>
       </section>
-    </div>
+    </DashboardShell>
   );
 }
 
@@ -411,55 +546,62 @@ function DashboardContent({ data }: { data: DashboardData }): JSX.Element {
   const maxProducao = Math.max(...producaoPorEtapa.map((e) => parseFiniteNumber(e?.valor) ?? 0), 1);
 
   return (
-    <div className="space-y-6">
-      <PageHeader title="Dashboard" />
-      <section>
-        <h2 className="text-lg font-semibold text-[var(--color-text-primary)] mb-4">Visão Geral</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <StatCard
-            title="Produção do Mês"
-            value={formatCriticalNumber(producaoTotal)}
-            rawValue={producaoTotal ?? 0}
-            icon="bar-chart"
-            subtitle={data.stats.producaoTrend !== '0%' ? data.stats.producaoTrend : undefined}
-            onClick={() => navigate('/producao')}
-            index={0}
-          />
-          <StatCard
-            title="Repositórios com Produção"
-            value={formatCriticalNumber(processosAtivos)}
-            rawValue={processosAtivos ?? 0}
-            icon="folder"
-            subtitle={
-              typeof processosNovosHoje === 'number' && processosNovosHoje > 0
-                ? `${processosNovosHoje.toLocaleString('pt-BR')} importados hoje`
-                : undefined
-            }
-            onClick={() => navigate('/producao')}
-            index={1}
-          />
-          <StatCard
-            title="Usuários Ativos"
-            value={formatCriticalNumber(colaboradoresAtivos)}
-            rawValue={colaboradoresAtivos ?? 0}
-            icon="users"
-            onClick={() => navigate('/producao')}
-            index={2}
-          />
-        </div>
+    <DashboardShell
+      title="Dashboard"
+      subtitle="Visão consolidada da produção, do fluxo e dos principais sinais operacionais."
+    >
+      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <StatCard
+          title="Produção do mês"
+          value={formatCriticalNumber(producaoTotal)}
+          rawValue={producaoTotal ?? 0}
+          icon="bar-chart"
+          subtitle={data.stats.producaoTrend !== '0%' ? data.stats.producaoTrend : undefined}
+          tone="primary"
+          onClick={() => navigate('/producao')}
+          index={0}
+        />
+        <StatCard
+          title="Repositórios com produção"
+          value={formatCriticalNumber(processosAtivos)}
+          rawValue={processosAtivos ?? 0}
+          icon="folder"
+          subtitle={
+            typeof processosNovosHoje === 'number' && processosNovosHoje > 0
+              ? `${processosNovosHoje.toLocaleString('pt-BR')} importados hoje`
+              : undefined
+          }
+          tone="success"
+          onClick={() => navigate('/producao')}
+          index={1}
+        />
+        <StatCard
+          title="Usuários ativos"
+          value={formatCriticalNumber(colaboradoresAtivos)}
+          rawValue={colaboradoresAtivos ?? 0}
+          icon="users"
+          tone="warning"
+          onClick={() => navigate('/producao')}
+          index={2}
+        />
       </section>
 
-      <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1.4fr_1fr]">
         <Card padding="lg">
-          <h3 className="font-semibold text-[var(--color-text-primary)] mb-4">
-            Produção por Etapa
-          </h3>
+          <CardHeader
+            title="Produção por etapa"
+            description="Distribuição consolidada da produção nas fases do fluxo."
+          />
           <div className="space-y-4">
             {producaoPorEtapa.length === 0 ? (
-              <p className="text-gray-500 text-sm">Nenhuma produção registrada no período</p>
+              <p className="text-sm text-[var(--color-text-secondary)]">
+                Nenhuma produção registrada no período.
+              </p>
             ) : (
               producaoPorEtapa.map((item) => {
-                const valor = parseFiniteNumber(item?.valor);
+                const valor = parseFiniteNumber(item?.valor) ?? 0;
+                const percentual = ((valor ?? 0) / maxProducao) * 100;
+
                 return (
                   <button
                     key={item.etapa}
@@ -467,16 +609,16 @@ function DashboardContent({ data }: { data: DashboardData }): JSX.Element {
                     onClick={() => navigate('/producao')}
                     className="w-full text-left"
                   >
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="text-gray-600">{item.etapa}</span>
-                      <span className="font-medium text-gray-900">
+                    <div className="mb-1.5 flex items-center justify-between gap-3 text-sm">
+                      <span className="text-[var(--color-text-secondary)]">{item.etapa}</span>
+                      <span className="font-semibold text-[var(--color-text-primary)]">
                         {formatCriticalNumber(valor)}
                       </span>
                     </div>
-                    <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-3 overflow-hidden rounded-full bg-[var(--color-gray-100)]">
                       <div
-                        className="h-full bg-primary-500 rounded-full transition-all duration-500"
-                        style={{ width: `${((valor ?? 0) / maxProducao) * 100}%` }}
+                        className="h-full rounded-full bg-[var(--color-primary-500)] transition-all duration-500"
+                        style={{ width: `${Math.max(percentual, 2)}%` }}
                       />
                     </div>
                   </button>
@@ -487,22 +629,25 @@ function DashboardContent({ data }: { data: DashboardData }): JSX.Element {
         </Card>
 
         <Card padding="lg">
-          <h3 className="font-semibold text-[var(--color-text-primary)] mb-4">
-            Status da Produção
-          </h3>
+          <CardHeader
+            title="Status da produção"
+            description="Situação atual dos indicadores vindos do recebimento e do fluxo."
+          />
           <div className="space-y-3">
             {statusProducao.map((item) => (
               <button
                 key={item.status}
                 type="button"
                 onClick={() => navigate('/producao')}
-                className="w-full flex items-center justify-between p-3 bg-gray-50 rounded-lg text-left hover:bg-primary-50 transition"
+                className="flex w-full items-center justify-between rounded-2xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-3 text-left transition-colors hover:bg-[var(--color-primary-50)]"
               >
                 <div className="flex items-center gap-3">
-                  <Icon name={item.icon} className="w-5 h-5 text-primary-600" />
-                  <span className="text-gray-700">{item.status}</span>
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--color-primary-50)] text-[var(--color-primary-700)]">
+                    <Icon name={item.icon} className="h-5 w-5" />
+                  </div>
+                  <span className="text-[var(--color-text-primary)]">{item.status}</span>
                 </div>
-                <span className="font-semibold text-gray-900">
+                <span className="font-semibold text-[var(--color-text-primary)]">
                   {formatCriticalNumber(item?.valor)}
                 </span>
               </button>
@@ -511,31 +656,44 @@ function DashboardContent({ data }: { data: DashboardData }): JSX.Element {
         </Card>
       </section>
 
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {retrabalhoCQ.length > 0 ? (
+      {retrabalhoCQ.length > 0 ? (
+        <section>
           <Card padding="lg">
-            <h3 className="font-semibold text-[var(--color-text-primary)] mb-4">Retrabalho CQ</h3>
-            <div className="space-y-3">
+            <CardHeader
+              title="Retrabalho em CQ"
+              description="Principais motivos e repositórios envolvidos em retrabalho recente."
+            />
+            <div className="grid gap-3 lg:grid-cols-3">
               {retrabalhoCQ.map((item, i) => (
-                <div key={i} className="p-3 bg-primary-50 border border-primary-100 rounded-lg">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-medium text-gray-800">{item.motivo}</span>
-                    <span className="text-sm font-bold text-primary-700">
-                      {formatCriticalNumber(item?.total)}
+                <div
+                  key={`${item.motivo}-${i}`}
+                  className="rounded-2xl border border-[var(--color-primary-100)] bg-[var(--color-primary-50)] p-4"
+                >
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <span className="text-sm font-medium text-[var(--color-text-primary)]">
+                      {item.motivo}
                     </span>
+                    <Badge variant="info">{formatCriticalNumber(item?.total)}</Badge>
                   </div>
                   {item.repositorios ? (
-                    <p className="text-xs text-gray-500 truncate" title={item.repositorios}>
+                    <p
+                      className="truncate text-xs text-[var(--color-text-secondary)]"
+                      title={item.repositorios}
+                    >
                       {item.repositorios}
                     </p>
-                  ) : null}
+                  ) : (
+                    <p className="text-xs text-[var(--color-text-tertiary)]">
+                      Sem repositórios destacados.
+                    </p>
+                  )}
                 </div>
               ))}
             </div>
           </Card>
-        ) : null}
-      </section>
-    </div>
+        </section>
+      ) : null}
+    </DashboardShell>
   );
 }
 
@@ -555,15 +713,9 @@ function DashboardAdminPage(): JSX.Element {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <PageHeader title="Dashboard" />
-        <div>
-          <h2 className="text-lg font-semibold text-[var(--color-text-primary)] mb-4">
-            Visão Geral
-          </h2>
-          <SkeletonCards count={4} />
-        </div>
-      </div>
+      <DashboardShell title="Dashboard" subtitle="Carregando a visão consolidada da operação.">
+        <SkeletonCards count={4} />
+      </DashboardShell>
     );
   }
 
@@ -577,7 +729,6 @@ function DashboardAdminPage(): JSX.Element {
 export function DashboardPage(): JSX.Element {
   const { usuario } = useAuth();
 
-  // Se o usuário for colaborador, mostrar dashboard personalizado
   if (usuario?.perfil === 'colaborador') {
     return <DashboardColaborador />;
   }

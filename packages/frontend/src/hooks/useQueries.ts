@@ -1,6 +1,16 @@
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { api } from '../services/api';
-import type { StatusRepositorio, EtapaFluxo } from '@recorda/shared';
+import type {
+  StatusRepositorio,
+  EtapaFluxo,
+  CriarComunicadoDTO,
+  PublicarComunicadoDTO,
+  ListarComunicadosAdminParams,
+  ListarComunicadosAdminResponse,
+  ListarComunicadosUsuarioResponse,
+  MarcarComunicadoLidoResponse,
+  ObterComunicadoAdminResponse,
+} from '@recorda/shared';
 
 export { useQueryClient } from '@tanstack/react-query';
 
@@ -68,6 +78,10 @@ export const queryKeys = {
   conhecimentoDetalhe: (id: string) => ['conhecimento-detalhe', id] as const,
   glossario: ['glossario'] as const,
   leisNormas: ['leis-normas'] as const,
+  comunicadosAdmin: ['comunicados-admin'] as const,
+  comunicadoAdminDetalhe: (id: string) => ['comunicado-admin-detalhe', id] as const,
+  comunicadosUsuario: ['comunicados-usuario'] as const,
+  comunicadosNaoLidos: ['comunicados-nao-lidos'] as const,
   importacoesHistorico: ['importacoes-historico'] as const,
   fontesImportacao: ['fontes-importacao'] as const,
   recebimentoProcessos: (repoId: string) => ['recebimento-processos', repoId] as const,
@@ -1005,6 +1019,110 @@ export function useUsuarios() {
         }[];
       }>('/auth/usuarios'),
     staleTime: 60_000,
+  });
+}
+
+export function useComunicadosAdmin(params: ListarComunicadosAdminParams) {
+  return useQuery({
+    queryKey: [...queryKeys.comunicadosAdmin, params] as const,
+    queryFn: () => {
+      const qs = new URLSearchParams();
+      for (const [key, value] of Object.entries(params)) {
+        if (value === undefined || value === null || value === '') continue;
+        qs.set(key, String(value));
+      }
+      const suffix = qs.toString() ? `?${qs.toString()}` : '';
+      return api.get<ListarComunicadosAdminResponse>(`/admin/comunicados${suffix}`);
+    },
+  });
+}
+
+export function useComunicadoAdminDetalhe(id: string | null) {
+  return useQuery({
+    queryKey: queryKeys.comunicadoAdminDetalhe(id ?? ''),
+    queryFn: () => api.get<ObterComunicadoAdminResponse>(`/admin/comunicados/${id}`),
+    enabled: !!id,
+  });
+}
+
+export function useComunicadosUsuario() {
+  return useQuery({
+    queryKey: queryKeys.comunicadosUsuario,
+    queryFn: () => api.get<ListarComunicadosUsuarioResponse>('/comunicados'),
+  });
+}
+
+export function useComunicadosNaoLidos(options?: {
+  enabled?: boolean;
+  refetchInterval?: number | false;
+}) {
+  return useQuery({
+    queryKey: queryKeys.comunicadosNaoLidos,
+    queryFn: () => api.get<ListarComunicadosUsuarioResponse>('/comunicados/nao-lidos'),
+    enabled: options?.enabled,
+    refetchInterval: options?.refetchInterval,
+    refetchIntervalInBackground: false,
+  });
+}
+
+export function useCriarComunicado() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: (body: CriarComunicadoDTO) =>
+      api.post<{ comunicado: { id: string; status: string } }>('/admin/comunicados', body),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: queryKeys.comunicadosAdmin });
+      void qc.invalidateQueries({ queryKey: ['comunicado-admin-detalhe'] });
+    },
+  });
+}
+
+export function usePublicarComunicado() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, body }: { id: string; body?: PublicarComunicadoDTO }) =>
+      api.post<{ message: string; comunicadoId: string; totalDestinatarios: number }>(
+        `/admin/comunicados/${id}/publicar`,
+        body ?? {}
+      ),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: queryKeys.comunicadosAdmin });
+      void qc.invalidateQueries({ queryKey: ['comunicado-admin-detalhe'] });
+      void qc.invalidateQueries({ queryKey: queryKeys.comunicadosUsuario });
+      void qc.invalidateQueries({ queryKey: queryKeys.comunicadosNaoLidos });
+    },
+  });
+}
+
+export function useEncerrarComunicado() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) =>
+      api.post<{ message: string; comunicado: { id: string; status: string } }>(
+        `/admin/comunicados/${id}/encerrar`
+      ),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: queryKeys.comunicadosAdmin });
+      void qc.invalidateQueries({ queryKey: ['comunicado-admin-detalhe'] });
+      void qc.invalidateQueries({ queryKey: queryKeys.comunicadosUsuario });
+      void qc.invalidateQueries({ queryKey: queryKeys.comunicadosNaoLidos });
+    },
+  });
+}
+
+export function useMarcarComunicadoLido() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) =>
+      api.post<MarcarComunicadoLidoResponse>(`/comunicados/${id}/marcar-lido`),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: queryKeys.comunicadosUsuario });
+      void qc.invalidateQueries({ queryKey: queryKeys.comunicadosNaoLidos });
+    },
   });
 }
 

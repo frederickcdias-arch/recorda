@@ -36,9 +36,9 @@ export function PageState({
 }: PageStateProps): JSX.Element {
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[300px] py-12">
-        <LoadingSpinner size="lg" className="text-[var(--color-primary-600)] mb-4" />
-        <p className="text-[var(--color-text-secondary)] font-medium">
+      <div className="flex min-h-[300px] flex-col items-center justify-center rounded-2xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] py-12 shadow-xs">
+        <LoadingSpinner size="lg" className="mb-4 text-[var(--color-primary-600)]" />
+        <p className="font-medium text-[var(--color-text-secondary)]">
           {loadingMessage ?? 'Carregando...'}
         </p>
       </div>
@@ -47,43 +47,43 @@ export function PageState({
 
   if (error) {
     return (
-      <div className="bg-[var(--color-bg-primary)] rounded-xl border border-[var(--color-error-200)] p-8 text-center max-w-lg mx-auto my-8">
-        <div className="w-16 h-16 bg-[var(--color-error-50)] rounded-full flex items-center justify-center mx-auto mb-4">
-          <Icon name="alert-circle" className="w-8 h-8 text-[var(--color-error-500)]" />
+      <div className="mx-auto my-8 max-w-lg rounded-2xl border border-[var(--color-error-200)] bg-[var(--color-bg-primary)] p-8 text-center shadow-xs">
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--color-error-50)]">
+          <Icon name="alert-circle" className="h-8 w-8 text-[var(--color-error-500)]" />
         </div>
-        <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-2">
+        <h3 className="mb-2 text-lg font-semibold text-[var(--color-text-primary)]">
           Algo deu errado
         </h3>
-        <p className="text-[var(--color-text-secondary)] mb-2">{error.message}</p>
-        {error.details && (
-          <p className="text-sm text-[var(--color-text-tertiary)] mb-4">{error.details}</p>
-        )}
-        {error.action && (
+        <p className="mb-2 text-[var(--color-text-secondary)]">{error.message}</p>
+        {error.details ? (
+          <p className="mb-4 text-sm text-[var(--color-text-tertiary)]">{error.details}</p>
+        ) : null}
+        {error.action ? (
           <Button variant="primary" onClick={error.action.onClick}>
             {error.action.label}
           </Button>
-        )}
+        ) : null}
       </div>
     );
   }
 
   if (empty) {
     return (
-      <div className="bg-[var(--color-bg-primary)] rounded-xl border border-[var(--color-border-primary)] p-12 text-center">
-        <div className="w-16 h-16 bg-[var(--color-gray-100)] rounded-full flex items-center justify-center mx-auto mb-4">
-          <Icon name={empty.icon} className="w-8 h-8 text-[var(--color-gray-400)]" />
+      <div className="rounded-2xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] p-12 text-center shadow-xs">
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--color-gray-100)]">
+          <Icon name={empty.icon} className="h-8 w-8 text-[var(--color-gray-400)]" />
         </div>
-        <h3 className="text-lg font-semibold text-[var(--color-text-primary)] mb-2">
+        <h3 className="mb-2 text-lg font-semibold text-[var(--color-text-primary)]">
           {empty.title}
         </h3>
-        <p className="text-[var(--color-text-tertiary)] max-w-md mx-auto mb-6">
+        <p className="mx-auto mb-6 max-w-md text-[var(--color-text-tertiary)]">
           {empty.description}
         </p>
-        {empty.action && (
+        {empty.action ? (
           <Button variant="primary" onClick={empty.action.onClick}>
             {empty.action.label}
           </Button>
-        )}
+        ) : null}
       </div>
     );
   }
@@ -154,37 +154,37 @@ export function ActionFeedback({
     displayMessage.length > 1000 ? `${displayMessage.slice(0, 1000)}...` : displayMessage;
 
   return (
-    <div className={`${styles.bg} ${styles.border} border rounded-xl p-4`}>
+    <div className={`${styles.bg} ${styles.border} rounded-2xl border p-4 shadow-xs`}>
       <div className="flex gap-4">
         <div
-          className={`${styles.iconBg} w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0`}
+          className={`${styles.iconBg} flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl`}
         >
-          <Icon name={styles.icon} className={`w-5 h-5 ${styles.iconColor}`} />
+          <Icon name={styles.icon} className={`h-5 w-5 ${styles.iconColor}`} />
         </div>
-        <div className="flex-1 min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-4">
             <div>
               <h4 className={`font-semibold ${styles.titleColor}`}>{title}</h4>
-              <p className={`text-sm ${styles.textColor} mt-0.5`}>{shortMessage}</p>
+              <p className={`mt-0.5 text-sm ${styles.textColor}`}>{shortMessage}</p>
             </div>
-            {onDismiss && (
+            {onDismiss ? (
               <button
                 onClick={onDismiss}
-                className={`${styles.iconColor} hover:opacity-70 p-1 -m-1`}
+                className={`${styles.iconColor} -m-1 p-1 hover:opacity-70`}
                 aria-label="Fechar"
               >
-                <Icon name="x" className="w-5 h-5" />
+                <Icon name="x" className="h-5 w-5" />
               </button>
-            )}
+            ) : null}
           </div>
-          {action && (
+          {action ? (
             <button
               onClick={action.onClick}
               className={`mt-3 text-sm font-medium ${styles.iconColor} hover:underline`}
             >
               {action.label} →
             </button>
-          )}
+          ) : null}
         </div>
       </div>
     </div>

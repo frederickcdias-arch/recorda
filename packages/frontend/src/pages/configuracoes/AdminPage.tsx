@@ -1,15 +1,57 @@
-﻿import { useState } from 'react';
-import { Icon } from '../../components/ui/Icon';
+import { useState } from 'react';
 import { Button } from '../../components/ui/Button';
-import { Card } from '../../components/ui/Card';
-import { PageState } from '../../components/ui/PageState';
+import { Card, CardHeader } from '../../components/ui/Card';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { Icon } from '../../components/ui/Icon';
+import { ActionFeedback, PageState } from '../../components/ui/PageState';
+import { PageHeader } from '../../components/ui/PageHeader';
 import { useToastHelpers } from '../../components/ui/Toast';
 import { useAuth } from '../../contexts/AuthContext';
 import { useConfirmDialog } from '../../hooks/useConfirmDialog';
-import { extractErrorMessage } from '../../utils/errors';
-import { useQueryClient, queryKeys } from '../../hooks/useQueries';
+import { queryKeys, useQueryClient } from '../../hooks/useQueries';
 import { api } from '../../services/api';
+import { extractErrorMessage } from '../../utils/errors';
+
+function ActionTile({
+  title,
+  description,
+  icon,
+  accentClass,
+  buttonLabel,
+  buttonVariant,
+  onClick,
+  loading,
+}: {
+  title: string;
+  description: string;
+  icon: string;
+  accentClass: string;
+  buttonLabel: string;
+  buttonVariant: 'danger' | 'secondary';
+  onClick: () => void;
+  loading: boolean;
+}): JSX.Element {
+  return (
+    <div className="rounded-2xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] p-4">
+      <div className="mb-3 flex items-center gap-3">
+        <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${accentClass}`}>
+          <Icon name={icon} className="h-5 w-5" />
+        </div>
+        <h3 className="font-medium text-[var(--color-text-primary)]">{title}</h3>
+      </div>
+      <p className="mb-4 text-sm text-[var(--color-text-secondary)]">{description}</p>
+      <Button
+        variant={buttonVariant}
+        size="sm"
+        onClick={onClick}
+        loading={loading}
+        disabled={loading}
+      >
+        {buttonLabel}
+      </Button>
+    </div>
+  );
+}
 
 export function AdminPage(): JSX.Element {
   const { usuario } = useAuth();
@@ -20,23 +62,26 @@ export function AdminPage(): JSX.Element {
   const versao = import.meta.env.VITE_APP_VERSION ?? 'dev';
 
   const [processando, setProcessando] = useState(false);
-  const [resultados, setResultados] = useState<any>(null);
+  const [resultados, setResultados] = useState<unknown>(null);
 
-  // Verificar se o usuário é administrador
   if (usuario?.perfil !== 'administrador') {
     return (
       <PageState
         loading={false}
         error={{
-          message: 'Acesso Negado',
+          message: 'Acesso negado',
           details: 'Você não tem permissão para acessar esta página.',
         }}
       >
-        <div className="text-center py-8">
-          <Icon name="lock" className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h2 className="text-lg font-medium text-gray-900 mb-2">Acesso Restrito</h2>
-          <p className="text-gray-600">Apenas administradores podem acessar esta página.</p>
-          <p className="text-gray-400 text-sm mt-2">
+        <div className="py-8 text-center">
+          <Icon name="lock" className="mx-auto mb-4 h-12 w-12 text-[var(--color-text-tertiary)]" />
+          <h2 className="mb-2 text-lg font-medium text-[var(--color-text-primary)]">
+            Acesso restrito
+          </h2>
+          <p className="text-[var(--color-text-secondary)]">
+            Apenas administradores podem acessar esta página.
+          </p>
+          <p className="mt-2 text-sm text-[var(--color-text-tertiary)]">
             Perfil atual: {usuario?.perfil || 'não definido'}
           </p>
         </div>
@@ -46,7 +91,7 @@ export function AdminPage(): JSX.Element {
 
   const handleLimparDuplicatasProducao = async (): Promise<void> => {
     confirmDialog.confirm({
-      title: 'Limpar Duplicatas de Produção',
+      title: 'Limpar duplicatas de produção',
       message: 'Deseja remover registros duplicados de produção? Esta ação não pode ser desfeita.',
       confirmLabel: 'Limpar',
       variant: 'danger',
@@ -68,7 +113,7 @@ export function AdminPage(): JSX.Element {
 
   const handleLimparDuplicatasRecebimento = async (): Promise<void> => {
     confirmDialog.confirm({
-      title: 'Limpar Duplicatas de Recebimento',
+      title: 'Limpar duplicatas de recebimento',
       message:
         'Deseja remover registros duplicados de recebimento? Esta ação não pode ser desfeita.',
       confirmLabel: 'Limpar',
@@ -93,7 +138,7 @@ export function AdminPage(): JSX.Element {
 
   const handleRecontarProducao = async (): Promise<void> => {
     confirmDialog.confirm({
-      title: 'Recontar Produção',
+      title: 'Recontar produção',
       message: 'Deseja recontar todos os registros de produção? Isso pode demorar vários minutos.',
       confirmLabel: 'Recontar',
       variant: 'warning',
@@ -116,7 +161,7 @@ export function AdminPage(): JSX.Element {
 
   const handleOtimizarBanco = async (): Promise<void> => {
     confirmDialog.confirm({
-      title: 'Otimizar Banco de Dados',
+      title: 'Otimizar banco de dados',
       message:
         'Deseja otimizar o banco de dados? Isso irá atualizar estatísticas e reindexar tabelas.',
       confirmLabel: 'Otimizar',
@@ -138,10 +183,10 @@ export function AdminPage(): JSX.Element {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Administração do Sistema</h1>
-        <p className="text-gray-500 mt-1">Ferramentas de manutenção e gerenciamento de dados</p>
-      </div>
+      <PageHeader
+        title="Administração"
+        subtitle="Ferramentas de manutenção e integridade de dados para uso controlado."
+      />
 
       <ConfirmDialog
         state={confirmDialog.state}
@@ -150,143 +195,93 @@ export function AdminPage(): JSX.Element {
         onCancel={confirmDialog.close}
       />
 
-      {/* Resultados */}
-      {resultados && (
-        <Card>
-          <div className="p-4 bg-green-50 border border-green-100 rounded-lg">
-            <h3 className="text-sm font-medium text-green-800 mb-2">Operação Concluída</h3>
-            <pre className="text-xs text-green-700 whitespace-pre-wrap">
-              {JSON.stringify(resultados, null, 2)}
-            </pre>
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={() => setResultados(null)}
-              className="mt-2"
-            >
-              Fechar
-            </Button>
-          </div>
-        </Card>
-      )}
+      {resultados ? (
+        <ActionFeedback
+          type="success"
+          title="Operação concluída"
+          message={JSON.stringify(resultados, null, 2)}
+          onDismiss={() => setResultados(null)}
+        />
+      ) : null}
 
-      {/* Limpeza de Duplicatas */}
-      <Card>
-        <div className="p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Limpeza de Dados</h2>
-          <p className="text-gray-600 mb-6">
-            Remova registros duplicados para manter a integridade dos dados.
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card padding="sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
+            Ambiente
           </p>
+          <p className="mt-2 text-lg font-semibold text-[var(--color-text-primary)]">{ambiente}</p>
+        </Card>
+        <Card padding="sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
+            Versão
+          </p>
+          <p className="mt-2 text-lg font-semibold text-[var(--color-text-primary)]">{versao}</p>
+        </Card>
+        <Card padding="sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
+            Última atualização
+          </p>
+          <p className="mt-2 text-lg font-semibold text-[var(--color-text-primary)]">
+            {new Date().toLocaleString('pt-BR')}
+          </p>
+        </Card>
+      </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="p-4 border border-red-200 rounded-lg">
-              <div className="flex items-center mb-2">
-                <Icon name="trash" className="w-5 h-5 text-red-600 mr-2" />
-                <h3 className="font-medium text-gray-900">Produção</h3>
-              </div>
-              <p className="text-sm text-gray-600 mb-3">
-                Remove registros duplicados de produção baseado em colaborador, data, etapa e
-                quantidade.
-              </p>
-              <Button
-                variant="danger"
-                size="sm"
-                onClick={() => void handleLimparDuplicatasProducao()}
-                loading={processando}
-                disabled={processando}
-              >
-                Limpar Duplicatas
-              </Button>
-            </div>
-
-            <div className="p-4 border border-orange-200 rounded-lg">
-              <div className="flex items-center mb-2">
-                <Icon name="trash" className="w-5 h-5 text-orange-600 mr-2" />
-                <h3 className="font-medium text-gray-900">Recebimento</h3>
-              </div>
-              <p className="text-sm text-gray-600 mb-3">
-                Remove registros duplicados de recebimento baseado em processo e repositório.
-              </p>
-              <Button
-                variant="danger"
-                size="sm"
-                onClick={() => void handleLimparDuplicatasRecebimento()}
-                loading={processando}
-                disabled={processando}
-              >
-                Limpar Duplicatas
-              </Button>
-            </div>
-          </div>
+      <Card>
+        <CardHeader
+          title="Limpeza de dados"
+          description="Ações destrutivas e controladas para remover duplicidades."
+        />
+        <div className="grid gap-4 md:grid-cols-2">
+          <ActionTile
+            title="Duplicatas de produção"
+            description="Remove registros duplicados de produção com base em colaborador, data, etapa e quantidade."
+            icon="trash"
+            accentClass="bg-[var(--color-error-50)] text-[var(--color-error-600)]"
+            buttonLabel="Limpar duplicatas"
+            buttonVariant="danger"
+            onClick={() => void handleLimparDuplicatasProducao()}
+            loading={processando}
+          />
+          <ActionTile
+            title="Duplicatas de recebimento"
+            description="Remove registros duplicados de recebimento com base em processo e repositório."
+            icon="trash"
+            accentClass="bg-[var(--color-warning-50)] text-[var(--color-warning-600)]"
+            buttonLabel="Limpar duplicatas"
+            buttonVariant="danger"
+            onClick={() => void handleLimparDuplicatasRecebimento()}
+            loading={processando}
+          />
         </div>
       </Card>
 
-      {/* Manutenção */}
       <Card>
-        <div className="p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Manutenção do Sistema</h2>
-          <p className="text-gray-600 mb-6">Operações de manutenção e otimização do sistema.</p>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="p-4 border border-blue-200 rounded-lg">
-              <div className="flex items-center mb-2">
-                <Icon name="refresh-cw" className="w-5 h-5 text-blue-600 mr-2" />
-                <h3 className="font-medium text-gray-900">Recontar Produção</h3>
-              </div>
-              <p className="text-sm text-gray-600 mb-3">
-                Recalcula todas as estatísticas e totais de produção.
-              </p>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => void handleRecontarProducao()}
-                loading={processando}
-                disabled={processando}
-              >
-                Recontar
-              </Button>
-            </div>
-
-            <div className="p-4 border border-purple-200 rounded-lg">
-              <div className="flex items-center mb-2">
-                <Icon name="settings" className="w-5 h-5 text-purple-600 mr-2" />
-                <h3 className="font-medium text-gray-900">Otimizar Banco</h3>
-              </div>
-              <p className="text-sm text-gray-600 mb-3">
-                Atualiza estatísticas e otimiza performance do banco.
-              </p>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => void handleOtimizarBanco()}
-                loading={processando}
-                disabled={processando}
-              >
-                Otimizar
-              </Button>
-            </div>
-          </div>
-        </div>
-      </Card>
-
-      {/* Informações do Sistema */}
-      <Card>
-        <div className="p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Informações do Sistema</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-            <div>
-              <span className="text-gray-500">Versão:</span>
-              <span className="ml-2 font-medium">{versao}</span>
-            </div>
-            <div>
-              <span className="text-gray-500">Ambiente:</span>
-              <span className="ml-2 font-medium">{ambiente}</span>
-            </div>
-            <div>
-              <span className="text-gray-500">Última atualização:</span>
-              <span className="ml-2 font-medium">{new Date().toLocaleString('pt-BR')}</span>
-            </div>
-          </div>
+        <CardHeader
+          title="Manutenção do sistema"
+          description="Operações administrativas para atualização de estatísticas e performance."
+        />
+        <div className="grid gap-4 md:grid-cols-2">
+          <ActionTile
+            title="Recontar produção"
+            description="Recalcula totais e estatísticas gerais de produção."
+            icon="refresh-cw"
+            accentClass="bg-[var(--color-primary-50)] text-[var(--color-primary-600)]"
+            buttonLabel="Recontar"
+            buttonVariant="secondary"
+            onClick={() => void handleRecontarProducao()}
+            loading={processando}
+          />
+          <ActionTile
+            title="Otimizar banco"
+            description="Atualiza estatísticas e executa otimizações estruturais no banco."
+            icon="settings"
+            accentClass="bg-[var(--color-gray-100)] text-[var(--color-text-secondary)]"
+            buttonLabel="Otimizar"
+            buttonVariant="secondary"
+            onClick={() => void handleOtimizarBanco()}
+            loading={processando}
+          />
         </div>
       </Card>
     </div>

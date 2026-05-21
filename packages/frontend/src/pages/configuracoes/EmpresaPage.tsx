@@ -1,18 +1,20 @@
-import { useState, useEffect, useRef } from 'react';
-import { Card, CardHeader } from '../../components/ui/Card';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '../../components/ui/Button';
-import { Input } from '../../components/ui/Input';
-import { PageState, ActionFeedback } from '../../components/ui/PageState';
+import { Card, CardHeader } from '../../components/ui/Card';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { Icon } from '../../components/ui/Icon';
+import { Input } from '../../components/ui/Input';
+import { ActionFeedback, PageState } from '../../components/ui/PageState';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { Select } from '../../components/ui/Select';
 import { useConfirmDialog } from '../../hooks/useConfirmDialog';
 import {
+  queryKeys,
   useEmpresa,
+  useQueryClient,
+  useRemoveLogo,
   useSaveEmpresa,
   useUploadLogo,
-  useRemoveLogo,
-  useQueryClient,
-  queryKeys,
 } from '../../hooks/useQueries';
 import { buildApiUrl } from '../../services/api';
 
@@ -29,6 +31,33 @@ interface EmpresaConfig {
   logoLarguraRelatorio: number;
   logoAlinhamentoRelatorio: 'ESQUERDA' | 'CENTRO' | 'DIREITA';
   logoDeslocamentoYRelatorio: number;
+}
+
+function ToggleCard({
+  checked,
+  title,
+  description,
+  onChange,
+}: {
+  checked: boolean;
+  title: string;
+  description: string;
+  onChange: (value: boolean) => void;
+}): JSX.Element {
+  return (
+    <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-4 transition-colors hover:bg-[var(--color-gray-50)]">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="mt-0.5 h-4 w-4 rounded border-[var(--color-border-primary)] text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)]"
+      />
+      <div>
+        <span className="font-medium text-[var(--color-text-primary)]">{title}</span>
+        <p className="text-sm text-[var(--color-text-secondary)]">{description}</p>
+      </div>
+    </label>
+  );
 }
 
 export function EmpresaPage(): JSX.Element {
@@ -112,7 +141,7 @@ export function EmpresaPage(): JSX.Element {
       setMensagem({
         tipo: 'success',
         texto:
-          'Configurações salvas com sucesso! As alterações serão refletidas nos próximos relatórios gerados.',
+          'Configurações salvas com sucesso. As alterações serão refletidas nos próximos relatórios gerados.',
       });
     } catch {
       setMensagem({
@@ -147,11 +176,11 @@ export function EmpresaPage(): JSX.Element {
 
       const data = await uploadLogo.mutateAsync(formData);
       setConfig((prev) => ({ ...prev, logoUrl: data.logoUrl }));
-      setMensagem({ tipo: 'success', texto: 'Logo enviada com sucesso!' });
+      setMensagem({ tipo: 'success', texto: 'Logo enviada com sucesso.' });
     } catch (error) {
       setMensagem({
         tipo: 'error',
-        texto: error instanceof Error ? error.message : 'Erro ao fazer upload da logo',
+        texto: error instanceof Error ? error.message : 'Erro ao fazer upload da logo.',
       });
     } finally {
       setUploadingLogo(false);
@@ -161,7 +190,7 @@ export function EmpresaPage(): JSX.Element {
 
   const handleRemoverLogo = (): void => {
     confirmDialog.confirm({
-      title: 'Remover Logo',
+      title: 'Remover logo',
       message: 'Deseja remover a logo da empresa?',
       confirmLabel: 'Remover',
       variant: 'danger',
@@ -169,9 +198,9 @@ export function EmpresaPage(): JSX.Element {
         try {
           await removeLogo.mutateAsync();
           setConfig((prev) => ({ ...prev, logoUrl: '' }));
-          setMensagem({ tipo: 'success', texto: 'Logo removida com sucesso!' });
+          setMensagem({ tipo: 'success', texto: 'Logo removida com sucesso.' });
         } catch {
-          setMensagem({ tipo: 'error', texto: 'Erro ao remover a logo' });
+          setMensagem({ tipo: 'error', texto: 'Erro ao remover a logo.' });
         }
       },
     });
@@ -199,32 +228,56 @@ export function EmpresaPage(): JSX.Element {
       loadingMessage="Carregando configurações..."
       error={erroComAcao}
     >
-      <div className="space-y-6 max-w-3xl">
-        {mensagem && (
+      <div className="mx-auto max-w-5xl space-y-6">
+        <PageHeader
+          title="Empresa"
+          subtitle="Configure identidade institucional e dados exibidos em relatórios e documentos."
+          actions={
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="secondary"
+                onClick={() => void queryClient.invalidateQueries({ queryKey: queryKeys.empresa })}
+              >
+                Recarregar
+              </Button>
+              <Button
+                variant="primary"
+                icon="check-square"
+                loading={salvando}
+                onClick={handleSalvar}
+              >
+                Salvar configurações
+              </Button>
+            </div>
+          }
+        />
+
+        {mensagem ? (
           <ActionFeedback
             type={mensagem.tipo}
-            title={mensagem.tipo === 'success' ? 'Configurações salvas' : 'Erro ao salvar'}
+            title={
+              mensagem.tipo === 'success' ? 'Configuração atualizada' : 'Não foi possível concluir'
+            }
             message={mensagem.texto}
             onDismiss={() => setMensagem(null)}
           />
-        )}
+        ) : null}
 
-        {/* Dados da Empresa */}
         <Card>
           <CardHeader
-            title="Dados da Empresa"
-            description="Informações que serão exibidas nos relatórios e documentos"
+            title="Dados da empresa"
+            description="Informações que poderão aparecer em relatórios, cabeçalhos e rodapés."
           />
 
           <div className="space-y-4">
             <Input
-              label="Nome da Empresa"
+              label="Nome da empresa"
               value={config.nome}
               onChange={(e) => handleChange('nome', e.target.value)}
               placeholder="Nome completo da empresa"
             />
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Input
                 label="CNPJ"
                 value={config.cnpj}
@@ -256,37 +309,41 @@ export function EmpresaPage(): JSX.Element {
           </div>
         </Card>
 
-        {/* Logo */}
         <Card>
           <CardHeader
-            title="Logo da Empresa"
-            description="Imagem que será exibida no cabeçalho dos relatórios"
+            title="Logo da empresa"
+            description="Imagem usada no cabeçalho dos relatórios e documentos gerados."
           />
 
-          <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row items-start gap-6">
-              <div className="w-32 h-32 bg-gray-50 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300 overflow-hidden flex-shrink-0">
+          <div className="space-y-5">
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+              <div className="flex h-40 w-full max-w-[13rem] items-center justify-center overflow-hidden rounded-2xl border border-dashed border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)]">
                 {logoSrc && !logoLoadError ? (
                   <img
                     src={logoSrc}
                     alt="Logo"
-                    className="max-w-full max-h-full object-contain p-2"
+                    className="max-h-full max-w-full object-contain p-4"
                     onError={() => setLogoLoadError(true)}
                   />
                 ) : (
-                  <div className="text-center p-3">
-                    <Icon name="image" className="w-8 h-8 text-gray-300 mx-auto mb-1" />
-                    <span className="text-gray-400 text-xs">
-                      {config.logoUrl ? 'Erro ao carregar logo' : 'Sem logo'}
+                  <div className="p-4 text-center">
+                    <Icon
+                      name="image"
+                      className="mx-auto mb-2 h-8 w-8 text-[var(--color-text-tertiary)]"
+                    />
+                    <span className="text-xs text-[var(--color-text-tertiary)]">
+                      {config.logoUrl ? 'Erro ao carregar logo' : 'Sem logo cadastrada'}
                     </span>
                   </div>
                 )}
               </div>
-              <div className="flex-1 space-y-3">
-                <p className="text-sm text-gray-600">
-                  Envie a logo da empresa em formato PNG, JPG, SVG ou WebP. Tamanho máximo: 5MB.
-                </p>
-                <div className="flex items-center gap-3">
+
+              <div className="min-w-0 flex-1 space-y-4">
+                <div className="rounded-2xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-4 text-sm text-[var(--color-text-secondary)]">
+                  Envie a logo da empresa em PNG, JPG, SVG ou WebP. Tamanho máximo: 5 MB.
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3">
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -301,95 +358,91 @@ export function EmpresaPage(): JSX.Element {
                     loading={uploadingLogo}
                     onClick={() => fileInputRef.current?.click()}
                   >
-                    {config.logoUrl ? 'Trocar Logo' : 'Enviar Logo'}
+                    {config.logoUrl ? 'Trocar logo' : 'Enviar logo'}
                   </Button>
-                  {config.logoUrl && (
+                  {config.logoUrl ? (
                     <Button variant="secondary" icon="trash" onClick={handleRemoverLogo}>
                       Remover
                     </Button>
-                  )}
+                  ) : null}
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                  <div className="rounded-2xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] p-4">
+                    <label
+                      htmlFor="logo-largura"
+                      className="mb-1 block text-sm font-medium text-[var(--color-text-primary)]"
+                    >
+                      Largura da logo
+                    </label>
+                    <input
+                      id="logo-largura"
+                      type="range"
+                      min={60}
+                      max={260}
+                      step={5}
+                      value={config.logoLarguraRelatorio}
+                      onChange={(e) => handleChange('logoLarguraRelatorio', Number(e.target.value))}
+                      className="w-full"
+                    />
+                    <p className="mt-1 text-xs text-[var(--color-text-tertiary)]">
+                      {config.logoLarguraRelatorio}px
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] p-4">
+                    <Select
+                      id="logo-alinhamento"
+                      label="Alinhamento da logo"
+                      value={config.logoAlinhamentoRelatorio}
+                      onChange={(e) =>
+                        handleChange(
+                          'logoAlinhamentoRelatorio',
+                          e.target.value as 'ESQUERDA' | 'CENTRO' | 'DIREITA'
+                        )
+                      }
+                    >
+                      <option value="ESQUERDA">Esquerda</option>
+                      <option value="CENTRO">Centro</option>
+                      <option value="DIREITA">Direita</option>
+                    </Select>
+                  </div>
+
+                  <div className="rounded-2xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] p-4">
+                    <label
+                      htmlFor="logo-offset-y"
+                      className="mb-1 block text-sm font-medium text-[var(--color-text-primary)]"
+                    >
+                      Deslocamento vertical
+                    </label>
+                    <input
+                      id="logo-offset-y"
+                      type="range"
+                      min={-20}
+                      max={40}
+                      step={1}
+                      value={config.logoDeslocamentoYRelatorio}
+                      onChange={(e) =>
+                        handleChange('logoDeslocamentoYRelatorio', Number(e.target.value))
+                      }
+                      className="w-full"
+                    />
+                    <p className="mt-1 text-xs text-[var(--color-text-tertiary)]">
+                      {config.logoDeslocamentoYRelatorio > 0
+                        ? `+${config.logoDeslocamentoYRelatorio}`
+                        : config.logoDeslocamentoYRelatorio}
+                      px
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label
-                  htmlFor="logo-largura"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  Largura da logo (px)
-                </label>
-                <input
-                  id="logo-largura"
-                  type="range"
-                  min={60}
-                  max={260}
-                  step={5}
-                  value={config.logoLarguraRelatorio}
-                  onChange={(e) => handleChange('logoLarguraRelatorio', Number(e.target.value))}
-                  className="w-full"
-                />
-                <p className="text-xs text-gray-500 mt-1">{config.logoLarguraRelatorio}px</p>
-              </div>
-
-              <div>
-                <label
-                  htmlFor="logo-alinhamento"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  Alinhamento da logo
-                </label>
-                <select
-                  id="logo-alinhamento"
-                  value={config.logoAlinhamentoRelatorio}
-                  onChange={(e) =>
-                    handleChange(
-                      'logoAlinhamentoRelatorio',
-                      e.target.value as 'ESQUERDA' | 'CENTRO' | 'DIREITA'
-                    )
-                  }
-                  className="w-full rounded-lg border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] px-3 py-2 text-sm text-[var(--color-text-primary)] focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-100"
-                >
-                  <option value="ESQUERDA">Esquerda</option>
-                  <option value="CENTRO">Centro</option>
-                  <option value="DIREITA">Direita</option>
-                </select>
-              </div>
-
-              <div>
-                <label
-                  htmlFor="logo-offset-y"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  Deslocamento vertical (px)
-                </label>
-                <input
-                  id="logo-offset-y"
-                  type="range"
-                  min={-20}
-                  max={40}
-                  step={1}
-                  value={config.logoDeslocamentoYRelatorio}
-                  onChange={(e) =>
-                    handleChange('logoDeslocamentoYRelatorio', Number(e.target.value))
-                  }
-                  className="w-full"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  {config.logoDeslocamentoYRelatorio > 0
-                    ? `+${config.logoDeslocamentoYRelatorio}`
-                    : config.logoDeslocamentoYRelatorio}
-                  px
-                </p>
-              </div>
-            </div>
-
-            <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-              <p className="text-sm font-semibold text-gray-900 mb-3">
+            <div className="rounded-2xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-4">
+              <p className="mb-3 text-sm font-semibold text-[var(--color-text-primary)]">
                 Pré-visualização no relatório
               </p>
-              <div className="mx-auto w-full max-w-[720px] rounded-md bg-[var(--color-bg-primary)] border border-[var(--color-border-primary)] px-8 py-6">
+              <div className="mx-auto w-full max-w-[720px] rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] px-8 py-6 shadow-xs">
                 <div className="relative h-24">
                   {config.exibirLogoRelatorio && logoSrc && !logoLoadError ? (
                     <img
@@ -408,13 +461,13 @@ export function EmpresaPage(): JSX.Element {
                       }}
                     />
                   ) : (
-                    <div className="absolute inset-0 flex items-center justify-center text-xs text-gray-400">
+                    <div className="absolute inset-0 flex items-center justify-center text-xs text-[var(--color-text-tertiary)]">
                       Sem logo no cabeçalho
                     </div>
                   )}
                 </div>
-                <div className="h-[3px] bg-blue-800 mt-1" />
-                <p className="mt-3 text-center text-[11px] text-gray-500">
+                <div className="mt-1 h-[3px] bg-[var(--color-primary-700)]" />
+                <p className="mt-3 text-center text-[11px] text-[var(--color-text-tertiary)]">
                   Cabeçalho simulado em A4
                 </p>
               </div>
@@ -422,73 +475,33 @@ export function EmpresaPage(): JSX.Element {
           </div>
         </Card>
 
-        {/* Opções de Exibição */}
         <Card>
           <CardHeader
-            title="Exibição nos Relatórios"
-            description="Configure quais informações aparecem nos relatórios gerados"
+            title="Exibição nos relatórios"
+            description="Defina quais informações institucionais entram em cada documento."
           />
 
           <div className="space-y-3">
-            <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors">
-              <input
-                type="checkbox"
-                checked={config.exibirLogoRelatorio}
-                onChange={(e) => handleChange('exibirLogoRelatorio', e.target.checked)}
-                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-              <div>
-                <span className="font-medium text-gray-900">Exibir Logo no Cabeçalho</span>
-                <p className="text-sm text-gray-500">
-                  A logo aparecerá no topo de cada página do Relatório
-                </p>
-              </div>
-            </label>
-
-            <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors">
-              <input
-                type="checkbox"
-                checked={config.exibirEnderecoRelatorio}
-                onChange={(e) => handleChange('exibirEnderecoRelatorio', e.target.checked)}
-                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-              <div>
-                <span className="font-medium text-gray-900">Exibir Endereço no Rodapé</span>
-                <p className="text-sm text-gray-500">
-                  O endereço aparecerá no Rodapé de cada página
-                </p>
-              </div>
-            </label>
-
-            <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors">
-              <input
-                type="checkbox"
-                checked={config.exibirContatoRelatorio}
-                onChange={(e) => handleChange('exibirContatoRelatorio', e.target.checked)}
-                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-              <div>
-                <span className="font-medium text-gray-900">Exibir Contato no Rodapé</span>
-                <p className="text-sm text-gray-500">
-                  Telefone e e-mail aparecerão junto ao endereço no Rodapé
-                </p>
-              </div>
-            </label>
+            <ToggleCard
+              checked={config.exibirLogoRelatorio}
+              title="Exibir logo no cabeçalho"
+              description="A logo aparecerá no topo de cada página do relatório."
+              onChange={(value) => handleChange('exibirLogoRelatorio', value)}
+            />
+            <ToggleCard
+              checked={config.exibirEnderecoRelatorio}
+              title="Exibir endereço no rodapé"
+              description="O endereço aparecerá no rodapé de cada página."
+              onChange={(value) => handleChange('exibirEnderecoRelatorio', value)}
+            />
+            <ToggleCard
+              checked={config.exibirContatoRelatorio}
+              title="Exibir contato no rodapé"
+              description="Telefone e e-mail aparecerão junto ao endereço no rodapé."
+              onChange={(value) => handleChange('exibirContatoRelatorio', value)}
+            />
           </div>
         </Card>
-
-        {/* Ações */}
-        <div className="flex justify-end gap-3">
-          <Button
-            variant="secondary"
-            onClick={() => void queryClient.invalidateQueries({ queryKey: queryKeys.empresa })}
-          >
-            Cancelar
-          </Button>
-          <Button variant="primary" icon="check-square" loading={salvando} onClick={handleSalvar}>
-            Salvar Configurações
-          </Button>
-        </div>
 
         <ConfirmDialog
           state={confirmDialog.state}

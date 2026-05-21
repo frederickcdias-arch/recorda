@@ -4,10 +4,6 @@ function cn(...classes: Array<string | false | null | undefined>): string {
   return classes.filter(Boolean).join(' ');
 }
 
-// ---------------------------------------------------------------------------
-// Table
-// ---------------------------------------------------------------------------
-
 interface TableProps extends React.TableHTMLAttributes<HTMLTableElement> {
   children: React.ReactNode;
   className?: string;
@@ -15,17 +11,13 @@ interface TableProps extends React.TableHTMLAttributes<HTMLTableElement> {
 
 export function Table({ children, className, ...rest }: TableProps): JSX.Element {
   return (
-    <div className="w-full overflow-x-auto rounded-xl border border-[var(--color-border-primary)] shadow-xs">
+    <div className="w-full overflow-x-auto rounded-2xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] shadow-xs">
       <table className={cn('min-w-full border-collapse', className)} {...rest}>
         {children}
       </table>
     </div>
   );
 }
-
-// ---------------------------------------------------------------------------
-// TableHead
-// ---------------------------------------------------------------------------
 
 interface TableHeadProps {
   children: React.ReactNode;
@@ -35,10 +27,6 @@ interface TableHeadProps {
 export function TableHead({ children, className }: TableHeadProps): JSX.Element {
   return <thead className={cn('bg-[var(--color-gray-50)]', className)}>{children}</thead>;
 }
-
-// ---------------------------------------------------------------------------
-// TableBody
-// ---------------------------------------------------------------------------
 
 interface TableBodyProps {
   children: React.ReactNode;
@@ -57,10 +45,6 @@ export function TableBody({ children, className }: TableBodyProps): JSX.Element 
     </tbody>
   );
 }
-
-// ---------------------------------------------------------------------------
-// TableRow
-// ---------------------------------------------------------------------------
 
 interface TableRowProps extends React.HTMLAttributes<HTMLTableRowElement> {
   children: React.ReactNode;
@@ -85,10 +69,6 @@ export function TableRow({ children, className, onClick, ...rest }: TableRowProp
     </tr>
   );
 }
-
-// ---------------------------------------------------------------------------
-// TableHeader
-// ---------------------------------------------------------------------------
 
 type Align = 'left' | 'center' | 'right';
 type SortDirection = 'asc' | 'desc' | null;
@@ -124,7 +104,7 @@ export function TableHeader({
   ...rest
 }: TableHeaderProps): JSX.Element {
   const base =
-    'px-4 py-3 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-secondary)] border-b border-[var(--color-border-primary)]';
+    'border-b border-[var(--color-border-primary)] px-4 py-3 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-secondary)]';
 
   const icon =
     sortDirection === 'asc'
@@ -140,9 +120,9 @@ export function TableHeader({
           type="button"
           onClick={onSort}
           className={cn(
-            'inline-flex items-center gap-1 hover:text-[var(--color-text-primary)] transition-colors',
-            align === 'center' && 'justify-center w-full',
-            align === 'right' && 'justify-end w-full'
+            'inline-flex items-center gap-1 transition-colors hover:text-[var(--color-text-primary)]',
+            align === 'center' && 'w-full justify-center',
+            align === 'right' && 'w-full justify-end'
           )}
         >
           {children}
@@ -156,10 +136,6 @@ export function TableHeader({
     </th>
   );
 }
-
-// ---------------------------------------------------------------------------
-// TableCell
-// ---------------------------------------------------------------------------
 
 interface TableCellProps extends React.TdHTMLAttributes<HTMLTableCellElement> {
   children?: React.ReactNode;
@@ -193,10 +169,6 @@ export function TableCell({
   );
 }
 
-// ---------------------------------------------------------------------------
-// TableEmptyState
-// ---------------------------------------------------------------------------
-
 interface TableEmptyStateProps {
   colSpan: number;
   title: string;
@@ -213,9 +185,9 @@ export function TableEmptyState({
       <td colSpan={colSpan}>
         <div className="flex flex-col items-center justify-center gap-1 px-4 py-12 text-center">
           <p className="text-sm font-medium text-[var(--color-text-primary)]">{title}</p>
-          {description && (
+          {description ? (
             <p className="text-sm text-[var(--color-text-secondary)]">{description}</p>
-          )}
+          ) : null}
         </div>
       </td>
     </tr>

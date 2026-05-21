@@ -17,6 +17,8 @@
     "lint:fix": "eslint . --ext .ts,.tsx --fix",
     "format": "prettier --write \"**/*.{ts,tsx,json,md}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,json,md}\"",
+    "push:vapid": "node scripts/generate-vapid-keys.mjs",
+    "test:push": "node scripts/test-push-flow.mjs",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "db:migrate": "npm run migrate --workspace=@recorda/backend",
     "db:bootstrap": "node scripts/db-bootstrap.js",

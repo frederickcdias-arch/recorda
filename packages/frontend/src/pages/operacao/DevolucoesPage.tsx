@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { lazy, Suspense, useState, useCallback, useEffect, useRef } from 'react';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -13,9 +13,7 @@ import { getToken } from '../../services/tokenStorage';
 import { useDebounce } from '../../hooks/useDebounce';
 import {
   useDevolucoes,
-  useDevolucaoDetalhe,
   useCriarDevolucao,
-  useEditarDevolucao,
   useExcluirDevolucao,
   useCoordenadestinoOpcoes,
   useResponsaveisRetiradaOpcoes,
@@ -24,6 +22,13 @@ import {
   type DevolucaoOperacional,
   type RecebimentoProcessoBusca,
 } from '../../hooks/useQueries';
+
+const DevolucaoEditModal = lazy(() =>
+  import('./DevolucaoEditModal').then((m) => ({ default: m.DevolucaoEditModal }))
+);
+const DevolucaoDetalhePanel = lazy(() =>
+  import('./DevolucaoDetalhePanel').then((m) => ({ default: m.DevolucaoDetalhePanel }))
+);
 
 interface ItemRascunho {
   tempId: string;
@@ -636,251 +641,6 @@ function ModalNovaDevolucao({ onClose, onSaved }: ModalDevolucaoProps): JSX.Elem
 
 // ─── Modal Editar Devolução (cabeçalho) ──────────────────────
 
-interface ModalEditarDevolucaoProps {
-  devolucao: DevolucaoOperacional;
-  onClose: () => void;
-  onSaved: () => void;
-}
-
-function ModalEditarDevolucao({
-  devolucao,
-  onClose,
-  onSaved,
-}: ModalEditarDevolucaoProps): JSX.Element {
-  const toast = useToastHelpers();
-  const coordOpcoes = useCoordenadestinoOpcoes();
-  const respOpcoes = useResponsaveisRetiradaOpcoes();
-  const editarMut = useEditarDevolucao();
-
-  const [dataDevolucao, setDataDevolucao] = useState(
-    String(devolucao.data_devolucao).split('T')[0] ?? ''
-  );
-  const [coordenadoriaDestino, setCoordenadoriaDestino] = useState(devolucao.coordenadoria_destino);
-  const [responsavelRetirada, setResponsavelRetirada] = useState(devolucao.responsavel_retirada);
-  const [observacoes, setObservacoes] = useState(devolucao.observacoes ?? '');
-
-  const opcoesCoordenadorias = coordOpcoes.data ?? [];
-  const opcoesResponsaveis = respOpcoes.data ?? [];
-
-  const handleSalvar = async () => {
-    if (!dataDevolucao) {
-      toast.error('Data é obrigatória');
-      return;
-    }
-    if (!coordenadoriaDestino.trim()) {
-      toast.error('Coordenadoria destino é obrigatória');
-      return;
-    }
-    if (!responsavelRetirada.trim()) {
-      toast.error('Responsável pela retirada é obrigatório');
-      return;
-    }
-    try {
-      await editarMut.mutateAsync({
-        id: devolucao.id,
-        dataDevolucao,
-        coordenadoriaDestino: coordenadoriaDestino.trim(),
-        responsavelRetirada: responsavelRetirada.trim(),
-        observacoes: observacoes.trim() || undefined,
-      });
-      toast.success('Devolução atualizada com sucesso!');
-      onSaved();
-      onClose();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Erro ao atualizar devolução');
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 overflow-y-auto py-8 px-4">
-      <div className="bg-[var(--color-bg-primary)] rounded-xl shadow-2xl w-full max-w-lg">
-        <div className="flex items-center justify-between p-5 border-b">
-          <h2 className="text-base font-semibold text-gray-900">Editar Devolução</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 p-1 rounded transition-colors"
-            aria-label="Fechar"
-          >
-            <Icon name="x" className="w-5 h-5" />
-          </button>
-        </div>
-        <div className="p-5 space-y-4">
-          <Input
-            label="Data da Devolução"
-            type="date"
-            value={dataDevolucao}
-            max={new Date().toISOString().split('T')[0]}
-            onChange={(e) => setDataDevolucao(e.target.value)}
-            required
-          />
-          <CoordCombobox
-            value={coordenadoriaDestino}
-            onChange={setCoordenadoriaDestino}
-            opcoes={opcoesCoordenadorias}
-            required
-          />
-          <div>
-            <Input
-              label="Responsável pela Retirada"
-              value={responsavelRetirada}
-              onChange={(e) => setResponsavelRetirada(e.target.value)}
-              placeholder="Nome de quem retirou os documentos"
-              required
-              list="editar-responsaveis-list"
-            />
-            <datalist id="editar-responsaveis-list">
-              {opcoesResponsaveis.map((r) => (
-                <option key={r} value={r} />
-              ))}
-            </datalist>
-          </div>
-          <Input
-            label="Observações"
-            value={observacoes}
-            onChange={(e) => setObservacoes(e.target.value)}
-            placeholder="Opcional"
-          />
-        </div>
-        <div className="flex justify-end gap-3 px-5 py-4 border-t bg-gray-50 rounded-b-xl">
-          <Button variant="outline" onClick={onClose} disabled={editarMut.isPending}>
-            Cancelar
-          </Button>
-          <Button
-            variant="primary"
-            onClick={() => void handleSalvar()}
-            disabled={editarMut.isPending}
-          >
-            {editarMut.isPending ? 'Salvando…' : 'Salvar Alterações'}
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Detalhe de Devolução (lista de itens inline) ─────────────
-
-interface DetalheDevolucaoProps {
-  devolucaoId: string;
-  onClose: () => void;
-}
-
-function PainelDetalheDevolucao({ devolucaoId, onClose }: DetalheDevolucaoProps): JSX.Element {
-  const detalheQuery = useDevolucaoDetalhe(devolucaoId);
-  const toast = useToastHelpers();
-  const [baixandoPdf, setBaixandoPdf] = useState(false);
-
-  const handleDownloadPdf = async () => {
-    try {
-      setBaixandoPdf(true);
-      const token = getToken();
-      const response = await fetch(buildApiUrl(`/operacional/devolucoes/${devolucaoId}/pdf`), {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      if (!response.ok) throw new Error('Erro ao gerar PDF');
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `termo_devolucao_${devolucaoId.slice(0, 8)}.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch {
-      toast.error('Não foi possível baixar o PDF');
-    } finally {
-      setBaixandoPdf(false);
-    }
-  };
-
-  if (detalheQuery.isLoading) {
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-        <div className="bg-[var(--color-bg-primary)] rounded-xl p-8 text-[var(--color-text-secondary)]">
-          Carregando…
-        </div>
-      </div>
-    );
-  }
-
-  const { devolucao, itens } = detalheQuery.data ?? { devolucao: null, itens: [] };
-  if (!devolucao) return <></>;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-[var(--color-bg-primary)] rounded-xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col">
-        <div className="flex items-center justify-between p-5 border-b">
-          <div>
-            <h2 className="text-base font-semibold text-gray-900">
-              Devolução — {devolucao.coordenadoria_destino}
-            </h2>
-            <p className="text-sm text-gray-500">
-              {formatarData(devolucao.data_devolucao)} · {devolucao.responsavel_retirada}
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 p-1 rounded transition-colors"
-            aria-label="Fechar"
-          >
-            <Icon name="x" className="w-5 h-5" />
-          </button>
-        </div>
-        <div className="overflow-y-auto flex-1 p-5">
-          {devolucao.observacoes && (
-            <p className="text-sm text-gray-600 mb-4 italic">{devolucao.observacoes}</p>
-          )}
-          <table className="w-full text-sm">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="text-left px-3 py-2 text-gray-600 font-medium">#</th>
-                <th className="text-left px-3 py-2 text-gray-600 font-medium">Protocolo</th>
-                <th className="text-left px-3 py-2 text-gray-600 font-medium">Interessado</th>
-                <th className="text-left px-3 py-2 text-gray-600 font-medium">Repositório</th>
-                <th className="text-left px-3 py-2 text-gray-600 font-medium">Vol.</th>
-                <th className="text-left px-3 py-2 text-gray-600 font-medium">Obs.</th>
-              </tr>
-            </thead>
-            <tbody>
-              {itens.map((item, idx) => (
-                <tr
-                  key={item.id}
-                  className={
-                    idx % 2 === 0
-                      ? 'bg-[var(--color-bg-primary)]'
-                      : 'bg-[var(--color-bg-secondary)]'
-                  }
-                >
-                  <td className="px-3 py-2 text-gray-400">{idx + 1}</td>
-                  <td className="px-3 py-2">{item.protocolo || '—'}</td>
-                  <td className="px-3 py-2 truncate max-w-[140px]">{item.interessado || '—'}</td>
-                  <td className="px-3 py-2 text-gray-500">{item.repositorio || '—'}</td>
-                  <td className="px-3 py-2 text-gray-500">{item.volume || '—'}</td>
-                  <td className="px-3 py-2 text-gray-400 text-xs">{item.obs || ''}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div className="flex justify-between items-center gap-3 p-4 border-t">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => void handleDownloadPdf()}
-            disabled={baixandoPdf}
-          >
-            {baixandoPdf ? 'Gerando PDF…' : 'Baixar PDF'}
-          </Button>
-          <Button variant="outline" size="sm" onClick={onClose}>
-            Fechar
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Página Principal ─────────────────────────────────────────
-
 export function DevolucoesPage(): JSX.Element {
   const toast = useToastHelpers();
 
@@ -1123,17 +883,21 @@ export function DevolucoesPage(): JSX.Element {
         />
       )}
       {devolucaoDetalhId && (
-        <PainelDetalheDevolucao
-          devolucaoId={devolucaoDetalhId}
-          onClose={() => setDevolucaoDetalhId(null)}
-        />
+        <Suspense fallback={null}>
+          <DevolucaoDetalhePanel
+            devolucaoId={devolucaoDetalhId}
+            onClose={() => setDevolucaoDetalhId(null)}
+          />
+        </Suspense>
       )}
       {devolucaoEditando && (
-        <ModalEditarDevolucao
-          devolucao={devolucaoEditando}
-          onClose={() => setDevolucaoEditando(null)}
-          onSaved={() => void devolucoesQuery.refetch()}
-        />
+        <Suspense fallback={null}>
+          <DevolucaoEditModal
+            devolucao={devolucaoEditando}
+            onClose={() => setDevolucaoEditando(null)}
+            onSaved={() => void devolucoesQuery.refetch()}
+          />
+        </Suspense>
       )}
       {confirmandoExclusao && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">

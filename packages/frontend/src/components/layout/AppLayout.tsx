@@ -1,57 +1,109 @@
-﻿import { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { MobileBottomNav } from './MobileBottomNav';
-
-const routeTitles: Record<string, string> = {
-  '/dashboard': 'Dashboard',
-  '/operacao': 'Operação',
-  '/operacao/recebimento': 'Operação - Recebimento',
-  '/operacao/controle-qualidade': 'Operação - Controle de Qualidade',
-  '/operacao/conhecimento': 'Operação - Conhecimento',
-  '/operacao/devolucoes': 'Devoluções',
-  '/minha-producao/lancar': 'Lançar Produção',
-  '/minha-producao/historico': 'Meu Histórico',
-  '/producao': 'Produção',
-  '/producao/importar': 'Produção - Importar',
-  '/relatorios': 'Relatórios',
-  '/relatorios/gerenciais': 'Relatórios Gerenciais',
-  '/relatorios/exportacoes': 'Exportações',
-  '/configuracoes': 'Configurações',
-  '/configuracoes/empresa': 'Empresa',
-  '/configuracoes/usuarios': 'Usuários',
-  '/configuracoes/vincular-producoes': 'Vincular Produções',
-  '/configuracoes/admin': 'Administração',
-  '/auditoria': 'Auditoria',
-  '/auditoria/importacoes': 'Auditoria de Importações',
-  '/auditoria/ocr': 'Auditoria de OCR',
-  '/auditoria/correcoes': 'Auditoria de Correções',
-  '/auditoria/acoes': 'Ações de Usuários',
-};
+import { useAuth } from '../../contexts/AuthContext';
+import { useComunicadosNaoLidos } from '../../hooks/useQueries';
+import { ensurePushSubscription } from '../../services/pushNotifications';
+import { useToastHelpers } from '../ui/Toast';
+import { getPageTitle } from '../../config/menu';
 
 export function AppLayout(): JSX.Element {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [paginaVisivel, setPaginaVisivel] = useState(
+    typeof document === 'undefined' ? true : document.visibilityState === 'visible'
+  );
   const location = useLocation();
+  const { usuario } = useAuth();
+  const toast = useToastHelpers();
+  const previousUnreadCountRef = useRef<number | null>(null);
+  const initialUnreadToastShownRef = useRef(false);
 
-  const pageTitle = routeTitles[location.pathname] || 'Recorda';
+  const pollingAtivo = !!usuario && paginaVisivel;
+  const comunicadosNaoLidosQuery = useComunicadosNaoLidos({
+    enabled: !!usuario,
+    refetchInterval: pollingAtivo ? 45_000 : false,
+  });
+  const unreadComunicados = comunicadosNaoLidosQuery.data?.totalNaoLidos ?? 0;
+
+  const pageTitle = getPageTitle(location.pathname);
 
   useEffect(() => {
     document.title = `${pageTitle} | Recorda`;
   }, [pageTitle]);
 
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      setPaginaVisivel(document.visibilityState === 'visible');
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
+
+  useEffect(() => {
+    if (!usuario) {
+      previousUnreadCountRef.current = null;
+      initialUnreadToastShownRef.current = false;
+      return;
+    }
+
+    if (previousUnreadCountRef.current === null) {
+      previousUnreadCountRef.current = unreadComunicados;
+
+      if (
+        unreadComunicados > 0 &&
+        !initialUnreadToastShownRef.current &&
+        !location.pathname.startsWith('/comunicados')
+      ) {
+        initialUnreadToastShownRef.current = true;
+        toast.info(
+          unreadComunicados === 1 ? 'Comunicado pendente' : 'Comunicados pendentes',
+          unreadComunicados === 1
+            ? 'Voce entrou no sistema com 1 comunicado nao lido.'
+            : `Voce entrou no sistema com ${unreadComunicados} comunicados nao lidos.`
+        );
+      }
+
+      return;
+    }
+
+    if (
+      unreadComunicados > previousUnreadCountRef.current &&
+      !location.pathname.startsWith('/comunicados')
+    ) {
+      const novos = unreadComunicados - previousUnreadCountRef.current;
+      toast.info(
+        novos === 1 ? 'Novo comunicado interno' : 'Novos comunicados internos',
+        novos === 1
+          ? 'Existe 1 comunicado nao lido aguardando sua leitura.'
+          : `Existem ${novos} novos comunicados nao lidos aguardando sua leitura.`
+      );
+    }
+
+    previousUnreadCountRef.current = unreadComunicados;
+  }, [location.pathname, toast, unreadComunicados, usuario]);
+
+  useEffect(() => {
+    if (!usuario || !import.meta.env.PROD) {
+      return;
+    }
+
+    void ensurePushSubscription();
+  }, [usuario]);
+
   return (
-    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-gray-50 flex">
-      {/* Sidebar - Desktop */}
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-[var(--color-bg-secondary)]">
       <div className="hidden md:flex">
         <Sidebar
           collapsed={sidebarCollapsed}
           onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+          unreadComunicados={unreadComunicados}
         />
       </div>
 
-      {/* Sidebar - Mobile Overlay */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-50 md:hidden">
           <div
@@ -63,21 +115,28 @@ export function AppLayout(): JSX.Element {
               collapsed={false}
               onToggle={() => setMobileMenuOpen(false)}
               onMobileClose={() => setMobileMenuOpen(false)}
+              unreadComunicados={unreadComunicados}
             />
           </div>
         </div>
       )}
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0 max-w-full overflow-x-hidden">
-        <Header onMenuToggle={() => setMobileMenuOpen(true)} title={pageTitle} />
-        <main className="flex-1 min-w-0 max-w-full overflow-y-auto overflow-x-hidden p-4 pb-24 md:p-6 md:pb-6">
-          <div key={location.pathname} className="min-w-0 max-w-full animate-fade-in-up">
+      <div className="flex min-h-screen flex-1 flex-col overflow-x-hidden">
+        <Header
+          onMenuToggle={() => setMobileMenuOpen(true)}
+          title={pageTitle}
+          unreadComunicados={unreadComunicados}
+        />
+        <main className="flex-1 overflow-y-auto overflow-x-hidden px-4 pb-24 pt-4 sm:px-5 md:px-6 md:pb-8 md:pt-6">
+          <div
+            key={location.pathname}
+            className="mx-auto min-w-0 max-w-[1600px] animate-fade-in-up"
+          >
             <Outlet />
           </div>
         </main>
       </div>
-      <MobileBottomNav />
+      <MobileBottomNav unreadComunicados={unreadComunicados} />
     </div>
   );
 }

@@ -25,7 +25,7 @@ const variantClasses: Record<ButtonVariant, string> = {
   `,
   secondary: `
     bg-[var(--color-bg-primary)] text-[var(--color-gray-700)] 
-    border border-[var(--color-gray-300)]
+    border border-[var(--color-border-primary)]
     hover:bg-[var(--color-gray-50)] hover:border-[var(--color-gray-400)]
     active:bg-[var(--color-gray-100)]
     focus-visible:ring-[3px] focus-visible:ring-[var(--color-gray-100)]
@@ -63,15 +63,15 @@ const variantClasses: Record<ButtonVariant, string> = {
 const sizeClasses: Record<ButtonSize, string> = {
   xs: 'h-7 px-2.5 text-xs gap-1',
   sm: 'h-8 px-3 text-sm gap-1.5',
-  md: 'h-11 sm:h-9 px-4 text-sm gap-2',
-  lg: 'h-11 sm:h-10 px-5 text-base gap-2',
+  md: 'h-10 px-4 text-sm gap-2',
+  lg: 'h-11 px-5 text-base gap-2',
 };
 
 const iconOnlySizeClasses: Record<ButtonSize, string> = {
   xs: 'h-7 w-7',
   sm: 'h-8 w-8',
-  md: 'h-11 w-11 sm:h-9 sm:w-9',
-  lg: 'h-11 w-11 sm:h-10 sm:w-10',
+  md: 'h-10 w-10',
+  lg: 'h-11 w-11',
 };
 
 const iconSizeClasses: Record<ButtonSize, string> = {
@@ -100,7 +100,7 @@ export function Button({
     <button
       className={`
         inline-flex items-center justify-center font-medium
-        rounded-lg transition-all duration-150 ease-in-out
+        rounded-xl border border-transparent transition-all duration-150 ease-in-out
         touch-manipulation
         focus:outline-none
         active:scale-[0.97]

@@ -1,5 +1,6 @@
 ﻿import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Suspense, lazy } from 'react';
 import type { StatusRepositorio, OrigemDocumentoRecebimento } from '@recorda/shared';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -14,9 +15,7 @@ import { useRecebimento } from '../../hooks/useRecebimento';
 import { useConfirmDialog } from '../../hooks/useConfirmDialog';
 import { useDebounce } from '../../hooks/useDebounce';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
-import { ControleQualidadePanel } from './ControleQualidadePanel';
 import { Pagination } from '../../components/ui/Pagination';
-import { RecebimentoAvulsosPanel } from './RecebimentoAvulsosPanel';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { ProgressIndicator } from '../../components/ui/ProgressIndicator';
 import { AgingBadge } from '../../components/ui/AgingBadge';
@@ -40,6 +39,60 @@ import {
   queryKeys,
 } from '../../hooks/useQueries';
 import { useUltimoIdRepositorioGed } from '../../hooks/useUltimoIdRepositorioGed';
+
+const ControleQualidadePanel = lazy(() =>
+  import('./ControleQualidadePanel').then((module) => ({ default: module.ControleQualidadePanel }))
+);
+
+const RecebimentoAvulsosPanel = lazy(() =>
+  import('./RecebimentoAvulsosPanel').then((module) => ({
+    default: module.RecebimentoAvulsosPanel,
+  }))
+);
+
+const RecebimentoOcrModal = lazy(() =>
+  import('./RecebimentoOcrModal').then((module) => ({
+    default: module.RecebimentoOcrModal,
+  }))
+);
+
+const ChecklistModal = lazy(() =>
+  import('./ChecklistModal').then((module) => ({
+    default: module.ChecklistModal,
+  }))
+);
+
+const AvancarEtapaModal = lazy(() =>
+  import('./AvancarEtapaModal').then((module) => ({
+    default: module.AvancarEtapaModal,
+  }))
+);
+
+const BatchAddModal = lazy(() =>
+  import('./BatchAddModal').then((module) => ({
+    default: module.BatchAddModal,
+  }))
+);
+
+const PdfPreviewModal = lazy(() =>
+  import('./PdfPreviewModal').then((module) => ({
+    default: module.PdfPreviewModal,
+  }))
+);
+
+function PanelLoadingFallback({ title }: { title: string }): JSX.Element {
+  return (
+    <Card>
+      <div className="flex min-h-[220px] flex-col items-center justify-center gap-3 text-center">
+        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--color-border-secondary)] border-t-[var(--color-brand-500)]" />
+        <div>
+          <p className="text-sm font-medium text-[var(--color-text-primary)]">Carregando painel</p>
+          <p className="text-sm text-[var(--color-text-tertiary)]">{title}</p>
+        </div>
+      </div>
+    </Card>
+  );
+}
 
 type EtapaSlug = 'recebimento' | 'controle-qualidade';
 
@@ -1588,19 +1641,23 @@ export function EtapaOperacionalPage(): JSX.Element {
                 </Card>
               </div>
             ) : (
-              <RecebimentoAvulsosPanel onSuccess={showSuccess} onError={showError} />
+              <Suspense fallback={<PanelLoadingFallback title="Recebimento de avulsos" />}>
+                <RecebimentoAvulsosPanel onSuccess={showSuccess} onError={showError} />
+              </Suspense>
             )}
           </>
         ) : null}
 
         {etapa === 'controle-qualidade' ? (
-          <ControleQualidadePanel
-            repositoriosDisponiveis={itens}
-            onSuccess={showSuccess}
-            onError={showError}
-            busy={processando}
-            setBusy={setProcessando}
-          />
+          <Suspense fallback={<PanelLoadingFallback title="Controle de qualidade" />}>
+            <ControleQualidadePanel
+              repositoriosDisponiveis={itens}
+              onSuccess={showSuccess}
+              onError={showError}
+              busy={processando}
+              setBusy={setProcessando}
+            />
+          </Suspense>
         ) : etapa !== 'recebimento' ? (
           <Card>
             <div className="flex gap-3 items-end mb-4">
@@ -1750,230 +1807,36 @@ export function EtapaOperacionalPage(): JSX.Element {
           </Card>
         ) : null}
 
-        {checklistModalOpen && checklistHeader
-          ? (() => {
-              const preenchidos = checklistItens.filter((it) => it.resultado).length;
-              const totalItens = checklistItens.length;
-              const obrigatorios = checklistItens.filter((it) => it.obrigatorio).length;
-              const obrigatoriosPreenchidos = checklistItens.filter(
-                (it) => it.obrigatorio && it.resultado
-              ).length;
-              const todosObrigatoriosOk = obrigatoriosPreenchidos === obrigatorios;
+        <Suspense
+          fallback={checklistModalOpen ? <PanelLoadingFallback title="Checklist da etapa" /> : null}
+        >
+          <ChecklistModal
+            open={checklistModalOpen}
+            header={checklistHeader}
+            itens={checklistItens}
+            setItens={setChecklistItens}
+            loading={processando}
+            onClose={() => setChecklistModalOpen(false)}
+            onConfirm={handleConcluirChecklist}
+          />
+        </Suspense>
 
-              return (
-                <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 animate-fade-in">
-                  <div className="bg-[var(--color-bg-primary)] rounded-xl shadow-xl w-full max-w-3xl max-h-[88vh] overflow-hidden flex flex-col animate-scale-in">
-                    <div className="px-5 py-3 sm:px-6 sm:py-4 border-b flex items-center justify-between shrink-0">
-                      <div>
-                        <h3 className="text-base sm:text-lg font-semibold text-gray-900">
-                          Checklist — {checklistHeader.etapa}
-                        </h3>
-                        <p className="text-sm text-gray-500 mt-0.5">
-                          {preenchidos}/{totalItens} preenchidos
-                          {obrigatorios > 0
-                            ? ` · ${obrigatoriosPreenchidos}/${obrigatorios} obrigatórios`
-                            : ''}
-                        </p>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        icon="x"
-                        iconOnly
-                        onClick={() => setChecklistModalOpen(false)}
-                      />
-                    </div>
-
-                    <div className="flex-1 overflow-auto p-5 sm:p-6 space-y-2">
-                      {checklistItens.map((item, idx) => {
-                        const preenchido = !!item.resultado;
-                        const naoConforme = item.resultado === 'NAO_CONFORME_COM_TRATATIVA';
-                        return (
-                          <div
-                            key={item.id}
-                            className={`border rounded-lg px-4 py-3 transition-colors ${preenchido ? 'border-primary-200 bg-primary-50/30' : 'border-gray-200'}`}
-                          >
-                            <div className="flex items-start gap-3">
-                              <span
-                                className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold mt-0.5 ${preenchido ? 'bg-primary-600 text-white' : 'bg-gray-200 text-gray-500'}`}
-                              >
-                                {idx + 1}
-                              </span>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <span className="text-sm font-medium text-gray-900">
-                                    {item.descricao}
-                                  </span>
-                                  {item.obrigatorio ? (
-                                    <span className="text-[10px] font-semibold text-primary-600 bg-primary-100 px-1.5 py-0.5 rounded">
-                                      Obrigatório
-                                    </span>
-                                  ) : null}
-                                </div>
-                                <div className="flex flex-col sm:flex-row gap-2">
-                                  <select
-                                    className={`h-9 px-3 border rounded-lg text-sm flex-shrink-0 sm:w-56 ${!preenchido && item.obrigatorio ? 'border-primary-300' : 'border-gray-300'}`}
-                                    value={item.resultado ?? ''}
-                                    onChange={(e) => {
-                                      const value = e.target.value as ResultadoChecklist;
-                                      setChecklistItens((prev) =>
-                                        prev.map((it) =>
-                                          it.id === item.id
-                                            ? { ...it, resultado: value || null }
-                                            : it
-                                        )
-                                      );
-                                    }}
-                                  >
-                                    <option value="">— Selecione —</option>
-                                    <option value="CONFORME">Conforme</option>
-                                    <option value="NAO_CONFORME_COM_TRATATIVA">
-                                      Não conforme c/ tratativa
-                                    </option>
-                                  </select>
-                                  {naoConforme ? (
-                                    <input
-                                      type="text"
-                                      className="h-9 px-3 border border-gray-300 rounded-lg text-sm flex-1"
-                                      placeholder="Observação (obrigatória para não conforme)"
-                                      value={item.observacao ?? ''}
-                                      onChange={(e) =>
-                                        setChecklistItens((prev) =>
-                                          prev.map((it) =>
-                                            it.id === item.id
-                                              ? { ...it, observacao: e.target.value }
-                                              : it
-                                          )
-                                        )
-                                      }
-                                    />
-                                  ) : null}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    <div className="px-5 py-3 sm:px-6 sm:py-4 border-t flex items-center justify-between shrink-0">
-                      <p className="text-xs text-gray-500">
-                        {todosObrigatoriosOk
-                          ? 'Todos os itens obrigatórios preenchidos.'
-                          : `Faltam ${obrigatorios - obrigatoriosPreenchidos} item(ns) obrigatório(s).`}
-                      </p>
-                      <div className="flex gap-2">
-                        <Button variant="secondary" onClick={() => setChecklistModalOpen(false)}>
-                          Cancelar
-                        </Button>
-                        <Button
-                          onClick={() => void handleConcluirChecklist()}
-                          loading={processando}
-                          disabled={!todosObrigatoriosOk}
-                        >
-                          Concluir Checklist
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })()
-          : null}
-
-        {avancarModalOpen ? (
-          <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 animate-fade-in">
-            <div className="bg-[var(--color-bg-primary)] rounded-xl shadow-xl w-full max-w-2xl max-h-[88vh] overflow-hidden flex flex-col animate-scale-in">
-              <div className="px-6 py-4 border-b shrink-0">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Avançar para {etapaConfig.nextEtapaApi}
-                </h3>
-                <p className="text-sm text-gray-500 mt-1">
-                  Verifique os documentos e confirme o avanço.
-                </p>
-              </div>
-
-              <div className="flex-1 overflow-auto px-6 py-4">
-                <h4 className="text-sm font-semibold text-gray-900 mb-2">
-                  Processos no repositório ({avancarDocs.length})
-                </h4>
-                {avancarDocs.length === 0 ? (
-                  <p className="text-sm text-gray-500 bg-gray-50 rounded-lg p-3">
-                    Nenhum Processo cadastrado neste Repositório.
-                  </p>
-                ) : (
-                  <div className="overflow-x-auto max-h-56 overflow-y-auto border rounded-lg">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50 sticky top-0">
-                        <tr>
-                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">
-                            #
-                          </th>
-                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">
-                            Protocolo
-                          </th>
-                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">
-                            Interessado
-                          </th>
-                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">
-                            Vol.
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-[var(--color-bg-primary)] divide-y divide-[var(--color-border-secondary)]">
-                        {avancarDocs.map((doc, idx) => (
-                          <tr key={doc.id} className="hover:bg-gray-50">
-                            <td className="px-3 py-2 text-xs text-gray-400">{idx + 1}</td>
-                            <td className="px-3 py-2 text-sm text-gray-900">{doc.processo}</td>
-                            <td className="px-3 py-2 text-sm text-gray-700">{doc.interessado}</td>
-                            <td className="px-3 py-2 text-sm text-gray-700">{doc.volume}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-
-                {avancarDocs.length > 0 ? (
-                  <label className="flex items-start gap-3 mt-4 p-3 border rounded-lg cursor-pointer hover:bg-primary-50/50 transition-colors">
-                    <input
-                      type="checkbox"
-                      className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                      checked={avancarConfirmado}
-                      onChange={(e) => setAvancarConfirmado(e.target.checked)}
-                    />
-                    <span className="text-sm text-gray-700">
-                      Confirmo que todos os <strong>{avancarDocs.length} documento(s)</strong>{' '}
-                      listados acima estão presentes no <strong>físico</strong> e no{' '}
-                      <strong>GED</strong>.
-                    </span>
-                  </label>
-                ) : null}
-              </div>
-
-              <div className="px-6 py-4 border-t flex items-center justify-between shrink-0">
-                <p className="text-xs text-gray-500">
-                  {avancarDocs.length === 0
-                    ? 'Sem processos cadastrados.'
-                    : !avancarConfirmado
-                      ? 'Marque a confirmação para prosseguir.'
-                      : 'Pronto para avançar.'}
-                </p>
-                <div className="flex gap-2">
-                  <Button variant="secondary" onClick={() => setAvancarModalOpen(false)}>
-                    Cancelar
-                  </Button>
-                  <Button
-                    onClick={() => void handleConfirmarAvancar()}
-                    loading={processando}
-                    disabled={avancarDocs.length > 0 && !avancarConfirmado}
-                  >
-                    Confirmar Avanço
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : null}
+        <Suspense
+          fallback={
+            avancarModalOpen ? <PanelLoadingFallback title="Confirmação de avanço" /> : null
+          }
+        >
+          <AvancarEtapaModal
+            open={avancarModalOpen}
+            etapaDestino={etapaConfig.nextEtapaApi}
+            docs={avancarDocs}
+            confirmado={avancarConfirmado}
+            setConfirmado={setAvancarConfirmado}
+            loading={processando}
+            onClose={() => setAvancarModalOpen(false)}
+            onConfirm={handleConfirmarAvancar}
+          />
+        </Suspense>
 
         <ConfirmDialog
           state={confirmDialog.state}
@@ -1988,532 +1851,91 @@ export function EtapaOperacionalPage(): JSX.Element {
           onCancel={recebimentoConfirmDialog.close}
         />
 
-        {/* Modal: Adicionar em Lote */}
-        {batchAddModalOpen ? (
-          <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 animate-fade-in">
-            <div className="bg-[var(--color-bg-primary)] rounded-xl shadow-xl w-full max-w-lg max-h-[80vh] overflow-hidden flex flex-col animate-scale-in">
-              <div className="px-6 py-4 border-b">
-                <h3 className="text-lg font-semibold text-gray-900">Importação em Lote</h3>
-                <p className="text-sm text-gray-500 mt-1">
-                  Formato: protocolo (TAB) interessado — um por linha.
-                </p>
-              </div>
+        <Suspense
+          fallback={batchAddModalOpen ? <PanelLoadingFallback title="Importação em lote" /> : null}
+        >
+          <BatchAddModal
+            open={batchAddModalOpen}
+            repositorios={itens}
+            repoId={batchRepoId}
+            setRepoId={setBatchRepoId}
+            text={batchText}
+            setText={setBatchText}
+            loading={processando}
+            onClose={() => setBatchAddModalOpen(false)}
+            onConfirm={handleAdicionarEmLote}
+          />
+        </Suspense>
 
-              <div className="px-6 py-3">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Repositório</label>
-                <select
-                  className="w-full h-9 px-3 border rounded-lg text-sm"
-                  value={batchRepoId}
-                  onChange={(e) => setBatchRepoId(e.target.value)}
-                >
-                  <option value="">— Selecione —</option>
-                  {itens.map((repo) => (
-                    <option key={repo.id_repositorio_recorda} value={repo.id_repositorio_recorda}>
-                      {repo.id_repositorio_ged} — {repo.orgao}
-                    </option>
-                  ))}
-                </select>
-              </div>
+        <Suspense
+          fallback={ocrModalOpen ? <PanelLoadingFallback title="Recebimento por OCR" /> : null}
+        >
+          <RecebimentoOcrModal
+            open={ocrModalOpen}
+            ocrRepo={ocrRepo}
+            onClose={() => setOcrModalOpen(false)}
+            recebTab={recebTab}
+            setRecebTab={setRecebTab}
+            recebProcessos={recebProcessos}
+            ocrProcessando={ocrProcessando}
+            ocrPreview={ocrPreview}
+            onUploadImagemOCR={handleUploadImagemOCR}
+            onProcessarOCR={handleProcessarOCR}
+            setOcrPreview={setOcrPreview}
+            setOcrImagemBase64={setOcrImagemBase64}
+            apensoModalOpen={apensoModalOpen}
+            setApensoModalOpen={setApensoModalOpen}
+            apensoProcessoId={apensoProcessoId}
+            setApensoProcessoId={setApensoProcessoId}
+            setoresOptions={setoresOptions}
+            novoSetorInput={novoSetorInput}
+            setNovoSetorInput={setNovoSetorInput}
+            docForm={docForm}
+            setDocForm={setDocForm}
+            emptyDocForm={EMPTY_DOC_FORM}
+            onCriarSetor={handleCriarSetor}
+            onSalvarProcessoRecebimento={handleSalvarProcessoRecebimento}
+            onExcluirProcessoRecebimento={handleExcluirProcessoRecebimento}
+            onAdicionarApenso={handleAdicionarApenso}
+            onExcluirApenso={handleExcluirApenso}
+          />
+        </Suspense>
 
-              <div className="px-6 py-3 flex-1 overflow-auto">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Dados</label>
-                <textarea
-                  className="w-full h-64 px-3 py-2 border rounded-lg text-sm font-mono"
-                  placeholder="502824/2021&#9;JBS S/A&#10;502825/2021&#9;Prefeitura Municipal"
-                  value={batchText}
-                  onChange={(e) => setBatchText(e.target.value)}
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Separe protocolo e interessado com TAB.
-                </p>
-              </div>
+        <Suspense
+          fallback={
+            previewTermoUrl ? <PanelLoadingFallback title="Pré-visualização do termo" /> : null
+          }
+        >
+          <PdfPreviewModal
+            open={!!previewTermoUrl}
+            title="Termo de Recebimento"
+            iframeId="termo-preview-iframe"
+            src={previewTermoUrl}
+            onDownload={handleDownloadTermo}
+            onClose={() => {
+              if (previewTermoUrl) URL.revokeObjectURL(previewTermoUrl);
+              setPreviewTermoUrl(null);
+              setPreviewTermoReportId(null);
+            }}
+          />
+        </Suspense>
 
-              <div className="px-6 py-4 border-t flex justify-end gap-2">
-                <Button variant="secondary" onClick={() => setBatchAddModalOpen(false)}>
-                  Cancelar
-                </Button>
-                <Button
-                  onClick={() => void handleAdicionarEmLote()}
-                  loading={processando}
-                  disabled={!batchRepoId || !batchText.trim()}
-                >
-                  Adicionar
-                </Button>
-              </div>
-            </div>
-          </div>
-        ) : null}
-
-        {ocrModalOpen && ocrRepo ? (
-          <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center sm:p-4 animate-fade-in">
-            <div className="bg-[var(--color-bg-primary)] w-full h-[95vh] sm:h-auto sm:max-h-[92vh] sm:max-w-6xl rounded-t-xl sm:rounded-xl shadow-xl overflow-hidden flex flex-col animate-scale-in">
-              <div className="px-6 py-4 border-b flex items-center justify-between shrink-0">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">Recebimento — Processos</h3>
-                  <p className="text-sm text-gray-500">
-                    ID GED: {ocrRepo.id_repositorio_ged} · {ocrRepo.orgao}
-                  </p>
-                </div>
-                <Button variant="ghost" icon="x" iconOnly onClick={() => setOcrModalOpen(false)} />
-              </div>
-
-              {/* Tabs */}
-              <div className="px-6 pt-3 border-b shrink-0 flex gap-4">
-                <button
-                  className={`pb-2 text-sm font-medium border-b-2 ${recebTab === 'processos' ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-                  onClick={() => setRecebTab('processos')}
-                >
-                  Processos ({recebProcessos.length})
-                </button>
-                <button
-                  className={`pb-2 text-sm font-medium border-b-2 ${recebTab === 'ocr' ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-                  onClick={() => setRecebTab('ocr')}
-                >
-                  Novo Processo
-                </button>
-              </div>
-
-              <div className="flex-1 overflow-auto p-3 sm:p-6 space-y-4 sm:space-y-5">
-                {recebTab === 'ocr' ? (
-                  <>
-                    {/* OCR Upload */}
-                    <Card>
-                      <h4 className="text-sm font-semibold text-gray-900 mb-3">
-                        Imagem do Protocolo
-                      </h4>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <input
-                          type="file"
-                          accept="image/png,image/jpeg,image/jpg,image/webp"
-                          onChange={(e) => void handleUploadImagemOCR(e.target.files?.[0] ?? null)}
-                          className="block w-full sm:flex-1 text-sm text-gray-700"
-                        />
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            onClick={() => void handleProcessarOCR()}
-                            loading={ocrProcessando}
-                          >
-                            Processar OCR
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            onClick={() => {
-                              setOcrImagemBase64('');
-                              setOcrPreview(null);
-                            }}
-                            disabled={ocrProcessando}
-                          >
-                            Limpar
-                          </Button>
-                        </div>
-                      </div>
-                      {ocrPreview ? (
-                        <p className="mt-2 text-xs text-primary-700 bg-primary-50 rounded px-2 py-1 inline-block">
-                          Confiança OCR: {(ocrPreview.confianca * 100).toFixed(1)}%
-                        </p>
-                      ) : null}
-                    </Card>
-
-                    {/* Formulário simplificado */}
-                    <Card>
-                      <h4 className="text-sm font-semibold text-gray-900 mb-3">
-                        Cadastro de Documento
-                      </h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Tipo de cadastro
-                          </label>
-                          <select
-                            className="w-full h-9 px-3 border rounded-lg text-sm"
-                            value={apensoModalOpen ? 'APENSO' : 'PROCESSO'}
-                            onChange={(e) => {
-                              const apenso = e.target.value === 'APENSO';
-                              setApensoModalOpen(apenso);
-                              if (!apenso) setApensoProcessoId('');
-                            }}
-                          >
-                            <option value="PROCESSO">Edital/Processo</option>
-                            <option value="APENSO">Apenso Cadastrado</option>
-                          </select>
-                        </div>
-                        {apensoModalOpen ? (
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Processo Principal
-                            </label>
-                            <select
-                              className="w-full h-9 px-3 border rounded-lg text-sm"
-                              value={apensoProcessoId}
-                              onChange={(e) => setApensoProcessoId(e.target.value)}
-                            >
-                              <option value="">— Selecione —</option>
-                              {recebProcessos.map((proc) => (
-                                <option key={proc.id} value={proc.id}>
-                                  {proc.protocolo} - {proc.interessado}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                        ) : null}
-                        <Input
-                          label="Protocolo *"
-                          value={docForm.protocolo}
-                          onChange={(e) => setDocForm((p) => ({ ...p, protocolo: e.target.value }))}
-                          placeholder="Ex: 502824/2021"
-                        />
-                        <Input
-                          label="Interessado *"
-                          value={docForm.interessado}
-                          onChange={(e) =>
-                            setDocForm((p) => ({ ...p, interessado: e.target.value }))
-                          }
-                          placeholder="Ex: JBS S/A"
-                        />
-
-                        {/* Setor - creatable selector */}
-                        {!apensoModalOpen ? (
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Setor (quem enviou)
-                            </label>
-                            <div className="flex gap-1">
-                              <select
-                                className="flex-1 h-9 px-3 border rounded-lg text-sm"
-                                value={docForm.setorId}
-                                onChange={(e) =>
-                                  setDocForm((p) => ({ ...p, setorId: e.target.value }))
-                                }
-                              >
-                                <option value="">— Selecione —</option>
-                                {setoresOptions.map((s) => (
-                                  <option key={s.id} value={s.id}>
-                                    {s.nome}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                            <div className="flex gap-1 mt-1">
-                              <input
-                                type="text"
-                                className="flex-1 h-8 px-2 border rounded text-xs"
-                                placeholder="Novo setor..."
-                                value={novoSetorInput}
-                                onChange={(e) => setNovoSetorInput(e.target.value)}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') {
-                                    e.preventDefault();
-                                    void handleCriarSetor();
-                                  }
-                                }}
-                              />
-                              <button
-                                type="button"
-                                className="h-8 px-2 text-xs bg-primary-600 text-white rounded hover:bg-primary-700 disabled:opacity-50"
-                                onClick={() => void handleCriarSetor()}
-                                disabled={!novoSetorInput.trim()}
-                              >
-                                +
-                              </button>
-                            </div>
-                          </div>
-                        ) : null}
-
-                        <div className="flex gap-3">
-                          <div className="flex-1">
-                            <Input
-                              label="Volume"
-                              type="number"
-                              min={1}
-                              value={String(docForm.volumeAtual)}
-                              onChange={(e) =>
-                                setDocForm((p) => ({
-                                  ...p,
-                                  volumeAtual: Math.max(Number(e.target.value || 1), 1),
-                                }))
-                              }
-                            />
-                          </div>
-                          <span className="self-end pb-2 text-gray-500 text-sm">de</span>
-                          <div className="flex-1">
-                            <Input
-                              label="Total"
-                              type="number"
-                              min={0}
-                              value={String(docForm.volumeTotal)}
-                              onChange={(e) =>
-                                setDocForm((p) => ({
-                                  ...p,
-                                  volumeTotal: Math.max(Number(e.target.value || 0), 0),
-                                }))
-                              }
-                            />
-                          </div>
-                        </div>
-                      </div>
-                      <div className="mt-4 flex gap-2">
-                        {apensoModalOpen ? (
-                          <Button
-                            onClick={() => void handleAdicionarApenso()}
-                            loading={ocrProcessando}
-                          >
-                            Salvar Apenso
-                          </Button>
-                        ) : (
-                          <Button
-                            onClick={() => void handleSalvarProcessoRecebimento()}
-                            loading={ocrProcessando}
-                          >
-                            Salvar Processo
-                          </Button>
-                        )}
-                        {apensoModalOpen ? (
-                          <Button
-                            variant="secondary"
-                            onClick={() => {
-                              setApensoModalOpen(false);
-                              setApensoProcessoId('');
-                              setDocForm({ ...EMPTY_DOC_FORM });
-                            }}
-                          >
-                            Cancelar Apenso
-                          </Button>
-                        ) : (
-                          <Button
-                            variant="secondary"
-                            onClick={() => {
-                              setDocForm({ ...EMPTY_DOC_FORM });
-                              setOcrPreview(null);
-                              setOcrImagemBase64('');
-                            }}
-                          >
-                            Limpar Formulário
-                          </Button>
-                        )}
-                      </div>
-                    </Card>
-                  </>
-                ) : (
-                  /* Tab Processos */
-                  <Card>
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="text-sm font-semibold text-gray-900">
-                        Processos registrados ({recebProcessos.length})
-                      </h4>
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          setDocForm({ ...EMPTY_DOC_FORM });
-                          setApensoModalOpen(false);
-                          setApensoProcessoId('');
-                          setRecebTab('ocr');
-                        }}
-                      >
-                        + Novo Processo
-                      </Button>
-                    </div>
-
-                    {recebProcessos.length === 0 ? (
-                      <p className="text-sm text-gray-500 text-center py-8">
-                        Nenhum Processo registrado.
-                      </p>
-                    ) : (
-                      <div className="space-y-3">
-                        {recebProcessos.map((proc) => (
-                          <div key={proc.id} className="border rounded-lg overflow-hidden">
-                            {/* Processo principal */}
-                            <div className="bg-primary-50 px-3 py-3">
-                              {/* Protocolo + Volume */}
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="font-bold text-base text-primary-900">
-                                  {proc.protocolo}
-                                </span>
-                                <span className="text-xs bg-primary-100 text-primary-700 px-1.5 py-0.5 rounded whitespace-nowrap">
-                                  Vol. {proc.volume_atual}
-                                  {proc.volume_total > 0 ? `/${proc.volume_total}` : ''}
-                                </span>
-                              </div>
-                              {/* Origem + Interessado */}
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">
-                                  {proc.origem}
-                                </span>
-                                <span className="text-sm text-gray-800">{proc.interessado}</span>
-                              </div>
-                              {/* Setor e Classificação */}
-                              {(proc.setor_nome || proc.classificacao_nome) && (
-                                <p className="text-xs text-gray-500">
-                                  {proc.setor_nome && <>Setor: {proc.setor_nome}</>}
-                                  {proc.setor_nome && proc.classificacao_nome && ' · '}
-                                  {proc.classificacao_nome && (
-                                    <>Classif: {proc.classificacao_nome}</>
-                                  )}
-                                </p>
-                              )}
-                              {/* Botões em linha separada */}
-                              <div className="flex gap-2 mt-2 pt-2 border-t border-primary-100">
-                                <Button
-                                  size="xs"
-                                  variant="outline"
-                                  onClick={() => {
-                                    setApensoProcessoId(proc.id);
-                                    setApensoModalOpen(true);
-                                    setDocForm({ ...EMPTY_DOC_FORM });
-                                    setRecebTab('ocr');
-                                  }}
-                                >
-                                  + Apenso
-                                </Button>
-                                <Button
-                                  size="xs"
-                                  variant="danger"
-                                  onClick={() => handleExcluirProcessoRecebimento(proc.id)}
-                                  disabled={ocrProcessando}
-                                >
-                                  Excluir
-                                </Button>
-                              </div>
-                            </div>
-
-                            {/* Apensos */}
-                            {proc.apensos.length > 0 && (
-                              <div className="border-t bg-gray-50">
-                                {proc.apensos.map((ap) => (
-                                  <div key={ap.id} className="px-3 py-2 border-b last:border-b-0">
-                                    <div className="flex items-center gap-2 mb-0.5">
-                                      <span className="text-xs text-gray-400">↳</span>
-                                      <span className="font-semibold text-sm text-gray-800">
-                                        {ap.protocolo}
-                                      </span>
-                                      <span className="text-xs bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded whitespace-nowrap">
-                                        Vol. {ap.volume_atual}
-                                        {ap.volume_total > 0 ? `/${ap.volume_total}` : ''}
-                                      </span>
-                                    </div>
-                                    {ap.interessado && (
-                                      <p className="text-xs text-gray-600 ml-4 mb-1">
-                                        {ap.interessado}
-                                      </p>
-                                    )}
-                                    <div className="ml-4">
-                                      <Button
-                                        size="xs"
-                                        variant="danger"
-                                        onClick={() => handleExcluirApenso(ap.id)}
-                                        disabled={ocrProcessando}
-                                      >
-                                        Excluir
-                                      </Button>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </Card>
-                )}
-              </div>
-
-              <div className="px-6 py-3 border-t flex justify-end shrink-0">
-                <Button variant="secondary" onClick={() => setOcrModalOpen(false)}>
-                  Fechar
-                </Button>
-              </div>
-            </div>
-          </div>
-        ) : null}
-
-        {/* Preview Termo de Recebimento */}
-        {previewTermoUrl ? (
-          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in">
-            <div className="bg-[var(--color-bg-primary)] rounded-xl shadow-xl w-full max-w-4xl h-[85vh] flex flex-col overflow-hidden animate-scale-in">
-              <div className="px-6 py-4 border-b flex items-center justify-between shrink-0">
-                <h3 className="text-lg font-semibold text-gray-900">Termo de Recebimento</h3>
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => {
-                      const iframe = document.getElementById(
-                        'termo-preview-iframe'
-                      ) as HTMLIFrameElement | null;
-                      if (iframe?.contentWindow) iframe.contentWindow.print();
-                    }}
-                  >
-                    Imprimir
-                  </Button>
-                  <Button size="sm" onClick={() => void handleDownloadTermo()}>
-                    Baixar PDF
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => {
-                      if (previewTermoUrl) URL.revokeObjectURL(previewTermoUrl);
-                      setPreviewTermoUrl(null);
-                      setPreviewTermoReportId(null);
-                    }}
-                  >
-                    Fechar
-                  </Button>
-                </div>
-              </div>
-              <div className="flex-1 min-h-0">
-                <iframe
-                  id="termo-preview-iframe"
-                  src={previewTermoUrl}
-                  className="w-full h-full border-0"
-                  title="Preview do Termo de Recebimento"
-                />
-              </div>
-            </div>
-          </div>
-        ) : null}
-
-        {previewEtiquetasUrl ? (
-          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in">
-            <div className="bg-[var(--color-bg-primary)] rounded-xl shadow-xl w-full max-w-4xl h-[85vh] flex flex-col overflow-hidden animate-scale-in">
-              <div className="px-6 py-4 border-b flex items-center justify-between shrink-0">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Pré-visualização das Etiquetas
-                </h3>
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => {
-                      const iframe = document.getElementById(
-                        'etiquetas-preview-iframe'
-                      ) as HTMLIFrameElement | null;
-                      if (iframe?.contentWindow) iframe.contentWindow.print();
-                    }}
-                  >
-                    Imprimir
-                  </Button>
-                  <Button size="sm" onClick={() => handleDownloadPreviewEtiquetas()}>
-                    Baixar PDF
-                  </Button>
-                  <Button size="sm" variant="secondary" onClick={handleFecharPreviewEtiquetas}>
-                    Fechar
-                  </Button>
-                </div>
-              </div>
-              <div className="flex-1 min-h-0">
-                <iframe
-                  id="etiquetas-preview-iframe"
-                  src={previewEtiquetasUrl}
-                  className="w-full h-full border-0"
-                  title="Pré-visualização das etiquetas"
-                />
-              </div>
-            </div>
-          </div>
-        ) : null}
+        <Suspense
+          fallback={
+            previewEtiquetasUrl ? (
+              <PanelLoadingFallback title="Pré-visualização das etiquetas" />
+            ) : null
+          }
+        >
+          <PdfPreviewModal
+            open={!!previewEtiquetasUrl}
+            title="Pré-visualização das Etiquetas"
+            iframeId="etiquetas-preview-iframe"
+            src={previewEtiquetasUrl}
+            onDownload={handleDownloadPreviewEtiquetas}
+            onClose={handleFecharPreviewEtiquetas}
+          />
+        </Suspense>
       </div>
     </PageState>
   );

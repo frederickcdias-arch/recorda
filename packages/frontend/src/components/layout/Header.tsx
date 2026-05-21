@@ -1,4 +1,5 @@
-import { useRef, useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Icon } from '../ui/Icon';
 import { Button } from '../ui/Button';
 import { useAuth } from '../../contexts/AuthContext';
@@ -8,6 +9,7 @@ import type { Theme } from '../../contexts/ThemeContext';
 interface HeaderProps {
   onMenuToggle: () => void;
   title?: string;
+  unreadComunicados?: number;
 }
 
 const PERFIL_LABELS: Record<string, string> = {
@@ -50,13 +52,13 @@ function ThemeToggle(): JSX.Element {
         title={`Tema: ${current.label}`}
         aria-label={`Tema: ${current.label}`}
         aria-expanded={open}
-        className="p-2 rounded-lg hover:bg-[var(--color-gray-100)] text-[var(--color-text-secondary)] transition-colors"
+        className="rounded-xl border border-transparent p-2 text-[var(--color-text-secondary)] transition-colors hover:border-[var(--color-border-primary)] hover:bg-[var(--color-bg-primary)]"
       >
-        <Icon name={current.icon} className="w-4 h-4" />
+        <Icon name={current.icon} className="h-4 w-4" />
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-1 w-36 rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] shadow-lg py-1 z-[var(--z-dropdown)]">
+        <div className="absolute right-0 top-full z-[var(--z-dropdown)] mt-2 w-40 rounded-2xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] p-1.5 shadow-lg">
           {THEME_OPTIONS.map((opt) => (
             <button
               key={opt.value}
@@ -64,17 +66,17 @@ function ThemeToggle(): JSX.Element {
                 setTheme(opt.value);
                 setOpen(false);
               }}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm transition-colors ${
+              className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm transition-colors ${
                 theme === opt.value
-                  ? 'text-[var(--color-primary-600)] bg-[var(--color-primary-50)]'
+                  ? 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)]'
                   : 'text-[var(--color-text-primary)] hover:bg-[var(--color-gray-50)]'
               }`}
             >
-              <Icon name={opt.icon} className="w-3.5 h-3.5 shrink-0" />
+              <Icon name={opt.icon} className="h-3.5 w-3.5 shrink-0" />
               <span>{opt.label}</span>
-              {theme === opt.value && (
-                <Icon name="check" className="w-3 h-3 ml-auto text-[var(--color-primary-600)]" />
-              )}
+              {theme === opt.value ? (
+                <Icon name="check" className="ml-auto h-3 w-3 text-[var(--color-primary-600)]" />
+              ) : null}
             </button>
           ))}
         </div>
@@ -83,7 +85,7 @@ function ThemeToggle(): JSX.Element {
   );
 }
 
-export function Header({ onMenuToggle, title }: HeaderProps): JSX.Element {
+export function Header({ onMenuToggle, title, unreadComunicados = 0 }: HeaderProps): JSX.Element {
   const { usuario, logout } = useAuth();
   const breadcrumbs = buildBreadcrumbs(title);
 
@@ -91,87 +93,111 @@ export function Header({ onMenuToggle, title }: HeaderProps): JSX.Element {
   const perfilLabel = usuario?.perfil ? formatPerfil(usuario.perfil) : '';
 
   return (
-    <header className="bg-[var(--color-bg-primary)] border-b border-[var(--color-border-primary)] h-16 flex items-center px-4 gap-4">
-      <button
-        onClick={onMenuToggle}
-        className="p-2 rounded-lg hover:bg-[var(--color-gray-100)] text-[var(--color-text-secondary)] md:hidden"
-        aria-label="Abrir menu"
-      >
-        <Icon name="menu" className="w-6 h-6" />
-      </button>
-
-      <div className="flex items-center rounded-full w-10 h-10 overflow-hidden shadow-sm md:hidden">
-        <img src="/images/logo-icon.png" alt="Recorda" className="h-full w-full object-contain" />
-      </div>
-
-      {/* Breadcrumbs — desktop only */}
-      <nav className="hidden sm:flex items-center gap-1.5 text-sm min-w-0">
-        {breadcrumbs.map((crumb, i) => (
-          <span key={i} className="flex items-center gap-1.5 min-w-0">
-            {i > 0 && <span className="text-[var(--color-gray-300)]">/</span>}
-            {i < breadcrumbs.length - 1 ? (
-              <span className="text-[var(--color-text-tertiary)] truncate">{crumb}</span>
-            ) : (
-              <span className="text-[var(--color-text-primary)] font-semibold truncate">
-                {crumb}
-              </span>
-            )}
-          </span>
-        ))}
-      </nav>
-
-      {/* Mobile title */}
-      {title && (
-        <h1 className="text-base font-semibold text-[var(--color-text-primary)] sm:hidden truncate">
-          {title.split(' - ').pop()}
-        </h1>
-      )}
-
-      <div className="flex-1" />
-
-      {/* User area */}
-      <div className="flex items-center gap-2 sm:gap-3">
-        {/* Name + profile — desktop only */}
-        {usuario && (
-          <div className="hidden sm:flex flex-col items-end leading-tight">
-            <span className="text-sm font-medium text-[var(--color-text-primary)] truncate max-w-[160px]">
-              {usuario.nome}
-            </span>
-            <span className="text-xs text-[var(--color-text-secondary)]">{perfilLabel}</span>
-          </div>
-        )}
-
-        {/* Avatar */}
-        <div
-          aria-hidden="true"
-          className="h-9 w-9 rounded-full bg-[var(--color-primary-100)] text-[var(--color-primary-700)] flex items-center justify-center text-sm font-semibold shrink-0 select-none"
+    <header className="sticky top-0 z-30 border-b border-[var(--color-border-primary)] bg-[color:color-mix(in_srgb,var(--color-bg-primary)_92%,transparent)] backdrop-blur">
+      <div className="flex h-16 items-center gap-3 px-4 sm:px-5 md:px-6">
+        <button
+          onClick={onMenuToggle}
+          className="rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] p-2 text-[var(--color-text-secondary)] shadow-xs transition-colors hover:bg-[var(--color-gray-50)] md:hidden"
+          aria-label="Abrir menu"
         >
-          {initial}
+          <Icon name="menu" className="h-6 w-6" />
+        </button>
+
+        <div className="flex h-10 w-10 items-center overflow-hidden rounded-2xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] shadow-xs md:hidden">
+          <img src="/images/logo-icon.png" alt="Recorda" className="h-full w-full object-contain" />
         </div>
 
-        {/* Theme toggle */}
-        <ThemeToggle />
+        <div className="min-w-0 flex-1">
+          <nav className="hidden min-w-0 items-center gap-1.5 text-sm sm:flex">
+            {breadcrumbs.map((crumb, i) => (
+              <span key={i} className="flex min-w-0 items-center gap-1.5">
+                {i > 0 ? <span className="text-[var(--color-gray-300)]">/</span> : null}
+                {i < breadcrumbs.length - 1 ? (
+                  <span className="truncate text-[var(--color-text-tertiary)]">{crumb}</span>
+                ) : (
+                  <span className="truncate font-semibold text-[var(--color-text-primary)]">
+                    {crumb}
+                  </span>
+                )}
+              </span>
+            ))}
+          </nav>
 
-        {/* Logout button */}
-        <Button
-          variant="ghost"
-          size="sm"
-          icon="log-out"
-          onClick={() => void logout()}
-          aria-label="Sair do sistema"
-          title="Sair do sistema"
-          className="hidden sm:flex"
-        >
-          Sair
-        </Button>
-        <button
-          onClick={() => void logout()}
-          aria-label="Sair do sistema"
-          title="Sair do sistema"
-          className="sm:hidden p-2 rounded-lg hover:bg-[var(--color-gray-100)] text-[var(--color-text-secondary)]"
-        >
-          <Icon name="log-out" className="w-5 h-5" />
-        </button>
+          {title ? (
+            <h1 className="truncate text-base font-semibold text-[var(--color-text-primary)] sm:hidden">
+              {title.split(' - ').pop()}
+            </h1>
+          ) : null}
+
+          {usuario ? (
+            <p className="hidden text-xs text-[var(--color-text-tertiary)] md:block">
+              {perfilLabel}
+              {usuario.nome ? ` • ${usuario.nome}` : ''}
+            </p>
+          ) : null}
+        </div>
+
+        <div className="flex items-center gap-2 sm:gap-3">
+          <Link
+            to="/comunicados"
+            aria-label={
+              unreadComunicados > 0
+                ? `${unreadComunicados} comunicado(s) não lido(s)`
+                : 'Abrir comunicados'
+            }
+            title={
+              unreadComunicados > 0
+                ? `${unreadComunicados} comunicado(s) não lido(s)`
+                : 'Abrir comunicados'
+            }
+            className="relative rounded-xl border border-transparent p-2 text-[var(--color-text-secondary)] transition-colors hover:border-[var(--color-border-primary)] hover:bg-[var(--color-bg-primary)]"
+          >
+            <Icon name="mail" className="h-5 w-5" />
+            {unreadComunicados > 0 ? (
+              <span className="absolute -right-1 -top-1 inline-flex min-w-[1.1rem] items-center justify-center rounded-full bg-[var(--color-error-600)] px-1 text-[10px] font-semibold leading-4 text-white">
+                {unreadComunicados > 99 ? '99+' : unreadComunicados}
+              </span>
+            ) : null}
+          </Link>
+
+          {usuario ? (
+            <div className="hidden min-w-0 sm:flex sm:flex-col sm:items-end sm:leading-tight">
+              <span className="max-w-[160px] truncate text-sm font-medium text-[var(--color-text-primary)]">
+                {usuario.nome}
+              </span>
+              <span className="text-xs text-[var(--color-text-secondary)]">{perfilLabel}</span>
+            </div>
+          ) : null}
+
+          <div
+            aria-hidden="true"
+            className="flex h-9 w-9 shrink-0 select-none items-center justify-center rounded-full border border-[var(--color-primary-200)] bg-[var(--color-primary-50)] text-sm font-semibold text-[var(--color-primary-700)]"
+          >
+            {initial}
+          </div>
+
+          <ThemeToggle />
+
+          <Button
+            variant="ghost"
+            size="sm"
+            icon="log-out"
+            onClick={() => void logout()}
+            aria-label="Sair do sistema"
+            title="Sair do sistema"
+            className="hidden sm:flex"
+          >
+            Sair
+          </Button>
+          <button
+            onClick={() => void logout()}
+            aria-label="Sair do sistema"
+            title="Sair do sistema"
+            className="rounded-xl border border-transparent p-2 text-[var(--color-text-secondary)] transition-colors hover:border-[var(--color-border-primary)] hover:bg-[var(--color-bg-primary)] sm:hidden"
+          >
+            <Icon name="log-out" className="h-5 w-5" />
+          </button>
+        </div>
       </div>
     </header>
   );

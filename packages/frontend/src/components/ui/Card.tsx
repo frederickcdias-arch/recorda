@@ -11,7 +11,8 @@ interface CardProps {
 }
 
 const variantClasses: Record<CardVariant, string> = {
-  default: 'bg-[var(--color-bg-primary)] border border-[var(--color-border-primary)] shadow-xs',
+  default:
+    'bg-[var(--color-bg-primary)] border border-[var(--color-border-primary)] shadow-xs ring-1 ring-black/[0.02]',
   elevated: 'bg-[var(--color-bg-primary)] shadow-md border-0',
   outlined: 'bg-transparent border border-[var(--color-border-primary)]',
   ghost: 'bg-[var(--color-gray-50)] border-0',
@@ -39,7 +40,7 @@ export function Card({
   return (
     <div
       className={`
-        min-w-0 max-w-full rounded-xl transition-all duration-150
+        min-w-0 max-w-full rounded-2xl transition-all duration-150
         ${variantClasses[variant]}
         ${paddingClasses[padding]}
         ${hover || isClickable ? 'hover:shadow-md hover:border-[var(--color-gray-300)] hover:-translate-y-0.5' : ''}

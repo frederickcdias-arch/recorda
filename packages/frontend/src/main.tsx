@@ -1,5 +1,6 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { registerSW } from 'virtual:pwa-register';
 import { App } from './App';
 import './services/api';
 import './index.css';
@@ -14,6 +15,10 @@ const rootElement = document.getElementById('root');
 
 if (!rootElement) {
   throw new Error('Root element not found');
+}
+
+if (import.meta.env.PROD) {
+  registerSW({ immediate: true });
 }
 
 createRoot(rootElement).render(

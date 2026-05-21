@@ -39,3 +39,22 @@ export function validateParams<T>(schema: ZodSchema<T>) {
     }
   };
 }
+
+/**
+ * Creates a Fastify preValidation hook that validates request.query against a Zod schema.
+ */
+export function validateQuery<T>(schema: ZodSchema<T>) {
+  return async (request: FastifyRequest, reply: FastifyReply): Promise<void> => {
+    const result = schema.safeParse(request.query);
+    if (!result.success) {
+      const zodError = result.error as ZodError;
+      const messages = zodError.issues.map((i) => `${i.path.join('.')}: ${i.message}`);
+      await reply.status(400).send({
+        error: 'Query invÃ¡lida',
+        details: messages,
+      });
+    } else {
+      request.query = result.data as FastifyRequest['query'];
+    }
+  };
+}

@@ -36,7 +36,7 @@ interface ModalProps {
 
 const sizeClasses: Record<ModalSize, string> = {
   sm: 'max-w-sm',
-  md: 'max-w-lg',
+  md: 'max-w-xl',
   lg: 'max-w-2xl',
   xl: 'max-w-4xl',
 };
@@ -126,12 +126,12 @@ export function Modal({
   if (!open) return null;
 
   const overlayClass = scrollable
-    ? 'fixed inset-0 z-50 flex items-start justify-center bg-black/50 overflow-y-auto py-8 px-4'
-    : 'fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4';
+    ? 'fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/55 px-4 py-8 backdrop-blur-sm'
+    : 'fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm';
 
   const panelClass = scrollable
-    ? `bg-[var(--color-bg-primary)] rounded-xl shadow-2xl w-full ${sizeClasses[size]}`
-    : `bg-[var(--color-bg-primary)] rounded-xl shadow-2xl w-full ${sizeClasses[size]} max-h-[90vh] flex flex-col`;
+    ? `bg-[var(--color-bg-primary)] rounded-2xl shadow-2xl w-full ${sizeClasses[size]}`
+    : `bg-[var(--color-bg-primary)] rounded-2xl shadow-2xl w-full ${sizeClasses[size]} max-h-[90vh] flex flex-col`;
 
   return (
     <div

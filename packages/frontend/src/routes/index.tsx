@@ -1,11 +1,13 @@
 import { lazy, Suspense } from 'react';
-import { createBrowserRouter, Navigate } from 'react-router-dom';
-import { AppLayout } from '../components/layout/AppLayout';
+import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom';
 import { ProtectedRoute } from '../components/auth/ProtectedRoute';
 import { RoleRoute } from '../components/auth/RoleRoute';
 import { RouteErrorFallback } from '../components/ui/RouteErrorFallback';
 import { LoadingSpinner } from '../components/ui/LoadingSpinner';
 
+const AppLayout = lazy(() =>
+  import('../components/layout/AppLayout').then((m) => ({ default: m.AppLayout }))
+);
 const LoginPage = lazy(() => import('../pages/Login').then((m) => ({ default: m.LoginPage })));
 const ForgotPasswordPage = lazy(() =>
   import('../pages/ForgotPassword').then((m) => ({ default: m.ForgotPasswordPage }))
@@ -15,6 +17,9 @@ const ResetPasswordPage = lazy(() =>
 );
 const DashboardPage = lazy(() =>
   import('../pages/Dashboard').then((m) => ({ default: m.DashboardPage }))
+);
+const ComunicadosPage = lazy(() =>
+  import('../pages/ComunicadosPage').then((m) => ({ default: m.ComunicadosPage }))
 );
 const ProducaoPage = lazy(() =>
   import('../pages/operacao/ProducaoPage').then((m) => ({ default: m.ProducaoPage }))
@@ -74,6 +79,11 @@ const VincularProducoesPage = lazy(() =>
     default: m.VincularProducoesPage,
   }))
 );
+const ComunicadosAdminPage = lazy(() =>
+  import('../pages/configuracoes/ComunicadosPage').then((m) => ({
+    default: m.ComunicadosPage,
+  }))
+);
 const DevolucoesPage = lazy(() =>
   import('../pages/operacao/DevolucoesPage').then((m) => ({ default: m.DevolucoesPage }))
 );
@@ -121,7 +131,9 @@ export const router = createBrowserRouter([
     path: '/',
     element: (
       <ProtectedRoute>
-        <AppLayout />
+        <PageSuspense>
+          <AppLayout />
+        </PageSuspense>
       </ProtectedRoute>
     ),
     errorElement: <RouteErrorFallback />,
@@ -135,6 +147,14 @@ export const router = createBrowserRouter([
         element: (
           <PageSuspense>
             <DashboardPage />
+          </PageSuspense>
+        ),
+      },
+      {
+        path: 'comunicados',
+        element: (
+          <PageSuspense>
+            <ComunicadosPage />
           </PageSuspense>
         ),
       },
@@ -297,6 +317,16 @@ export const router = createBrowserRouter([
         ),
       },
       {
+        path: 'configuracoes/comunicados',
+        element: (
+          <RoleRoute allowedProfiles={['administrador']}>
+            <PageSuspense>
+              <ComunicadosAdminPage />
+            </PageSuspense>
+          </RoleRoute>
+        ),
+      },
+      {
         path: 'auditoria',
         element: <Navigate to="/auditoria/importacoes" replace />,
       },
@@ -359,3 +389,7 @@ export const router = createBrowserRouter([
     ),
   },
 ]);
+
+export function AppRouter(): JSX.Element {
+  return <RouterProvider router={router} />;
+}

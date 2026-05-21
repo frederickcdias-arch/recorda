@@ -12,11 +12,14 @@ export * from './entities/etapa.js';
 export * from './entities/processo.js';
 export * from './entities/producao.js';
 export * from './entities/operacional.js';
+export * from './entities/comunicado.js';
 
 // DTOs de API
 export * from './api/auth.js';
 export * from './api/pagination.js';
 export * from './api/responses.js';
+export * from './api/comunicados.js';
+export * from './api/push.js';
 
 // Utilitários
 export * from './utils/repositorio.js';

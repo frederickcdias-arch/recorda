@@ -1,23 +1,24 @@
-import { useState } from 'react';
-import { Button } from '../../components/ui/Button';
-import { Card } from '../../components/ui/Card';
-import { Input } from '../../components/ui/Input';
+import { useMemo, useState } from 'react';
 import { Badge } from '../../components/ui/Badge';
-import { PageHeader } from '../../components/ui/PageHeader';
-import { Alert } from '../../components/ui/Alert';
+import { Button } from '../../components/ui/Button';
+import { Card, CardHeader } from '../../components/ui/Card';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
-import { PageState } from '../../components/ui/PageState';
+import { FilterBar } from '../../components/ui/FilterBar';
+import { Input } from '../../components/ui/Input';
+import { Modal } from '../../components/ui/Modal';
+import { PageHeader } from '../../components/ui/PageHeader';
+import { ActionFeedback, PageState } from '../../components/ui/PageState';
 import {
   Table,
-  TableHead,
   TableBody,
-  TableRow,
-  TableHeader,
   TableCell,
   TableEmptyState,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from '../../components/ui/Table';
 import { useConfirmDialog } from '../../hooks/useConfirmDialog';
-import { useProjetosConfiguracao, useCreateProjetoConfiguracao } from '../../hooks/useQueries';
+import { useCreateProjetoConfiguracao, useProjetosConfiguracao } from '../../hooks/useQueries';
 
 interface ProjetoForm {
   nome: string;
@@ -25,48 +26,59 @@ interface ProjetoForm {
   ativo: boolean;
 }
 
+const initialForm: ProjetoForm = {
+  nome: '',
+  descricao: '',
+  ativo: true,
+};
+
 export function ProjetosPage(): JSX.Element {
   const projetosQuery = useProjetosConfiguracao();
   const createProjeto = useCreateProjetoConfiguracao();
-
   const confirmDialog = useConfirmDialog();
-  const [formulario, setFormulario] = useState<ProjetoForm>({
-    nome: '',
-    descricao: '',
-    ativo: true,
-  });
+
+  const [formulario, setFormulario] = useState<ProjetoForm>(initialForm);
   const [mostrarForm, setMostrarForm] = useState(false);
+  const [busca, setBusca] = useState('');
   const [mensagem, setMensagem] = useState<{ tipo: 'success' | 'error'; texto: string } | null>(
     null
   );
 
   const projetos = projetosQuery.data ?? [];
-
   const carregando = projetosQuery.isLoading;
 
+  const projetosFiltrados = useMemo(() => {
+    const termo = busca.trim().toLowerCase();
+    if (!termo) return projetos;
+
+    return projetos.filter((projeto) => projeto.nome.toLowerCase().includes(termo));
+  }, [busca, projetos]);
+
   const resetForm = () => {
-    setFormulario({ nome: '', descricao: '', ativo: true });
+    setFormulario(initialForm);
     setMostrarForm(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!formulario.nome.trim()) {
-      setMensagem({ tipo: 'error', texto: 'Nome do projeto é obrigatório' });
+      setMensagem({ tipo: 'error', texto: 'Nome do projeto é obrigatório.' });
       return;
     }
+
     try {
       await createProjeto.mutateAsync({
         nome: formulario.nome.trim(),
         descricao: formulario.descricao.trim() || undefined,
         ativo: formulario.ativo,
       });
-      setMensagem({ tipo: 'success', texto: 'Projeto criado com sucesso!' });
+      setMensagem({ tipo: 'success', texto: 'Projeto criado com sucesso.' });
       resetForm();
     } catch (error) {
       setMensagem({
         tipo: 'error',
-        texto: error instanceof Error ? error.message : 'Erro ao salvar projeto',
+        texto: error instanceof Error ? error.message : 'Erro ao salvar projeto.',
       });
     }
   };
@@ -74,12 +86,12 @@ export function ProjetosPage(): JSX.Element {
   const handleExcluir = (projetoId: string): void => {
     const projeto = projetos.find((p) => p.id === projetoId);
     confirmDialog.confirm({
-      title: 'Excluir Projeto',
+      title: 'Excluir projeto',
       message: `Tem certeza que deseja excluir o projeto "${projeto?.nome ?? ''}"? Esta ação não poderá ser desfeita.`,
       confirmLabel: 'Excluir',
       variant: 'danger',
       onConfirm: async () => {
-        setMensagem({ tipo: 'error', texto: 'Exclusão de projetos ainda não disponível' });
+        setMensagem({ tipo: 'error', texto: 'Exclusão de projetos ainda não disponível.' });
       },
     });
   };
@@ -87,10 +99,9 @@ export function ProjetosPage(): JSX.Element {
   return (
     <PageState loading={carregando} loadingMessage="Carregando projetos...">
       <div className="space-y-6">
-        {/* Header */}
         <PageHeader
           title="Projetos"
-          subtitle="Gerencie os projetos do sistema"
+          subtitle="Gerencie os projetos disponíveis para cadastro e organização no sistema."
           actions={
             <Button
               variant="primary"
@@ -100,132 +111,192 @@ export function ProjetosPage(): JSX.Element {
                 setMostrarForm(true);
               }}
             >
-              Novo Projeto
+              Novo projeto
             </Button>
           }
         />
 
-        {mensagem && (
-          <Alert variant={mensagem.tipo} onClose={() => setMensagem(null)}>
-            {mensagem.texto}
-          </Alert>
-        )}
+        {mensagem ? (
+          <ActionFeedback
+            type={mensagem.tipo}
+            title={
+              mensagem.tipo === 'success' ? 'Atualização concluída' : 'Não foi possível concluir'
+            }
+            message={mensagem.texto}
+            onDismiss={() => setMensagem(null)}
+          />
+        ) : null}
 
-        {/* Formulário */}
-        {mostrarForm && (
-          <Card>
-            <div className="p-6">
-              <h2 className="text-lg font-semibold text-[var(--color-text-primary)] mb-4">
-                Novo Projeto
-              </h2>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <Input
-                  label="Nome *"
-                  value={formulario.nome}
-                  onChange={(e) => setFormulario({ ...formulario, nome: e.target.value })}
-                  placeholder="Nome do projeto"
-                  required
-                />
-
-                <div>
-                  <label className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1">
-                    Descrição
-                  </label>
-                  <textarea
-                    value={formulario.descricao}
-                    onChange={(e) => setFormulario({ ...formulario, descricao: e.target.value })}
-                    className="w-full px-3 py-2 border border-[var(--color-border-primary)] rounded-lg text-sm focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)]"
-                    placeholder="Descrição detalhada do projeto"
-                    rows={3}
-                  />
-                </div>
-
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="ativo"
-                    checked={formulario.ativo}
-                    onChange={(e) => setFormulario({ ...formulario, ativo: e.target.checked })}
-                    className="h-4 w-4 rounded border-[var(--color-border-primary)] text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)]"
-                  />
-                  <label
-                    htmlFor="ativo"
-                    className="ml-2 block text-sm text-[var(--color-text-primary)]"
-                  >
-                    Projeto ativo
-                  </label>
-                </div>
-
-                <div className="flex gap-3 pt-4">
-                  <Button
-                    type="submit"
-                    variant="primary"
-                    loading={createProjeto.isPending}
-                    disabled={createProjeto.isPending}
-                  >
-                    Criar Projeto
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={resetForm}
-                    disabled={createProjeto.isPending}
-                  >
-                    Cancelar
-                  </Button>
-                </div>
-              </form>
-            </div>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Card padding="sm">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
+              Projetos
+            </p>
+            <p className="mt-2 text-2xl font-semibold text-[var(--color-text-primary)]">
+              {projetos.length}
+            </p>
           </Card>
-        )}
+          <Card padding="sm">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
+              Visíveis
+            </p>
+            <p className="mt-2 text-2xl font-semibold text-[var(--color-text-primary)]">
+              {projetosFiltrados.length}
+            </p>
+          </Card>
+          <Card padding="sm">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
+              Status padrão
+            </p>
+            <p className="mt-2 text-lg font-semibold text-[var(--color-text-primary)]">Ativo</p>
+          </Card>
+        </div>
 
-        {/* Lista de Projetos */}
-        <Card>
-          <div className="p-6">
-            <h2 className="text-lg font-semibold text-[var(--color-text-primary)] mb-4">
-              Projetos Cadastrados ({projetos.length})
-            </h2>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableHeader>Nome</TableHeader>
-                  <TableHeader>Status</TableHeader>
-                  <TableHeader align="right">Ações</TableHeader>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {projetos.length === 0 ? (
-                  <TableEmptyState
-                    colSpan={3}
-                    title="Nenhum projeto encontrado"
-                    description='Clique em "Novo Projeto" para criar o primeiro'
-                  />
-                ) : (
-                  projetos.map((projeto) => (
-                    <TableRow key={projeto.id}>
-                      <TableCell className="font-medium">{projeto.nome}</TableCell>
-                      <TableCell>
-                        <Badge variant="success">Ativo</Badge>
-                      </TableCell>
-                      <TableCell align="right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          icon="trash"
-                          onClick={() => handleExcluir(projeto.id)}
-                          disabled
-                          title="Exclusão em desenvolvimento"
-                        >
-                          Excluir
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+        <FilterBar
+          actions={
+            busca ? (
+              <Button variant="ghost" size="sm" onClick={() => setBusca('')}>
+                Limpar
+              </Button>
+            ) : null
+          }
+        >
+          <Input
+            label="Buscar projeto"
+            placeholder="Digite o nome do projeto"
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+          />
+        </FilterBar>
+
+        <Card padding="none">
+          <CardHeader
+            title="Projetos cadastrados"
+            description="Lista atual de projetos configurados para uso no sistema."
+            className="px-5 pt-5"
+            badge={<Badge variant="info">{projetosFiltrados.length}</Badge>}
+          />
+
+          <Table>
+            <TableHead>
+              <tr>
+                <TableHeader>Projeto</TableHeader>
+                <TableHeader>Status</TableHeader>
+                <TableHeader align="right">Ações</TableHeader>
+              </tr>
+            </TableHead>
+            <TableBody>
+              {projetosFiltrados.length === 0 ? (
+                <TableEmptyState
+                  colSpan={3}
+                  title={busca ? 'Nenhum projeto encontrado' : 'Nenhum projeto cadastrado'}
+                  description={
+                    busca
+                      ? 'Tente ajustar o termo de busca.'
+                      : 'Clique em "Novo projeto" para criar o primeiro.'
+                  }
+                />
+              ) : (
+                projetosFiltrados.map((projeto) => (
+                  <TableRow key={projeto.id}>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium text-[var(--color-text-primary)]">
+                          {projeto.nome}
+                        </p>
+                        <p className="text-xs text-[var(--color-text-tertiary)]">
+                          Projeto disponível para vinculação operacional
+                        </p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="success">Ativo</Badge>
+                    </TableCell>
+                    <TableCell align="right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        icon="trash"
+                        onClick={() => handleExcluir(projeto.id)}
+                        disabled
+                        title="Exclusão em desenvolvimento"
+                      >
+                        Excluir
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
         </Card>
+
+        <Modal
+          open={mostrarForm}
+          onClose={resetForm}
+          title="Novo projeto"
+          subtitle="Cadastre um novo projeto mantendo a organização administrativa do sistema."
+          footer={
+            <div className="flex flex-col-reverse gap-3 p-5 sm:flex-row sm:justify-end">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={resetForm}
+                disabled={createProjeto.isPending}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                form="novo-projeto-form"
+                variant="primary"
+                loading={createProjeto.isPending}
+                disabled={createProjeto.isPending}
+              >
+                Criar projeto
+              </Button>
+            </div>
+          }
+        >
+          <form id="novo-projeto-form" onSubmit={handleSubmit} className="space-y-4 p-5">
+            <Input
+              label="Nome *"
+              value={formulario.nome}
+              onChange={(e) => setFormulario({ ...formulario, nome: e.target.value })}
+              placeholder="Nome do projeto"
+              required
+            />
+
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-[var(--color-text-primary)]">
+                Descrição
+              </label>
+              <textarea
+                value={formulario.descricao}
+                onChange={(e) => setFormulario({ ...formulario, descricao: e.target.value })}
+                className="min-h-[110px] w-full rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] px-3.5 py-2.5 text-sm text-[var(--color-text-primary)] transition-all duration-150 focus:border-[var(--color-primary-500)] focus:outline-none focus:ring-[3px] focus:ring-[var(--color-primary-100)]"
+                placeholder="Descrição detalhada do projeto"
+              />
+            </div>
+
+            <label className="flex items-start gap-3 rounded-2xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-4">
+              <input
+                type="checkbox"
+                id="ativo"
+                checked={formulario.ativo}
+                onChange={(e) => setFormulario({ ...formulario, ativo: e.target.checked })}
+                className="mt-0.5 h-4 w-4 rounded border-[var(--color-border-primary)] text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)]"
+              />
+              <div>
+                <span className="font-medium text-[var(--color-text-primary)]">Projeto ativo</span>
+                <p className="text-sm text-[var(--color-text-secondary)]">
+                  O projeto ficará disponível imediatamente para uso no sistema.
+                </p>
+              </div>
+            </label>
+          </form>
+        </Modal>
+
         <ConfirmDialog
           state={confirmDialog.state}
           loading={confirmDialog.loading}

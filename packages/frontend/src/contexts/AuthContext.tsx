@@ -184,6 +184,9 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
 
     try {
       if (token) {
+        const { deactivateCurrentPushSubscription } =
+          await import('../services/pushNotifications.js');
+        await deactivateCurrentPushSubscription().catch(() => undefined);
         await api.post('/auth/logout', {}, {});
       }
     } catch {
