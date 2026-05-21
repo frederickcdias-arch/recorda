@@ -2,7 +2,7 @@
  * Tipos relacionados a processos
  */
 
-export type StatusProcesso = 'ATIVO' | 'ARQUIVADO' | 'SUSPENSO' | 'CONCLUIDO';
+export type StatusProcesso = 'ATIVO' | 'ARQUIVADO' | 'SUSPENSO' | 'CANCELADO';
 
 export interface Processo {
   id: string;

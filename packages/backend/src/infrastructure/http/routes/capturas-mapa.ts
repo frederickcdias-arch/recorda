@@ -2,8 +2,10 @@ import path from 'node:path';
 import fs from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
+import { z } from 'zod';
 import sharp from 'sharp';
 import { authorize } from '../middleware/auth.js';
+import { validateBody, validateParams } from '../middleware/validate.js';
 import { processMapImage, type ProcessMapImageInput } from '../../services/map-image-processor.js';
 import { getCurrentUser } from './operacional-helpers.js';
 
@@ -14,6 +16,33 @@ const MAPAS_CORRIGIDAS_DIR = path.join(MAPAS_DIR, 'corrigidas');
 const MAPAS_THUMBS_DIR = path.join(MAPAS_DIR, 'thumbs');
 const ALLOWED_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+
+const capturasMapaBodySchema = z.object({
+  imagemBase64: z.string().min(1, 'imagemBase64 e obrigatoria'),
+  imagemCorrigidaBase64: z.string().optional(),
+  manualCorners: z
+    .array(
+      z.object({
+        x: z.number(),
+        y: z.number(),
+      })
+    )
+    .length(4)
+    .optional(),
+  detectedCorners: z
+    .array(
+      z.object({
+        x: z.number(),
+        y: z.number(),
+      })
+    )
+    .length(4)
+    .optional(),
+});
+
+const capturaIdParamsSchema = z.object({
+  id: z.string().uuid('ID invalido'),
+});
 
 type ManualCorner = { x: number; y: number };
 
@@ -67,6 +96,37 @@ function resolveUploadPath(relativePath: string): string {
   return fullPath;
 }
 
+type CaptureFileRow = {
+  arquivo_path: string | null;
+  arquivo_original_path: string | null;
+  arquivo_corrigido_path: string | null;
+  thumbnail_path: string | null;
+};
+
+async function deleteCaptureFiles(rows: CaptureFileRow[]): Promise<void> {
+  const relativePaths = Array.from(
+    new Set(
+      rows.flatMap((row) =>
+        [
+          row.arquivo_path,
+          row.arquivo_original_path,
+          row.arquivo_corrigido_path,
+          row.thumbnail_path,
+        ].filter((value): value is string => Boolean(value))
+      )
+    )
+  );
+
+  await Promise.all(
+    relativePaths.map(async (relativePath) => {
+      const filePath = resolveUploadPath(relativePath);
+      await fs.unlink(filePath).catch(() => {
+        // Ignora se o arquivo ja nao existe
+      });
+    })
+  );
+}
+
 export function createCapturasMapaRoutes(): FastifyPluginAsync {
   return async (server: FastifyInstance): Promise<void> => {
     server.post(
@@ -113,7 +173,11 @@ export function createCapturasMapaRoutes(): FastifyPluginAsync {
             500: { type: 'object', properties: { error: { type: 'string' } } },
           },
         },
-        preHandler: [server.authenticate, authorize('colaborador')],
+        preHandler: [
+          server.authenticate,
+          authorize('colaborador'),
+          validateBody(capturasMapaBodySchema),
+        ],
       },
       async (request, reply) => {
         const user = getCurrentUser(request);
@@ -347,10 +411,13 @@ export function createCapturasMapaRoutes(): FastifyPluginAsync {
             processamento_metadata: Record<string, unknown> | null;
           };
 
-          await server.database.query(
-            `DELETE FROM capturas_mapa WHERE usuario_id = $1 AND expira_em < NOW()`,
+          const expiradas = await server.database.query<CaptureFileRow>(
+            `DELETE FROM capturas_mapa
+             WHERE usuario_id = $1 AND expira_em < NOW()
+             RETURNING arquivo_path, arquivo_original_path, arquivo_corrigido_path, thumbnail_path`,
             [user.id]
           );
+          await deleteCaptureFiles(expiradas.rows);
 
           return reply.status(201).send({
             id: registro.id,
@@ -399,7 +466,11 @@ export function createCapturasMapaRoutes(): FastifyPluginAsync {
             500: { type: 'object', properties: { error: { type: 'string' } } },
           },
         },
-        preHandler: [server.authenticate, authorize('colaborador')],
+        preHandler: [
+          server.authenticate,
+          authorize('colaborador'),
+          validateParams(capturaIdParamsSchema),
+        ],
       },
       async (request, reply) => {
         const user = getCurrentUser(request);
@@ -432,7 +503,11 @@ export function createCapturasMapaRoutes(): FastifyPluginAsync {
             required: ['id'],
           },
         },
-        preHandler: [server.authenticate, authorize('colaborador')],
+        preHandler: [
+          server.authenticate,
+          authorize('colaborador'),
+          validateParams(capturaIdParamsSchema),
+        ],
       },
       async (request, reply) => {
         const user = getCurrentUser(request);
@@ -451,7 +526,7 @@ export function createCapturasMapaRoutes(): FastifyPluginAsync {
           );
 
           if (result.rows.length === 0) {
-            return reply.status(404).send({ error: 'Captura nÃ£o encontrada' });
+            return reply.status(404).send({ error: 'Captura nao encontrada' });
           }
 
           const row = result.rows[0] as {
@@ -462,12 +537,12 @@ export function createCapturasMapaRoutes(): FastifyPluginAsync {
           };
 
           if (new Date(row.expira_em) < new Date()) {
-            return reply.status(410).send({ error: 'Captura expirada e nÃ£o disponÃ­vel' });
+            return reply.status(410).send({ error: 'Captura expirada e nao disponivel' });
           }
 
           const relativePath = row.download_path || row.arquivo_original_path;
           if (!relativePath) {
-            return reply.status(404).send({ error: 'Arquivo nÃ£o encontrado no servidor' });
+            return reply.status(404).send({ error: 'Arquivo nao encontrado no servidor' });
           }
 
           const filePath = resolveUploadPath(relativePath);
@@ -480,7 +555,7 @@ export function createCapturasMapaRoutes(): FastifyPluginAsync {
             .send(fileBuffer);
         } catch (error) {
           if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-            return reply.status(404).send({ error: 'Arquivo nÃ£o encontrado no servidor' });
+            return reply.status(404).send({ error: 'Arquivo nao encontrado no servidor' });
           }
           const message = error instanceof Error ? error.message : 'Erro ao baixar arquivo';
           return reply.status(500).send({ error: message });
@@ -515,35 +590,11 @@ export function createCapturasMapaRoutes(): FastifyPluginAsync {
           );
 
           if (result.rows.length === 0) {
-            return reply.status(404).send({ error: 'Captura nÃ£o encontrada' });
+            return reply.status(404).send({ error: 'Captura nao encontrada' });
           }
 
-          const row = result.rows[0] as {
-            arquivo_path: string | null;
-            arquivo_original_path: string | null;
-            arquivo_corrigido_path: string | null;
-            thumbnail_path: string | null;
-          };
-
-          const relativePaths = Array.from(
-            new Set(
-              [
-                row.arquivo_path,
-                row.arquivo_original_path,
-                row.arquivo_corrigido_path,
-                row.thumbnail_path,
-              ].filter((value): value is string => Boolean(value))
-            )
-          );
-
-          await Promise.all(
-            relativePaths.map(async (relativePath) => {
-              const filePath = resolveUploadPath(relativePath);
-              await fs.unlink(filePath).catch(() => {
-                // Ignora se o arquivo jÃ¡ nÃ£o existe
-              });
-            })
-          );
+          const row = result.rows[0] as CaptureFileRow;
+          await deleteCaptureFiles([row]);
 
           return reply.send({ ok: true });
         } catch (error) {

@@ -161,7 +161,7 @@ export const router = createBrowserRouter([
       {
         path: 'producao',
         element: (
-          <RoleRoute allowedProfiles={['administrador']}>
+          <RoleRoute allowedProfiles={['operador', 'administrador']}>
             <PageSuspense>
               <ProducaoPage />
             </PageSuspense>
@@ -171,7 +171,7 @@ export const router = createBrowserRouter([
       {
         path: 'producao/importar',
         element: (
-          <RoleRoute allowedProfiles={['administrador']}>
+          <RoleRoute allowedProfiles={['operador', 'administrador']}>
             <PageSuspense>
               <ImportarProducaoPage />
             </PageSuspense>
@@ -215,9 +215,11 @@ export const router = createBrowserRouter([
       {
         path: 'operacao/conhecimento',
         element: (
-          <PageSuspense>
-            <ConhecimentoOperacionalPage />
-          </PageSuspense>
+          <RoleRoute allowedProfiles={['operador', 'administrador']}>
+            <PageSuspense>
+              <ConhecimentoOperacionalPage />
+            </PageSuspense>
+          </RoleRoute>
         ),
       },
       {
@@ -233,9 +235,11 @@ export const router = createBrowserRouter([
       {
         path: 'operacao/:etapa',
         element: (
-          <PageSuspense>
-            <EtapaOperacionalPage />
-          </PageSuspense>
+          <RoleRoute allowedProfiles={['operador', 'administrador']}>
+            <PageSuspense>
+              <EtapaOperacionalPage />
+            </PageSuspense>
+          </RoleRoute>
         ),
       },
       {
@@ -245,7 +249,7 @@ export const router = createBrowserRouter([
       {
         path: 'relatorios/gerenciais',
         element: (
-          <RoleRoute allowedProfiles={['administrador']}>
+          <RoleRoute allowedProfiles={['operador', 'administrador']}>
             <PageSuspense>
               <RelatoriosGerenciaisPage />
             </PageSuspense>
@@ -255,7 +259,7 @@ export const router = createBrowserRouter([
       {
         path: 'relatorios/exportacoes',
         element: (
-          <RoleRoute allowedProfiles={['administrador']}>
+          <RoleRoute allowedProfiles={['operador', 'administrador']}>
             <PageSuspense>
               <ExportacoesPage />
             </PageSuspense>
@@ -333,7 +337,7 @@ export const router = createBrowserRouter([
       {
         path: 'auditoria/importacoes',
         element: (
-          <RoleRoute allowedProfiles={['administrador']}>
+          <RoleRoute allowedProfiles={['operador', 'administrador']}>
             <PageSuspense>
               <AuditoriaPage categoria="importacoes" />
             </PageSuspense>
@@ -343,7 +347,7 @@ export const router = createBrowserRouter([
       {
         path: 'auditoria/ocr',
         element: (
-          <RoleRoute allowedProfiles={['administrador']}>
+          <RoleRoute allowedProfiles={['operador', 'administrador']}>
             <PageSuspense>
               <AuditoriaPage categoria="ocr" />
             </PageSuspense>
@@ -353,7 +357,7 @@ export const router = createBrowserRouter([
       {
         path: 'auditoria/correcoes',
         element: (
-          <RoleRoute allowedProfiles={['administrador']}>
+          <RoleRoute allowedProfiles={['operador', 'administrador']}>
             <PageSuspense>
               <AuditoriaPage categoria="correcoes" />
             </PageSuspense>
@@ -363,7 +367,7 @@ export const router = createBrowserRouter([
       {
         path: 'auditoria/acoes',
         element: (
-          <RoleRoute allowedProfiles={['administrador']}>
+          <RoleRoute allowedProfiles={['operador', 'administrador']}>
             <PageSuspense>
               <AuditoriaPage categoria="acoes" />
             </PageSuspense>

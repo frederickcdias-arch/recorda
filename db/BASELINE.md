@@ -1,48 +1,45 @@
-# Database Migrations Baseline
+# Database Baseline
 
-## Current State
+## Estado atual
 
-- **50 migrations** (001 through 050)
-- Applied sequentially via `packages/backend/src/infrastructure/database/migrate.ts`
-- Tracked in `schema_migrations` table
-- Migration system supports **baseline files** in `db/baseline/`
-
-## How to Consolidate
-
-Run the consolidation script against a **running database** with all migrations applied:
+O fluxo oficial de criação e atualização do banco usa apenas:
 
 ```bash
-node db/scripts/consolidate.mjs
+npm run db:migrate
 ```
 
-This will:
+Ou seja:
 
-1. `pg_dump` the schema → `db/baseline/000_baseline_schema.sql`
-2. `pg_dump` seed data (checklist_modelos, classificacoes, schema_migrations) → `db/baseline/000_baseline_data.sql`
-3. Archive all 50 migrations to `db/migrations/archive/`
+- a fonte de verdade ativa é `db/migrations`
+- o runner em `packages/backend/src/infrastructure/database/migrate.ts` não aplica `db/baseline` automaticamente
+- a pasta `db/baseline` fica preservada apenas como artefato histórico até uma consolidação nova e validada
 
-### Prerequisites
+## Motivo
 
-- PostgreSQL running with all migrations applied
-- `pg_dump` available in PATH
-- Environment variables: `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`
+O baseline atual ficou desalinhado do estado real do sistema:
 
-## How the Baseline Works
+- não representa todos os módulos recentes
+- não acompanha corretamente a política atual de migrations
+- gerava um fluxo híbrido difícil de auditar
 
-The migration system in `migrate.ts` automatically detects baselines:
+Até uma nova consolidação confiável, o caminho seguro é manter somente a cadeia completa de migrations como bootstrap oficial.
 
-1. If `schema_migrations` is empty **and** `db/baseline/*.sql` files exist → apply baseline first
-2. Then apply any incremental migrations from `db/migrations/` (051+)
-3. Existing databases with migrations already applied are unaffected
+## Regra operacional
 
-## Rules for New Migrations
+Para novos ambientes:
 
-1. New migrations go in `db/migrations/` with sequential numbering (e.g., `051_*.sql`)
-2. Each migration must be **idempotent** (use `IF NOT EXISTS`, `IF EXISTS`, etc.)
-3. Never modify an already-applied migration file
-4. Use `ALTER TABLE` for schema changes, never `DROP TABLE` + `CREATE TABLE`
-5. Include a comment header with description and date
+1. criar o banco
+2. rodar `npm run db:migrate`
 
-## Re-consolidation
+Para ambientes existentes:
 
-When the migration count grows again (100+), re-run `consolidate.mjs` to generate a fresh baseline.
+1. manter `schema_migrations`
+2. aplicar apenas migrations ainda não registradas
+
+## Próxima consolidação
+
+Uma nova consolidação de baseline só deve ser feita quando:
+
+- todas as migrations ativas estiverem validadas
+- o conteúdo de `db/baseline` puder ser regenerado do banco atual
+- a documentação e o runner forem atualizados em conjunto

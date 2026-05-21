@@ -48,7 +48,7 @@ export type TipoRelatorioOperacional =
 
 export type OrigemDocumentoRecebimento = 'MANUAL' | 'OCR' | 'LEGADO';
 
-export type StatusChecklist = 'ABERTO' | 'EM_ANDAMENTO' | 'CONCLUIDO';
+export type StatusChecklist = 'ABERTO' | 'CONCLUIDO';
 
 export type CategoriaConhecimento =
   | 'PROCEDIMENTO'

@@ -6,8 +6,6 @@ import { PageHeader } from '../../components/ui/PageHeader';
 import { useToastHelpers } from '../../components/ui/Toast';
 import { Icon } from '../../components/ui/Icon';
 import { api } from '../../services/api';
-import { buildApiUrl } from '../../services/api';
-import { getToken } from '../../services/tokenStorage';
 import { formatDateBR } from '../../utils/date';
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
@@ -699,11 +697,7 @@ export function CapturaMapaPage() {
     async (id: string, nomeArquivo: string) => {
       setBaixandoId(id);
       try {
-        const token = getToken();
-        const url = buildApiUrl(`/colaborador/capturas-mapa/${id}/download`);
-        const response = await fetch(url, {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
+        const response = await api.fetchWithAuth(`/colaborador/capturas-mapa/${id}/download`);
         if (!response.ok) throw new Error('Falha no download');
         const blob = await response.blob();
         const objectUrl = URL.createObjectURL(blob);

@@ -1,30 +1,34 @@
 # Database Baseline
 
-This directory contains the consolidated database schema baseline.
+Este diretorio esta mantido como artefato historico.
 
-## Files
+## Situacao atual
 
-- `000_baseline_schema.sql` — Full schema dump (tables, types, functions, triggers, indexes)
-- `000_baseline_data.sql` — Seed data (checklist models, classificações, etc.)
+O bootstrap oficial do banco nao usa estes arquivos automaticamente.
 
-## How to Generate
-
-Run the consolidation script against a **fresh database** with all migrations applied:
+O fluxo ativo do projeto e:
 
 ```bash
-cd db
-node scripts/consolidate.mjs
+npm run db:migrate
 ```
 
-This will:
+ou, para criar o banco local do zero:
 
-1. Connect to the database and dump the current schema
-2. Generate `baseline/000_baseline_schema.sql` and `baseline/000_baseline_data.sql`
-3. Move old migrations to `migrations/archive/`
+```bash
+npm run db:bootstrap
+```
 
-## How to Use
+Ambos usam somente a cadeia oficial em `db/migrations`.
 
-After consolidation, the migration system automatically detects the baseline:
+## Por que o baseline foi desativado no runner
 
-- If `schema_migrations` is empty, it applies the baseline first
-- Then applies any new migrations (051+) on top
+O baseline atual nao acompanha com seguranca o estado completo do sistema. Antes de voltar a ser usado, ele precisa ser regenerado e revalidado junto com:
+
+- `schema_migrations`
+- documentacao
+- organizacao da pasta `db/migrations`
+- politica de arquivamento
+
+## Quando mexer aqui
+
+So regenere estes arquivos quando houver uma consolidacao nova, validada de ponta a ponta.

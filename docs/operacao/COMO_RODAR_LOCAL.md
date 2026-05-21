@@ -1,14 +1,14 @@
 # Como Rodar Localmente
 
-## Pré-requisitos
+## Pre-requisitos
 
 - Node.js 20.x
 - npm 10.x
 - Docker
 
-## Passo a Passo
+## Passo a passo
 
-### 1. Instalar dependências
+### 1. Instalar dependencias
 
 ```bash
 npm install
@@ -20,16 +20,24 @@ npm install
 cp .env.example .env
 ```
 
-### 3. Subir o PostgreSQL local
+### 3. Subir a infraestrutura local
 
 ```bash
 docker-compose up -d
 ```
 
-### 4. Preparar banco
+### 4. Preparar o banco
+
+Use uma das opcoes:
 
 ```bash
 npm run db:bootstrap
+```
+
+ou, se o banco ja existir:
+
+```bash
+npm run db:migrate
 ```
 
 ### 5. Rodar frontend e backend
@@ -38,17 +46,18 @@ npm run db:bootstrap
 npm run dev
 ```
 
-## Portas Padrão
+## Portas padrao
 
 - frontend: `5173`
 - backend: `3000`
-- PostgreSQL: `5432`
+- PostgreSQL local: `5433`
 
-## Observações
+## Observacoes
 
-- o backend e o frontend usam a configuração do monorepo na raiz;
-- em desenvolvimento, o frontend pode usar proxy `/api` quando `VITE_API_BASE` não estiver definido;
-- para mudanças em números e datas, consultar antes:
+- o fluxo oficial do banco usa somente `db/migrations`;
+- `db/baseline` esta preservado como artefato historico e nao participa do bootstrap ativo;
+- em desenvolvimento, o frontend pode usar proxy `/api` quando `VITE_API_BASE` nao estiver definido;
+- para mudancas em numeros e datas, consulte antes:
   - `../regras-de-negocio/NUMEROS_E_METRICAS.md`
   - `../regras-de-negocio/TIMEZONE.md`
   - `../padroes/PADRAO_NUMEROS_RECORDA.md`

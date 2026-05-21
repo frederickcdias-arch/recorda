@@ -1,54 +1,55 @@
 # Recorda
 
-Sistema de gestão de processos administrativos com rastreamento de produção e digitalização.
+Sistema de gestao documental e operacional com rastreamento de producao, digitalizacao, controle de fluxo e auditoria.
 
-## Documentação Principal
+## Documentacao principal
 
-- [Documentação oficial](docs/README.md)
-- [Domínio do sistema](docs/regras-de-negocio/DOMINIO.md)
-- [Números e métricas](docs/regras-de-negocio/NUMEROS_E_METRICAS.md)
+- [Guia mestre da documentacao](docs/README.md)
+- [Dominio do sistema](docs/regras-de-negocio/DOMINIO.md)
+- [Numeros e metricas](docs/regras-de-negocio/NUMEROS_E_METRICAS.md)
 - [Timezone oficial](docs/regras-de-negocio/TIMEZONE.md)
-- [Importação legada](docs/regras-de-negocio/IMPORTACAO_LEGADO.md)
+- [Importacao legada](docs/regras-de-negocio/IMPORTACAO_LEGADO.md)
+- [Como rodar localmente](docs/operacao/COMO_RODAR_LOCAL.md)
+- [Testes](docs/operacao/TESTES.md)
 - [Deploy](docs/operacao/DEPLOY.md)
 - [Processamento de documento fotografado](docs/operacao/PROCESSAMENTO_DOCUMENTO.md)
 
 ## Requisitos
 
 - Node.js 20.x
-- Docker
 - npm 10.x
+- Docker
 
-## Estrutura do Projeto
+## Estrutura do projeto
 
 ```text
 recorda/
-├── db/
-│   ├── baseline/
-│   ├── migrations/        (001–092)
-│   └── scripts/
-├── docs/
-├── packages/
-│   ├── backend/
-│   ├── frontend/
-│   └── shared/
-├── scripts/
-├── tests/
-│   ├── load/
-│   ├── manual/
-│   └── security/
-├── docker-compose.yml
-├── Dockerfile.backend
-├── Dockerfile.frontend
-├── nginx.conf
-├── nixpacks.toml
-├── railway.json
-├── package.json
-├── package-lock.json
-├── tsconfig.base.json
-└── README.md
+|-- db/
+|   |-- baseline/          (artefato historico, nao usado no bootstrap ativo)
+|   |-- migrations/        (cadeia oficial do banco, atualmente ate 096)
+|   `-- scripts/
+|-- docs/
+|-- packages/
+|   |-- backend/
+|   |-- frontend/
+|   `-- shared/
+|-- scripts/
+|-- tests/
+|   |-- load/
+|   |-- manual/
+|   `-- security/
+|-- docker-compose.yml
+|-- Dockerfile.backend
+|-- Dockerfile.frontend
+|-- nginx.conf
+|-- nixpacks.toml
+|-- railway.json
+|-- package.json
+|-- tsconfig.base.json
+`-- README.md
 ```
 
-## Setup Rápido
+## Setup rapido
 
 ```bash
 npm install
@@ -58,27 +59,32 @@ npm run db:bootstrap
 npm run dev
 ```
 
-## Comandos
+Observacoes:
 
-| Comando                | Descrição                                         |
-| ---------------------- | ------------------------------------------------- |
-| `npm run dev`          | Inicia frontend e backend em modo desenvolvimento |
-| `npm run dev:backend`  | Inicia apenas o backend                           |
-| `npm run dev:frontend` | Inicia apenas o frontend                          |
-| `npm run build`        | Build de produção                                 |
-| `npm run lint`         | Executa ESLint                                    |
-| `npm run format`       | Formata código com Prettier                       |
-| `npm run typecheck`    | Verifica tipos TypeScript                         |
-| `npm run db:bootstrap` | Prepara o banco local                             |
+- `npm run db:bootstrap` cria o banco local, garante `schema_migrations` e aplica a cadeia oficial em `db/migrations`.
+- `npm run db:migrate` deve ser usado quando o banco ja existe e voce so precisa aplicar novas migrations.
+- O baseline em `db/baseline` esta preservado apenas como artefato historico.
+
+## Comandos principais
+
+| Comando                | Finalidade                                      |
+| ---------------------- | ----------------------------------------------- |
+| `npm run dev`          | Sobe backend e frontend em desenvolvimento      |
+| `npm run dev:backend`  | Sobe apenas o backend                           |
+| `npm run dev:frontend` | Sobe apenas o frontend                          |
+| `npm run build`        | Build de todos os workspaces                    |
+| `npm run typecheck`    | Typecheck de todos os workspaces                |
+| `npm run lint`         | ESLint no monorepo                              |
+| `npm run format`       | Prettier no repositorio                         |
+| `npm run db:bootstrap` | Cria o banco local e aplica todas as migrations |
+| `npm run db:migrate`   | Aplica novas migrations no banco existente      |
+| `npm run push:vapid`   | Gera chaves VAPID para push/PWA                 |
+| `npm run test:push`    | Executa o fluxo operacional de teste de push    |
 
 ## Testes
 
-Consulte:
-
-- [docs/operacao/TESTES.md](docs/operacao/TESTES.md)
+Os comandos principais de validacao ficam em [docs/operacao/TESTES.md](docs/operacao/TESTES.md).
 
 ## Deploy
 
-Consulte:
-
-- [docs/operacao/DEPLOY.md](docs/operacao/DEPLOY.md)
+As instrucoes operacionais de publicacao ficam em [docs/operacao/DEPLOY.md](docs/operacao/DEPLOY.md).

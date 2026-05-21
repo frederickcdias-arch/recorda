@@ -12,6 +12,7 @@ import type {
 import {
   buildProducaoContabilizadaWhere,
   buildProducaoOrigemWhere,
+  buildLegacyProducaoWhere,
   sqlDateInSystemTimezone,
 } from '../../../domain/producao/producao-metrics.js';
 
@@ -21,6 +22,36 @@ interface RelatorioQuery {
   coordenadoriaId?: string;
   formato?: 'json' | 'pdf' | 'excel';
   tipo?: string;
+}
+
+interface ImportacaoLegadoDetalheRow {
+  tipo: string;
+  detalhes_erros: Record<string, unknown> | null;
+}
+
+function collectLegacySourceHashes(
+  importacoes: ImportacaoLegadoDetalheRow[]
+): Map<string, Set<string>> {
+  const hashesPorFonte = new Map<string, Set<string>>();
+
+  for (const item of importacoes) {
+    if (item.tipo !== 'PRODUCAO') continue;
+
+    const detalhes = item.detalhes_erros ?? {};
+    const rollback = (detalhes.rollback as Record<string, unknown> | undefined) ?? {};
+    const fonteId = typeof rollback.fonteId === 'string' ? rollback.fonteId : null;
+    const hashes = Array.isArray(rollback.importacaoFonteHashes)
+      ? rollback.importacaoFonteHashes.filter((value): value is string => typeof value === 'string')
+      : [];
+
+    if (!fonteId || hashes.length === 0) continue;
+
+    const bucket = hashesPorFonte.get(fonteId) ?? new Set<string>();
+    for (const hash of hashes) bucket.add(hash);
+    hashesPorFonte.set(fonteId, bucket);
+  }
+
+  return hashesPorFonte;
 }
 
 export function createRelatorioRoutes(): FastifyPluginAsync {
@@ -313,7 +344,7 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
             params.push(colaborador);
           }
           if (origem === 'legado') {
-            where += ` AND ${buildProducaoOrigemWhere('p', 'LEGADO')}`;
+            where += ` AND ${buildLegacyProducaoWhere('p')}`;
           } else if (origem === 'sistema' || origem === 'fluxo') {
             where += ` AND ${buildProducaoOrigemWhere('p', 'SISTEMA')}`;
           }
@@ -340,7 +371,7 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
               p.quantidade,
               COALESCE(NULLIF(TRIM(p.marcadores->>'tipo'), ''), '') as tipo,
               COALESCE(co.sigla, COALESCE(NULLIF(TRIM(p.marcadores->>'coordenadoria'), ''), '')) as coordenadoria,
-              CASE WHEN COALESCE(p.marcadores->>'origem', '') = 'LEGADO' THEN 'Legado' ELSE 'Fluxo' END as origem
+              CASE WHEN ${buildLegacyProducaoWhere('p')} THEN 'Legado' ELSE 'Fluxo' END as origem
             FROM producao_repositorio p
             JOIN usuarios u ON u.id = p.usuario_id
             JOIN repositorios r ON r.id_repositorio_recorda = p.repositorio_id
@@ -479,7 +510,7 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
             params.push(query.dataFim);
           }
           if (query.origem === 'legado') {
-            where += ` AND ${buildProducaoOrigemWhere('p', 'LEGADO')}`;
+            where += ` AND ${buildLegacyProducaoWhere('p')}`;
           } else if (query.origem === 'sistema' || query.origem === 'fluxo') {
             where += ` AND ${buildProducaoOrigemWhere('p', 'SISTEMA')}`;
           }
@@ -518,7 +549,7 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
              COALESCE(NULLIF(p.marcadores->>'colaborador_nome', ''), u.nome) as colaborador_nome,
              r.id_repositorio_ged as repositorio_ged,
              r.projeto as projeto,
-             CASE WHEN COALESCE(p.marcadores->>'origem', '') = 'LEGADO' THEN 'LEGADO' ELSE 'FLUXO' END as origem,
+             CASE WHEN ${buildLegacyProducaoWhere('p')} THEN 'LEGADO' ELSE 'FLUXO' END as origem,
              COALESCE(co.sigla, COALESCE(p.marcadores->>'coordenadoria', '')) as coordenadoria_sigla
            FROM producao_repositorio p
            JOIN usuarios u ON u.id = p.usuario_id
@@ -574,31 +605,56 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
       },
       async (_request, reply) => {
         try {
+          const importacoesResult = await server.database.query<ImportacaoLegadoDetalheRow>(
+            `SELECT tipo, detalhes_erros
+             FROM importacoes_legado_operacional`
+          );
+          const hashesPorFonte = collectLegacySourceHashes(importacoesResult.rows);
           const countResult = await server.database.query<{ total: string }>(
             `SELECT COUNT(*)::text as total
            FROM producao_repositorio
-           WHERE COALESCE(marcadores->>'origem', '') = 'LEGADO'`
+           WHERE ${buildLegacyProducaoWhere()}`
           );
           const total = Number(countResult.rows[0]?.total ?? '0');
 
           if (total === 0) {
-            // Mesmo sem produções, limpar hashes de idempotencia para permitir re-importacao
-            await server.database.query('DELETE FROM importacao_fontes_linhas');
+            let fontesLinhasRemovidas = 0;
+            for (const [fonteId, hashes] of hashesPorFonte.entries()) {
+              if (hashes.size === 0) continue;
+              const result = await server.database.query(
+                `DELETE FROM importacao_fontes_linhas
+                 WHERE fonte_id = $1
+                   AND chave_hash = ANY($2::text[])`,
+                [fonteId, [...hashes]]
+              );
+              fontesLinhasRemovidas += result.rowCount ?? 0;
+            }
             return reply.send({
               message: 'Nenhum registro de produção importada para excluir',
               removidos: 0,
+              fontesLinhasRemovidas,
             });
           }
 
           await server.database.query(
             `DELETE FROM producao_repositorio
-           WHERE COALESCE(marcadores->>'origem', '') = 'LEGADO'`
+           WHERE ${buildLegacyProducaoWhere()}`
           );
-          // Limpar hashes de idempotencia para permitir re-importacao
-          await server.database.query('DELETE FROM importacao_fontes_linhas');
+          let fontesLinhasRemovidas = 0;
+          for (const [fonteId, hashes] of hashesPorFonte.entries()) {
+            if (hashes.size === 0) continue;
+            const result = await server.database.query(
+              `DELETE FROM importacao_fontes_linhas
+               WHERE fonte_id = $1
+                 AND chave_hash = ANY($2::text[])`,
+              [fonteId, [...hashes]]
+            );
+            fontesLinhasRemovidas += result.rowCount ?? 0;
+          }
           return reply.send({
             message: 'Registros de produção importada foram excluídos',
             removidos: total,
+            fontesLinhasRemovidas,
           });
         } catch (error) {
           server.log.error(error, 'Erro ao limpar registros de produção importada');

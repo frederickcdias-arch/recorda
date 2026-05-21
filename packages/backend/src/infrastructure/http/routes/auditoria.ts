@@ -1,5 +1,21 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
+import { z } from 'zod';
 import { authorize } from '../middleware/auth.js';
+import { validateQuery } from '../middleware/validate.js';
+
+const auditoriaListQuerySchema = z.object({
+  tabela: z.string().optional(),
+  operacao: z.enum(['INSERT', 'UPDATE', 'DELETE']).optional(),
+  dataInicio: z.string().optional(),
+  dataFim: z.string().optional(),
+  pagina: z.coerce.number().int().min(1).default(1),
+  limite: z.coerce.number().int().min(1).max(200).default(50),
+});
+
+const auditoriaEstatisticasQuerySchema = z.object({
+  dataInicio: z.string().optional(),
+  dataFim: z.string().optional(),
+});
 
 export function createAuditoriaRoutes(): FastifyPluginAsync {
   return async (server: FastifyInstance): Promise<void> => {
@@ -24,7 +40,11 @@ export function createAuditoriaRoutes(): FastifyPluginAsync {
           },
           response: { 500: { type: 'object', properties: { error: { type: 'string' } } } },
         },
-        preHandler: [server.authenticate, authorize('operador', 'administrador')],
+        preHandler: [
+          server.authenticate,
+          authorize('operador', 'administrador'),
+          validateQuery(auditoriaListQuerySchema),
+        ],
       },
       async (request, reply) => {
         try {
@@ -171,7 +191,11 @@ export function createAuditoriaRoutes(): FastifyPluginAsync {
           },
           response: { 500: { type: 'object', properties: { error: { type: 'string' } } } },
         },
-        preHandler: [server.authenticate, authorize('operador', 'administrador')],
+        preHandler: [
+          server.authenticate,
+          authorize('operador', 'administrador'),
+          validateQuery(auditoriaEstatisticasQuerySchema),
+        ],
       },
       async (request, reply) => {
         try {

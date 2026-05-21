@@ -4,6 +4,8 @@ import { api } from '../services/api';
 import type {
   StatusRepositorio,
   EtapaFluxo,
+  DashboardData,
+  PaginatedResponse,
   CriarComunicadoDTO,
   PublicarComunicadoDTO,
   ListarComunicadosAdminParams,
@@ -15,24 +17,6 @@ import type {
 
 export { useQueryClient } from '@tanstack/react-query';
 
-// ─── Types ───────────────────────────────────────────────────
-
-export interface DashboardData {
-  stats: {
-    producaoTotal: number;
-    producaoTrend: string;
-    processosAtivos: number;
-    processosNovosHoje: number;
-    colaboradoresAtivos: number;
-  };
-  producaoPorEtapa: { etapa: string; valor: number }[];
-  statusRecebimento: { status: string; valor: number; icon: string }[];
-  alertas: { tipo: 'info' | 'warning' | 'error'; titulo: string; descricao: string }[];
-  backlogPorEtapa?: { etapa: string; total: number }[];
-  tempoMedioPorEtapa?: { etapa: string; mediaHoras: number }[];
-  retrabalhoCQ?: { motivo: string; total: number; repositorios: string }[];
-}
-
 export interface RepositorioItem {
   id_repositorio_recorda: string;
   id_repositorio_ged: string;
@@ -42,13 +26,6 @@ export interface RepositorioItem {
   etapa_atual: string;
   data_criacao: string;
   seadesk_confirmado_em?: string | null;
-}
-
-interface PaginatedResponse<T> {
-  itens: T[];
-  total: number;
-  pagina: number;
-  totalPaginas: number;
 }
 
 export interface SelectOption {

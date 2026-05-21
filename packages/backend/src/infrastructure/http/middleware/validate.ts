@@ -50,7 +50,7 @@ export function validateQuery<T>(schema: ZodSchema<T>) {
       const zodError = result.error as ZodError;
       const messages = zodError.issues.map((i) => `${i.path.join('.')}: ${i.message}`);
       await reply.status(400).send({
-        error: 'Query invÃ¡lida',
+        error: 'Query invalida',
         details: messages,
       });
     } else {

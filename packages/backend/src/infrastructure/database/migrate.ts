@@ -20,7 +20,10 @@ const {
 } = process.env;
 
 const migrationsDir = path.resolve(__dirname, '../../../../../db/migrations');
-const baselineDir = path.resolve(__dirname, '../../../../../db/baseline');
+
+const MIGRATION_VERSION_ALIASES: Record<string, string[]> = {
+  '074a_cq_avaliacoes_aceitar_apensos': ['074_cq_avaliacoes_aceitar_apensos'],
+};
 
 async function ensureMigrationsTable(client: pg.Client) {
   await client.query(`
@@ -33,6 +36,11 @@ async function ensureMigrationsTable(client: pg.Client) {
 
 function extractVersion(filename: string): string {
   return filename.replace(/\.sql$/i, '');
+}
+
+function isMigrationApplied(version: string, appliedVersions: Set<string>): boolean {
+  const versionsToCheck = [version, ...(MIGRATION_VERSION_ALIASES[version] ?? [])];
+  return versionsToCheck.some((candidate) => appliedVersions.has(candidate));
 }
 
 async function runMigrations() {
@@ -57,64 +65,19 @@ async function runMigrations() {
     );
     const appliedVersions = new Set(appliedResult.rows.map((row) => row.version));
 
-    // Apply baseline if no migrations have been applied and baseline exists
-    if (appliedVersions.size === 0 && fs.existsSync(baselineDir)) {
-      const baselineFiles = fs
-        .readdirSync(baselineDir)
-        .filter((file) => file.endsWith('.sql'))
-        .sort();
-
-      if (baselineFiles.length > 0) {
-        logger.info('No migrations applied — applying baseline...', { component: 'migrate' });
-        for (const file of baselineFiles) {
-          let sql = fs.readFileSync(path.join(baselineDir, file), 'utf-8');
-
-          // Remover comandos PostgreSQL específicos que causam erro
-          sql = sql.replace(/\\restrict\s+\w+/g, '');
-          sql = sql.replace(/SET\s+statement_timeout\s*=\s*[^;]+;/g, '');
-          sql = sql.replace(/SET\s+lock_timeout\s*=\s*[^;]+;/g, '');
-          sql = sql.replace(/SET\s+idle_in_transaction_session_timeout\s*=\s*[^;]+;/g, '');
-          sql = sql.replace(/SET\s+client_encoding\s*=\s*[^;]+;/g, '');
-          sql = sql.replace(/SET\s+standard_conforming_strings\s*=\s*[^;]+;/g, '');
-          sql = sql.replace(/SELECT\s+pg_catalog\.set_config\([^)]+\);/g, '');
-          sql = sql.replace(/SET\s+check_function_bodies\s*=\s*[^;]+;/g, '');
-          sql = sql.replace(/SET\s+xmloption\s*=\s*[^;]+;/g, '');
-          sql = sql.replace(/SET\s+client_min_messages\s*=\s*[^;]+;/g, '');
-          sql = sql.replace(/SET\s+row_security\s*=\s*[^;]+;/g, '');
-
-          logger.info(`Applying baseline ${file}`, { component: 'migrate' });
-          try {
-            await client.query('BEGIN');
-            await client.query(sql);
-            await client.query('COMMIT');
-            logger.info(`Baseline ${file} applied`, { component: 'migrate' });
-          } catch (error) {
-            await client.query('ROLLBACK');
-            throw error;
-          }
-        }
-
-        // Refresh applied versions after baseline
-        const refreshed = await client.query<{ version: string }>(
-          'SELECT version FROM schema_migrations'
-        );
-        for (const row of refreshed.rows) {
-          appliedVersions.add(row.version);
-        }
-        logger.info(`Baseline applied (${appliedVersions.size} versions registered)`, {
-          component: 'migrate',
-        });
-      }
-    }
-
     const files = fs
       .readdirSync(migrationsDir)
       .filter((file) => file.endsWith('.sql'))
       .sort();
 
+    logger.info('Running migrations from db/migrations only', {
+      component: 'migrate',
+      discovered: files.length,
+    });
+
     for (const file of files) {
       const version = extractVersion(file);
-      if (appliedVersions.has(version)) {
+      if (isMigrationApplied(version, appliedVersions)) {
         logger.info(`Skipping ${file} (already applied)`, { component: 'migrate' });
         continue;
       }

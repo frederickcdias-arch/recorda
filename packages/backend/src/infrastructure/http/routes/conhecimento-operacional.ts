@@ -1,5 +1,7 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
+import { z } from 'zod';
 import { authorize } from '../middleware/auth.js';
+import { validateBody, validateParams, validateQuery } from '../middleware/validate.js';
 import { type EtapaFluxo, getCurrentUser } from './operacional-helpers.js';
 
 type KBCategoria =
@@ -11,6 +13,89 @@ type KBCategoria =
   | 'ATUALIZACOES_PROCESSO';
 type KBAcesso = 'OPERADOR_ADMIN' | 'ADMIN';
 type KBStatus = 'ATIVO' | 'INATIVO';
+
+const kbDocumentoIdParamsSchema = z.object({
+  id: z.string().uuid('ID invalido'),
+});
+
+const kbDocumentosQuerySchema = z.object({
+  categoria: z
+    .enum([
+      'MANUAIS',
+      'PROCEDIMENTOS_ETAPA',
+      'CHECKLISTS_EXPLICADOS',
+      'GLOSSARIO',
+      'NORMAS_LEIS',
+      'ATUALIZACOES_PROCESSO',
+    ])
+    .optional(),
+  etapa: z.string().optional(),
+  status: z.enum(['ATIVO', 'INATIVO']).optional(),
+  busca: z.string().optional(),
+  pagina: z.coerce.number().int().min(1).optional(),
+  limite: z.coerce.number().int().min(1).max(200).optional(),
+});
+
+const kbCriarDocumentoBodySchema = z.object({
+  codigo: z.string().min(1),
+  titulo: z.string().min(1),
+  categoria: z.enum([
+    'MANUAIS',
+    'PROCEDIMENTOS_ETAPA',
+    'CHECKLISTS_EXPLICADOS',
+    'GLOSSARIO',
+    'NORMAS_LEIS',
+    'ATUALIZACOES_PROCESSO',
+  ]),
+  descricao: z.string().optional(),
+  nivelAcesso: z.enum(['OPERADOR_ADMIN', 'ADMIN']).optional(),
+  etapas: z.array(z.string().min(1)).optional(),
+  conteudo: z.string().min(1),
+  resumoAlteracao: z.string().optional(),
+});
+
+const kbCriarVersaoBodySchema = z.object({
+  conteudo: z.string().min(1),
+  resumoAlteracao: z.string().optional(),
+});
+
+const kbAtualizarDocumentoBodySchema = z.object({
+  titulo: z.string().min(1).optional(),
+  descricao: z.string().optional(),
+  status: z.enum(['ATIVO', 'INATIVO']).optional(),
+  nivelAcesso: z.enum(['OPERADOR_ADMIN', 'ADMIN']).optional(),
+  etapas: z.array(z.string().min(1)).optional(),
+});
+
+const kbGlossarioBodySchema = z.object({
+  termo: z.string().min(1),
+  definicao: z.string().min(1),
+  ordem: z.number().int().min(0).optional(),
+});
+
+const kbGlossarioUpdateBodySchema = z.object({
+  termo: z.string().min(1).optional(),
+  definicao: z.string().min(1).optional(),
+  ativo: z.boolean().optional(),
+  ordem: z.number().int().min(0).optional(),
+});
+
+const kbLeiNormaBodySchema = z.object({
+  nome: z.string().min(1),
+  descricao: z.string().min(1),
+  referencia: z.string().optional(),
+  url: z.string().optional(),
+  ordem: z.number().int().min(0).optional(),
+});
+
+const kbLeiNormaUpdateBodySchema = z.object({
+  nome: z.string().min(1).optional(),
+  descricao: z.string().min(1).optional(),
+  referencia: z.string().optional(),
+  url: z.string().optional(),
+  ativo: z.boolean().optional(),
+  ordem: z.number().int().min(0).optional(),
+});
 
 function normalizeEtapas(value: unknown): EtapaFluxo[] {
   if (Array.isArray(value)) {
@@ -56,7 +141,11 @@ export function createConhecimentoOperacionalRoutes(): FastifyPluginAsync {
             },
           },
         },
-        preHandler: [server.authenticate, authorize('operador', 'administrador')],
+        preHandler: [
+          server.authenticate,
+          authorize('operador', 'administrador'),
+          validateQuery(kbDocumentosQuerySchema),
+        ],
       },
       async (request, reply) => {
         try {
@@ -148,7 +237,11 @@ export function createConhecimentoOperacionalRoutes(): FastifyPluginAsync {
           security: [{ bearerAuth: [] }],
           params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
         },
-        preHandler: [server.authenticate, authorize('operador', 'administrador')],
+        preHandler: [
+          server.authenticate,
+          authorize('operador', 'administrador'),
+          validateParams(kbDocumentoIdParamsSchema),
+        ],
       },
       async (request, reply) => {
         try {
@@ -219,7 +312,11 @@ export function createConhecimentoOperacionalRoutes(): FastifyPluginAsync {
           summary: 'Criar documento na base de conhecimento',
           security: [{ bearerAuth: [] }],
         },
-        preHandler: [server.authenticate, authorize('administrador')],
+        preHandler: [
+          server.authenticate,
+          authorize('administrador'),
+          validateBody(kbCriarDocumentoBodySchema),
+        ],
       },
       async (request, reply) => {
         try {
@@ -313,7 +410,12 @@ export function createConhecimentoOperacionalRoutes(): FastifyPluginAsync {
           security: [{ bearerAuth: [] }],
           params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
         },
-        preHandler: [server.authenticate, authorize('administrador')],
+        preHandler: [
+          server.authenticate,
+          authorize('administrador'),
+          validateParams(kbDocumentoIdParamsSchema),
+          validateBody(kbCriarVersaoBodySchema),
+        ],
       },
       async (request, reply) => {
         try {
@@ -389,7 +491,12 @@ export function createConhecimentoOperacionalRoutes(): FastifyPluginAsync {
           security: [{ bearerAuth: [] }],
           params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
         },
-        preHandler: [server.authenticate, authorize('administrador')],
+        preHandler: [
+          server.authenticate,
+          authorize('administrador'),
+          validateParams(kbDocumentoIdParamsSchema),
+          validateBody(kbAtualizarDocumentoBodySchema),
+        ],
       },
       async (request, reply) => {
         try {
@@ -491,7 +598,11 @@ export function createConhecimentoOperacionalRoutes(): FastifyPluginAsync {
           summary: 'Criar termo no glossário',
           security: [{ bearerAuth: [] }],
         },
-        preHandler: [server.authenticate, authorize('administrador')],
+        preHandler: [
+          server.authenticate,
+          authorize('administrador'),
+          validateBody(kbGlossarioBodySchema),
+        ],
       },
       async (request, reply) => {
         try {
@@ -525,7 +636,12 @@ export function createConhecimentoOperacionalRoutes(): FastifyPluginAsync {
           summary: 'Atualizar termo do glossário',
           security: [{ bearerAuth: [] }],
         },
-        preHandler: [server.authenticate, authorize('administrador')],
+        preHandler: [
+          server.authenticate,
+          authorize('administrador'),
+          validateParams(kbDocumentoIdParamsSchema),
+          validateBody(kbGlossarioUpdateBodySchema),
+        ],
       },
       async (request, reply) => {
         try {
@@ -572,7 +688,11 @@ export function createConhecimentoOperacionalRoutes(): FastifyPluginAsync {
           summary: 'Excluir termo do glossário',
           security: [{ bearerAuth: [] }],
         },
-        preHandler: [server.authenticate, authorize('administrador')],
+        preHandler: [
+          server.authenticate,
+          authorize('administrador'),
+          validateParams(kbDocumentoIdParamsSchema),
+        ],
       },
       async (request, reply) => {
         try {
@@ -632,7 +752,11 @@ export function createConhecimentoOperacionalRoutes(): FastifyPluginAsync {
           summary: 'Criar lei/norma',
           security: [{ bearerAuth: [] }],
         },
-        preHandler: [server.authenticate, authorize('administrador')],
+        preHandler: [
+          server.authenticate,
+          authorize('administrador'),
+          validateBody(kbLeiNormaBodySchema),
+        ],
       },
       async (request, reply) => {
         try {
@@ -679,7 +803,12 @@ export function createConhecimentoOperacionalRoutes(): FastifyPluginAsync {
           summary: 'Atualizar lei/norma',
           security: [{ bearerAuth: [] }],
         },
-        preHandler: [server.authenticate, authorize('administrador')],
+        preHandler: [
+          server.authenticate,
+          authorize('administrador'),
+          validateParams(kbDocumentoIdParamsSchema),
+          validateBody(kbLeiNormaUpdateBodySchema),
+        ],
       },
       async (request, reply) => {
         try {
@@ -732,7 +861,11 @@ export function createConhecimentoOperacionalRoutes(): FastifyPluginAsync {
           summary: 'Excluir lei/norma',
           security: [{ bearerAuth: [] }],
         },
-        preHandler: [server.authenticate, authorize('administrador')],
+        preHandler: [
+          server.authenticate,
+          authorize('administrador'),
+          validateParams(kbDocumentoIdParamsSchema),
+        ],
       },
       async (request, reply) => {
         try {

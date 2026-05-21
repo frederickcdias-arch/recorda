@@ -8,8 +8,7 @@ import { PageHeader } from '../../components/ui/PageHeader';
 import { PageState } from '../../components/ui/PageState';
 import { SkeletonTable } from '../../components/ui/Skeleton';
 import { useToastHelpers } from '../../components/ui/Toast';
-import { buildApiUrl } from '../../services/api';
-import { getToken } from '../../services/tokenStorage';
+import { api } from '../../services/api';
 import { useDebounce } from '../../hooks/useDebounce';
 import {
   useDevolucoes,
@@ -678,10 +677,7 @@ export function DevolucoesPage(): JSX.Element {
   const handleDownloadPdf = useCallback(
     async (id: string) => {
       try {
-        const token = getToken();
-        const response = await fetch(buildApiUrl(`/operacional/devolucoes/${id}/pdf`), {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
+        const response = await api.fetchWithAuth(`/operacional/devolucoes/${id}/pdf`);
         if (!response.ok) throw new Error('Erro ao gerar PDF');
         const blob = await response.blob();
         const url = URL.createObjectURL(blob);

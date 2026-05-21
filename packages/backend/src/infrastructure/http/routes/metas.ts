@@ -1,20 +1,46 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
+import { z } from 'zod';
 import { authorize } from '../middleware/auth.js';
 import { getCurrentUser } from './operacional-helpers.js';
-import { validateBody } from '../middleware/validate.js';
+import { validateBody, validateParams, validateQuery } from '../middleware/validate.js';
 import { lancarProducaoColaboradorSchema } from '../schemas/producao.js';
+import {
+  criarMapeamentoSchema,
+  criarMetaSchema,
+  idParamSchema,
+} from '../schemas/operacional.js';
 import type { EtapaFluxo, StatusRepositorio } from '@recorda/shared';
 import { normalizeIdRepositorioGed } from './operacional-repositorios.js';
 import {
   SYSTEM_TIMEZONE,
+  LEGACY_PRODUCAO_ORIGEM,
+  PROJETO_IMPORTACAO_PRODUCAO,
   PRODUCAO_CONTABILIZADA_DESCRICAO,
   PRODUCAO_ESCOPOS,
   buildProducaoContabilizadaWhere,
+  buildLegacyProducaoWhere,
   sqlDateInSystemTimezone,
   sqlLastNDaysStartInSystemTimezone,
   sqlMonthStartInSystemTimezone,
   sqlTodayInSystemTimezone,
 } from '../../../domain/producao/producao-metrics.js';
+
+const desempenhoQuerySchema = z.object({
+  periodo: z.enum(['dia', 'semana', 'mes']).default('mes'),
+});
+
+const meuHistoricoQuerySchema = z.object({
+  dataInicio: z.string().optional(),
+  dataFim: z.string().optional(),
+  etapa: z.string().optional(),
+  busca: z.string().optional(),
+  limite: z.coerce.number().int().min(1).max(500).default(50),
+  pagina: z.coerce.number().int().min(1).default(1),
+});
+
+const vincularProducaoBodySchema = z.object({
+  usuarioId: z.string().uuid('usuarioId invalido'),
+});
 
 export function createMetasRoutes(): FastifyPluginAsync {
   return async (server: FastifyInstance): Promise<void> => {
@@ -67,7 +93,7 @@ export function createMetasRoutes(): FastifyPluginAsync {
             500: { type: 'object', properties: { error: { type: 'string' } } },
           },
         },
-        preHandler: [server.authenticate, authorize('administrador')],
+        preHandler: [server.authenticate, authorize('administrador'), validateBody(criarMetaSchema)],
       },
       async (request, reply) => {
         try {
@@ -107,7 +133,11 @@ export function createMetasRoutes(): FastifyPluginAsync {
           },
           response: { 500: { type: 'object', properties: { error: { type: 'string' } } } },
         },
-        preHandler: [server.authenticate, authorize('colaborador', 'operador', 'administrador')],
+        preHandler: [
+          server.authenticate,
+          authorize('colaborador', 'operador', 'administrador'),
+          validateQuery(desempenhoQuerySchema),
+        ],
       },
       async (request, reply) => {
         try {
@@ -208,7 +238,11 @@ export function createMetasRoutes(): FastifyPluginAsync {
             500: { type: 'object', properties: { error: { type: 'string' } } },
           },
         },
-        preHandler: [server.authenticate, authorize('administrador')],
+        preHandler: [
+          server.authenticate,
+          authorize('administrador'),
+          validateBody(criarMapeamentoSchema),
+        ],
       },
       async (request, reply) => {
         try {
@@ -251,7 +285,11 @@ export function createMetasRoutes(): FastifyPluginAsync {
             },
           },
         },
-        preHandler: [server.authenticate, authorize('colaborador', 'operador', 'administrador')],
+        preHandler: [
+          server.authenticate,
+          authorize('colaborador', 'operador', 'administrador'),
+          validateQuery(meuHistoricoQuerySchema),
+        ],
       },
       async (request, reply) => {
         try {
@@ -509,7 +547,12 @@ export function createMetasRoutes(): FastifyPluginAsync {
             },
           },
         },
-        preHandler: [server.authenticate, authorize('administrador')],
+        preHandler: [
+          server.authenticate,
+          authorize('administrador'),
+          validateParams(idParamSchema),
+          validateBody(vincularProducaoBodySchema),
+        ],
       },
       async (request, reply) => {
         try {
@@ -580,7 +623,6 @@ export function createMetasRoutes(): FastifyPluginAsync {
             tipo?: string;
           };
 
-          const PROJETO_IMPORTACAO_PRODUCAO = 'IMPORTACAO_PRODUCAO';
           const quantidade = Number(body.quantidade);
           if (!Number.isInteger(quantidade) || quantidade <= 0) {
             return reply.status(400).send({
@@ -674,7 +716,7 @@ export function createMetasRoutes(): FastifyPluginAsync {
             funcao: funcaoMarcador,
             tipo: tipoMarcador,
             coordenadoria: coordenadoriaMarcador,
-            origem: 'SISTEMA', // Marca produção lançada diretamente no sistema (vs LEGADO = importada)
+            origem: 'SISTEMA', // Marca produção lançada diretamente no sistema (vs legado importado)
           };
 
           if (!body.data) {
@@ -706,7 +748,7 @@ export function createMetasRoutes(): FastifyPluginAsync {
              FROM producao_repositorio
              WHERE repositorio_id = $1
                AND etapa = $2
-               AND COALESCE(marcadores->>'origem', '') = 'LEGADO'
+               AND ${buildLegacyProducaoWhere()}
                AND COALESCE(marcadores->>'coordenadoria', '') = $3
              LIMIT 1`,
             [repositorioId, body.etapa, coordenadoriaMarcador]
@@ -720,7 +762,7 @@ export function createMetasRoutes(): FastifyPluginAsync {
                 repositorio: repoId,
                 etapa: body.etapa,
                 coordenadoria: body.coordenadoria?.trim() || 'SGPA',
-                origemExistente: 'LEGADO',
+                origemExistente: LEGACY_PRODUCAO_ORIGEM,
               },
             });
           }

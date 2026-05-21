@@ -1,73 +1,60 @@
-# Documentação do Sistema Recorda
+# Documentacao do Sistema Recorda
 
-## Visão Geral
+## Visao geral
 
-Esta pasta concentra a documentação oficial, histórica e arquivada do sistema Recorda.
+Esta pasta concentra a documentacao oficial, historica e operacional do sistema.
 
-Organização atual:
+Organizacao:
 
-- `arquitetura/`: visão técnica do sistema, API e design system.
-- `regras-de-negocio/`: regras oficiais de domínio que afetam comportamento funcional.
-- `operacao/`: execução local, deploy, limitações e materiais operacionais.
-- `auditorias/`: auditorias, correções, validações e relatórios históricos relevantes.
-- `padroes/`: padrões técnicos obrigatórios para futuras alterações.
+- `arquitetura/`: visao tecnica do sistema, API e design system.
+- `regras-de-negocio/`: regras oficiais que afetam comportamento funcional.
+- `operacao/`: setup local, testes, deploy e limitacoes conhecidas.
+- `auditorias/`: registros historicos de auditoria, revisao e validacao.
+- `padroes/`: convencoes tecnicas obrigatorias para evolucoes futuras.
+- `archive/`: materiais antigos preservados por rastreabilidade.
 
-## Índice Mestre
+## Indice mestre
 
-| Documento                                                    | Finalidade                                           | Status           |
-| ------------------------------------------------------------ | ---------------------------------------------------- | ---------------- |
-| `regras-de-negocio/NUMEROS_E_METRICAS.md`                    | Regra oficial dos números e métricas                 | Atual            |
-| `regras-de-negocio/TIMEZONE.md`                              | Timezone oficial do sistema                          | Atual            |
-| `regras-de-negocio/IMPORTACAO_LEGADO.md`                     | Regras da importação legada                          | Atual            |
-| `regras-de-negocio/DOMINIO.md`                               | Conceitos centrais de domínio                        | Atual            |
-| `padroes/PADRAO_NUMEROS_RECORDA.md`                          | Padrão obrigatório para evolução de números          | Atual            |
-| `arquitetura/VISAO_GERAL.md`                                 | Arquitetura geral do sistema                         | Atual            |
-| `arquitetura/API.md`                                         | Referência técnica de rotas                          | Atual            |
-| `arquitetura/DESIGN_SYSTEM.md`                               | Guia visual e padrões de interface                   | Atual            |
-| `operacao/COMO_RODAR_LOCAL.md`                               | Setup e execução local                               | Atual            |
-| `operacao/DEPLOY.md`                                         | Deploy e publicação                                  | Atual            |
-| `operacao/TESTES.md`                                         | Comandos e estratégia de testes                      | Atual            |
-| `operacao/PRE_PRODUCAO.md`                                   | Checklist pré-produção                               | Atual            |
-| `operacao/LIMITACOES.md`                                     | Limitações conhecidas                                | Atual            |
-| `operacao/PERFIL_COLABORADOR.md`                             | Fluxo funcional do colaborador                       | Atual            |
-| `auditorias/numeros/AUDITORIA_NUMEROS_RECORDA.md`            | Auditoria original dos números                       | Histórico válido |
-| `auditorias/numeros/CORRECAO_NUMEROS_RECORDA.md`             | Correção aplicada nos números                        | Histórico válido |
-| `auditorias/numeros/VALIDACAO_NUMEROS_RECORDA.md`            | Validação pós-correção                               | Histórico válido |
-| `auditorias/numeros/FECHAMENTO_RESSALVAS_NUMEROS_RECORDA.md` | Fechamento final das ressalvas                       | Histórico válido |
-| `auditorias/seguranca/AUDITORIA_SEGURANCA_PRODUCAO.md`       | Auditoria de segurança no fluxo de produção          | Histórico válido |
-| `auditorias/seguranca/SECURITY_REVIEW.md`                    | Revisão de segurança complementar                    | Histórico válido |
-| `auditorias/organizacao/ORGANIZACAO_RAIZ_E_DOCS_RECORDA.md`  | Relatório da reorganização da raiz e da documentação | Histórico válido |
+| Documento                                 | Finalidade                                  | Status           |
+| ----------------------------------------- | ------------------------------------------- | ---------------- |
+| `regras-de-negocio/DOMINIO.md`            | Conceitos centrais de dominio               | Atual            |
+| `regras-de-negocio/NUMEROS_E_METRICAS.md` | Regras oficiais de numeros e metricas       | Atual            |
+| `regras-de-negocio/TIMEZONE.md`           | Timezone oficial do sistema                 | Atual            |
+| `regras-de-negocio/IMPORTACAO_LEGADO.md`  | Regras da importacao legada                 | Atual            |
+| `padroes/PADRAO_NUMEROS_RECORDA.md`       | Padrao obrigatorio para evolucao de numeros | Atual            |
+| `arquitetura/VISAO_GERAL.md`              | Arquitetura geral do sistema                | Atual            |
+| `arquitetura/API.md`                      | Referencia tecnica de rotas                 | Atual            |
+| `arquitetura/DESIGN_SYSTEM.md`            | Guia visual e padroes de interface          | Atual            |
+| `operacao/COMO_RODAR_LOCAL.md`            | Setup e execucao local                      | Atual            |
+| `operacao/TESTES.md`                      | Estrategia e comandos de teste              | Atual            |
+| `operacao/DEPLOY.md`                      | Deploy e publicacao                         | Atual            |
+| `operacao/PRE_PRODUCAO.md`                | Checklist pre-producao                      | Atual            |
+| `operacao/LIMITACOES.md`                  | Limitacoes conhecidas                       | Atual            |
+| `operacao/PERFIL_COLABORADOR.md`          | Fluxo funcional do colaborador              | Atual            |
+| `auditorias/`                             | Registros historicos validos                | Historico valido |
 
-## Navegação Recomendada
+## Ordem recomendada de leitura
 
-Se o objetivo for entender o sistema hoje:
+Se o objetivo for entender o sistema:
 
-1. Leia `regras-de-negocio/DOMINIO.md`.
-2. Leia `regras-de-negocio/NUMEROS_E_METRICAS.md`.
-3. Leia `regras-de-negocio/TIMEZONE.md`.
-4. Leia `padroes/PADRAO_NUMEROS_RECORDA.md`.
-5. Consulte `arquitetura/VISAO_GERAL.md`.
+1. `regras-de-negocio/DOMINIO.md`
+2. `regras-de-negocio/NUMEROS_E_METRICAS.md`
+3. `regras-de-negocio/TIMEZONE.md`
+4. `arquitetura/VISAO_GERAL.md`
+5. `arquitetura/API.md`
 
-Se o objetivo for operar ou publicar:
+Se o objetivo for rodar ou operar localmente:
 
-1. Leia `operacao/COMO_RODAR_LOCAL.md`.
-2. Leia `operacao/TESTES.md`.
-3. Leia `operacao/DEPLOY.md`.
-4. Use `operacao/PRE_PRODUCAO.md` antes de mudanças sensíveis.
+1. `operacao/COMO_RODAR_LOCAL.md`
+2. `operacao/TESTES.md`
+3. `operacao/LIMITACOES.md`
+4. `operacao/DEPLOY.md`
 
-Se o objetivo for entender decisões recentes:
+Se o objetivo for revisar historico de decisoes:
 
-1. Consulte `auditorias/numeros/`.
-2. Consulte `auditorias/seguranca/`.
-3. Consulte `auditorias/organizacao/`.
+1. `auditorias/`
+2. `archive/`
 
-## Onde Ficam os Documentos Antigos
+## Importante sobre documentos antigos
 
-Documentos que descrevem estados anteriores do sistema, análises já superadas ou materiais que não representam mais a situação atual foram movidos para:
-
-- `archive/antigos/`
-- `archive/diagnosticos-superados/`
-- `archive/nao-utilizados/`
-- `archive/pendente-confirmacao/`
-
-Esses arquivos foram preservados por segurança e rastreabilidade, mas não devem ser usados como fonte primária para novas alterações.
+Arquivos em `archive/` e parte de `auditorias/` podem descrever estados anteriores do sistema. Eles devem ser lidos como referencia historica, nao como fonte primaria para novas alteracoes.

@@ -116,6 +116,7 @@ export const menuSections: MenuSection[] = [
     allowedProfiles: ['administrador'],
     items: [
       { id: 'empresa', label: 'Empresa', icon: 'building', path: '/configuracoes/empresa' },
+      { id: 'projetos', label: 'Projetos', icon: 'folder', path: '/configuracoes/projetos' },
       { id: 'usuarios', label: 'Usuários', icon: 'user-plus', path: '/configuracoes/usuarios' },
       {
         id: 'vincular-producoes',
@@ -137,7 +138,7 @@ export const menuSections: MenuSection[] = [
     label: 'Auditoria',
     icon: 'shield',
     basePath: '/auditoria',
-    allowedProfiles: ['administrador'],
+    allowedProfiles: ['operador', 'administrador'],
     items: [
       {
         id: 'importacoes',
@@ -168,7 +169,7 @@ const mobileSheetNavMap: Record<PerfilUsuario, string[]> = {
     'usuarios',
     'auditoria',
   ],
-  operador: ['comunicados', 'operacao-devolucoes', 'operacao-kb', 'operacao-cq'],
+  operador: ['comunicados', 'operacao-devolucoes', 'operacao-kb', 'operacao-cq', 'auditoria'],
   colaborador: ['comunicados'],
 };
 
@@ -197,17 +198,14 @@ function flattenMenuItems(items: MenuItem[]): MenuLinkItem[] {
 }
 
 const flatMenuItems = menuSections.flatMap((section) => {
-  const sectionEntry: MenuLinkItem[] =
-    section.items.length === 0
-      ? [
-          {
-            id: section.id,
-            label: section.label,
-            icon: section.icon,
-            path: section.basePath,
-          },
-        ]
-      : [];
+  const sectionEntry: MenuLinkItem[] = [
+    {
+      id: section.id,
+      label: section.label,
+      icon: section.icon,
+      path: section.basePath,
+    },
+  ];
 
   return [...sectionEntry, ...flattenMenuItems(section.items)];
 });

@@ -17,8 +17,9 @@ import {
   TableHeader,
   TableRow,
 } from '../components/ui/Table';
+import type { DashboardData } from '@recorda/shared';
 import { useAuth } from '../contexts/AuthContext';
-import { useDashboard, type DashboardData } from '../hooks/useQueries';
+import { useDashboard } from '../hooks/useQueries';
 import { api } from '../services/api';
 import { formatDateBR } from '../utils/date';
 import { getEtapaProducaoStyle } from '../utils/etapa';

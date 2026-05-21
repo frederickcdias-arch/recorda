@@ -17,7 +17,6 @@ export interface DashboardStats {
   producaoTrend: string;
   processosAtivos: number;
   processosNovosHoje: number;
-  recebimentosPendentes: number;
   colaboradoresAtivos: number;
 }
 
@@ -26,6 +25,9 @@ export interface DashboardData {
   producaoPorEtapa: { etapa: string; valor: number; cor: string }[];
   statusRecebimento: { status: string; valor: number; icon: string; cor: string }[];
   alertas: { tipo: 'info' | 'warning' | 'error'; titulo: string; descricao: string }[];
+  backlogPorEtapa?: { etapa: string; total: number }[];
+  tempoMedioPorEtapa?: { etapa: string; mediaHoras: number }[];
+  retrabalhoCQ?: { motivo: string; total: number; repositorios: string }[];
 }
 
 export interface OCRResponse {

@@ -2,8 +2,7 @@ import { useState } from 'react';
 import { Button } from '../../components/ui/Button';
 import { Icon } from '../../components/ui/Icon';
 import { useToastHelpers } from '../../components/ui/Toast';
-import { buildApiUrl } from '../../services/api';
-import { getToken } from '../../services/tokenStorage';
+import { api } from '../../services/api';
 import { useDevolucaoDetalhe } from '../../hooks/useQueries';
 
 function formatarData(value: string | null | undefined): string {
@@ -29,10 +28,7 @@ export function DevolucaoDetalhePanel({
   const handleDownloadPdf = async () => {
     try {
       setBaixandoPdf(true);
-      const token = getToken();
-      const response = await fetch(buildApiUrl(`/operacional/devolucoes/${devolucaoId}/pdf`), {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
+      const response = await api.fetchWithAuth(`/operacional/devolucoes/${devolucaoId}/pdf`);
       if (!response.ok) throw new Error('Erro ao gerar PDF');
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);

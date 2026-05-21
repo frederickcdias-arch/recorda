@@ -23,6 +23,7 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - **Backend (`health.ts`):** `server.authenticate` substituído por `authenticate` importado diretamente de `middleware/auth.js` — crash na inicialização em produção resolvido (commit `87fc80d`)
 - **Frontend:** `useCallback` em handlers de `useEffect` em `RelatoriosGerenciaisPage`, `ExportacoesPage`; `useMemo` em arrays derivados de query em `ConhecimentoOperacionalPage`; `catch (error: unknown)` com narrowing em `AuthContext`; validação de e-mail em `ForgotPassword` (commit `3fe0c6d`)
 - **DB (`074_gestao_pessoas.sql`):** `INSERT INTO schema_migrations` ausente adicionado; função duplicada `update_updated_at_column()` removida (commit `ef49485`)
+- **DB (`074a_cq_avaliacoes_aceitar_apensos.sql`):** renumerada a antiga `074_cq_avaliacoes_aceitar_apensos.sql` para eliminar prefixo duplicado, com compatibilidade preservada no runner
 
 ### ✨ Adicionado
 

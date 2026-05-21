@@ -1,23 +1,24 @@
 #!/usr/bin/env node
 /**
- * Database Migration Consolidation Script
+ * Deprecated baseline consolidation script.
  *
- * Connects to the database, dumps the current schema + seed data,
- * and archives old migration files.
- *
- * Usage:
- *   node db/scripts/consolidate.mjs
- *
- * Prerequisites:
- *   - PostgreSQL running with all migrations applied
- *   - pg_dump available in PATH
- *   - Environment variables: DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME
+ * Do not use this script until the baseline strategy is redesigned and
+ * revalidated. The official database source of truth is db/migrations only.
  */
 
 import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+
+console.error(
+  [
+    'Baseline consolidation is currently disabled.',
+    'Use db/migrations with `npm run db:migrate` as the only supported flow.',
+    'Read db/BASELINE.md before attempting a new consolidation strategy.',
+  ].join('\n')
+);
+process.exit(1);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

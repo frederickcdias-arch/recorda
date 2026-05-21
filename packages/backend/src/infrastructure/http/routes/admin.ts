@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { authorize } from '../middleware/auth.js';
 import { getCurrentUser } from './operacional-helpers.js';
+import { buildLegacyProducaoWhere } from '../../../domain/producao/producao-metrics.js';
 
 interface VincularProducoesBody {
   colaboradorNomeLegado: string;
@@ -31,7 +32,7 @@ export function createAdminRoutes(): FastifyPluginAsync {
               COUNT(DISTINCT repositorio_id) as total_repositorios,
               ARRAY_AGG(DISTINCT etapa::text) as etapas
             FROM producao_repositorio
-            WHERE COALESCE(marcadores->>'origem', '') = 'LEGADO'
+            WHERE ${buildLegacyProducaoWhere()}
               AND TRIM(marcadores->>'colaborador_nome') != ''
             GROUP BY TRIM(marcadores->>'colaborador_nome')
             ORDER BY total_producoes DESC
@@ -129,7 +130,7 @@ export function createAdminRoutes(): FastifyPluginAsync {
             `SELECT COUNT(*) as total
              FROM producao_repositorio
              WHERE LOWER(TRIM(marcadores->>'colaborador_nome')) = LOWER($1)
-               AND COALESCE(marcadores->>'origem', '') = 'LEGADO'`,
+               AND ${buildLegacyProducaoWhere('pr')}`,
             [colaboradorNomeLegado]
           );
 
@@ -146,7 +147,7 @@ export function createAdminRoutes(): FastifyPluginAsync {
             `UPDATE producao_repositorio
              SET usuario_id = $1
              WHERE LOWER(TRIM(marcadores->>'colaborador_nome')) = LOWER($2)
-               AND COALESCE(marcadores->>'origem', '') = 'LEGADO'
+               AND ${buildLegacyProducaoWhere('pr')}
              RETURNING id`,
             [usuarioId, colaboradorNomeLegado]
           );
@@ -204,7 +205,7 @@ export function createAdminRoutes(): FastifyPluginAsync {
             FROM producao_repositorio pr
             JOIN repositorios r ON r.id_repositorio_recorda = pr.repositorio_id
             WHERE LOWER(TRIM(pr.marcadores->>'colaborador_nome')) = LOWER($1)
-              AND COALESCE(pr.marcadores->>'origem', '') = 'LEGADO'
+              AND ${buildLegacyProducaoWhere('pr')}
             GROUP BY pr.data_producao::date, pr.etapa
             ORDER BY pr.data_producao::date DESC, pr.etapa
             LIMIT 100

@@ -12,6 +12,24 @@ export type PermissaoTipo =
   | 'gerenciar_configuracoes'
   | 'gerenciar_usuarios';
 
+export const PERMISSOES_POR_PERFIL: Record<PerfilUsuario, PermissaoTipo[]> = {
+  colaborador: ['visualizar_dashboard'],
+  operador: [
+    'visualizar_dashboard',
+    'gerar_relatorios',
+    'importar_producao',
+    'capturar_documentos',
+  ],
+  administrador: [
+    'visualizar_dashboard',
+    'gerar_relatorios',
+    'importar_producao',
+    'capturar_documentos',
+    'gerenciar_configuracoes',
+    'gerenciar_usuarios',
+  ],
+};
+
 export interface CoordenadoriaResumida {
   id: string;
   nome: string;

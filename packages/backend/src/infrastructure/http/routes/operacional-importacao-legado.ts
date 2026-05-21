@@ -15,9 +15,15 @@ import {
   parseDataProducaoPlanilha,
   parseQuantidadePlanilha,
 } from '../../../domain/producao/importacao-legado.js';
-import { SYSTEM_TIMEZONE } from '../../../domain/producao/producao-metrics.js';
-
-const PROJETO_IMPORTACAO_PRODUCAO = 'IMPORTACAO_PRODUCAO';
+import {
+  SYSTEM_TIMEZONE,
+  LEGACY_PRODUCAO_ORIGEM,
+  LEGACY_CHECKLIST_OBSERVACAO,
+  PROJETO_IMPORTACAO_PRODUCAO,
+  buildLegacyProducaoWhere,
+  buildLegacyChecklistWhere,
+  buildLegacyRepositorioProjetoWhere,
+} from '../../../domain/producao/producao-metrics.js';
 
 const VALID_ETAPAS: EtapaFluxo[] = [
   'RECEBIMENTO',
@@ -116,6 +122,38 @@ function parseImportRowStrict(
       coordenadoriaMarcador: String(row.coordenadoria ?? '').trim(),
     },
   };
+}
+
+interface ImportacaoLegadoDetalheRow {
+  tipo: string;
+  detalhes_erros: Record<string, unknown> | null;
+}
+
+function collectLegacySourceHashes(
+  importacoes: ImportacaoLegadoDetalheRow[]
+): Map<string, Set<string>> {
+  const hashesPorFonte = new Map<string, Set<string>>();
+
+  for (const item of importacoes) {
+    if (item.tipo !== 'PRODUCAO') continue;
+
+    const detalhes = item.detalhes_erros ?? {};
+    const rollback = (detalhes.rollback as Record<string, unknown> | undefined) ?? {};
+    const fonteId = typeof rollback.fonteId === 'string' ? rollback.fonteId : null;
+    const hashes = Array.isArray(rollback.importacaoFonteHashes)
+      ? rollback.importacaoFonteHashes.filter((value): value is string => typeof value === 'string')
+      : [];
+
+    if (!fonteId || hashes.length === 0) continue;
+
+    const bucket = hashesPorFonte.get(fonteId) ?? new Set<string>();
+    for (const hash of hashes) {
+      bucket.add(hash);
+    }
+    hashesPorFonte.set(fonteId, bucket);
+  }
+
+  return hashesPorFonte;
 }
 
 function normalizeImportKeyPart(value: unknown): string {
@@ -687,7 +725,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
                    repositorio_id, processo, interessado, numero_caixas, volume, caixa_nova,
                    origem, texto_extraido, criado_por
                  )
-                 VALUES ($1, $2, $3, $4, $5, $6, 'LEGADO', '', $7)`,
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, '', $8)`,
                   [
                     repositorioId,
                     processo,
@@ -695,6 +733,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
                     numCaixas,
                     volume,
                     caixaNova,
+                    LEGACY_PRODUCAO_ORIGEM,
                     usuarioDestinoId,
                   ]
                 );
@@ -892,15 +931,15 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
                 if (!checklistId) {
                   const checklistResult = await server.database.query<{ id: string }>(
                     `INSERT INTO checklists (repositorio_id, etapa, status, observacao, responsavel_id, ativo, data_conclusao)
-                   VALUES ($1, $2, 'CONCLUIDO', 'Importacao legada', $3, FALSE, CURRENT_TIMESTAMP)
+                   VALUES ($1, $2, 'CONCLUIDO', $3, $4, FALSE, CURRENT_TIMESTAMP)
                    RETURNING id`,
-                    [repositorioId, etapaImport, colaboradorId]
+                    [repositorioId, etapaImport, LEGACY_CHECKLIST_OBSERVACAO, colaboradorId]
                   );
                   checklistId = checklistResult.rows[0]?.id ?? '';
                 }
 
                 const marcadores = JSON.stringify({
-                  origem: 'LEGADO',
+                  origem: LEGACY_PRODUCAO_ORIGEM,
                   importacao_exec_id: importacaoExecId,
                   funcao: funcaoMarcador,
                   tipo: tipoMarcador,
@@ -925,7 +964,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
                    AND repositorio_id = $2
                    AND (data_producao AT TIME ZONE '${SYSTEM_TIMEZONE}')::date = $3::date
                    AND etapa = $4
-                   AND COALESCE(marcadores->>'origem', '') = 'LEGADO'
+                   AND ${buildLegacyProducaoWhere()}
                    AND COALESCE(marcadores->>'tipo', '') = $5
                    AND COALESCE(marcadores->>'funcao', '') = $6
                    AND COALESCE(marcadores->>'coordenadoria', '') = $7
@@ -997,7 +1036,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
             // Fechar todos os checklists legados abertos criados nesta importacao
             await server.database.query(
               `UPDATE checklists SET status = 'CONCLUIDO', ativo = FALSE, data_conclusao = CURRENT_TIMESTAMP
-             WHERE observacao = 'Importacao legada' AND status = 'ABERTO' AND ativo = TRUE`
+             WHERE ${buildLegacyChecklistWhere()} AND status = 'ABERTO' AND ativo = TRUE`
             );
 
             await server.database.query('COMMIT');
@@ -1384,20 +1423,83 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
       async (request, reply) => {
         try {
           await server.database.query('BEGIN');
-          const prodResult = await server.database.query('DELETE FROM producao_repositorio');
-          const checkResult = await server.database.query(
-            "DELETE FROM checklists WHERE observacao = 'Importacao legada'"
+          const importacoesResult = await server.database.query<ImportacaoLegadoDetalheRow>(
+            `SELECT tipo, detalhes_erros
+               FROM importacoes_legado_operacional`
           );
-          const recebResult = await server.database.query('DELETE FROM recebimento_documentos');
+          const hashesPorFonte = collectLegacySourceHashes(importacoesResult.rows);
+
+          const prodResult = await server.database.query(
+            `DELETE FROM producao_repositorio
+             WHERE ${buildLegacyProducaoWhere()}`
+          );
+          const checkResult = await server.database.query(
+            `DELETE FROM checklists WHERE ${buildLegacyChecklistWhere()}`
+          );
+          const recebResult = await server.database.query(
+            `DELETE FROM recebimento_documentos
+             WHERE origem = $1`,
+            [LEGACY_PRODUCAO_ORIGEM]
+          );
+          let fontesLinhasRemovidas = 0;
+          for (const [fonteId, hashes] of hashesPorFonte.entries()) {
+            if (hashes.size === 0) continue;
+
+            const fontesLinhasResult = await server.database.query(
+              `DELETE FROM importacao_fontes_linhas
+               WHERE fonte_id = $1
+                 AND chave_hash = ANY($2::text[])`,
+              [fonteId, [...hashes]]
+            );
+            fontesLinhasRemovidas += fontesLinhasResult.rowCount ?? 0;
+          }
           const repoResult = await server.database.query(
-            "DELETE FROM repositorios WHERE projeto IN ('LEGADO', $1)",
-            [PROJETO_IMPORTACAO_PRODUCAO]
+            `DELETE FROM repositorios r
+             WHERE ${buildLegacyRepositorioProjetoWhere('r')}
+               AND NOT EXISTS (
+                 SELECT 1 FROM recebimento_documentos rd
+                 WHERE rd.repositorio_id = r.id_repositorio_recorda
+               )
+               AND NOT EXISTS (
+                 SELECT 1 FROM recebimento_processos rp
+                 WHERE rp.repositorio_id = r.id_repositorio_recorda
+               )
+               AND NOT EXISTS (
+                 SELECT 1 FROM checklists c
+                 WHERE c.repositorio_id = r.id_repositorio_recorda
+               )
+               AND NOT EXISTS (
+                 SELECT 1 FROM producao_repositorio p
+                 WHERE p.repositorio_id = r.id_repositorio_recorda
+               )
+               AND NOT EXISTS (
+                 SELECT 1 FROM movimentacoes_armario ma
+                 WHERE ma.repositorio_id = r.id_repositorio_recorda
+               )
+               AND NOT EXISTS (
+                 SELECT 1 FROM excecoes_repositorio er
+                 WHERE er.repositorio_id = r.id_repositorio_recorda
+               )
+               AND NOT EXISTS (
+                 SELECT 1 FROM lotes_controle_qualidade_itens l
+                 WHERE l.repositorio_id = r.id_repositorio_recorda
+               )
+               AND NOT EXISTS (
+                 SELECT 1 FROM relatorios_operacionais ro
+                 WHERE ro.repositorio_id = r.id_repositorio_recorda
+               )
+               AND NOT EXISTS (
+                 SELECT 1 FROM historico_etapas he
+                 WHERE he.repositorio_id = r.id_repositorio_recorda
+               )
+               AND NOT EXISTS (
+                 SELECT 1 FROM cq_avaliacoes cq
+                 WHERE cq.repositorio_id = r.id_repositorio_recorda
+               )`,
+            []
           );
           const importResult = await server.database.query(
             'DELETE FROM importacoes_legado_operacional'
-          );
-          const fontesLinhasResult = await server.database.query(
-            'DELETE FROM importacao_fontes_linhas'
           );
           await server.database.query('COMMIT');
 
@@ -1410,7 +1512,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
               recebimentos: recebResult.rowCount ?? 0,
               repositorios: repoResult.rowCount ?? 0,
               importacoes: importResult.rowCount ?? 0,
-              fontes_linhas: fontesLinhasResult.rowCount ?? 0,
+              fontes_linhas: fontesLinhasRemovidas,
             },
           });
         } catch (error) {
@@ -1863,7 +1965,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
                AND repositorio_id = $2
                AND (data_producao AT TIME ZONE '${SYSTEM_TIMEZONE}')::date = $3::date
                AND etapa = $4
-               AND COALESCE(marcadores->>'origem', '') = 'LEGADO'
+               AND ${buildLegacyProducaoWhere()}
                AND COALESCE(marcadores->>'tipo', '') = $5
                AND COALESCE(marcadores->>'funcao', '') = $6
                AND COALESCE(marcadores->>'coordenadoria', '') = $7
@@ -2102,7 +2204,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
                   continue;
                 }
                 const marcadores = JSON.stringify({
-                  origem: 'LEGADO',
+                  origem: LEGACY_PRODUCAO_ORIGEM,
                   importacao_exec_id: importacaoExecId,
                   funcao: funcaoMarcador,
                   tipo: tipoMarcador,
@@ -2122,7 +2224,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
                FROM producao_repositorio
                WHERE usuario_id = $1 AND repositorio_id = $2 AND (data_producao AT TIME ZONE '${SYSTEM_TIMEZONE}')::date = $3::date
                  AND etapa = $4
-                 AND COALESCE(marcadores->>'origem', '') = 'LEGADO'
+                 AND ${buildLegacyProducaoWhere()}
                  AND COALESCE(marcadores->>'tipo', '') = $5
                  AND COALESCE(marcadores->>'funcao', '') = $6
                  AND COALESCE(marcadores->>'coordenadoria', '') = $7
@@ -2180,8 +2282,8 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
                 if (!checklistId) {
                   const checklistResult = await server.database.query<{ id: string }>(
                     `INSERT INTO checklists (repositorio_id, etapa, status, observacao, responsavel_id, ativo, data_conclusao)
-                 VALUES ($1, $2, 'CONCLUIDO', 'Importacao legada', $3, FALSE, CURRENT_TIMESTAMP) RETURNING id`,
-                    [repositorioId, etapaImport, colaboradorId]
+                 VALUES ($1, $2, 'CONCLUIDO', $3, $4, FALSE, CURRENT_TIMESTAMP) RETURNING id`,
+                    [repositorioId, etapaImport, LEGACY_CHECKLIST_OBSERVACAO, colaboradorId]
                   );
                   checklistId = checklistResult.rows[0]?.id ?? '';
                 }

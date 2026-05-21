@@ -8,7 +8,7 @@ export interface PaginationParams {
 }
 
 export interface PaginatedResponse<T> {
-  data: T[];
+  itens: T[];
   total: number;
   pagina: number;
   totalPaginas: number;

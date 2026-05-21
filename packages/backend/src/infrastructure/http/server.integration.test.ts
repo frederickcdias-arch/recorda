@@ -78,6 +78,33 @@ function createMockDatabase(): DatabaseConnection & {
     }
   >;
   fontesImportacao: Map<string, { id: string; nome: string; url: string; tipo: string }>;
+  importacoesLegado: Array<{ tipo: string; detalhes_erros: Record<string, unknown> }>;
+  comunicados: Map<
+    string,
+    {
+      id: string;
+      titulo: string;
+      conteudo: string;
+      prioridade: string;
+      escopo_destino: string;
+      status: string;
+      criado_por_usuario_id: string;
+      criado_em: string;
+      publicado_em: string | null;
+      encerrado_em: string | null;
+      atualizado_em: string;
+    }
+  >;
+  comunicadoDestinatarios: Array<{
+    id: string;
+    comunicado_id: string;
+    usuario_id: string;
+    lido_em: string | null;
+    entregue_em: string | null;
+    criado_em: string;
+  }>;
+  importacaoFontesLinhas: Set<string>;
+  legacyProducoes: Set<string>;
 } {
   let configuracaoEmpresa: Record<string, unknown> | null = null;
   const configuracaoProjetos: Array<{
@@ -187,6 +214,37 @@ function createMockDatabase(): DatabaseConnection & {
     { id: string; nome: string; url: string; tipo: string }
   >();
   const importacaoFontesLinhas = new Set<string>();
+  const importacoesLegado: Array<{ tipo: string; detalhes_erros: Record<string, unknown> }> = [];
+  const legacyProducoes = new Set<string>();
+  const regularProducoes = new Set<string>();
+  const legacyRecebimentos = new Set<string>();
+  const regularRecebimentos = new Set<string>();
+  const legacyChecklists = new Set<string>();
+  const regularChecklists = new Set<string>();
+  const comunicados = new Map<
+    string,
+    {
+      id: string;
+      titulo: string;
+      conteudo: string;
+      prioridade: string;
+      escopo_destino: string;
+      status: string;
+      criado_por_usuario_id: string;
+      criado_em: string;
+      publicado_em: string | null;
+      encerrado_em: string | null;
+      atualizado_em: string;
+    }
+  >();
+  const comunicadoDestinatarios: Array<{
+    id: string;
+    comunicado_id: string;
+    usuario_id: string;
+    lido_em: string | null;
+    entregue_em: string | null;
+    criado_em: string;
+  }> = [];
   const lowerEmail = (value: unknown): string => String(value ?? '').toLowerCase();
 
   usuarios.set('user-1', {
@@ -226,6 +284,40 @@ function createMockDatabase(): DatabaseConnection & {
     email: 'user@test.com',
     coordenadoria_id: 'coord-1',
     ativo: true,
+  });
+
+  importacoesLegado.push({
+    tipo: 'PRODUCAO',
+    detalhes_erros: {
+      rollback: {
+        fonteId: 'fonte-legado-1',
+        importacaoFonteHashes: ['hash-legado-1'],
+      },
+    },
+  });
+  importacaoFontesLinhas.add('fonte-legado-1::hash-legado-1');
+  importacaoFontesLinhas.add('fonte-nao-legada::hash-normal-1');
+  legacyProducoes.add('prod-legado-1');
+  regularProducoes.add('prod-normal-1');
+  legacyRecebimentos.add('rec-legado-1');
+  regularRecebimentos.add('rec-normal-1');
+  legacyChecklists.add('chk-legado-1');
+  regularChecklists.add('chk-normal-1');
+  repositorios.set('repo-legado-orfao', {
+    id_repositorio_recorda: 'repo-legado-orfao',
+    id_repositorio_ged: 'LEG-001',
+    orgao: 'SEPLAG',
+    projeto: 'LEGADO',
+    status_atual: 'RECEBIDO',
+    etapa_atual: 'RECEBIMENTO',
+  });
+  repositorios.set('repo-normal-ativo', {
+    id_repositorio_recorda: 'repo-normal-ativo',
+    id_repositorio_ged: 'NOR-001',
+    orgao: 'SEPLAG',
+    projeto: 'ATIVO',
+    status_atual: 'RECEBIDO',
+    etapa_atual: 'RECEBIMENTO',
   });
 
   const queryMock: Mock<
@@ -591,6 +683,14 @@ function createMockDatabase(): DatabaseConnection & {
         { etapa: 'Digitalização', valor: '42' },
         { etapa: 'Qualidade', valor: '18' },
       ]);
+    }
+
+    if (
+      text.includes('SELECT COUNT(*)::text as total') &&
+      text.includes('FROM producao_repositorio') &&
+      text.includes("marcadores->>'origem'")
+    ) {
+      return makeResult([{ total: String(legacyProducoes.size) }]);
     }
 
     if (text.includes('FROM producao_repositorio rp')) {
@@ -1266,8 +1366,182 @@ function createMockDatabase(): DatabaseConnection & {
     ) {
       return makeResult([{ total: '0' }]);
     }
-    if (text.includes('FROM importacoes_legado_operacional')) {
-      return makeResult([]);
+    if (
+      text.includes('FROM importacoes_legado_operacional') &&
+      !text.includes('DELETE FROM importacoes_legado_operacional')
+    ) {
+      return makeResult(importacoesLegado as QueryResultRow[]);
+    }
+    if (text.includes("DELETE FROM producao_repositorio") && text.includes("marcadores->>'origem'")) {
+      const removidos = legacyProducoes.size;
+      legacyProducoes.clear();
+      return makeResult(new Array(removidos).fill({}), 'DELETE');
+    }
+    if (text.includes("DELETE FROM checklists WHERE observacao = 'Importacao legada'")) {
+      const removidos = legacyChecklists.size;
+      legacyChecklists.clear();
+      return makeResult(new Array(removidos).fill({}), 'DELETE');
+    }
+    if (text.includes('DELETE FROM recebimento_documentos') && text.includes('WHERE origem = $1')) {
+      const removidos = legacyRecebimentos.size;
+      legacyRecebimentos.clear();
+      return makeResult(new Array(removidos).fill({}), 'DELETE');
+    }
+    if (
+      text.includes('DELETE FROM importacao_fontes_linhas') &&
+      text.includes('chave_hash = ANY($2::text[])')
+    ) {
+      const fonteId = String(params?.[0] ?? '');
+      const hashes = Array.isArray(params?.[1]) ? (params?.[1] as string[]) : [];
+      let removidos = 0;
+      for (const hash of hashes) {
+        const key = `${fonteId}::${hash}`;
+        if (importacaoFontesLinhas.delete(key)) removidos += 1;
+      }
+      return makeResult(new Array(removidos).fill({}), 'DELETE');
+    }
+    if (
+      text.includes('DELETE FROM repositorios r') &&
+      text.includes("r.projeto IN ('LEGADO', 'IMPORTACAO_PRODUCAO')")
+    ) {
+      let removidos = 0;
+      for (const [id, repo] of [...repositorios.entries()]) {
+        if (repo.projeto === 'LEGADO' || repo.projeto === 'IMPORTACAO_PRODUCAO') {
+          repositorios.delete(id);
+          removidos += 1;
+        }
+      }
+      return makeResult(new Array(removidos).fill({}), 'DELETE');
+    }
+    if (text.includes('DELETE FROM importacoes_legado_operacional')) {
+      const removidos = importacoesLegado.length;
+      importacoesLegado.splice(0, importacoesLegado.length);
+      return makeResult(new Array(removidos).fill({}), 'DELETE');
+    }
+
+    // ── Comunicados ──
+    if (text.includes('INSERT INTO comunicados (')) {
+      const now = new Date().toISOString();
+      const id = `11111111-1111-4111-8111-${String(comunicados.size + 1).padStart(12, '0')}`;
+      const comunicado = {
+        id,
+        titulo: String(params?.[0] ?? ''),
+        conteudo: String(params?.[1] ?? ''),
+        prioridade: String(params?.[2] ?? 'MEDIA'),
+        escopo_destino: String(params?.[3] ?? 'TODOS'),
+        status: 'RASCUNHO',
+        criado_por_usuario_id: String(params?.[4] ?? ''),
+        criado_em: now,
+        publicado_em: null,
+        encerrado_em: null,
+        atualizado_em: now,
+      };
+      comunicados.set(id, comunicado);
+      return makeResult([comunicado], 'INSERT');
+    }
+    if (text.includes('FROM comunicados') && text.includes('WHERE id = $1') && text.includes('FOR UPDATE')) {
+      const comunicado = comunicados.get(String(params?.[0] ?? ''));
+      return comunicado ? makeResult([comunicado]) : makeResult([]);
+    }
+    if (
+      text.includes('SELECT id') &&
+      text.includes('FROM usuarios') &&
+      text.includes('AND id = ANY($1::uuid[])')
+    ) {
+      const ids = Array.isArray(params?.[0]) ? (params?.[0] as string[]) : [];
+      return makeResult(
+        ids
+          .filter((id) => usuarios.get(id)?.ativo)
+          .map((id) => ({ id }))
+      );
+    }
+    if (
+      text.includes('SELECT id') &&
+      text.includes('FROM usuarios') &&
+      text.includes('WHERE ativo = TRUE') &&
+      text.includes('ORDER BY nome')
+    ) {
+      return makeResult(
+        [...usuarios.values()]
+          .filter((usuario) => usuario.ativo)
+          .sort((a, b) => a.nome.localeCompare(b.nome))
+          .map((usuario) => ({ id: usuario.id }))
+      );
+    }
+    if (text.includes('INSERT INTO comunicado_destinatarios (comunicado_id, usuario_id)')) {
+      const comunicadoId = String(params?.[0] ?? '');
+      const usuarioIds = Array.isArray(params?.[1]) ? (params?.[1] as string[]) : [];
+      let inserted = 0;
+      for (const usuarioId of usuarioIds) {
+        const exists = comunicadoDestinatarios.some(
+          (destinatario) =>
+            destinatario.comunicado_id === comunicadoId && destinatario.usuario_id === usuarioId
+        );
+        if (exists) continue;
+        inserted += 1;
+        comunicadoDestinatarios.push({
+          id: `dest-${comunicadoDestinatarios.length + 1}`,
+          comunicado_id: comunicadoId,
+          usuario_id: usuarioId,
+          lido_em: null,
+          entregue_em: new Date().toISOString(),
+          criado_em: new Date().toISOString(),
+        });
+      }
+      return makeResult(new Array(inserted).fill({}), 'INSERT');
+    }
+    if (
+      text.includes('UPDATE comunicados') &&
+      text.includes("SET status = 'PUBLICADO'") &&
+      text.includes('WHERE id = $1')
+    ) {
+      const comunicado = comunicados.get(String(params?.[0] ?? ''));
+      if (!comunicado) return makeResult([], 'UPDATE');
+      const now = new Date().toISOString();
+      comunicado.status = 'PUBLICADO';
+      comunicado.publicado_em = now;
+      comunicado.atualizado_em = now;
+      return makeResult([], 'UPDATE');
+    }
+    if (text.includes('FROM comunicado_destinatarios cd') && text.includes('INNER JOIN comunicados c')) {
+      const usuarioId = String(params?.[0] ?? '');
+      const somenteNaoLidos = text.includes('cd.lido_em IS NULL');
+      const rows = comunicadoDestinatarios
+        .filter((destinatario) => destinatario.usuario_id === usuarioId)
+        .filter((destinatario) => (somenteNaoLidos ? destinatario.lido_em === null : true))
+        .map((destinatario) => {
+          const comunicado = comunicados.get(destinatario.comunicado_id);
+          if (!comunicado) return null;
+          if (somenteNaoLidos && comunicado.status !== 'PUBLICADO') return null;
+          if (!somenteNaoLidos && !['PUBLICADO', 'ENCERRADO'].includes(comunicado.status)) return null;
+          return {
+            ...comunicado,
+            destinatario_id: destinatario.id,
+            destinatario_comunicado_id: destinatario.comunicado_id,
+            destinatario_usuario_id: destinatario.usuario_id,
+            destinatario_lido_em: destinatario.lido_em,
+            destinatario_entregue_em: destinatario.entregue_em,
+            destinatario_criado_em: destinatario.criado_em,
+          };
+        })
+        .filter(Boolean);
+      return makeResult(rows as QueryResultRow[]);
+    }
+    if (text.includes('UPDATE comunicado_destinatarios cd') && text.includes('SET lido_em = COALESCE')) {
+      const comunicadoId = String(params?.[0] ?? '');
+      const usuarioId = String(params?.[1] ?? '');
+      const destinatario = comunicadoDestinatarios.find(
+        (item) => item.comunicado_id === comunicadoId && item.usuario_id === usuarioId
+      );
+      const comunicado = comunicados.get(comunicadoId);
+      if (!destinatario || !comunicado || !['PUBLICADO', 'ENCERRADO'].includes(comunicado.status)) {
+        return makeResult([], 'UPDATE');
+      }
+      if (!destinatario.lido_em) destinatario.lido_em = new Date().toISOString();
+      return makeResult(
+        [{ comunicado_id: destinatario.comunicado_id, lido_em: destinatario.lido_em }],
+        'UPDATE'
+      );
     }
 
     // ── CQ Lotes ──
@@ -1556,8 +1830,18 @@ function createMockDatabase(): DatabaseConnection & {
     configuracaoProjetos: typeof configuracaoProjetos;
     repositorios: typeof repositorios;
     fontesImportacao: typeof fontesImportacao;
+    importacoesLegado: typeof importacoesLegado;
+    comunicados: typeof comunicados;
+    comunicadoDestinatarios: typeof comunicadoDestinatarios;
+    importacaoFontesLinhas: typeof importacaoFontesLinhas;
+    legacyProducoes: typeof legacyProducoes;
   } = {
-    pool: {} as never,
+    pool: {
+      connect: vi.fn().mockResolvedValue({
+        query,
+        release: vi.fn(),
+      }),
+    } as never,
     query,
     queryMock,
     usuarios,
@@ -1567,6 +1851,11 @@ function createMockDatabase(): DatabaseConnection & {
     configuracaoProjetos,
     repositorios,
     fontesImportacao,
+    importacoesLegado,
+    comunicados,
+    comunicadoDestinatarios,
+    importacaoFontesLinhas,
+    legacyProducoes,
     healthCheck: vi.fn().mockResolvedValue(true),
     close: vi.fn().mockResolvedValue(undefined),
   };
@@ -2526,6 +2815,51 @@ describe('HTTP server integration', () => {
     expect(body).toHaveProperty('pid');
   });
 
+  it('limpa hashes de importacao apenas no escopo legado ao excluir producao importada', async () => {
+    database.queryMock.mockClear();
+    database.legacyProducoes.clear();
+    database.legacyProducoes.add('prod-legado-1');
+    database.importacaoFontesLinhas.clear();
+    database.importacaoFontesLinhas.add('fonte-legado-1::hash-legado-1');
+    database.importacaoFontesLinhas.add('fonte-nao-legada::hash-normal-1');
+    database.importacoesLegado.splice(0, database.importacoesLegado.length, {
+      tipo: 'PRODUCAO',
+      detalhes_erros: {
+        rollback: {
+          fonteId: 'fonte-legado-1',
+          importacaoFonteHashes: ['hash-legado-1'],
+        },
+      },
+    });
+
+    const response = await server.inject({
+      method: 'DELETE',
+      url: '/producao',
+      headers: { authorization: `Bearer ${await authenticate()}` },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      removidos: 1,
+      fontesLinhasRemovidas: 1,
+    });
+    expect(database.importacaoFontesLinhas.has('fonte-legado-1::hash-legado-1')).toBe(false);
+    expect(database.importacaoFontesLinhas.has('fonte-nao-legada::hash-normal-1')).toBe(true);
+    expect(
+      database.queryMock.mock.calls.some(
+        ([sql]) =>
+          sql.includes('DELETE FROM importacao_fontes_linhas') &&
+          sql.includes('WHERE fonte_id = $1') &&
+          sql.includes('chave_hash = ANY($2::text[])')
+      )
+    ).toBe(true);
+    expect(
+      database.queryMock.mock.calls.some(
+        ([sql]) => sql.trim() === 'DELETE FROM importacao_fontes_linhas'
+      )
+    ).toBe(false);
+  });
+
   // ═══════════════════════════════════════════════
   // Coordenadorias
   // ═══════════════════════════════════════════════
@@ -3143,6 +3477,114 @@ describe('HTTP server integration', () => {
     expect(bodySegunda.importados).toBe(0);
     expect(bodySegunda.ignorados).toBeGreaterThan(0);
     expect(bodySegunda.duplicados).toBeGreaterThan(0);
+  });
+
+  it('limpa apenas dados legados na limpeza global de importacoes', async () => {
+    const token = await authenticate();
+
+    const response = await server.inject({
+      method: 'DELETE',
+      url: '/operacional/importacoes-legado/limpar',
+      headers: { authorization: `Bearer ${token}` },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      removidos: {
+        producao: 1,
+        checklists: 1,
+        recebimentos: 1,
+        importacoes: 1,
+        fontes_linhas: 1,
+      },
+    });
+    expect(database.importacoesLegado).toHaveLength(0);
+    expect(database.repositorios.has('repo-legado-orfao')).toBe(false);
+    expect(database.repositorios.has('repo-normal-ativo')).toBe(true);
+    expect(
+      [...database.queryMock.mock.calls].some(
+        ([sql]) =>
+          sql.includes("DELETE FROM producao_repositorio") &&
+          sql.includes("marcadores->>'origem'")
+      )
+    ).toBe(true);
+  });
+
+  // ═══════════════════════════════════════════════
+  // Comunicados
+  // ═══════════════════════════════════════════════
+
+  it('permite criar, publicar, listar e marcar comunicado como lido', async () => {
+    const adminToken = await authenticate();
+
+    const criarResponse = await server.inject({
+      method: 'POST',
+      url: '/admin/comunicados',
+      headers: { authorization: `Bearer ${adminToken}` },
+      payload: {
+        titulo: 'Comunicado de teste',
+        conteudo: 'Conteudo do comunicado',
+        prioridade: 'ALTA',
+        escopoDestino: 'TODOS',
+      },
+    });
+
+    expect(criarResponse.statusCode).toBe(201);
+    const comunicadoId = criarResponse.json().comunicado.id as string;
+    expect(database.comunicados.get(comunicadoId)?.status).toBe('RASCUNHO');
+
+    const publicarResponse = await server.inject({
+      method: 'POST',
+      url: `/admin/comunicados/${comunicadoId}/publicar`,
+      headers: { authorization: `Bearer ${adminToken}` },
+      payload: {},
+    });
+
+    expect(publicarResponse.statusCode).toBe(200);
+    expect(database.comunicados.get(comunicadoId)?.status).toBe('PUBLICADO');
+    expect(
+      database.comunicadoDestinatarios.some(
+        (destinatario) =>
+          destinatario.comunicado_id === comunicadoId && destinatario.usuario_id === 'user-colab'
+      )
+    ).toBe(true);
+
+    const collaboratorToken = await authenticateCollaborator();
+    const naoLidosResponse = await server.inject({
+      method: 'GET',
+      url: '/comunicados/nao-lidos',
+      headers: { authorization: `Bearer ${collaboratorToken}` },
+    });
+
+    expect(naoLidosResponse.statusCode).toBe(200);
+    expect(naoLidosResponse.json()).toMatchObject({
+      totalNaoLidos: 1,
+    });
+
+    const marcarLidoResponse = await server.inject({
+      method: 'POST',
+      url: `/comunicados/${comunicadoId}/marcar-lido`,
+      headers: { authorization: `Bearer ${collaboratorToken}` },
+    });
+
+    expect(marcarLidoResponse.statusCode).toBe(200);
+    expect(
+      database.comunicadoDestinatarios.find(
+        (destinatario) =>
+          destinatario.comunicado_id === comunicadoId && destinatario.usuario_id === 'user-colab'
+      )?.lido_em
+    ).not.toBeNull();
+
+    const naoLidosAposLeitura = await server.inject({
+      method: 'GET',
+      url: '/comunicados/nao-lidos',
+      headers: { authorization: `Bearer ${collaboratorToken}` },
+    });
+
+    expect(naoLidosAposLeitura.statusCode).toBe(200);
+    expect(naoLidosAposLeitura.json()).toMatchObject({
+      totalNaoLidos: 0,
+    });
   });
 
   // ═══════════════════════════════════════════════

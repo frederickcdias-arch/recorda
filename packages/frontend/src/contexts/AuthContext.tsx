@@ -1,5 +1,12 @@
 import { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
-import type { Usuario, PerfilUsuario, PermissaoTipo } from '@recorda/shared';
+import type {
+  Usuario,
+  PerfilUsuario,
+  PermissaoTipo,
+  LoginResponse,
+  RefreshTokenResponse,
+} from '@recorda/shared';
+import { PERMISSOES_POR_PERFIL } from '@recorda/shared';
 import {
   getToken,
   getRefreshToken,
@@ -11,12 +18,6 @@ import { api } from '../services/api';
 
 // Re-exportar tipos para compatibilidade
 export type { Usuario, PerfilUsuario, PermissaoTipo } from '@recorda/shared';
-
-interface LoginResponse {
-  accessToken: string;
-  refreshToken: string;
-  usuario: Usuario;
-}
 
 interface AuthContextData {
   usuario: Usuario | null;
@@ -32,30 +33,12 @@ interface AuthContextData {
 
 const AuthContext = createContext<AuthContextData | undefined>(undefined);
 
-const PERMISSOES_POR_PERFIL: Record<PerfilUsuario, PermissaoTipo[]> = {
-  colaborador: ['visualizar_dashboard'],
-  operador: [
-    'visualizar_dashboard',
-    'gerar_relatorios',
-    'importar_producao',
-    'capturar_documentos',
-  ],
-  administrador: [
-    'visualizar_dashboard',
-    'gerar_relatorios',
-    'importar_producao',
-    'capturar_documentos',
-    'gerenciar_configuracoes',
-    'gerenciar_usuarios',
-  ],
-};
-
 async function tryRefreshToken(): Promise<boolean> {
   const refreshToken = getRefreshToken();
   if (!refreshToken) return false;
 
   try {
-    const data = await api.post<{ accessToken: string; refreshToken: string }>(
+    const data = await api.post<RefreshTokenResponse>(
       '/auth/refresh',
       { refreshToken },
       { skipAuth: true }
