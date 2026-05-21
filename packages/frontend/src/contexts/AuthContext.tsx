@@ -81,9 +81,8 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
 
   const autenticado = usuario !== null;
 
-  // Verificar token ao carregar
   useEffect(() => {
-    async function verificarToken() {
+    async function verificarToken(): Promise<void> {
       const token = getToken();
 
       if (!token) {
@@ -102,8 +101,8 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
           coordenadoriaId: data.coordenadoria?.id,
           coordenadoria: data.coordenadoria,
         });
-      } catch (error) {
-        // Token inválido, tentar refresh
+      } catch {
+        // Token invalido, tentar refresh.
         const refreshed = await tryRefreshToken();
         if (refreshed) {
           try {
@@ -127,7 +126,7 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
       }
     }
 
-    verificarToken();
+    void verificarToken();
   }, []);
 
   const temPermissao = useCallback(
@@ -152,7 +151,7 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
         );
 
         if (!data.accessToken || !data.refreshToken || !data.usuario) {
-          throw new Error('Resposta de login inválida');
+          throw new Error('Resposta de login invalida');
         }
 
         setStoredTokens(data.accessToken, data.refreshToken, lembrarMe);
@@ -163,7 +162,7 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
         });
 
         if (typeof window !== 'undefined') {
-          window.setTimeout(() => {
+          window.setTimeout((): void => {
             void import('../services/pushNotifications.js')
               .then(({ ensurePushSubscription }) => ensurePushSubscription())
               .catch(() => undefined);
@@ -177,7 +176,7 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
             ? error.message
             : typeof error === 'object' && error !== null && 'error' in error
               ? String((error as { error: unknown }).error)
-              : 'Credenciais inválidas';
+              : 'Credenciais invalidas';
         setErro(errorMessage);
         return false;
       } finally {
@@ -205,7 +204,7 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
     }
   }, []);
 
-  const limparErro = useCallback(() => {
+  const limparErro = useCallback((): void => {
     setErro(null);
   }, []);
 
@@ -240,7 +239,7 @@ export function usePermissao(permissao: PermissaoTipo): boolean {
   return temPermissao(permissao);
 }
 
-// Função utilitária para fazer requisições autenticadas
+// Funcao utilitaria para fazer requisicoes autenticadas.
 export async function fetchAutenticado(url: string, options: RequestInit = {}): Promise<Response> {
   return api.fetchWithAuth(url, options);
 }

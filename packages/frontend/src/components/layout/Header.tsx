@@ -34,13 +34,13 @@ function ThemeToggle(): JSX.Element {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  useEffect((): void | (() => void) => {
     if (!open) return;
-    const handler = (e: MouseEvent) => {
+    const handler = (e: MouseEvent): void => {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     };
     document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    return (): void => document.removeEventListener('mousedown', handler);
   }, [open]);
 
   const current = THEME_OPTIONS.find((o) => o.value === theme) ?? THEME_OPTIONS[2]!;
@@ -48,7 +48,7 @@ function ThemeToggle(): JSX.Element {
   return (
     <div ref={ref} className="relative">
       <button
-        onClick={() => setOpen((v) => !v)}
+        onClick={(): void => setOpen((v) => !v)}
         title={`Tema: ${current.label}`}
         aria-label={`Tema: ${current.label}`}
         aria-expanded={open}

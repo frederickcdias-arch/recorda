@@ -303,7 +303,7 @@ export function Sidebar({
     });
   };
 
-  const handleLogout = async () => {
+  const handleLogout = async (): Promise<void> => {
     await logout();
     navigate('/login');
   };

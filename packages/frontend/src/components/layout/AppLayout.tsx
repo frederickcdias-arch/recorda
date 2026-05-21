@@ -30,20 +30,20 @@ export function AppLayout(): JSX.Element {
 
   const pageTitle = getPageTitle(location.pathname);
 
-  useEffect(() => {
+  useEffect((): void | (() => void) => {
     document.title = `${pageTitle} | Recorda`;
   }, [pageTitle]);
 
   useEffect(() => {
-    const handleVisibilityChange = () => {
+    const handleVisibilityChange = (): void => {
       setPaginaVisivel(document.visibilityState === 'visible');
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    return (): void => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
-  useEffect(() => {
+  useEffect((): void | (() => void) => {
     if (!usuario) {
       previousUnreadCountRef.current = null;
       initialUnreadToastShownRef.current = false;
@@ -113,16 +113,16 @@ export function AppLayout(): JSX.Element {
         }
       }
 
-      retryTimeout = window.setTimeout(() => {
+      retryTimeout = window.setTimeout((): void => {
         void attemptSubscription(attempt + 1);
       }, 1_500);
     };
 
-    retryTimeout = window.setTimeout(() => {
+    retryTimeout = window.setTimeout((): void => {
       void attemptSubscription();
     }, 750);
 
-    return () => {
+    return (): void => {
       cancelled = true;
       if (retryTimeout) {
         window.clearTimeout(retryTimeout);

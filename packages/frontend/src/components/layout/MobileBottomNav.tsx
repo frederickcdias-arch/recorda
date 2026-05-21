@@ -29,23 +29,25 @@ export function MobileBottomNav({ unreadComunicados = 0 }: MobileBottomNavProps)
     showMais && sheetItems.some((item) => location.pathname.startsWith(item.path));
   const totalItems = primaryItems.length + (showMais ? 1 : 0);
 
-  useEffect(() => {
+  useEffect((): void | (() => void) => {
     if (!sheetOpen) return;
-    const onKey = (event: KeyboardEvent) => {
+
+    const onKey = (event: KeyboardEvent): void => {
       if (event.key === 'Escape') setSheetOpen(false);
     };
+
     document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
+    return (): void => document.removeEventListener('keydown', onKey);
   }, [sheetOpen]);
 
-  useEffect(() => {
+  useEffect((): void => {
     setSheetOpen(false);
   }, [location.pathname]);
 
   return (
     <>
       <nav
-        aria-label="Navegação principal"
+        aria-label="Navegacao principal"
         className="fixed bottom-0 left-0 right-0 z-40 border-t border-[var(--color-border-primary)] bg-[color:color-mix(in_srgb,var(--color-bg-primary)_94%,transparent)] pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
       >
         <ul className={`grid ${colsClass[totalItems] ?? 'grid-cols-4'} px-1 py-1`}>
@@ -70,8 +72,8 @@ export function MobileBottomNav({ unreadComunicados = 0 }: MobileBottomNavProps)
           {showMais ? (
             <li>
               <button
-                onClick={() => setSheetOpen(true)}
-                aria-label="Abrir mais opções"
+                onClick={(): void => setSheetOpen(true)}
+                aria-label="Abrir mais opcoes"
                 className={`flex min-h-[60px] w-full flex-col items-center justify-center gap-1 rounded-2xl px-1 transition-all duration-150 active:scale-95 ${
                   maisIsActive
                     ? 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)]'
@@ -90,26 +92,26 @@ export function MobileBottomNav({ unreadComunicados = 0 }: MobileBottomNavProps)
         <>
           <div
             className="fixed inset-0 z-50 bg-black/40"
-            onClick={() => setSheetOpen(false)}
+            onClick={(): void => setSheetOpen(false)}
             aria-hidden="true"
           />
           <div
             role="dialog"
             aria-modal="true"
-            aria-label="Mais opções"
+            aria-label="Mais opcoes"
             className="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] pb-[env(safe-area-inset-bottom)] shadow-xl"
           >
             <div className="flex items-center justify-between border-b border-[var(--color-border-primary)] px-4 py-4">
               <div>
                 <h2 className="text-sm font-semibold text-[var(--color-text-primary)]">
-                  Mais opções
+                  Mais opcoes
                 </h2>
                 <p className="text-xs text-[var(--color-text-tertiary)]">
-                  Navegação complementar do app
+                  Navegacao complementar do app
                 </p>
               </div>
               <button
-                onClick={() => setSheetOpen(false)}
+                onClick={(): void => setSheetOpen(false)}
                 aria-label="Fechar menu"
                 className="rounded-xl border border-[var(--color-border-primary)] p-2 text-[var(--color-text-secondary)] hover:bg-[var(--color-gray-50)]"
               >
@@ -121,7 +123,7 @@ export function MobileBottomNav({ unreadComunicados = 0 }: MobileBottomNavProps)
                 <li key={item.id}>
                   <NavLink
                     to={item.path}
-                    onClick={() => setSheetOpen(false)}
+                    onClick={(): void => setSheetOpen(false)}
                     className={({ isActive }) =>
                       `flex items-center gap-3 rounded-2xl px-4 py-3 text-sm transition-colors ${
                         isActive
