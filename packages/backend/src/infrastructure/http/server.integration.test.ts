@@ -1372,7 +1372,10 @@ function createMockDatabase(): DatabaseConnection & {
     ) {
       return makeResult(importacoesLegado as QueryResultRow[]);
     }
-    if (text.includes("DELETE FROM producao_repositorio") && text.includes("marcadores->>'origem'")) {
+    if (
+      text.includes('DELETE FROM producao_repositorio') &&
+      text.includes("marcadores->>'origem'")
+    ) {
       const removidos = legacyProducoes.size;
       legacyProducoes.clear();
       return makeResult(new Array(removidos).fill({}), 'DELETE');
@@ -1439,7 +1442,11 @@ function createMockDatabase(): DatabaseConnection & {
       comunicados.set(id, comunicado);
       return makeResult([comunicado], 'INSERT');
     }
-    if (text.includes('FROM comunicados') && text.includes('WHERE id = $1') && text.includes('FOR UPDATE')) {
+    if (
+      text.includes('FROM comunicados') &&
+      text.includes('WHERE id = $1') &&
+      text.includes('FOR UPDATE')
+    ) {
       const comunicado = comunicados.get(String(params?.[0] ?? ''));
       return comunicado ? makeResult([comunicado]) : makeResult([]);
     }
@@ -1449,11 +1456,7 @@ function createMockDatabase(): DatabaseConnection & {
       text.includes('AND id = ANY($1::uuid[])')
     ) {
       const ids = Array.isArray(params?.[0]) ? (params?.[0] as string[]) : [];
-      return makeResult(
-        ids
-          .filter((id) => usuarios.get(id)?.ativo)
-          .map((id) => ({ id }))
-      );
+      return makeResult(ids.filter((id) => usuarios.get(id)?.ativo).map((id) => ({ id })));
     }
     if (
       text.includes('SELECT id') &&
@@ -1503,7 +1506,10 @@ function createMockDatabase(): DatabaseConnection & {
       comunicado.atualizado_em = now;
       return makeResult([], 'UPDATE');
     }
-    if (text.includes('FROM comunicado_destinatarios cd') && text.includes('INNER JOIN comunicados c')) {
+    if (
+      text.includes('FROM comunicado_destinatarios cd') &&
+      text.includes('INNER JOIN comunicados c')
+    ) {
       const usuarioId = String(params?.[0] ?? '');
       const somenteNaoLidos = text.includes('cd.lido_em IS NULL');
       const rows = comunicadoDestinatarios
@@ -1513,7 +1519,8 @@ function createMockDatabase(): DatabaseConnection & {
           const comunicado = comunicados.get(destinatario.comunicado_id);
           if (!comunicado) return null;
           if (somenteNaoLidos && comunicado.status !== 'PUBLICADO') return null;
-          if (!somenteNaoLidos && !['PUBLICADO', 'ENCERRADO'].includes(comunicado.status)) return null;
+          if (!somenteNaoLidos && !['PUBLICADO', 'ENCERRADO'].includes(comunicado.status))
+            return null;
           return {
             ...comunicado,
             destinatario_id: destinatario.id,
@@ -1527,7 +1534,10 @@ function createMockDatabase(): DatabaseConnection & {
         .filter(Boolean);
       return makeResult(rows as QueryResultRow[]);
     }
-    if (text.includes('UPDATE comunicado_destinatarios cd') && text.includes('SET lido_em = COALESCE')) {
+    if (
+      text.includes('UPDATE comunicado_destinatarios cd') &&
+      text.includes('SET lido_em = COALESCE')
+    ) {
       const comunicadoId = String(params?.[0] ?? '');
       const usuarioId = String(params?.[1] ?? '');
       const destinatario = comunicadoDestinatarios.find(
@@ -3504,8 +3514,7 @@ describe('HTTP server integration', () => {
     expect(
       [...database.queryMock.mock.calls].some(
         ([sql]) =>
-          sql.includes("DELETE FROM producao_repositorio") &&
-          sql.includes("marcadores->>'origem'")
+          sql.includes('DELETE FROM producao_repositorio') && sql.includes("marcadores->>'origem'")
       )
     ).toBe(true);
   });

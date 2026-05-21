@@ -866,8 +866,7 @@ export function ImportarProducaoPage(): JSX.Element {
                   </Button>
                 </div>
                 <p className="text-xs text-gray-400">
-                  A planilha deve estar com compartilhamento &quot;Qualquer pessoa com o
-                  link&quot;.
+                  A planilha deve estar com compartilhamento &quot;Qualquer pessoa com o link&quot;.
                 </p>
               </div>
             )}
@@ -1037,5 +1036,3 @@ export function ImportarProducaoPage(): JSX.Element {
     </PageState>
   );
 }
-
-

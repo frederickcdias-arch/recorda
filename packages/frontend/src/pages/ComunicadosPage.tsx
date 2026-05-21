@@ -222,7 +222,7 @@ export function ComunicadosPage(): JSX.Element {
               <Select
                 label="Ordenação"
                 value={ordenacao}
-                    onChange={(event) => setOrdenacao(event.target.value as FiltroOrdenacao)}
+                onChange={(event) => setOrdenacao(event.target.value as FiltroOrdenacao)}
                 options={[
                   { value: 'mais-recentes', label: 'Mais recentes' },
                   { value: 'mais-antigos', label: 'Mais antigos' },
@@ -344,5 +344,3 @@ export function ComunicadosPage(): JSX.Element {
     </PageState>
   );
 }
-
-

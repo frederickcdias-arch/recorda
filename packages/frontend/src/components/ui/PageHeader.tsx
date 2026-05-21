@@ -35,9 +35,7 @@ export function PageHeader({
         </div>
 
         {subtitle ? (
-          <p className="mt-1 max-w-3xl text-sm text-[var(--color-text-secondary)]">
-            {subtitle}
-          </p>
+          <p className="mt-1 max-w-3xl text-sm text-[var(--color-text-secondary)]">{subtitle}</p>
         ) : null}
       </div>
 

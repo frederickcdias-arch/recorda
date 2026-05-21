@@ -394,10 +394,7 @@ function DashboardColaborador(): JSX.Element {
         </Card>
 
         <Card padding="lg">
-          <CardHeader
-            title="Produção por tipo"
-            description="Resumo por classificação principal."
-          />
+          <CardHeader title="Produção por tipo" description="Resumo por classificação principal." />
           {producaoPorTipo.length === 0 ? (
             <p className="py-4 text-sm text-[var(--color-text-secondary)]">
               Nenhum dado disponível para o período.
@@ -736,4 +733,3 @@ export function DashboardPage(): JSX.Element {
 
   return <DashboardAdminPage />;
 }
-

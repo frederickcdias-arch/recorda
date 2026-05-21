@@ -4,11 +4,7 @@ import { authorize } from '../middleware/auth.js';
 import { getCurrentUser } from './operacional-helpers.js';
 import { validateBody, validateParams, validateQuery } from '../middleware/validate.js';
 import { lancarProducaoColaboradorSchema } from '../schemas/producao.js';
-import {
-  criarMapeamentoSchema,
-  criarMetaSchema,
-  idParamSchema,
-} from '../schemas/operacional.js';
+import { criarMapeamentoSchema, criarMetaSchema, idParamSchema } from '../schemas/operacional.js';
 import type { EtapaFluxo, StatusRepositorio } from '@recorda/shared';
 import { normalizeIdRepositorioGed } from './operacional-repositorios.js';
 import {
@@ -93,7 +89,11 @@ export function createMetasRoutes(): FastifyPluginAsync {
             500: { type: 'object', properties: { error: { type: 'string' } } },
           },
         },
-        preHandler: [server.authenticate, authorize('administrador'), validateBody(criarMetaSchema)],
+        preHandler: [
+          server.authenticate,
+          authorize('administrador'),
+          validateBody(criarMetaSchema),
+        ],
       },
       async (request, reply) => {
         try {

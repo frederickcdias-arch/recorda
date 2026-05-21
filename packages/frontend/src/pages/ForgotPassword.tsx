@@ -62,9 +62,7 @@ export function ForgotPasswordPage(): JSX.Element {
         </div>
 
         <div className="rounded-2xl bg-[var(--color-bg-primary)] p-8 shadow-2xl">
-          <h2 className="mb-2 text-center text-xl font-semibold text-gray-900">
-            Recuperar acesso
-          </h2>
+          <h2 className="mb-2 text-center text-xl font-semibold text-gray-900">Recuperar acesso</h2>
           <p className="mb-6 text-center text-sm text-gray-500">
             Informe seu e-mail para receber as instruções de redefinição.
           </p>

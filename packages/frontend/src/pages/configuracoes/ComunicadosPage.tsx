@@ -1195,5 +1195,3 @@ export function ComunicadosPage(): JSX.Element {
     </PageState>
   );
 }
-
-
