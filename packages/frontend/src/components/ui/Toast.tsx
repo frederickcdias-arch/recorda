@@ -13,6 +13,8 @@ interface Toast {
   title: string;
   message?: string;
   duration?: number;
+  actionLabel?: string;
+  onAction?: () => void;
 }
 
 interface ToastContextType {
@@ -130,6 +132,15 @@ function ToastItem({ toast, onRemove }: ToastItemProps): JSX.Element {
           {toast.message && (
             <p className="text-sm text-[var(--color-text-secondary)] mt-0.5">{toast.message}</p>
           )}
+          {toast.actionLabel && toast.onAction ? (
+            <button
+              type="button"
+              onClick={toast.onAction}
+              className="mt-3 rounded-lg border border-[var(--color-primary-200)] bg-[var(--color-primary-50)] px-3 py-2 text-sm font-semibold text-[var(--color-primary-700)] transition-colors hover:bg-[var(--color-primary-100)]"
+            >
+              {toast.actionLabel}
+            </button>
+          ) : null}
         </div>
         <button
           onClick={handleClose}
@@ -167,13 +178,46 @@ function ToastContainer({ toasts, onRemove }: ToastContainerProps): JSX.Element 
 /**
  * Hook helper para criar toasts rapidamente
  */
+type ToastAction = {
+  label: string;
+  onAction: () => void;
+};
+
 export function useToastHelpers() {
   const { addToast } = useToast();
 
   return {
-    success: (title: string, message?: string) => addToast({ variant: 'success', title, message }),
-    error: (title: string, message?: string) => addToast({ variant: 'error', title, message }),
-    warning: (title: string, message?: string) => addToast({ variant: 'warning', title, message }),
-    info: (title: string, message?: string) => addToast({ variant: 'info', title, message }),
+    success: (title: string, message?: string, action?: ToastAction) =>
+      addToast({
+        variant: 'success',
+        title,
+        message,
+        actionLabel: action?.label,
+        onAction: action?.onAction,
+      }),
+    error: (title: string, message?: string, action?: ToastAction) =>
+      addToast({
+        variant: 'error',
+        title,
+        message,
+        actionLabel: action?.label,
+        onAction: action?.onAction,
+      }),
+    warning: (title: string, message?: string, action?: ToastAction) =>
+      addToast({
+        variant: 'warning',
+        title,
+        message,
+        actionLabel: action?.label,
+        onAction: action?.onAction,
+      }),
+    info: (title: string, message?: string, action?: ToastAction) =>
+      addToast({
+        variant: 'info',
+        title,
+        message,
+        actionLabel: action?.label,
+        onAction: action?.onAction,
+      }),
   };
 }

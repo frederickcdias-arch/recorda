@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { MobileBottomNav } from './MobileBottomNav';
@@ -27,6 +27,7 @@ export function AppLayout(): JSX.Element {
   const comunicadosNaoLidosQuery = useComunicadosNaoLidos({
     enabled: !!usuario,
     refetchInterval: pollingAtivo ? 45_000 : false,
+    refetchOnWindowFocus: true,
   });
   const unreadComunicados = comunicadosNaoLidosQuery.data?.totalNaoLidos ?? 0;
 
@@ -45,12 +46,18 @@ export function AppLayout(): JSX.Element {
     return (): void => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
+  const navigate = useNavigate();
+
   useEffect((): void | (() => void) => {
     if (!usuario) {
       previousUnreadCountRef.current = null;
       initialUnreadToastShownRef.current = false;
       return;
     }
+
+    const openComunicados = (): void => {
+      navigate('/comunicados');
+    };
 
     if (previousUnreadCountRef.current === null) {
       previousUnreadCountRef.current = unreadComunicados;
@@ -65,7 +72,11 @@ export function AppLayout(): JSX.Element {
           unreadComunicados === 1 ? 'Comunicado pendente' : 'Comunicados pendentes',
           unreadComunicados === 1
             ? 'Voce entrou no sistema com 1 comunicado nao lido.'
-            : `Voce entrou no sistema com ${unreadComunicados} comunicados nao lidos.`
+            : `Voce entrou no sistema com ${unreadComunicados} comunicados nao lidos.`,
+          {
+            label: 'Ver comunicados',
+            onAction: openComunicados,
+          }
         );
       }
 
@@ -81,12 +92,16 @@ export function AppLayout(): JSX.Element {
         novos === 1 ? 'Novo comunicado interno' : 'Novos comunicados internos',
         novos === 1
           ? 'Existe 1 comunicado nao lido aguardando sua leitura.'
-          : `Existem ${novos} novos comunicados nao lidos aguardando sua leitura.`
+          : `Existem ${novos} novos comunicados nao lidos aguardando sua leitura.`,
+        {
+          label: 'Ver comunicados',
+          onAction: openComunicados,
+        }
       );
     }
 
     previousUnreadCountRef.current = unreadComunicados;
-  }, [location.pathname, toast, unreadComunicados, usuario]);
+  }, [location.pathname, navigate, toast, unreadComunicados, usuario]);
 
   return (
     <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-[var(--color-bg-secondary)] md:flex">

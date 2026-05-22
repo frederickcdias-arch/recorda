@@ -1033,6 +1033,7 @@ export function useComunicadosUsuario() {
 export function useComunicadosNaoLidos(options?: {
   enabled?: boolean;
   refetchInterval?: number | false;
+  refetchOnWindowFocus?: boolean;
 }) {
   return useQuery({
     queryKey: queryKeys.comunicadosNaoLidos,
@@ -1040,6 +1041,7 @@ export function useComunicadosNaoLidos(options?: {
     enabled: options?.enabled,
     refetchInterval: options?.refetchInterval,
     refetchIntervalInBackground: false,
+    refetchOnWindowFocus: options?.refetchOnWindowFocus,
   });
 }
 
