@@ -608,7 +608,7 @@ export function ComunicadosPage(): JSX.Element {
               ]}
             />
             <Input
-              label="Data inicial"
+              label="Data Início"
               type="date"
               value={dataInicio}
               onChange={(event) => {
@@ -617,7 +617,7 @@ export function ComunicadosPage(): JSX.Element {
               }}
             />
             <Input
-              label="Data final"
+              label="Data Final"
               type="date"
               value={dataFim}
               onChange={(event) => {
@@ -650,7 +650,7 @@ export function ComunicadosPage(): JSX.Element {
                   setPaginaHistorico(1);
                 }}
               >
-                Limpar filtros
+                Limpar Filtros
               </Button>
             </div>
           </div>

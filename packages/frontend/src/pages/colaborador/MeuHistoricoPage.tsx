@@ -244,7 +244,7 @@ export function MeuHistoricoPage(): JSX.Element {
             temFiltros ? (
               <Button variant="ghost" size="sm" onClick={handleLimparFiltros}>
                 <Icon name="x" className="w-3 h-3" />
-                Limpar filtros
+                Limpar Filtros
               </Button>
             ) : undefined
           }
@@ -282,7 +282,7 @@ export function MeuHistoricoPage(): JSX.Element {
             ]}
           />
           <Input
-            label="Buscar repositório"
+            label="Buscar Repositório"
             placeholder="Ex: 943/2024"
             value={buscaInput}
             onChange={(e) => {

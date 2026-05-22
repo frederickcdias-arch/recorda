@@ -143,7 +143,7 @@ export function RecebimentoAvulsosPanel({
         <div className="flex flex-wrap items-end gap-3">
           <div className="flex-1 min-w-[200px]">
             <Input
-              label="Buscar avulsos"
+              label="Buscar Avulsos"
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
               placeholder="Protocolo ou interessado"
@@ -153,7 +153,7 @@ export function RecebimentoAvulsosPanel({
             />
           </div>
           <Button size="sm" variant="secondary" onClick={handleBuscar} loading={carregando}>
-            Buscar avulsos
+            Buscar Avulsos
           </Button>
           <Button
             size="sm"
@@ -605,7 +605,7 @@ export function RecebimentoAvulsosPanel({
 
             <div className="px-6 py-3">
               <Input
-                label="Buscar repositório"
+                label="Buscar Repositório"
                 value={repoBusca}
                 onChange={(e) => setRepoBusca(e.target.value)}
                 placeholder="ID GED, unidade ou projeto"

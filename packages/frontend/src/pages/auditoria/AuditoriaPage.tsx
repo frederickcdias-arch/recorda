@@ -275,7 +275,7 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
           }
         >
           <Input
-            label="Data inicial"
+            label="Data Início"
             type="date"
             value={dataInicio}
             max={dataFim || undefined}
@@ -285,7 +285,7 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
             }}
           />
           <Input
-            label="Data final"
+            label="Data Final"
             type="date"
             value={dataFim}
             min={dataInicio || undefined}

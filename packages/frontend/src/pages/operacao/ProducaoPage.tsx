@@ -396,14 +396,14 @@ export function ProducaoPage(): JSX.Element {
           }
         >
           <Input
-            label="Data inicial"
+            label="Data Início"
             type="date"
             value={dataInicio}
             max={dataFim || undefined}
             onChange={(e) => setDataInicio(e.target.value)}
           />
           <Input
-            label="Data final"
+            label="Data Final"
             type="date"
             value={dataFim}
             min={dataInicio || undefined}

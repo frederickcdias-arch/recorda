@@ -241,7 +241,7 @@ export function ComunicadosPage(): JSX.Element {
                     setVisao('ativos');
                   }}
                 >
-                  Limpar filtros
+                  Limpar Filtros
                 </Button>
               </div>
             </div>

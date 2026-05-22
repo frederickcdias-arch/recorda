@@ -161,7 +161,7 @@ export function AdminPage(): JSX.Element {
 
   const handleOtimizarBanco = async (): Promise<void> => {
     confirmDialog.confirm({
-      title: 'Otimizar banco de dados',
+      title: 'Otimizar Banco de Dados',
       message:
         'Deseja otimizar o banco de dados? Isso irá atualizar estatísticas e reindexar tabelas.',
       confirmLabel: 'Otimizar',
@@ -273,7 +273,7 @@ export function AdminPage(): JSX.Element {
             loading={processando}
           />
           <ActionTile
-            title="Otimizar banco"
+            title="Otimizar Banco"
             description="Atualiza estatísticas e executa otimizações estruturais no banco."
             icon="settings"
             accentClass="bg-[var(--color-gray-100)] text-[var(--color-text-secondary)]"

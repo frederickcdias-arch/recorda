@@ -309,7 +309,7 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Relatórios gerenciais"
+        title="Relatórios Gerenciais"
         subtitle="Resumo consolidado da produção por período, coordenadoria e colaborador."
       />
 

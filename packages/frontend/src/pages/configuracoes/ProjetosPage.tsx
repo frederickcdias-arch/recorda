@@ -162,7 +162,7 @@ export function ProjetosPage(): JSX.Element {
           }
         >
           <Input
-            label="Buscar projeto"
+            label="Buscar Projeto"
             placeholder="Digite o nome do projeto"
             value={busca}
             onChange={(e) => setBusca(e.target.value)}

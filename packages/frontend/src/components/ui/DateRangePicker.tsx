@@ -1,13 +1,9 @@
-import { Input } from './Input';
 import { Button } from './Button';
+import { Input } from './Input';
 
 function cn(...classes: Array<string | false | null | undefined>): string {
   return classes.filter(Boolean).join(' ');
 }
-
-// ---------------------------------------------------------------------------
-// Date helpers
-// ---------------------------------------------------------------------------
 
 function toISODate(date: Date): string {
   const y = date.getFullYear();
@@ -29,10 +25,6 @@ function firstDayOfMonth(date: Date): Date {
 function lastDayOfMonth(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth() + 1, 0);
 }
-
-// ---------------------------------------------------------------------------
-// Presets
-// ---------------------------------------------------------------------------
 
 type PresetKey = 'today' | '7days' | 'thisMonth' | 'lastMonth';
 
@@ -81,10 +73,6 @@ const PRESETS: Preset[] = [
   },
 ];
 
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
-
 interface PresetRange {
   startDate: string;
   endDate: string;
@@ -109,8 +97,8 @@ export function DateRangePicker({
   endDate,
   onStartDateChange,
   onEndDateChange,
-  startLabel = 'Data inicial',
-  endLabel = 'Data final',
+  startLabel = 'Data Início',
+  endLabel = 'Data Final',
   disabled = false,
   className,
   showPresets = false,
@@ -124,8 +112,8 @@ export function DateRangePicker({
   }
 
   return (
-    <div className={cn('flex flex-col gap-3', className)}>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <div className={cn('flex min-w-0 flex-col gap-3', className)}>
+      <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 [&>*]:min-w-0">
         <Input
           type="date"
           label={startLabel}

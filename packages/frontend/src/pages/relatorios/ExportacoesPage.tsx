@@ -288,7 +288,7 @@ export function ExportacoesPage(): JSX.Element {
               onChange={(e) => setDataInicio(e.target.value)}
             />
             <Input
-              label="Data Fim"
+              label="Data Final"
               type="date"
               value={dataFim}
               min={dataInicio || undefined}

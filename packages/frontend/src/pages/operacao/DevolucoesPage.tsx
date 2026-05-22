@@ -746,7 +746,7 @@ export function DevolucoesPage(): JSX.Element {
             </div>
             <div>
               <Input
-                label="Data início"
+                label="Data Início"
                 type="date"
                 value={dataInicio}
                 onChange={(e) => setDataInicio(e.target.value)}
@@ -754,7 +754,7 @@ export function DevolucoesPage(): JSX.Element {
             </div>
             <div>
               <Input
-                label="Data fim"
+                label="Data Final"
                 type="date"
                 value={dataFim}
                 onChange={(e) => setDataFim(e.target.value)}
@@ -762,7 +762,7 @@ export function DevolucoesPage(): JSX.Element {
             </div>
             {(busca || coordenadoriaFiltro || dataInicio || dataFim) && (
               <Button type="button" variant="ghost" size="md" onClick={handleLimparFiltros}>
-                Limpar filtros
+                Limpar Filtros
               </Button>
             )}
           </div>

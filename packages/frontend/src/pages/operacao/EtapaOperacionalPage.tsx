@@ -1056,7 +1056,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                 </Card>
 
                 <Card>
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Criar repositório</h2>
+                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Criar Repositório</h2>
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                     <Input
                       label="ID GED"
@@ -1227,7 +1227,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                                     : ''
                         }
                       >
-                        Criar repositório
+                        Criar Repositório
                       </Button>
                     </div>
                   </div>
@@ -1280,7 +1280,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                     </div>
                     <div>
                       <Input
-                        label="Data Fim"
+                        label="Data Final"
                         type="date"
                         value={filtroDataFim}
                         min={filtroDataInicio || undefined}
@@ -1649,7 +1649,7 @@ export function EtapaOperacionalPage(): JSX.Element {
         ) : null}
 
         {etapa === 'controle-qualidade' ? (
-          <Suspense fallback={<PanelLoadingFallback title="Controle de qualidade" />}>
+          <Suspense fallback={<PanelLoadingFallback title="Controle de Qualidade" />}>
             <ControleQualidadePanel
               repositoriosDisponiveis={itens}
               onSuccess={showSuccess}
