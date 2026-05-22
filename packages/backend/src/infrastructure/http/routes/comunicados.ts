@@ -836,7 +836,10 @@ export function createComunicadosRoutes(): FastifyPluginAsync {
           await client.query('BEGIN');
           await setAuditUser(client, user.id);
 
-          const comunicadoResult = await client.query<{ id: string; status: 'RASCUNHO' | 'PUBLICADO' | 'ENCERRADO' }>(
+          const comunicadoResult = await client.query<{
+            id: string;
+            status: 'RASCUNHO' | 'PUBLICADO' | 'ENCERRADO';
+          }>(
             `SELECT id, status
              FROM comunicados
              WHERE id = $1

@@ -25,8 +25,7 @@ export function isStandaloneMode(): boolean {
   }
 
   const displayModeStandalone = window.matchMedia('(display-mode: standalone)').matches;
-  const iosStandalone =
-    'standalone' in window.navigator && window.navigator.standalone === true;
+  const iosStandalone = 'standalone' in window.navigator && window.navigator.standalone === true;
 
   return displayModeStandalone || iosStandalone;
 }

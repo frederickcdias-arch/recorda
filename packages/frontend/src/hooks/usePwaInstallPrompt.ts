@@ -75,7 +75,9 @@ export function usePwaInstallPrompt(): UsePwaInstallPromptResult {
 
   const canPromptInstall = deferredPrompt !== null;
   const shouldShowByPlatform =
-    platform === 'android' ? canPromptInstall || !acknowledged : platform === 'ios' || canPromptInstall;
+    platform === 'android'
+      ? canPromptInstall || !acknowledged
+      : platform === 'ios' || canPromptInstall;
 
   return {
     canPromptInstall,

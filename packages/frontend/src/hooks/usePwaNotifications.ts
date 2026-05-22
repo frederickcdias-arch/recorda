@@ -19,10 +19,7 @@ interface UsePwaNotificationsResult {
 }
 
 export function usePwaNotifications(): UsePwaNotificationsResult {
-  const supported = useMemo(
-    () => supportsNotifications() && supportsServiceWorker(),
-    []
-  );
+  const supported = useMemo(() => supportsNotifications() && supportsServiceWorker(), []);
   const [dismissed, setDismissed] = useState(() => getStoredFlag(PWA_NOTIFICATIONS_DISMISSED_KEY));
   const [decisionStored, setDecisionStored] = useState(() =>
     getStoredFlag(PWA_NOTIFICATIONS_DECISION_KEY)
