@@ -144,14 +144,6 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
           perfil: data.usuario.perfil as PerfilUsuario,
         });
 
-        if (typeof window !== 'undefined') {
-          window.setTimeout((): void => {
-            void import('../services/pushNotifications.js')
-              .then(({ ensurePushSubscription }) => ensurePushSubscription())
-              .catch(() => undefined);
-          }, 1_000);
-        }
-
         return true;
       } catch (error: unknown) {
         const errorMessage =
@@ -174,9 +166,6 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
 
     try {
       if (token) {
-        const { deactivateCurrentPushSubscription } =
-          await import('../services/pushNotifications.js');
-        await deactivateCurrentPushSubscription().catch(() => undefined);
         await api.post('/auth/logout', {}, {});
       }
     } catch {

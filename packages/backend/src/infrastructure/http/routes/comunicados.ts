@@ -8,6 +8,7 @@ import type {
   ComunicadoDestinatario,
   ComunicadoUsuarioItem,
   CriarComunicadoDTO,
+  ExcluirComunicadoResponse,
   ListarComunicadosAdminParams,
   ListarComunicadosAdminResponse,
   ListarComunicadosUsuarioResponse,
@@ -805,6 +806,83 @@ export function createComunicadosRoutes(): FastifyPluginAsync {
           await client.query('ROLLBACK');
           request.log.error(error);
           const message = error instanceof Error ? error.message : 'Erro ao encerrar comunicado';
+          return reply.status(500).send({ error: message });
+        } finally {
+          client.release();
+        }
+      }
+    );
+
+    server.delete<{ Params: { id: string } }>(
+      '/admin/comunicados/:id',
+      {
+        schema: {
+          tags: ['comunicados'],
+          summary: 'Excluir comunicado interno',
+          security: [{ bearerAuth: [] }],
+        },
+        preHandler: [
+          server.authenticate,
+          authorize('administrador'),
+          validateParams(comunicadoParamsSchema),
+        ],
+      },
+      async (request, reply) => {
+        const user = getCurrentUser(request);
+        const { id } = request.params;
+        const client = await server.database.pool.connect();
+
+        try {
+          await client.query('BEGIN');
+          await setAuditUser(client, user.id);
+
+          const comunicadoResult = await client.query<{ id: string; status: 'RASCUNHO' | 'PUBLICADO' | 'ENCERRADO' }>(
+            `SELECT id, status
+             FROM comunicados
+             WHERE id = $1
+             FOR UPDATE`,
+            [id]
+          );
+
+          const comunicado = comunicadoResult.rows[0];
+
+          if (!comunicado) {
+            await client.query('ROLLBACK');
+            return reply.status(404).send({ error: 'Comunicado nao encontrado' });
+          }
+
+          if (comunicado.status === 'PUBLICADO') {
+            await client.query('ROLLBACK');
+            return reply.status(400).send({
+              error: 'Comunicados publicados devem ser encerrados antes da exclusao',
+            });
+          }
+
+          const destinatariosResult = await client.query(
+            `DELETE FROM comunicado_destinatarios
+             WHERE comunicado_id = $1`,
+            [id]
+          );
+
+          await client.query(
+            `DELETE FROM comunicados
+             WHERE id = $1`,
+            [id]
+          );
+
+          await client.query('COMMIT');
+
+          const response: ExcluirComunicadoResponse = {
+            message: 'Comunicado excluido com sucesso',
+            comunicadoId: id,
+            destinatariosRemovidos: destinatariosResult.rowCount ?? 0,
+          };
+
+          return reply.send(response);
+        } catch (error) {
+          await client.query('ROLLBACK');
+          request.log.error(error);
+          const message = error instanceof Error ? error.message : 'Erro ao excluir comunicado';
           return reply.status(500).send({ error: message });
         } finally {
           client.release();

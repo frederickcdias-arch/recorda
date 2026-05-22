@@ -5,9 +5,11 @@ import { Header } from './Header';
 import { MobileBottomNav } from './MobileBottomNav';
 import { useAuth } from '../../contexts/AuthContext';
 import { useComunicadosNaoLidos } from '../../hooks/useQueries';
-import { ensurePushSubscription } from '../../services/pushNotifications';
 import { useToastHelpers } from '../ui/Toast';
 import { getPageTitle } from '../../config/menu';
+import { PwaInstallPrompt } from '../pwa/PwaInstallPrompt';
+import { PwaNotificationPrompt } from '../pwa/PwaNotificationPrompt';
+import { PwaUpdatePrompt } from '../pwa/PwaUpdatePrompt';
 
 export function AppLayout(): JSX.Element {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -86,50 +88,6 @@ export function AppLayout(): JSX.Element {
     previousUnreadCountRef.current = unreadComunicados;
   }, [location.pathname, toast, unreadComunicados, usuario]);
 
-  useEffect(() => {
-    if (!usuario) {
-      return;
-    }
-
-    let cancelled = false;
-    let retryTimeout: number | null = null;
-
-    const attemptSubscription = async (attempt = 1): Promise<void> => {
-      if (cancelled) {
-        return;
-      }
-
-      try {
-        await ensurePushSubscription();
-
-        const registration = await navigator.serviceWorker.ready;
-        const subscription = await registration.pushManager.getSubscription();
-        if (subscription || attempt >= 5) {
-          return;
-        }
-      } catch {
-        if (attempt >= 5 || cancelled) {
-          return;
-        }
-      }
-
-      retryTimeout = window.setTimeout((): void => {
-        void attemptSubscription(attempt + 1);
-      }, 1_500);
-    };
-
-    retryTimeout = window.setTimeout((): void => {
-      void attemptSubscription();
-    }, 750);
-
-    return (): void => {
-      cancelled = true;
-      if (retryTimeout) {
-        window.clearTimeout(retryTimeout);
-      }
-    };
-  }, [usuario]);
-
   return (
     <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-[var(--color-bg-secondary)] md:flex">
       <div className="hidden shrink-0 md:flex">
@@ -168,6 +126,13 @@ export function AppLayout(): JSX.Element {
             key={location.pathname}
             className="mx-auto min-w-0 max-w-[1600px] animate-fade-in-up"
           >
+            {usuario ? (
+              <>
+                <PwaUpdatePrompt />
+                <PwaInstallPrompt />
+                <PwaNotificationPrompt />
+              </>
+            ) : null}
             <Outlet />
           </div>
         </main>

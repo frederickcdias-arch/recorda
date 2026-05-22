@@ -84,3 +84,9 @@ export interface MarcarComunicadoLidoResponse {
   comunicadoId: string;
   lidoEm: string;
 }
+
+export interface ExcluirComunicadoResponse {
+  message: string;
+  comunicadoId: string;
+  destinatariosRemovidos: number;
+}

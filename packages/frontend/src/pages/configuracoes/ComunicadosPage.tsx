@@ -23,6 +23,7 @@ import {
   useComunicadoAdminDetalhe,
   useCriarComunicado,
   useEncerrarComunicado,
+  useExcluirComunicado,
   usePublicarComunicado,
   useUsuarios,
 } from '../../hooks/useQueries';
@@ -129,6 +130,7 @@ export function ComunicadosPage(): JSX.Element {
   const criarComunicado = useCriarComunicado();
   const publicarComunicado = usePublicarComunicado();
   const encerrarComunicado = useEncerrarComunicado();
+  const excluirComunicado = useExcluirComunicado();
   const detalheQuery = useComunicadoAdminDetalhe(detalheAbertoId);
 
   const usuariosAtivos = useMemo(
@@ -281,6 +283,25 @@ export function ComunicadosPage(): JSX.Element {
       onConfirm: async () => {
         await encerrarComunicado.mutateAsync(comunicado.id);
         toast.success('Comunicado encerrado');
+      },
+    });
+  };
+
+  const handleExcluir = (comunicado: ComunicadoAdminResumo): void => {
+    confirmDialog.confirm({
+      title: 'Excluir comunicado',
+      message: `Deseja excluir "${comunicado.titulo}"? Esta ação removerá o comunicado e os destinatários vinculados e não poderá ser desfeita.`,
+      confirmLabel: 'Excluir',
+      variant: 'danger',
+      onConfirm: async () => {
+        const result = await excluirComunicado.mutateAsync(comunicado.id);
+        if (detalheAbertoId === comunicado.id) {
+          setDetalheAbertoId(null);
+        }
+        toast.success(
+          'Comunicado excluído',
+          `${result.destinatariosRemovidos} destinatário(s) removidos.`
+        );
       },
     });
   };
@@ -706,6 +727,15 @@ export function ComunicadosPage(): JSX.Element {
                             onClick={() => handleEncerrar(comunicado)}
                           >
                             Encerrar
+                          </Button>
+                        ) : null}
+                        {comunicado.status !== 'PUBLICADO' ? (
+                          <Button
+                            variant="danger"
+                            size="sm"
+                            onClick={() => handleExcluir(comunicado)}
+                          >
+                            Excluir
                           </Button>
                         ) : null}
                       </div>
@@ -1187,7 +1217,9 @@ export function ComunicadosPage(): JSX.Element {
 
         <ConfirmDialog
           state={confirmDialog.state}
-          loading={confirmDialog.loading || encerrarComunicado.isPending}
+          loading={
+            confirmDialog.loading || encerrarComunicado.isPending || excluirComunicado.isPending
+          }
           onConfirm={() => void confirmDialog.handleConfirm()}
           onCancel={confirmDialog.close}
         />

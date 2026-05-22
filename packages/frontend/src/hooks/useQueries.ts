@@ -1091,6 +1091,25 @@ export function useEncerrarComunicado() {
   });
 }
 
+export function useExcluirComunicado() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) =>
+      api.delete<{
+        message: string;
+        comunicadoId: string;
+        destinatariosRemovidos: number;
+      }>(`/admin/comunicados/${id}`),
+    onSuccess: (_, id) => {
+      void qc.invalidateQueries({ queryKey: queryKeys.comunicadosAdmin });
+      void qc.invalidateQueries({ queryKey: queryKeys.comunicadoAdminDetalhe(id) });
+      void qc.invalidateQueries({ queryKey: queryKeys.comunicadosUsuario });
+      void qc.invalidateQueries({ queryKey: queryKeys.comunicadosNaoLidos });
+    },
+  });
+}
+
 export function useMarcarComunicadoLido() {
   const qc = useQueryClient();
 
