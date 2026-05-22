@@ -62,6 +62,11 @@ export function Modal({
 }: ModalProps): JSX.Element | null {
   const panelRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   // Focus trap + restore focus
   useEffect(() => {
@@ -73,13 +78,16 @@ export function Modal({
     const raf = requestAnimationFrame(() => {
       const panel = panelRef.current;
       if (!panel) return;
-      const focusable = panel.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTORS);
-      focusable[0]?.focus();
+      const focusable = Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTORS));
+      const firstInput = focusable.find((element) =>
+        ['INPUT', 'TEXTAREA', 'SELECT'].includes(element.tagName)
+      );
+      (firstInput ?? focusable[0])?.focus();
     });
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (e.key !== 'Tab') return;
@@ -111,7 +119,7 @@ export function Modal({
       document.removeEventListener('keydown', handleKeyDown);
       previousFocusRef.current?.focus();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   // Prevent body scroll
   useEffect(() => {
