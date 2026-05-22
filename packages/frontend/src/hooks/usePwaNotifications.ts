@@ -7,19 +7,32 @@ import {
   supportsNotifications,
   supportsServiceWorker,
 } from '../lib/pwa';
+import { ensurePushSubscription, type PushSubscriptionStatus } from '../services/pushNotifications';
 
 type NotificationPromptState = NotificationPermission | 'unsupported';
+
+type PwaNotificationError = 'unsupported' | 'denied' | 'not-configured' | 'error' | null;
 
 interface UsePwaNotificationsResult {
   permission: NotificationPromptState;
   supported: boolean;
   visible: boolean;
-  requestPermission: () => Promise<NotificationPromptState>;
+  isSubscribed: boolean;
+  isLoading: boolean;
+  error: PwaNotificationError;
+  activateNotifications: () => Promise<PushSubscriptionStatus>;
   dismiss: () => void;
 }
 
 export function usePwaNotifications(): UsePwaNotificationsResult {
-  const supported = useMemo(() => supportsNotifications() && supportsServiceWorker(), []);
+  const supported = useMemo(
+    () =>
+      typeof window !== 'undefined' &&
+      supportsNotifications() &&
+      supportsServiceWorker() &&
+      'PushManager' in window,
+    []
+  );
   const [dismissed, setDismissed] = useState(() => getStoredFlag(PWA_NOTIFICATIONS_DISMISSED_KEY));
   const [decisionStored, setDecisionStored] = useState(() =>
     getStoredFlag(PWA_NOTIFICATIONS_DECISION_KEY)
@@ -31,39 +44,79 @@ export function usePwaNotifications(): UsePwaNotificationsResult {
 
     return Notification.permission;
   });
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<PwaNotificationError>(null);
 
   const dismiss = useCallback((): void => {
     setDismissed(true);
     setStoredFlag(PWA_NOTIFICATIONS_DISMISSED_KEY);
   }, []);
 
-  const requestPermission = useCallback(async (): Promise<NotificationPromptState> => {
+  const activateNotifications = useCallback(async (): Promise<PushSubscriptionStatus> => {
     if (!supported) {
       setPermission('unsupported');
+      setError('unsupported');
       return 'unsupported';
     }
 
-    const nextPermission = await Notification.requestPermission();
-    setPermission(nextPermission);
+    let nextPermission: NotificationPromptState = Notification.permission;
+    if (nextPermission === 'default') {
+      nextPermission = await Notification.requestPermission();
+      setPermission(nextPermission);
+    }
 
-    if (nextPermission === 'granted' || nextPermission === 'denied') {
+    if (nextPermission === 'denied') {
+      setError('denied');
       setDecisionStored(true);
       setStoredFlag(PWA_NOTIFICATIONS_DECISION_KEY);
-    }
-
-    if (nextPermission === 'granted' || nextPermission === 'denied') {
       setDismissed(true);
-      setStoredFlag(PWA_NOTIFICATIONS_DISMISSED_KEY);
+      return 'permission-denied';
     }
 
-    return nextPermission;
-  }, [supported]);
+    if (nextPermission !== 'granted') {
+      setError('unsupported');
+      return 'unsupported';
+    }
+
+    setDecisionStored(true);
+    setStoredFlag(PWA_NOTIFICATIONS_DECISION_KEY);
+    setDismissed(true);
+    setError(null);
+    setIsLoading(true);
+
+    try {
+      const status = await ensurePushSubscription();
+      if (status === 'subscribed') {
+        setIsSubscribed(true);
+        setError(null);
+        return status;
+      }
+
+      if (status === 'not-configured') {
+        setError('not-configured');
+      } else if (status === 'permission-denied') {
+        setError('denied');
+      } else if (status === 'unsupported') {
+        setError('unsupported');
+      } else {
+        setError('error');
+      }
+
+      return status;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [supported, setDismissed]);
 
   return {
     permission,
     supported,
     visible: supported && permission === 'default' && !dismissed && !decisionStored,
-    requestPermission,
+    isSubscribed,
+    isLoading,
+    error,
+    activateNotifications,
     dismiss,
   };
 }

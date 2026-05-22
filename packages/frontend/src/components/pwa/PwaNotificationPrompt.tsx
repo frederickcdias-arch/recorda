@@ -5,32 +5,46 @@ import { usePwaNotifications } from '../../hooks/usePwaNotifications';
 import { useToastHelpers } from '../ui/Toast';
 
 export function PwaNotificationPrompt(): JSX.Element | null {
-  const { dismiss, permission, requestPermission, visible } = usePwaNotifications();
+  const { dismiss, visible, isLoading, activateNotifications } = usePwaNotifications();
   const toast = useToastHelpers();
 
   if (!visible) {
     return null;
   }
 
-  const handleRequestPermission = async (): Promise<void> => {
-    const result = await requestPermission();
+  const handleActivateNotifications = async (): Promise<void> => {
+    const status = await activateNotifications();
 
-    if (result === 'granted') {
-      toast.success('Notificacoes ativadas', 'O navegador ja pode exibir avisos do Recorda.');
+    if (status === 'subscribed') {
+      toast.success('Notificações ativadas', 'O navegador já pode exibir avisos do Recorda.');
       return;
     }
 
-    if (result === 'denied') {
+    if (status === 'not-configured') {
       toast.warning(
-        'Notificacoes bloqueadas',
-        'Voce pode reativar essa permissao nas configuracoes do navegador.'
+        'Notificações indisponíveis',
+        'O serviço de push ainda não está configurado corretamente.'
       );
       return;
     }
 
-    if (result === 'default') {
-      toast.info('Permissao pendente', 'Voce pode decidir sobre as notificacoes depois.');
+    if (status === 'permission-denied') {
+      toast.warning(
+        'As notificações foram bloqueadas no navegador.',
+        'Reative a permissão nas configurações do navegador para receber avisos.'
+      );
+      return;
     }
+
+    if (status === 'unsupported') {
+      toast.warning(
+        'Notificações indisponíveis neste ambiente.',
+        'Seu navegador ou dispositivo não oferece suporte a push notifications.'
+      );
+      return;
+    }
+
+    toast.error('Erro ao ativar notificações', 'Tente novamente mais tarde.');
   };
 
   return (
@@ -47,33 +61,32 @@ export function PwaNotificationPrompt(): JSX.Element | null {
             </div>
             <div className="min-w-0">
               <p className="text-sm font-semibold text-[var(--color-text-primary)]">
-                Ative as notificacoes
+                Ative as notificações
               </p>
               <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
                 Receba avisos e comunicados importantes do Recorda.
               </p>
               <p className="mt-2 text-sm text-[var(--color-text-tertiary)]">
-                A permissao sera solicitada somente apos seu clique.
+                A permissão será solicitada somente após seu clique.
               </p>
             </div>
           </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 md:justify-end">
-          <Button size="sm" icon="mail" onClick={() => void handleRequestPermission()}>
-            Ativar notificacoes
+          <Button
+            size="sm"
+            icon="mail"
+            loading={isLoading}
+            onClick={() => void handleActivateNotifications()}
+          >
+            Ativar notificações
           </Button>
           <Button variant="ghost" size="sm" onClick={dismiss}>
-            Agora nao
+            Agora não
           </Button>
         </div>
       </div>
-
-      {permission === 'unsupported' ? (
-        <p className="mt-3 text-sm text-[var(--color-text-tertiary)]">
-          Este navegador nao oferece suporte a notificacoes do app.
-        </p>
-      ) : null}
     </Card>
   );
 }
