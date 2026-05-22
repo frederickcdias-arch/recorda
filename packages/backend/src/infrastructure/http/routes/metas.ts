@@ -745,11 +745,11 @@ export function createMetasRoutes(): FastifyPluginAsync {
           // Bloquear quando a mesma etapa já foi importada do legado para o repositório/coordenadoria.
           const legadoExistente = await server.database.query(
             `SELECT id
-             FROM producao_repositorio
-             WHERE repositorio_id = $1
-               AND etapa = $2
+             FROM producao_repositorio p
+             WHERE p.repositorio_id = $1
+               AND p.etapa = $2
                AND ${buildLegacyProducaoWhere()}
-               AND COALESCE(marcadores->>'coordenadoria', '') = $3
+               AND COALESCE(p.marcadores->>'coordenadoria', '') = $3
              LIMIT 1`,
             [repositorioId, body.etapa, coordenadoriaMarcador]
           );
