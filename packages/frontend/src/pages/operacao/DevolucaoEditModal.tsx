@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '../../components/ui/Button';
-import { Icon } from '../../components/ui/Icon';
 import { Input } from '../../components/ui/Input';
+import { Modal } from '../../components/ui/Modal';
 import { useToastHelpers } from '../../components/ui/Toast';
 import {
   type DevolucaoOperacional,
@@ -41,8 +41,8 @@ function CoordCombobox({ value, onChange, opcoes, required }: CoordComboboxProps
   return (
     <div ref={ref} className="relative">
       <label className="mb-1.5 block text-sm font-medium text-[var(--color-text-primary)]">
-        Coordenadoria Destino
-        {required && <span className="ml-0.5 text-[var(--color-error-500)]">*</span>}
+        Coordenadoria destino
+        {required ? <span className="ml-0.5 text-[var(--color-error-500)]">*</span> : null}
       </label>
       <input
         type="text"
@@ -62,29 +62,29 @@ function CoordCombobox({ value, onChange, opcoes, required }: CoordComboboxProps
           window.setTimeout(() => setOpen(false), 150);
         }}
       />
-      {open && filtered.length > 0 && (
+      {open && filtered.length > 0 ? (
         <div className="absolute z-20 mt-1 max-h-52 w-full overflow-y-auto rounded-lg border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] shadow-lg">
-          {filtered.map((opt) => (
+          {filtered.map((opcao) => (
             <button
-              key={opt}
+              key={opcao}
               type="button"
               className={`w-full px-3 py-2 text-left text-sm transition-colors hover:bg-[var(--color-primary-50)] hover:text-[var(--color-primary-700)] ${
-                opt === value
+                opcao === value
                   ? 'bg-[var(--color-primary-50)] font-medium text-[var(--color-primary-700)]'
                   : ''
               }`}
               onMouseDown={(event) => {
                 event.preventDefault();
-                onChange(opt);
+                onChange(opcao);
                 setQuery('');
                 setOpen(false);
               }}
             >
-              {opt}
+              {opcao}
             </button>
           ))}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
@@ -146,68 +146,65 @@ export function DevolucaoEditModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 px-4 py-8">
-      <div className="w-full max-w-lg rounded-xl bg-[var(--color-bg-primary)] shadow-2xl">
-        <div className="flex items-center justify-between border-b p-5">
-          <h2 className="text-base font-semibold text-gray-900">Editar Devolução</h2>
-          <button
-            onClick={onClose}
-            className="rounded p-1 text-gray-400 transition-colors hover:text-gray-600"
-            aria-label="Fechar"
-          >
-            <Icon name="x" className="h-5 w-5" />
-          </button>
-        </div>
-        <div className="space-y-4 p-5">
-          <Input
-            label="Data da Devolução"
-            type="date"
-            value={dataDevolucao}
-            max={new Date().toISOString().split('T')[0]}
-            onChange={(event) => setDataDevolucao(event.target.value)}
-            required
-          />
-          <CoordCombobox
-            value={coordenadoriaDestino}
-            onChange={setCoordenadoriaDestino}
-            opcoes={opcoesCoordenadorias}
-            required
-          />
-          <div>
-            <Input
-              label="Responsável pela Retirada"
-              value={responsavelRetirada}
-              onChange={(event) => setResponsavelRetirada(event.target.value)}
-              placeholder="Nome de quem retirou os documentos"
-              required
-              list="editar-responsaveis-list"
-            />
-            <datalist id="editar-responsaveis-list">
-              {opcoesResponsaveis.map((responsavel) => (
-                <option key={responsavel} value={responsavel} />
-              ))}
-            </datalist>
-          </div>
-          <Input
-            label="Observações"
-            value={observacoes}
-            onChange={(event) => setObservacoes(event.target.value)}
-            placeholder="Opcional"
-          />
-        </div>
-        <div className="flex justify-end gap-3 rounded-b-xl border-t bg-gray-50 px-5 py-4">
-          <Button variant="outline" onClick={onClose} disabled={editarMut.isPending}>
+    <Modal
+      open
+      onClose={onClose}
+      title="Editar devolução"
+      subtitle="Ajuste os dados principais sem alterar os itens já vinculados."
+      size="md"
+      footer={
+        <div className="flex flex-col-reverse gap-3 px-5 py-4 sm:flex-row sm:justify-end">
+          <Button variant="outline" onClick={onClose} disabled={editarMut.isPending} fullWidth>
             Cancelar
           </Button>
           <Button
             variant="primary"
             onClick={() => void handleSalvar()}
             disabled={editarMut.isPending}
+            fullWidth
           >
-            {editarMut.isPending ? 'Salvando...' : 'Salvar Alterações'}
+            {editarMut.isPending ? 'Salvando...' : 'Salvar alterações'}
           </Button>
         </div>
+      }
+    >
+      <div className="space-y-4 p-5">
+        <Input
+          label="Data da devolução"
+          type="date"
+          value={dataDevolucao}
+          max={new Date().toISOString().split('T')[0]}
+          onChange={(event) => setDataDevolucao(event.target.value)}
+          required
+        />
+        <CoordCombobox
+          value={coordenadoriaDestino}
+          onChange={setCoordenadoriaDestino}
+          opcoes={opcoesCoordenadorias}
+          required
+        />
+        <div>
+          <Input
+            label="Responsável pela retirada"
+            value={responsavelRetirada}
+            onChange={(event) => setResponsavelRetirada(event.target.value)}
+            placeholder="Nome de quem retirou os documentos"
+            required
+            list="editar-responsaveis-list"
+          />
+          <datalist id="editar-responsaveis-list">
+            {opcoesResponsaveis.map((responsavel) => (
+              <option key={responsavel} value={responsavel} />
+            ))}
+          </datalist>
+        </div>
+        <Input
+          label="Observações"
+          value={observacoes}
+          onChange={(event) => setObservacoes(event.target.value)}
+          placeholder="Opcional"
+        />
       </div>
-    </div>
+    </Modal>
   );
 }

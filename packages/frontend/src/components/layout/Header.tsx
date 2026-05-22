@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Icon } from '../ui/Icon';
-import { Button } from '../ui/Button';
 import { useAuth } from '../../contexts/AuthContext';
-import { useTheme } from '../../contexts/ThemeContext';
 import type { Theme } from '../../contexts/ThemeContext';
+import { useTheme } from '../../contexts/ThemeContext';
+import { Button } from '../ui/Button';
+import { Icon } from '../ui/Icon';
 
 interface HeaderProps {
   onMenuToggle: () => void;
@@ -36,51 +36,56 @@ function ThemeToggle(): JSX.Element {
 
   useEffect((): void | (() => void) => {
     if (!open) return;
-    const handler = (e: MouseEvent): void => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    const handler = (event: MouseEvent): void => {
+      if (ref.current && !ref.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
     };
     document.addEventListener('mousedown', handler);
     return (): void => document.removeEventListener('mousedown', handler);
   }, [open]);
 
-  const current = THEME_OPTIONS.find((o) => o.value === theme) ?? THEME_OPTIONS[2]!;
+  const current = THEME_OPTIONS.find((option) => option.value === theme) ?? THEME_OPTIONS[2]!;
 
   return (
     <div ref={ref} className="relative">
       <button
-        onClick={(): void => setOpen((v) => !v)}
+        onClick={(): void => setOpen((value) => !value)}
         title={`Tema: ${current.label}`}
         aria-label={`Tema: ${current.label}`}
-        aria-expanded={open}
+        aria-expanded={open ? 'true' : 'false'}
         className="rounded-xl border border-transparent p-2 text-[var(--color-text-secondary)] transition-colors hover:border-[var(--color-border-primary)] hover:bg-[var(--color-bg-primary)]"
       >
         <Icon name={current.icon} className="h-4 w-4" />
       </button>
 
-      {open && (
+      {open ? (
         <div className="absolute right-0 top-full z-[var(--z-dropdown)] mt-2 w-40 rounded-2xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] p-1.5 shadow-lg">
-          {THEME_OPTIONS.map((opt) => (
+          {THEME_OPTIONS.map((option) => (
             <button
-              key={opt.value}
+              key={option.value}
               onClick={() => {
-                setTheme(opt.value);
+                setTheme(option.value);
                 setOpen(false);
               }}
               className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm transition-colors ${
-                theme === opt.value
+                theme === option.value
                   ? 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)]'
                   : 'text-[var(--color-text-primary)] hover:bg-[var(--color-gray-50)]'
               }`}
             >
-              <Icon name={opt.icon} className="h-3.5 w-3.5 shrink-0" />
-              <span>{opt.label}</span>
-              {theme === opt.value ? (
-                <Icon name="check" className="ml-auto h-3 w-3 text-[var(--color-primary-600)]" />
+              <Icon name={option.icon} className="h-3.5 w-3.5 shrink-0" />
+              <span>{option.label}</span>
+              {theme === option.value ? (
+                <Icon
+                  name="check"
+                  className="ml-auto h-3 w-3 text-[var(--color-primary-600)]"
+                />
               ) : null}
             </button>
           ))}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
@@ -94,7 +99,7 @@ export function Header({ onMenuToggle, title, unreadComunicados = 0 }: HeaderPro
 
   return (
     <header className="sticky top-0 z-30 border-b border-[var(--color-border-primary)] bg-[color:color-mix(in_srgb,var(--color-bg-primary)_92%,transparent)] backdrop-blur">
-      <div className="flex h-16 items-center gap-3 px-4 sm:px-5 md:px-6">
+      <div className="flex h-16 items-center gap-2 px-4 sm:gap-3 sm:px-5 md:px-6">
         <button
           onClick={onMenuToggle}
           className="rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] p-2 text-[var(--color-text-secondary)] shadow-xs transition-colors hover:bg-[var(--color-gray-50)] md:hidden"
@@ -109,10 +114,10 @@ export function Header({ onMenuToggle, title, unreadComunicados = 0 }: HeaderPro
 
         <div className="min-w-0 flex-1">
           <nav className="hidden min-w-0 items-center gap-1.5 text-sm sm:flex">
-            {breadcrumbs.map((crumb, i) => (
-              <span key={i} className="flex min-w-0 items-center gap-1.5">
-                {i > 0 ? <span className="text-[var(--color-gray-300)]">/</span> : null}
-                {i < breadcrumbs.length - 1 ? (
+            {breadcrumbs.map((crumb, index) => (
+              <span key={index} className="flex min-w-0 items-center gap-1.5">
+                {index > 0 ? <span className="text-[var(--color-gray-300)]">/</span> : null}
+                {index < breadcrumbs.length - 1 ? (
                   <span className="truncate text-[var(--color-text-tertiary)]">{crumb}</span>
                 ) : (
                   <span className="truncate font-semibold text-[var(--color-text-primary)]">
@@ -132,12 +137,12 @@ export function Header({ onMenuToggle, title, unreadComunicados = 0 }: HeaderPro
           {usuario ? (
             <p className="hidden text-xs text-[var(--color-text-tertiary)] md:block">
               {perfilLabel}
-              {usuario.nome ? ` - ${usuario.nome}` : ''}
+              {usuario.nome ? ` • ${usuario.nome}` : ''}
             </p>
           ) : null}
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-3">
           <Link
             to="/comunicados"
             aria-label={
@@ -171,7 +176,7 @@ export function Header({ onMenuToggle, title, unreadComunicados = 0 }: HeaderPro
 
           <div
             aria-hidden="true"
-            className="flex h-9 w-9 shrink-0 select-none items-center justify-center rounded-full border border-[var(--color-primary-200)] bg-[var(--color-primary-50)] text-sm font-semibold text-[var(--color-primary-700)]"
+            className="flex h-8 w-8 shrink-0 select-none items-center justify-center rounded-full border border-[var(--color-primary-200)] bg-[var(--color-primary-50)] text-sm font-semibold text-[var(--color-primary-700)] sm:h-9 sm:w-9"
           >
             {initial}
           </div>
@@ -205,5 +210,5 @@ export function Header({ onMenuToggle, title, unreadComunicados = 0 }: HeaderPro
 
 function buildBreadcrumbs(title?: string): string[] {
   if (!title) return ['Recorda'];
-  return title.split(' - ').map((s) => s.trim());
+  return title.split(' - ').map((segment) => segment.trim());
 }

@@ -133,7 +133,7 @@ function useCountUp(target: number, duration = 700): number {
     }
 
     const start = performance.now();
-    const tick = (now: number) => {
+    const tick = (now: number): void => {
       const p = Math.min((now - start) / duration, 1);
       const eased = 1 - Math.pow(1 - p, 3);
       setCount(Math.round(eased * target));
@@ -141,7 +141,9 @@ function useCountUp(target: number, duration = 700): number {
     };
 
     rafRef.current = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(rafRef.current);
+    return (): void => {
+      cancelAnimationFrame(rafRef.current);
+    };
   }, [target, duration]);
 
   return count;
@@ -179,13 +181,14 @@ function StatCard({
   const animated = useCountUp(rawValue ?? 0);
   const displayValue = rawValue != null ? animated.toLocaleString('pt-BR') : value;
   const toneClass = statToneClasses[tone];
+  const delayClasses = ['delay-0', 'delay-75', 'delay-150', 'delay-200'];
+  const animationDelayClass = delayClasses[index] ?? 'delay-0';
 
   return (
     <button
       type="button"
       onClick={onClick}
-      style={{ animationDelay: `${index * 75}ms` }}
-      className="animate-fade-in-up [animation-fill-mode:both] w-full text-left"
+      className={`animate-fade-in-up [animation-fill-mode:both] w-full text-left ${animationDelayClass}`}
     >
       <Card padding="sm" hover={!!onClick} className="h-full border-[var(--color-border-primary)]">
         <div className="flex items-start justify-between gap-4">
@@ -378,14 +381,11 @@ function DashboardColaborador(): JSX.Element {
                         {item.quantidade.toLocaleString('pt-BR')}
                       </span>
                     </div>
-                    <div className="h-3 overflow-hidden rounded-full bg-[var(--color-gray-100)]">
-                      <div
-                        className={`h-full rounded-full transition-all duration-700 ${cor.bar}`}
-                        style={{
-                          width: `${Math.max((item.quantidade / maxQuantidadeEtapa) * 100, 2)}%`,
-                        }}
-                      />
-                    </div>
+                    <progress
+                      className={`h-3 w-full overflow-hidden rounded-full bg-[var(--color-gray-100)] ${cor.bar}`}
+                      value={Math.max((item.quantidade / maxQuantidadeEtapa) * 100, 2)}
+                      max={100}
+                    />
                   </div>
                 );
               })}
@@ -613,12 +613,11 @@ function DashboardContent({ data }: { data: DashboardData }): JSX.Element {
                         {formatCriticalNumber(valor)}
                       </span>
                     </div>
-                    <div className="h-3 overflow-hidden rounded-full bg-[var(--color-gray-100)]">
-                      <div
-                        className="h-full rounded-full bg-[var(--color-primary-500)] transition-all duration-500"
-                        style={{ width: `${Math.max(percentual, 2)}%` }}
-                      />
-                    </div>
+                    <progress
+                      className="h-3 w-full overflow-hidden rounded-full bg-[var(--color-gray-100)] accent-primary-500"
+                      value={Math.max(percentual, 2)}
+                      max={100}
+                    />
                   </button>
                 );
               })
@@ -705,7 +704,7 @@ function DashboardAdminPage(): JSX.Element {
           error instanceof Error
             ? error.message
             : ((error as { error?: string })?.error ?? 'Verifique sua conexão'),
-        action: { label: 'Tentar novamente', onClick: () => void refetch() },
+        action: { label: 'Tentar novamente', onClick: (): void => void refetch() },
       }
     : null;
 

@@ -88,3 +88,17 @@ Os comandos principais de validacao ficam em [docs/operacao/TESTES.md](docs/oper
 ## Deploy
 
 As instrucoes operacionais de publicacao ficam em [docs/operacao/DEPLOY.md](docs/operacao/DEPLOY.md).
+
+## Web Push / PWA deployment config
+
+Para que o push funcione em produção, configure as variáveis de ambiente no Railway ou Vercel:
+
+- `VAPID_PUBLIC_KEY`
+- `VAPID_PRIVATE_KEY`
+- `VAPID_SUBJECT`
+- `VITE_VAPID_PUBLIC_KEY`
+
+No Vercel, adicione essas variáveis de ambiente no painel do projeto.
+No Railway, adicione as mesmas chaves no ambiente do serviço.
+
+O frontend usa `VITE_VAPID_PUBLIC_KEY` durante o build, e o backend usa `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` e `VAPID_SUBJECT` em tempo de execução.

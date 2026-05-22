@@ -8,6 +8,13 @@ import type {
 import { validateBody } from '../middleware/validate.js';
 import { getCurrentUser } from './operacional-helpers.js';
 
+function summarizeEndpoint(endpoint: string): string {
+  if (endpoint.length <= 80) {
+    return endpoint;
+  }
+  return `${endpoint.slice(0, 40)}...${endpoint.slice(-40)} (len=${endpoint.length})`;
+}
+
 const registrarPushSubscriptionSchema = z.object({
   endpoint: z.string().url(),
   expirationTime: z.number().nullable(),
@@ -47,10 +54,15 @@ export function createPushRoutes(): FastifyPluginAsync {
         const body = request.body as RegistrarPushSubscriptionDTO;
         const client = await server.database.pool.connect();
 
-        try {
-          await client.query('BEGIN');
-          await setAuditUser(client, user.id);
+        request.log.info({
+          msg: 'Registering push subscription',
+          usuarioId: user.id,
+          endpoint: summarizeEndpoint(body.endpoint),
+          p256dhLength: body.keys.p256dh.length,
+          authLength: body.keys.auth.length,
+        });
 
+        try {
           await client.query(
             `INSERT INTO push_subscriptions (
                usuario_id,

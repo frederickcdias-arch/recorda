@@ -156,7 +156,7 @@ export function TableCell({
   return (
     <td
       className={cn(
-        'px-4 py-3 text-sm text-[var(--color-text-primary)]',
+        'px-4 py-3 align-top text-sm text-[var(--color-text-primary)]',
         alignClass[align],
         hideOnMobile && 'hidden sm:table-cell',
         className
@@ -183,7 +183,7 @@ export function TableEmptyState({
   return (
     <tr>
       <td colSpan={colSpan}>
-        <div className="flex flex-col items-center justify-center gap-1 px-4 py-12 text-center">
+        <div className="flex flex-col items-center justify-center gap-1 px-4 py-8 text-center sm:py-12">
           <p className="text-sm font-medium text-[var(--color-text-primary)]">{title}</p>
           {description ? (
             <p className="text-sm text-[var(--color-text-secondary)]">{description}</p>

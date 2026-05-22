@@ -1,6 +1,13 @@
 import webpush from 'web-push';
 import type { DatabaseConnection } from '../database/connection.js';
 
+function summarizeEndpoint(endpoint: string): string {
+  if (endpoint.length <= 80) {
+    return endpoint;
+  }
+  return `${endpoint.slice(0, 40)}...${endpoint.slice(-40)} (len=${endpoint.length})`;
+}
+
 interface PushSubscriptionRow {
   id: string;
   endpoint: string;
@@ -35,12 +42,23 @@ export function createWebPushService(database: DatabaseConnection): WebPushServi
   const subject = process.env.VAPID_SUBJECT?.trim();
 
   if (!publicKey || !privateKey || !subject) {
+    console.debug('[WebPush][diagnostic] disabled', {
+      hasPublicKey: Boolean(publicKey),
+      hasPrivateKey: Boolean(privateKey),
+      hasSubject: Boolean(subject),
+    });
+
     return {
       enabled: false,
       sendComunicadoPublicado: async () => undefined,
     };
   }
 
+  console.debug('[WebPush][diagnostic] enabled', {
+    hasPublicKey: Boolean(publicKey),
+    hasPrivateKey: Boolean(privateKey),
+    hasSubject: Boolean(subject),
+  });
   webpush.setVapidDetails(subject, publicKey, privateKey);
 
   return {
@@ -53,6 +71,11 @@ export function createWebPushService(database: DatabaseConnection): WebPushServi
       usuarioIds,
     }: ComunicadoPushPayload): Promise<void> => {
       const destinatarios = Array.from(new Set(usuarioIds));
+      console.debug('[WebPush][diagnostic] sendComunicadoPublicado', {
+        comunicadoId,
+        destinatariosCount: destinatarios.length,
+      });
+
       if (destinatarios.length === 0) {
         return;
       }
@@ -64,6 +87,10 @@ export function createWebPushService(database: DatabaseConnection): WebPushServi
            AND usuario_id = ANY($1::uuid[])`,
         [destinatarios]
       );
+
+      console.debug('[WebPush][diagnostic] found active subscriptions', {
+        count: subscriptionsResult.rows.length,
+      });
 
       await Promise.all(
         subscriptionsResult.rows.map(async (subscription) => {
@@ -87,11 +114,21 @@ export function createWebPushService(database: DatabaseConnection): WebPushServi
                 },
               })
             );
+            console.debug('[WebPush][diagnostic] sendNotification success', {
+              subscriptionId: subscription.id,
+              endpoint: summarizeEndpoint(subscription.endpoint),
+            });
           } catch (error) {
             const statusCode =
               typeof error === 'object' && error && 'statusCode' in error
                 ? Number((error as { statusCode?: number }).statusCode)
                 : 0;
+
+            console.error('[WebPush][diagnostic] sendNotification failed', {
+              subscriptionId: subscription.id,
+              statusCode,
+              message: error instanceof Error ? error.message : undefined,
+            });
 
             if (statusCode === 404 || statusCode === 410) {
               await database.query(
@@ -101,6 +138,9 @@ export function createWebPushService(database: DatabaseConnection): WebPushServi
                  WHERE id = $1`,
                 [subscription.id]
               );
+              console.debug('[WebPush][diagnostic] marked subscription inactive', {
+                subscriptionId: subscription.id,
+              });
             }
           }
         })

@@ -717,14 +717,26 @@ export function createComunicadosRoutes(): FastifyPluginAsync {
 
           await client.query('COMMIT');
 
+          request.log.info({
+            msg: 'Comunicado publicado',
+            comunicadoId: id,
+            destinatarios: usuarioIds.length,
+            webPushEnabled: server.webPushService.enabled,
+          });
+
           if (server.webPushService.enabled) {
-            void server.webPushService.sendComunicadoPublicado({
-              comunicadoId: id,
-              titulo: comunicado.titulo,
-              conteudo: comunicado.conteudo,
-              prioridade: comunicado.prioridade,
-              usuarioIds,
-            });
+            request.log.info({ msg: 'Calling webPushService.sendComunicadoPublicado', comunicadoId: id });
+            void server.webPushService
+              .sendComunicadoPublicado({
+                comunicadoId: id,
+                titulo: comunicado.titulo,
+                conteudo: comunicado.conteudo,
+                prioridade: comunicado.prioridade,
+                usuarioIds,
+              })
+              .catch((error) => {
+                request.log.error({ error }, 'WebPush sendComunicadoPublicado failed');
+              });
           }
 
           return reply.send({

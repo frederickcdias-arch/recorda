@@ -102,19 +102,20 @@ function MenuItemComponent({
   const isChildActive = item.children?.some((child) =>
     child.path ? location.pathname === child.path : false
   );
+  const indentClasses = ['pl-3', 'pl-6', 'pl-9', 'pl-12', 'pl-[60px]'];
+  const indentClass = indentClasses[Math.min(depth, indentClasses.length - 1)];
 
   if (hasChildren) {
     return (
       <div>
         <button
           onClick={() => setExpanded(!expanded)}
-          aria-expanded={expanded}
-          className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm transition-colors sm:py-2.5 ${
+          aria-expanded={expanded ? 'true' : 'false'}
+          className={`flex w-full items-center gap-3 rounded-xl ${indentClass} py-3 text-sm transition-colors sm:py-2.5 ${
             isChildActive
               ? 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)]'
               : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-gray-50)] hover:text-[var(--color-text-primary)]'
           }`}
-          style={{ paddingLeft: `${12 + depth * 12}px` }}
         >
           <Icon name={item.icon} className="h-4 w-4 shrink-0" />
           {!collapsed ? (
@@ -157,13 +158,12 @@ function MenuItemComponent({
       title={collapsed ? item.label : undefined}
       aria-label={collapsed ? item.label : undefined}
       className={({ isActive: navActive }) =>
-        `flex items-center gap-3 rounded-xl px-3 py-3 text-sm transition-all sm:py-2.5 ${
+        `flex items-center gap-3 rounded-xl ${indentClass} py-3 text-sm transition-all sm:py-2.5 ${
           navActive || isActive
             ? 'bg-[var(--color-primary-600)] text-white shadow-sm'
             : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-gray-50)] hover:text-[var(--color-text-primary)]'
         }`
       }
-      style={{ paddingLeft: `${12 + depth * 12}px` }}
     >
       <Icon name={item.icon} className="h-4 w-4 shrink-0" />
       {!collapsed ? <span>{item.label}</span> : null}
@@ -219,7 +219,7 @@ function MenuSectionComponent({
       <button
         onClick={onToggleExpanded}
         title={collapsed ? section.label : undefined}
-        aria-expanded={expanded}
+        aria-expanded={expanded ? 'true' : 'false'}
         aria-controls={sectionId}
         className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 transition-colors sm:py-2.5 ${
           isActive

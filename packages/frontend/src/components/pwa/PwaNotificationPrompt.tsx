@@ -13,7 +13,10 @@ export function PwaNotificationPrompt(): JSX.Element | null {
   }
 
   const handleActivateNotifications = async (): Promise<void> => {
+    console.debug('[PWA Push][diagnostic] notification prompt clicked');
     const status = await activateNotifications();
+
+    console.debug('[PWA Push][diagnostic] activateNotifications result', { status });
 
     if (status === 'subscribed') {
       toast.success('Notificações ativadas', 'O navegador já pode exibir avisos do Recorda.');

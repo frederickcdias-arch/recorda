@@ -36,7 +36,7 @@ export function PageState({
 }: PageStateProps): JSX.Element {
   if (loading) {
     return (
-      <div className="flex min-h-[300px] flex-col items-center justify-center rounded-2xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] py-12 shadow-xs">
+      <div className="flex min-h-[220px] flex-col items-center justify-center rounded-2xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] px-4 py-10 shadow-xs sm:min-h-[300px] sm:py-12">
         <LoadingSpinner size="lg" className="mb-4 text-[var(--color-primary-600)]" />
         <p className="font-medium text-[var(--color-text-secondary)]">
           {loadingMessage ?? 'Carregando...'}
@@ -47,7 +47,7 @@ export function PageState({
 
   if (error) {
     return (
-      <div className="mx-auto my-8 max-w-lg rounded-2xl border border-[var(--color-error-200)] bg-[var(--color-bg-primary)] p-8 text-center shadow-xs">
+      <div className="mx-auto my-6 max-w-lg rounded-2xl border border-[var(--color-error-200)] bg-[var(--color-bg-primary)] p-6 text-center shadow-xs sm:my-8 sm:p-8">
         <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--color-error-50)]">
           <Icon name="alert-circle" className="h-8 w-8 text-[var(--color-error-500)]" />
         </div>
@@ -69,7 +69,7 @@ export function PageState({
 
   if (empty) {
     return (
-      <div className="rounded-2xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] p-12 text-center shadow-xs">
+      <div className="rounded-2xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] p-6 text-center shadow-xs sm:p-12">
         <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--color-gray-100)]">
           <Icon name={empty.icon} className="h-8 w-8 text-[var(--color-gray-400)]" />
         </div>

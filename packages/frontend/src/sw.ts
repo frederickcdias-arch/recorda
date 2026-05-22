@@ -34,7 +34,10 @@ registerRoute(
 );
 
 self.addEventListener('push', (event) => {
-  if (!event.data) return;
+  if (!event.data) {
+    console.debug('[SW][diagnostic] push event received without data');
+    return;
+  }
 
   const payload = event.data.json() as {
     title?: string;
@@ -44,23 +47,38 @@ self.addEventListener('push', (event) => {
     data?: Record<string, unknown>;
   };
 
+  console.debug('[SW][diagnostic] push event payload', {
+    title: payload.title,
+    body: payload.body,
+    tag: payload.tag,
+    url: payload.url,
+  });
+
   event.waitUntil(
-    self.registration.showNotification(payload.title ?? 'Recorda', {
-      body: payload.body ?? 'Voce recebeu um novo comunicado interno.',
-      icon: '/pwa-192x192.png',
-      badge: '/pwa-192x192.png',
-      tag: payload.tag ?? 'recorda-comunicados',
-      data: {
-        url: payload.url ?? '/comunicados',
-        ...(payload.data ?? {}),
-      },
-    })
+    self.registration
+      .showNotification(payload.title ?? 'Recorda', {
+        body: payload.body ?? 'Voce recebeu um novo comunicado interno.',
+        icon: '/pwa-192x192.png',
+        badge: '/pwa-192x192.png',
+        tag: payload.tag ?? 'recorda-comunicados',
+        data: {
+          url: payload.url ?? '/comunicados',
+          ...(payload.data ?? {}),
+        },
+      })
+      .then(() => {
+        console.debug('[SW][diagnostic] notification shown', { tag: payload.tag });
+      })
+      .catch((error) => {
+        console.error('[SW][diagnostic] failed to show notification', { error });
+      })
   );
 });
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const url = String(event.notification.data?.url ?? '/comunicados');
+  console.debug('[SW][diagnostic] notification click', { url });
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {

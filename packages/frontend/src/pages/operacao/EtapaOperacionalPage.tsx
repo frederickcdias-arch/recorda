@@ -1027,10 +1027,11 @@ export function EtapaOperacionalPage(): JSX.Element {
                     </div>
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label htmlFor="etiquetaPdfFiles" className="block text-sm font-medium text-gray-700 mb-1">
                           PDFs de etiquetas
                         </label>
                         <input
+                          id="etiquetaPdfFiles"
                           key={etiquetaPdfInputKey}
                           type="file"
                           accept="application/pdf,.pdf"
@@ -1079,10 +1080,11 @@ export function EtapaOperacionalPage(): JSX.Element {
                       }
                     />
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label htmlFor="novoRepositorioUnidade" className="block text-sm font-medium text-gray-700 mb-1">
                         Unidade
                       </label>
                       <select
+                        id="novoRepositorioUnidade"
                         className="w-full h-11 px-3 border rounded-lg text-sm bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] border-[var(--color-border-primary)]"
                         value={novoRepositorio.orgao}
                         onChange={(e) =>
@@ -1125,10 +1127,11 @@ export function EtapaOperacionalPage(): JSX.Element {
                       </div>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label htmlFor="novoRepositorioProjeto" className="block text-sm font-medium text-gray-700 mb-1">
                         Projeto
                       </label>
                       <select
+                        id="novoRepositorioProjeto"
                         className="w-full h-11 px-3 border rounded-lg text-sm bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] border-[var(--color-border-primary)]"
                         value={novoRepositorio.projeto}
                         onChange={(e) =>
@@ -1180,10 +1183,11 @@ export function EtapaOperacionalPage(): JSX.Element {
                       ) : null}
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label htmlFor="novoRepositorioClassificacao" className="block text-sm font-medium text-gray-700 mb-1">
                         Classificação
                       </label>
                       <select
+                        id="novoRepositorioClassificacao"
                         className="w-full h-11 px-3 border rounded-lg text-sm bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] border-[var(--color-border-primary)]"
                         value={novoRepositorio.classificacaoId}
                         onChange={(e) =>
@@ -1200,7 +1204,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                     </div>
                   </div>
                   <div className="mt-4">
-                    <div style={{ position: 'relative', display: 'inline-block' }}>
+                    <div className="relative inline-block">
                       <Button
                         onClick={() => {
                           void handleCriarRepositorio();
@@ -1247,10 +1251,11 @@ export function EtapaOperacionalPage(): JSX.Element {
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label htmlFor="filtroUnidade" className="block text-sm font-medium text-gray-700 mb-1">
                         Unidade
                       </label>
                       <select
+                        id="filtroUnidade"
                         className="w-full h-11 px-3 border rounded-lg text-sm"
                         value={filtroUnidade}
                         onChange={(e) => {
@@ -1403,6 +1408,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                                 });
                               }}
                               className="mt-1 rounded h-5 w-5"
+                              aria-label={`Selecionar repositório ${item.id_repositorio_ged}`}
                             />
                           </div>
                           <div className="mt-3 flex items-center justify-between gap-2">
@@ -1496,6 +1502,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                                 }
                               }}
                               className="rounded"
+                              aria-label="Selecionar todos os repositórios"
                             />
                           </th>
                           <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
@@ -1551,6 +1558,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                                     });
                                   }}
                                   className="rounded"
+                                  aria-label={`Selecionar repositório ${item.id_repositorio_ged}`}
                                 />
                               </td>
                               <td className="px-4 py-3 text-sm font-medium text-gray-900">

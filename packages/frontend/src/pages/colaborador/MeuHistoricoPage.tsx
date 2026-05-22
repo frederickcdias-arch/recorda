@@ -376,12 +376,11 @@ export function MeuHistoricoPage(): JSX.Element {
                           {item.quantidade.toLocaleString('pt-BR')}
                         </span>
                       </div>
-                      <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-primary-500 rounded-full transition-all duration-700"
-                          style={{ width: `${largura}%` }}
-                        />
-                      </div>
+                      <progress
+                        className="h-3 w-full overflow-hidden rounded-full bg-gray-100 accent-primary-500"
+                        value={largura}
+                        max={100}
+                      />
                     </div>
                   );
                 })}

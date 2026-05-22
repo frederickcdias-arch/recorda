@@ -187,9 +187,10 @@ export function RecebimentoAvulsosPanel({
               ref={cameraRef}
               type="file"
               accept="image/*"
-              capture="environment"
               onChange={(e) => void handleOcrFile(e.target.files?.[0] ?? null)}
               className="hidden"
+              aria-hidden="true"
+              tabIndex={-1}
             />
             <input
               ref={fileRef}
@@ -197,6 +198,8 @@ export function RecebimentoAvulsosPanel({
               accept="image/png,image/jpeg,image/jpg,image/webp"
               onChange={(e) => void handleOcrFile(e.target.files?.[0] ?? null)}
               className="hidden"
+              aria-hidden="true"
+              tabIndex={-1}
             />
             <div className="flex gap-2">
               <Button
@@ -235,8 +238,9 @@ export function RecebimentoAvulsosPanel({
 
             {/* Setor */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Setor</label>
+              <label htmlFor="recebimentoSetor" className="block text-sm font-medium text-gray-700 mb-1">Setor</label>
               <select
+                id="recebimentoSetor"
                 className="w-full h-9 px-3 border rounded-lg text-sm"
                 value={form.setorId}
                 onChange={(e) => setForm((p) => ({ ...p, setorId: e.target.value }))}
@@ -275,8 +279,9 @@ export function RecebimentoAvulsosPanel({
 
             {/* Classificação */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Classificação</label>
+              <label htmlFor="recebimentoClassificacao" className="block text-sm font-medium text-gray-700 mb-1">Classificação</label>
               <select
+                id="recebimentoClassificacao"
                 className="w-full h-9 px-3 border rounded-lg text-sm"
                 value={form.classificacaoId}
                 onChange={(e) => setForm((p) => ({ ...p, classificacaoId: e.target.value }))}
@@ -415,6 +420,7 @@ export function RecebimentoAvulsosPanel({
                         checked={selecionados.has(proc.id)}
                         onChange={() => toggleSelecionado(proc.id)}
                         className="rounded mt-1"
+                        aria-label={`Selecionar processo ${proc.protocolo}`}
                       />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">

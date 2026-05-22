@@ -59,9 +59,11 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     const inputId = id || label?.toLowerCase().replace(/\s+/g, '-');
     const hasLeftIcon = !!leftIcon;
     const hasRightIcon = !!rightIcon;
+    const isNativeDateField =
+      props.type === 'date' || props.type === 'datetime-local' || props.type === 'month';
 
     return (
-      <div className="w-full">
+      <div className="w-full min-w-0">
         {label && (
           <label
             htmlFor={inputId}
@@ -70,7 +72,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             {label}
           </label>
         )}
-        <div className="relative">
+        <div className="relative min-w-0">
           {hasLeftIcon && (
             <div
               className={`absolute ${iconPositionClasses[inputSize].left} top-1/2 -translate-y-1/2 pointer-events-none`}
@@ -86,13 +88,18 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             id={inputId}
             disabled={disabled}
             className={`
-              w-full rounded-lg border bg-[var(--color-bg-primary)]
+              min-w-0 max-w-full w-full rounded-lg border bg-[var(--color-bg-primary)]
               transition-all duration-150 ease-in-out
               placeholder:text-[var(--color-text-placeholder)]
               focus:outline-none
               ${sizeClasses[inputSize]}
               ${hasLeftIcon ? iconPaddingClasses[inputSize].left : ''}
               ${hasRightIcon ? iconPaddingClasses[inputSize].right : ''}
+              ${
+                isNativeDateField
+                  ? '[color-scheme:light] dark:[color-scheme:dark] [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-date-and-time-value]:text-left'
+                  : ''
+              }
               ${
                 error
                   ? 'border-[var(--color-error-300)] focus:border-[var(--color-error-500)] focus:ring-[3px] focus:ring-[var(--color-error-100)]'

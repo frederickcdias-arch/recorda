@@ -63,10 +63,12 @@ export function usePwaNotifications(): UsePwaNotificationsResult {
     let nextPermission: NotificationPromptState = Notification.permission;
     if (nextPermission === 'default') {
       nextPermission = await Notification.requestPermission();
+      console.debug('[PWA Push][diagnostic]', 'requestPermission result', { nextPermission });
       setPermission(nextPermission);
     }
 
     if (nextPermission === 'denied') {
+      console.debug('[PWA Push][diagnostic]', 'permission denied after request');
       setError('denied');
       setDecisionStored(true);
       setStoredFlag(PWA_NOTIFICATIONS_DECISION_KEY);
@@ -75,6 +77,7 @@ export function usePwaNotifications(): UsePwaNotificationsResult {
     }
 
     if (nextPermission !== 'granted') {
+      console.debug('[PWA Push][diagnostic]', 'permission not granted');
       setError('unsupported');
       return 'unsupported';
     }
