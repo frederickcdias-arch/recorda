@@ -17,6 +17,7 @@ import {
   TableRow,
 } from '../../components/ui/Table';
 import { ActionFeedback, PageState } from '../../components/ui/PageState';
+import { Pagination } from '../../components/ui/Pagination';
 import { useToastHelpers } from '../../components/ui/Toast';
 import { useConfirmDialog } from '../../hooks/useConfirmDialog';
 import { useDebounce } from '../../hooks/useDebounce';
@@ -36,6 +37,13 @@ const STATUS_OPTIONS = [
   { value: 'rejeitado', label: 'Rejeitado' },
   { value: 'cancelado', label: 'Cancelado' },
 ] as const;
+
+const STATUS_LABELS: Record<string, string> = {
+  pendente: 'Pendente',
+  aprovado: 'Aprovado',
+  rejeitado: 'Rejeitado',
+  cancelado: 'Cancelado',
+};
 
 const statusBadgeClass: Record<string, string> = {
   pendente: 'bg-[var(--color-warning-50)] text-[var(--color-warning-700)]',
@@ -82,6 +90,8 @@ function formatDate(value: string | undefined | null): string {
 
 function getPeriodoLabel(periodo: string): string {
   switch (periodo) {
+    case 'dia_completo':
+      return 'Dia completo';
     case 'meio_periodo_manha':
       return 'Meio período (manhã)';
     case 'meio_periodo_tarde':
@@ -124,6 +134,7 @@ export function AusenciasPage(): JSX.Element {
     [ausenciasQuery.data]
   );
   const total = ausenciasQuery.data?.total ?? 0;
+  const totalPaginas = ausenciasQuery.data?.totalPaginas ?? 1;
   const carregando = ausenciasQuery.isLoading;
   const erro = ausenciasQuery.error
     ? {
@@ -292,10 +303,10 @@ export function AusenciasPage(): JSX.Element {
           </FilterBar>
         </Card>
 
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Card padding="sm">
             <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
-              Resultados
+              Total de resultados
             </p>
             <p className="mt-2 text-2xl font-semibold text-[var(--color-text-primary)]">{total}</p>
           </Card>
@@ -303,7 +314,7 @@ export function AusenciasPage(): JSX.Element {
             <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
               Pendentes na página
             </p>
-            <p className="mt-2 text-2xl font-semibold text-[var(--color-text-primary)]">
+            <p className="mt-2 text-2xl font-semibold text-[var(--color-warning-600)]">
               {resumo.pendentes}
             </p>
           </Card>
@@ -311,8 +322,16 @@ export function AusenciasPage(): JSX.Element {
             <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
               Aprovadas na página
             </p>
-            <p className="mt-2 text-2xl font-semibold text-[var(--color-text-primary)]">
+            <p className="mt-2 text-2xl font-semibold text-[var(--color-success-600)]">
               {resumo.aprovadas}
+            </p>
+          </Card>
+          <Card padding="sm">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
+              Rejeitadas na página
+            </p>
+            <p className="mt-2 text-2xl font-semibold text-[var(--color-error-600)]">
+              {resumo.rejeitadas}
             </p>
           </Card>
         </div>
@@ -330,7 +349,7 @@ export function AusenciasPage(): JSX.Element {
                 <TableHeader>Tipo</TableHeader>
                 <TableHeader>Período</TableHeader>
                 <TableHeader>Status</TableHeader>
-                <TableHeader>Justificativa</TableHeader>
+                <TableHeader>Justificativa / Motivo</TableHeader>
                 <TableHeader align="right">Ações</TableHeader>
               </tr>
             </TableHead>
@@ -370,18 +389,40 @@ export function AusenciasPage(): JSX.Element {
                       <div className="text-sm text-[var(--color-text-secondary)]">
                         <p>{formatDate(ausencia.dataInicio)}</p>
                         <p>{formatDate(ausencia.dataFim)}</p>
-                        <p>{getPeriodoLabel(ausencia.periodo)}</p>
+                        <p>
+                          {getPeriodoLabel(ausencia.periodo)}
+                          {ausencia.periodo === 'horas' && ausencia.horasAusencia
+                            ? ` — ${ausencia.horasAusencia}h`
+                            : ''}
+                        </p>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${statusBadgeClass[ausencia.status]}`}>
-                        {ausencia.status}
-                      </span>
+                      <div className="space-y-1">
+                        <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${statusBadgeClass[ausencia.status] ?? ''}`}>
+                          {STATUS_LABELS[ausencia.status] ?? ausencia.status}
+                        </span>
+                        {(ausencia.status === 'aprovado' || ausencia.status === 'rejeitado') && ausencia.aprovadoEm ? (
+                          <p className="text-xs text-[var(--color-text-tertiary)]">{formatDate(ausencia.aprovadoEm)}</p>
+                        ) : null}
+                      </div>
                     </TableCell>
                     <TableCell hideOnMobile>
-                      <p className="truncate text-sm text-[var(--color-text-secondary)]">
-                        {ausencia.justificativa ?? ausencia.observacoes ?? '-'}
-                      </p>
+                      {ausencia.status === 'rejeitado' ? (
+                        <p
+                          className="truncate text-sm text-[var(--color-error-600)]"
+                          title={ausencia.motivoRejeicao ?? undefined}
+                        >
+                          {ausencia.motivoRejeicao ?? '-'}
+                        </p>
+                      ) : (
+                        <p
+                          className="truncate text-sm text-[var(--color-text-secondary)]"
+                          title={ausencia.justificativa ?? ausencia.observacoes ?? undefined}
+                        >
+                          {ausencia.justificativa ?? ausencia.observacoes ?? '-'}
+                        </p>
+                      )}
                     </TableCell>
                     <TableCell align="right">
                       <div className="flex justify-end gap-2">
@@ -414,6 +455,16 @@ export function AusenciasPage(): JSX.Element {
               )}
             </TableBody>
           </Table>
+          {totalPaginas > 1 && (
+            <div className="px-5 py-4 border-t border-[var(--color-border-primary)]">
+              <Pagination
+                pagina={filters.pagina ?? 1}
+                totalPaginas={totalPaginas}
+                onChange={(p) => setFilters((prev) => ({ ...prev, pagina: p }))}
+                disabled={carregando}
+              />
+            </div>
+          )}
         </Card>
 
         <Modal
