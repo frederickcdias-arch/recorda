@@ -106,28 +106,36 @@ function MenuItemComponent({
   const indentClass = indentClasses[Math.min(depth, indentClasses.length - 1)];
 
   if (hasChildren) {
+    const btnClass = `flex w-full items-center gap-3 rounded-xl ${indentClass} py-3 text-sm transition-colors sm:py-2.5 ${
+      isChildActive
+        ? 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)]'
+        : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-gray-50)] hover:text-[var(--color-text-primary)]'
+    }`;
+    const btnContent = (
+      <>
+        <Icon name={item.icon} className="h-4 w-4 shrink-0" />
+        {!collapsed ? (
+          <>
+            <span className="flex-1 text-left">{item.label}</span>
+            <Icon
+              name="chevron-right"
+              className={`h-4 w-4 transition-transform duration-300 ${expanded ? 'rotate-90' : ''}`}
+            />
+          </>
+        ) : null}
+      </>
+    );
     return (
       <div>
-        <button
-          onClick={() => setExpanded(!expanded)}
-          aria-expanded={expanded ? 'true' : 'false'}
-          className={`flex w-full items-center gap-3 rounded-xl ${indentClass} py-3 text-sm transition-colors sm:py-2.5 ${
-            isChildActive
-              ? 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)]'
-              : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-gray-50)] hover:text-[var(--color-text-primary)]'
-          }`}
-        >
-          <Icon name={item.icon} className="h-4 w-4 shrink-0" />
-          {!collapsed ? (
-            <>
-              <span className="flex-1 text-left">{item.label}</span>
-              <Icon
-                name="chevron-right"
-                className={`h-4 w-4 transition-transform duration-300 ${expanded ? 'rotate-90' : ''}`}
-              />
-            </>
-          ) : null}
-        </button>
+        {expanded ? (
+          <button onClick={() => setExpanded(!expanded)} aria-expanded="true" className={btnClass}>
+            {btnContent}
+          </button>
+        ) : (
+          <button onClick={() => setExpanded(!expanded)} aria-expanded="false" className={btnClass}>
+            {btnContent}
+          </button>
+        )}
 
         {!collapsed ? (
           <div
@@ -214,30 +222,49 @@ function MenuSectionComponent({
     );
   }
 
+  const sectionBtnClass = `flex w-full items-center gap-3 rounded-xl px-3 py-3 transition-colors sm:py-2.5 ${
+    isActive
+      ? 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)]'
+      : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-gray-50)] hover:text-[var(--color-text-primary)]'
+  }`;
+  const sectionBtnContent = (
+    <>
+      <Icon name={section.icon} className="h-5 w-5 shrink-0" />
+      {!collapsed ? (
+        <>
+          <span className="flex-1 text-left font-medium">{section.label}</span>
+          <Icon
+            name="chevron-right"
+            className={`h-4 w-4 transition-transform duration-300 ${expanded ? 'rotate-90' : ''}`}
+          />
+        </>
+      ) : null}
+    </>
+  );
+
   return (
     <div>
-      <button
-        onClick={onToggleExpanded}
-        title={collapsed ? section.label : undefined}
-        aria-expanded={expanded ? 'true' : 'false'}
-        aria-controls={sectionId}
-        className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 transition-colors sm:py-2.5 ${
-          isActive
-            ? 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)]'
-            : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-gray-50)] hover:text-[var(--color-text-primary)]'
-        }`}
-      >
-        <Icon name={section.icon} className="h-5 w-5 shrink-0" />
-        {!collapsed ? (
-          <>
-            <span className="flex-1 text-left font-medium">{section.label}</span>
-            <Icon
-              name="chevron-right"
-              className={`h-4 w-4 transition-transform duration-300 ${expanded ? 'rotate-90' : ''}`}
-            />
-          </>
-        ) : null}
-      </button>
+      {expanded ? (
+        <button
+          onClick={onToggleExpanded}
+          title={collapsed ? section.label : undefined}
+          aria-expanded="true"
+          aria-controls={sectionId}
+          className={sectionBtnClass}
+        >
+          {sectionBtnContent}
+        </button>
+      ) : (
+        <button
+          onClick={onToggleExpanded}
+          title={collapsed ? section.label : undefined}
+          aria-expanded="false"
+          aria-controls={sectionId}
+          className={sectionBtnClass}
+        >
+          {sectionBtnContent}
+        </button>
+      )}
 
       {!collapsed ? (
         <div

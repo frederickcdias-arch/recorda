@@ -379,15 +379,27 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
                           </div>
                           <div className="text-right">
                             <p className="text-sm text-gray-500">{formatarData(log.criado_em)}</p>
-                            <button
-                              type="button"
-                              aria-expanded={expandido === log.id ? 'true' : 'false'}
-                              aria-controls={`detalhes-${log.id}`}
-                              onClick={() => setExpandido(expandido === log.id ? null : log.id)}
-                              className="text-xs text-primary-600 hover:text-primary-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded"
-                            >
-                              {expandido === log.id ? 'Ocultar detalhes' : 'Ver detalhes'}
-                            </button>
+                            {expandido === log.id ? (
+                              <button
+                                type="button"
+                                aria-expanded="true"
+                                aria-controls={`detalhes-${log.id}`}
+                                onClick={() => setExpandido(null)}
+                                className="text-xs text-primary-600 hover:text-primary-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded"
+                              >
+                                Ocultar detalhes
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                aria-expanded="false"
+                                aria-controls={`detalhes-${log.id}`}
+                                onClick={() => setExpandido(log.id)}
+                                className="text-xs text-primary-600 hover:text-primary-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded"
+                              >
+                                Ver detalhes
+                              </button>
+                            )}
                           </div>
                         </div>
 
