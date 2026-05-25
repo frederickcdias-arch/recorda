@@ -466,17 +466,22 @@ export function createCapturasMapaRoutes(): FastifyPluginAsync {
             500: { type: 'object', properties: { error: { type: 'string' } } },
           },
         },
-        preHandler: [
-          server.authenticate,
-          authorize('colaborador'),
-          validateParams(capturaIdParamsSchema),
-        ],
+        preHandler: [server.authenticate, authorize('colaborador')],
       },
       async (request, reply) => {
         const user = getCurrentUser(request);
         try {
           const result = await server.database.query(
-            `SELECT id, nome_arquivo, tamanho_bytes, criado_em, expira_em
+            `SELECT id,
+                    nome_arquivo,
+                    tamanho_bytes,
+                    criado_em,
+                    expira_em,
+                    thumbnail_path,
+                    processamento_status,
+                    processamento_engine,
+                    processamento_confianca,
+                    processamento_fallback
              FROM capturas_mapa
              WHERE usuario_id = $1 AND expira_em > NOW()
              ORDER BY criado_em DESC`,
@@ -576,7 +581,7 @@ export function createCapturasMapaRoutes(): FastifyPluginAsync {
             required: ['id'],
           },
         },
-        preHandler: [server.authenticate, authorize('colaborador')],
+        preHandler: [server.authenticate, authorize('colaborador'), validateParams(capturaIdParamsSchema)],
       },
       async (request, reply) => {
         const user = getCurrentUser(request);

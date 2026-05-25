@@ -488,6 +488,59 @@ export async function processDocumentImage(
     fillFrameLikelihood: Number(analysis.fillFrameLikelihood.toFixed(3)),
   };
 
+  const shouldUseAssistedImage =
+    assistedImageBuffer && (normalizedManualCorners || normalizedDetectedCorners);
+
+  if (shouldUseAssistedImage) {
+    const finalized = await finalizeOutput(
+      assistedImageBuffer,
+      outputFormat,
+      quality,
+      preserveColors,
+      processingMode
+    );
+    const thumbnailBuffer = await createThumbnail(finalized.buffer);
+    return {
+      success: true,
+      processedBuffer: finalized.buffer,
+      thumbnailBuffer,
+      outputMimeType: finalized.mimeType,
+      metadata: {
+        engine: 'frontend-assisted',
+        confidence: 0.95,
+        fallback: true,
+        width: finalized.width,
+        height: finalized.height,
+        originalWidth,
+        originalHeight,
+        documentClass: analysis.kind,
+        decision: 'frontend_assisted',
+        analysis: analysisMetadata,
+        postprocess: {
+          manualMode: 'faithful-document',
+          cornersSource: normalizedManualCorners ? 'manual' : 'detected',
+          manualCornersReceived: !!normalizedManualCorners,
+          pythonUsed: false,
+          manualFinalizeUsed: false,
+          borderCleanup: false,
+          isolateExterior: false,
+          marginMode: 'clean-white',
+          paperNormalization: false,
+          shadowBalance: false,
+          onlyWarpAndMargin: true,
+          contentPreserved: true,
+        },
+        corners: normalizedManualCorners ?? normalizedDetectedCorners,
+        warnings: [
+          normalizedManualCorners
+            ? 'Resultado manual do frontend utilizado como imagem final.'
+            : 'Resultado detectado pelo frontend utilizado como imagem final.',
+          ...warnings,
+        ].filter(Boolean),
+      },
+    };
+  }
+
   if (manualCorners?.length === 4 && !normalizedManualCorners) {
     warnings.push('Os cantos manuais recebidos nao passaram na validacao geometrica do backend.');
   }
