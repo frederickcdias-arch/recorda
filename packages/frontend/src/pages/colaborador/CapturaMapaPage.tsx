@@ -16,6 +16,11 @@ interface CapturaMapa {
   tamanho_bytes: number;
   criado_em: string;
   expira_em: string;
+  thumbnail_path?: string | null;
+  processamento_status?: string | null;
+  processamento_engine?: string | null;
+  processamento_confianca?: number | null;
+  processamento_fallback?: boolean | null;
 }
 
 interface CapturasResponse {
@@ -99,6 +104,9 @@ function loadPerspectiveUtils(): Promise<PerspectiveUtils> {
 }
 
 // ── Utilitários ───────────────────────────────────────────────────────────────
+
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -302,6 +310,7 @@ export function CapturaMapaPage() {
   const [baixandoId, setBaixandoId] = useState<string | null>(null);
   const [excluindoId, setExcluindoId] = useState<string | null>(null);
   const [listaExpandida, setListaExpandida] = useState(false);
+  const [dragActive, setDragActive] = useState(false);
   const [editorItemId, setEditorItemId] = useState<string | null>(null);
   const [editorCorners, setEditorCorners] = useState<Point[]>([]);
   const [editorEdgeMidpoints, setEditorEdgeMidpoints] = useState<Point[]>([]);
@@ -317,12 +326,30 @@ export function CapturaMapaPage() {
     });
   }, []);
 
+  function validateFile(file: File): string | null {
+    if (!file.type.startsWith('image/')) {
+      return 'Apenas arquivos de imagem sao aceitos.';
+    }
+    if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
+      return 'Apenas imagens JPEG, PNG ou WEBP sao permitidas.';
+    }
+    if (file.size > MAX_UPLOAD_BYTES) {
+      return 'O arquivo excede o limite de 10 MB.';
+    }
+    return null;
+  }
+
   // ── Adicionar arquivos a fila ─────────────────────────────────────────────
 
   const addFiles = useCallback(
     (files: FileList) => {
       Array.from(files).forEach((file) => {
-        if (!file.type.startsWith('image/')) return;
+        const error = validateFile(file);
+        if (error) {
+          toast.error(error);
+          return;
+        }
+
         const localId = newLocalId();
 
         const reader = new FileReader();
@@ -416,6 +443,30 @@ export function CapturaMapaPage() {
     [setQueue]
   );
 
+  const handleDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setDragActive(true);
+  }, []);
+
+  const handleDragLeave = useCallback((event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setDragActive(false);
+  }, []);
+
+  const handleDrop = useCallback(
+    (event: React.DragEvent<HTMLDivElement>) => {
+      event.preventDefault();
+      event.stopPropagation();
+      setDragActive(false);
+      if (event.dataTransfer.files?.length) {
+        addFiles(event.dataTransfer.files);
+      }
+    },
+    [addFiles]
+  );
+
   const handleCameraChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       if (e.target.files?.length) addFiles(e.target.files);
@@ -431,6 +482,23 @@ export function CapturaMapaPage() {
     },
     [addFiles]
   );
+
+  const editorAspectClass = editorImageSize
+    ? editorImageSize.width >= editorImageSize.height
+      ? 'aspect-[4/3]'
+      : 'aspect-[3/4]'
+    : 'aspect-square';
+
+  const editorPositionStyles = editorImageSize
+    ? [
+        ...editorCorners.map(([x, y], index) =>
+          `.editor-corner-${index}{left:${(x / editorImageSize.width) * 100}%;top:${(y / editorImageSize.height) * 100}%;}`
+        ),
+        ...editorEdgeMidpoints.map(([x, y], index) =>
+          `.editor-edge-${index}{left:${(x / editorImageSize.width) * 100}%;top:${(y / editorImageSize.height) * 100}%;}`
+        ),
+      ].join('\n')
+    : '';
 
   // ── Acoes sobre itens ─────────────────────────────────────────────────────
 
@@ -782,10 +850,20 @@ export function CapturaMapaPage() {
       <Card>
         <div className="p-6">
           {/* Zona de drop / botoes de adicao */}
-          <div className="mb-4 flex flex-col items-center gap-4 rounded-xl border-2 border-dashed border-neutral-300 bg-neutral-50 px-6 py-8 dark:border-neutral-700 dark:bg-neutral-900">
+          <div
+            className={
+              `mb-4 flex flex-col items-center gap-4 rounded-xl border-2 px-6 py-8 dark:bg-neutral-900 ` +
+              (dragActive
+                ? 'border-primary-500 bg-primary-50 dark:border-primary-400 dark:bg-primary-950'
+                : 'border-dashed border-neutral-300 bg-neutral-50 dark:border-neutral-700')
+            }
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
             <Icon name="layers" className="h-10 w-10 text-neutral-400 dark:text-neutral-600" />
             <p className="text-center text-sm text-neutral-500 dark:text-neutral-400">
-              Adicione quantas imagens quiser a fila — a perspectiva e corrigida automaticamente.
+              Arraste e solte imagens aqui ou use a câmera. A perspectiva é corrigida automaticamente.
             </p>
             <div className="flex flex-wrap justify-center gap-2">
               <Button
@@ -813,6 +891,10 @@ export function CapturaMapaPage() {
               ref={cameraInputRef}
               type="file"
               accept="image/*"
+              aria-label="Capturar imagem pela câmera"
+              title="Capturar imagem pela câmera"
+              aria-hidden="true"
+              tabIndex={-1}
               className="hidden"
               onChange={handleCameraChange}
             />
@@ -821,6 +903,10 @@ export function CapturaMapaPage() {
               type="file"
               accept="image/*"
               multiple
+              aria-label="Selecionar várias imagens"
+              title="Selecionar várias imagens"
+              aria-hidden="true"
+              tabIndex={-1}
               className="hidden"
               onChange={handleBatchChange}
             />
@@ -1092,12 +1178,9 @@ export function CapturaMapaPage() {
         {editorItem && editorImageSize && (
           <div className="p-4">
             <div
-              className="relative mx-auto overflow-hidden rounded-lg bg-neutral-900"
-              style={{
-                maxWidth: 'min(100%, 760px)',
-                aspectRatio: `${editorImageSize.width} / ${editorImageSize.height}`,
-              }}
+              className={`relative mx-auto overflow-hidden rounded-lg bg-neutral-900 max-w-[760px] w-full ${editorAspectClass}`}
             >
+              <style>{editorPositionStyles}</style>
               <img
                 src={editorItem.originalSrc}
                 alt="Imagem para ajuste"
@@ -1128,18 +1211,14 @@ export function CapturaMapaPage() {
                   }
                   fill="rgba(14, 165, 233, 0.12)"
                   stroke="rgb(14, 165, 233)"
-                  strokeWidth={Math.max(editorImageSize.width, editorImageSize.height) * 0.004}
+                  strokeWidth={2}
                 />
               </svg>
-              {editorCorners.map(([x, y], index) => (
+              {editorCorners.map((_, index) => (
                 <button
                   key={index}
                   type="button"
-                  className="absolute flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 touch-none items-center justify-center rounded-full border-2 border-white bg-primary-600 text-xs font-bold text-white shadow-lg"
-                  style={{
-                    left: `${(x / editorImageSize.width) * 100}%`,
-                    top: `${(y / editorImageSize.height) * 100}%`,
-                  }}
+                  className={`absolute flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 touch-none items-center justify-center rounded-full border-2 border-white bg-primary-600 text-xs font-bold text-white shadow-lg editor-corner-${index}`}
                   onPointerDown={(e) => {
                     e.currentTarget.setPointerCapture(e.pointerId);
                     handleCornerPointerMove(index, e);
@@ -1150,15 +1229,11 @@ export function CapturaMapaPage() {
                   {index + 1}
                 </button>
               ))}
-              {editorEdgeMidpoints.map(([x, y], index) => (
+              {editorEdgeMidpoints.map((_, index) => (
                 <button
                   key={`edge-${index}`}
                   type="button"
-                  className="absolute flex h-6 w-6 -translate-x-1/2 -translate-y-1/2 touch-none items-center justify-center rounded-full border-2 border-white bg-warning-500 text-[10px] font-bold text-white shadow-lg"
-                  style={{
-                    left: `${(x / editorImageSize.width) * 100}%`,
-                    top: `${(y / editorImageSize.height) * 100}%`,
-                  }}
+                  className={`absolute flex h-6 w-6 -translate-x-1/2 -translate-y-1/2 touch-none items-center justify-center rounded-full border-2 border-white bg-warning-500 text-[10px] font-bold text-white shadow-lg editor-edge-${index}`}
                   onPointerDown={(e) => {
                     e.currentTarget.setPointerCapture(e.pointerId);
                     handleEdgePointerMove(index, e);
@@ -1290,26 +1365,51 @@ export function CapturaMapaPage() {
             <div className="divide-y divide-neutral-100 dark:divide-neutral-800">
               {capturasRecentes.map((c) => {
                 const expirada = new Date(c.expira_em) < new Date();
+                const confidence = formatConfidence(c.processamento_confianca ?? null);
                 return (
                   <div
                     key={c.id}
-                    className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0"
+                    className="flex flex-col gap-3 border-b border-neutral-100 py-3 last:border-b-0 dark:border-neutral-800"
                   >
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-neutral-800 dark:text-neutral-200">
-                        {c.nome_arquivo}
-                      </p>
-                      <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                        {formatDateBR(c.criado_em)} · {formatBytes(c.tamanho_bytes)} ·{' '}
-                        {expirada ? (
-                          <span className="text-error-600 dark:text-error-400">Expirada</span>
-                        ) : (
-                          <span>
-                            Expira em{' '}
-                            <span className="font-medium">{formatDateBR(c.expira_em)}</span>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-neutral-800 dark:text-neutral-200">
+                          {c.nome_arquivo}
+                        </p>
+                        <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                          {formatDateBR(c.criado_em)} · {formatBytes(c.tamanho_bytes)} ·{' '}
+                          {expirada ? (
+                            <span className="text-error-600 dark:text-error-400">Expirada</span>
+                          ) : (
+                            <span>
+                              Expira em{' '}
+                              <span className="font-medium">{formatDateBR(c.expira_em)}</span>
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-neutral-500 dark:text-neutral-400">
+                        {c.processamento_status && (
+                          <span className="rounded-full border border-neutral-200 px-2 py-0.5 dark:border-neutral-700">
+                            {c.processamento_status}
                           </span>
                         )}
-                      </p>
+                        {c.processamento_engine && (
+                          <span className="rounded-full border border-neutral-200 px-2 py-0.5 dark:border-neutral-700">
+                            {c.processamento_engine}
+                          </span>
+                        )}
+                        {confidence && (
+                          <span className="rounded-full border border-neutral-200 px-2 py-0.5 dark:border-neutral-700">
+                            {confidence}
+                          </span>
+                        )}
+                        {c.processamento_fallback && (
+                          <span className="rounded-full border border-warning-200 bg-warning-50 px-2 py-0.5 text-warning-700 dark:border-warning-800 dark:bg-warning-950 dark:text-warning-300">
+                            Fallback
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div className="flex flex-none gap-2">
                       {!expirada && (

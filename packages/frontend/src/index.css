@@ -34,7 +34,6 @@ canvas {
 
 .overflow-x-auto {
   max-width: 100%;
-  -webkit-overflow-scrolling: touch;
 }
 
 @media (max-width: 767px) {
