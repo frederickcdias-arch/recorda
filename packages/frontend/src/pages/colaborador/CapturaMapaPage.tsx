@@ -225,7 +225,7 @@ function toManualCorners(points: Point[] | null): Array<{ x: number; y: number }
 function getProcessingBadge(result: ProcessarResponse | null): string {
   if (!result) return '';
   if (result.processamento.status === 'falhou_processamento') {
-    return 'Não foi possivel corrigir automaticamente';
+    return 'Nao foi possivel corrigir automaticamente';
   }
   if (result.processamento.fallback) {
     return 'Correcao parcial';
@@ -551,11 +551,11 @@ export function CapturaMapaPage() {
 
     const suggestedCorners = item.corners ?? defaultCorners(editorImageSize);
     if (!item.corners && pointsEqual(editorCorners, suggestedCorners)) {
-      toast.error('Posicione as bordas sobre a folha antes de aplicar a correção.');
+      toast.error('Posicione as bordas sobre a folha antes de aplicar a correcao.');
       return;
     }
     if (isLikelyFullSceneCrop(editorCorners, editorImageSize)) {
-      toast.error('As bordas ainda estão pegando a cena inteira. Ajuste somente a folha.');
+      toast.error('As bordas ainda estao pegando a cena inteira. Ajuste somente a folha.');
       return;
     }
 
@@ -596,7 +596,7 @@ export function CapturaMapaPage() {
       );
       handleCloseEditor();
     } catch {
-      toast.error('Não foi possivel aplicar as bordas ajustadas.');
+      toast.error('Nao foi possivel aplicar as bordas ajustadas.');
     } finally {
       setEditorSaving(false);
     }
@@ -806,7 +806,7 @@ export function CapturaMapaPage() {
       try {
         await api.delete(`/colaborador/capturas-mapa/${id}`);
         setCapturasRecentes((prev) => prev?.filter((c) => c.id !== id) ?? null);
-        toast.success('Captura excluída.');
+        toast.success('Captura excluida.');
       } catch {
         toast.error('Erro ao excluir captura.');
       } finally {
@@ -843,14 +843,13 @@ export function CapturaMapaPage() {
           className="mt-0.5 h-4 w-4 flex-none text-warning-600 dark:text-warning-400"
         />
         <span>
-          <strong>Atencao:</strong> As imagens sao armazenadas por <strong>30 dias</strong> e
-          excluídas automaticamente apos esse prazo. Faca o download antes do vencimento.
+          <strong>Atencao:</strong> As imagens ficam disponiveis por <strong>30 dias</strong> e sao excluidas automaticamente depois desse prazo. Faca o download antes do vencimento.
         </span>
       </div>
 
       {/* Area de captura em lote */}
       <Card>
-        <div className="p-6">
+        <div className="p-5 sm:p-6">
           {/* Zona de drop / botoes de adicao */}
           <div
             className={
@@ -865,14 +864,15 @@ export function CapturaMapaPage() {
           >
             <Icon name="layers" className="h-10 w-10 text-neutral-500 dark:text-neutral-600" />
             <p className="text-center text-sm text-neutral-600 dark:text-neutral-400">
-              Arraste e solte imagens aqui ou use a câmera. A perspectiva é corrigida
-              automaticamente.
+              Arraste e solte imagens aqui ou use a camera. A perspectiva e corrigida automaticamente.
             </p>
-            <div className="flex flex-wrap justify-center gap-2">
+            <div className="flex w-full flex-col justify-center gap-2 sm:w-auto sm:flex-row">
               <Button
                 variant="primary"
                 size="sm"
                 icon="camera"
+                fullWidth
+                className="sm:w-auto"
                 onClick={() => {
                   cameraInputRef.current?.setAttribute('capture', 'environment');
                   cameraInputRef.current?.click();
@@ -884,6 +884,8 @@ export function CapturaMapaPage() {
                 variant="secondary"
                 size="sm"
                 icon="image"
+                fullWidth
+                className="sm:w-auto"
                 onClick={() => batchInputRef.current?.click()}
               >
                 Selecionar Arquivos
@@ -894,8 +896,8 @@ export function CapturaMapaPage() {
               ref={cameraInputRef}
               type="file"
               accept="image/*"
-              aria-label="Capturar imagem pela câmera"
-              title="Capturar imagem pela câmera"
+              aria-label="Capturar imagem pela camera"
+              title="Capturar imagem pela camera"
               aria-hidden="true"
               tabIndex={-1}
               className="hidden"
@@ -906,8 +908,8 @@ export function CapturaMapaPage() {
               type="file"
               accept="image/*"
               multiple
-              aria-label="Selecionar várias imagens"
-              title="Selecionar várias imagens"
+              aria-label="Selecionar varias imagens"
+              title="Selecionar varias imagens"
               aria-hidden="true"
               tabIndex={-1}
               className="hidden"
@@ -919,7 +921,7 @@ export function CapturaMapaPage() {
           {queue.length > 0 && (
             <>
               {/* Barra de acoes do lote */}
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <div className="mb-4 flex flex-col gap-3">
                 <p className="text-sm text-neutral-600 dark:text-neutral-400">
                   {plural(queue.length, 'imagem na fila', 'imagens na fila')}
                   {corrigindo > 0 && (
@@ -945,12 +947,14 @@ export function CapturaMapaPage() {
                   )}
                 </p>
 
-                <div className="flex gap-2">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:flex">
                   {concluidos > 0 && (
                     <Button
                       variant="secondary"
                       size="sm"
                       icon="download"
+                      fullWidth
+                      className="xl:w-auto"
                       onClick={handleBaixarTodos}
                     >
                       Baixar Todos
@@ -961,6 +965,8 @@ export function CapturaMapaPage() {
                       variant="primary"
                       size="sm"
                       icon="zap"
+                      fullWidth
+                      className="xl:w-auto"
                       loading={processandoLote || processandoAlgum}
                       onClick={handleProcessarLote}
                     >
@@ -970,8 +976,8 @@ export function CapturaMapaPage() {
                     </Button>
                   )}
                   {aguardando > 0 && (revisar > 0 || corrigindo > 0) && (
-                    <Button variant="secondary" size="sm" icon="alert-triangle" disabled>
-                      {revisar > 0 ? 'Revise as bordas' : 'Aguarde a correção'}
+                    <Button variant="secondary" size="sm" icon="alert-triangle" fullWidth className="xl:w-auto" disabled>
+                      {revisar > 0 ? 'Revise as bordas' : 'Aguarde a correcao'}
                     </Button>
                   )}
                   {temErro && (
@@ -979,6 +985,8 @@ export function CapturaMapaPage() {
                       variant="secondary"
                       size="sm"
                       icon="refresh-cw"
+                      fullWidth
+                      className="xl:w-auto"
                       onClick={() => {
                         queue
                           .filter((it) => it.status === 'erro')
@@ -988,14 +996,14 @@ export function CapturaMapaPage() {
                       Tentar Novamente
                     </Button>
                   )}
-                  <Button variant="secondary" size="sm" icon="trash-2" onClick={handleLimparFila}>
+                  <Button variant="secondary" size="sm" icon="trash-2" fullWidth className="xl:w-auto" onClick={handleLimparFila}>
                     Limpar
                   </Button>
                 </div>
               </div>
 
               {/* Grade de miniaturas */}
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+              <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
                 {queue.map((item) => (
                   <div
                     key={item.localId}
@@ -1154,10 +1162,10 @@ export function CapturaMapaPage() {
         open={!!editorItem && !!editorImageSize}
         onClose={handleCloseEditor}
         title="Ajustar bordas"
-        subtitle="Arraste os cantos e os pontos do meio para enquadrar apenas a folha. A correção final deve remover a mesa da imagem."
+        subtitle="Arraste os cantos e os pontos do meio para enquadrar apenas a folha. A correcao final deve remover a mesa da imagem."
         size="xl"
         footer={
-          <div className="flex flex-wrap justify-end gap-2 p-4">
+          <div className="flex flex-col gap-2 p-4 sm:flex-row sm:flex-wrap sm:justify-end">
             <Button
               variant="secondary"
               size="sm"
@@ -1259,7 +1267,7 @@ export function CapturaMapaPage() {
         subtitle={previewItem?.result?.nomeArquivo}
         size="xl"
         footer={
-          <div className="flex flex-wrap justify-end gap-2 p-4">
+          <div className="flex flex-col gap-2 p-4 sm:flex-row sm:flex-wrap sm:justify-end">
             <Button variant="secondary" size="sm" onClick={() => setPreviewItemId(null)}>
               Fechar
             </Button>
@@ -1333,7 +1341,7 @@ export function CapturaMapaPage() {
 
       {/* Capturas recentes (servidor) */}
       <Card>
-        <div className="p-6">
+        <div className="p-5 sm:p-6">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="text-base font-semibold text-neutral-800 dark:text-neutral-200">
               Capturas Recentes
@@ -1351,8 +1359,7 @@ export function CapturaMapaPage() {
 
           {!listaExpandida && (
             <p className="text-sm text-neutral-500 dark:text-neutral-400">
-              Clique em &ldquo;Carregar capturas recentes&rdquo; para ver as imagens salvas nos
-              últimos 30 dias.
+              Clique em &ldquo;Carregar&rdquo; para ver as imagens salvas nos ultimos 30 dias.
             </p>
           )}
 
@@ -1360,7 +1367,7 @@ export function CapturaMapaPage() {
             <div className="flex flex-col items-center gap-2 py-8 text-sm text-neutral-500 dark:text-neutral-400">
               <Icon name="image" className="h-8 w-8 opacity-40" />
               <p className="font-medium">Nenhuma captura encontrada</p>
-              <p>Você nao possui imagens salvas no momento.</p>
+              <p>Voce nao possui imagens salvas no momento.</p>
             </div>
           )}
 
@@ -1380,7 +1387,7 @@ export function CapturaMapaPage() {
                           {c.nome_arquivo}
                         </p>
                         <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                          {formatDateBR(c.criado_em)} · {formatBytes(c.tamanho_bytes)} ·{' '}
+                          {formatDateBR(c.criado_em)} - {formatBytes(c.tamanho_bytes)} -{' '}
                           {expirada ? (
                             <span className="text-error-600 dark:text-error-400">Expirada</span>
                           ) : (
@@ -1414,25 +1421,29 @@ export function CapturaMapaPage() {
                         )}
                       </div>
                     </div>
-                    <div className="flex flex-none gap-2">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                       {!expirada && (
                         <Button
                           variant="secondary"
-                          size="xs"
+                          size="sm"
                           icon="download"
                           loading={baixandoId === c.id}
                           onClick={() => handleDownload(c.id, c.nome_arquivo)}
                           aria-label="Baixar"
-                        />
+                        >
+                          Baixar
+                        </Button>
                       )}
                       <Button
                         variant="danger"
-                        size="xs"
+                        size="sm"
                         icon="trash-2"
                         loading={excluindoId === c.id}
                         onClick={() => handleExcluir(c.id)}
                         aria-label="Excluir"
-                      />
+                      >
+                        Excluir
+                      </Button>
                     </div>
                   </div>
                 );

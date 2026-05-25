@@ -1,6 +1,15 @@
 import { useState } from 'react';
 import { Button } from '../../components/ui/Button';
-import { Icon } from '../../components/ui/Icon';
+import { Modal } from '../../components/ui/Modal';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableEmptyState,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../components/ui/Table';
 import { useToastHelpers } from '../../components/ui/Toast';
 import { api } from '../../services/api';
 import { useDevolucaoDetalhe } from '../../hooks/useQueries';
@@ -44,89 +53,133 @@ export function DevolucaoDetalhePanel({
     }
   };
 
-  if (detalheQuery.isLoading) {
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-        <div className="rounded-xl bg-[var(--color-bg-primary)] p-8 text-[var(--color-text-secondary)]">
-          Carregando...
-        </div>
-      </div>
-    );
-  }
-
   const { devolucao, itens } = detalheQuery.data ?? { devolucao: null, itens: [] };
-  if (!devolucao) return <></>;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="flex max-h-[85vh] w-full max-w-2xl flex-col rounded-xl bg-[var(--color-bg-primary)] shadow-2xl">
-        <div className="flex items-center justify-between border-b p-5">
-          <div>
-            <h2 className="text-base font-semibold text-gray-900">
-              Devolução — {devolucao.coordenadoria_destino}
-            </h2>
-            <p className="text-sm text-gray-500">
-              {formatarData(devolucao.data_devolucao)} · {devolucao.responsavel_retirada}
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            className="rounded p-1 text-gray-400 transition-colors hover:text-gray-600"
-            aria-label="Fechar"
-          >
-            <Icon name="x" className="h-5 w-5" />
-          </button>
-        </div>
-        <div className="flex-1 overflow-y-auto p-5">
-          {devolucao.observacoes && (
-            <p className="mb-4 text-sm italic text-gray-600">{devolucao.observacoes}</p>
-          )}
-          <table className="w-full text-sm">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="px-3 py-2 text-left font-medium text-gray-600">#</th>
-                <th className="px-3 py-2 text-left font-medium text-gray-600">Protocolo</th>
-                <th className="px-3 py-2 text-left font-medium text-gray-600">Interessado</th>
-                <th className="px-3 py-2 text-left font-medium text-gray-600">Repositório</th>
-                <th className="px-3 py-2 text-left font-medium text-gray-600">Vol.</th>
-                <th className="px-3 py-2 text-left font-medium text-gray-600">Obs.</th>
-              </tr>
-            </thead>
-            <tbody>
-              {itens.map((item, index) => (
-                <tr
-                  key={item.id}
-                  className={
-                    index % 2 === 0
-                      ? 'bg-[var(--color-bg-primary)]'
-                      : 'bg-[var(--color-bg-secondary)]'
-                  }
-                >
-                  <td className="px-3 py-2 text-gray-400">{index + 1}</td>
-                  <td className="px-3 py-2">{item.protocolo || '—'}</td>
-                  <td className="max-w-[140px] truncate px-3 py-2">{item.interessado || '—'}</td>
-                  <td className="px-3 py-2 text-gray-500">{item.repositorio || '—'}</td>
-                  <td className="px-3 py-2 text-gray-500">{item.volume || '—'}</td>
-                  <td className="px-3 py-2 text-xs text-gray-400">{item.obs || ''}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div className="flex items-center justify-between gap-3 border-t p-4">
+    <Modal
+      open
+      onClose={onClose}
+      title={devolucao ? `Devolução - ${devolucao.coordenadoria_destino}` : 'Detalhes da devolução'}
+      subtitle={
+        devolucao
+          ? `${formatarData(devolucao.data_devolucao)} • ${devolucao.responsavel_retirada}`
+          : detalheQuery.isLoading
+            ? 'Carregando detalhes...'
+            : 'Detalhes da devolução'
+      }
+      size="xl"
+      footer={
+        <div className="flex flex-col-reverse gap-3 px-5 py-4 sm:flex-row sm:justify-end">
+          <Button variant="outline" onClick={onClose} fullWidth>
+            Fechar
+          </Button>
           <Button
-            variant="outline"
-            size="sm"
+            variant="primary"
             onClick={() => void handleDownloadPdf()}
-            disabled={baixandoPdf}
+            disabled={baixandoPdf || detalheQuery.isLoading || !devolucao}
+            fullWidth
           >
             {baixandoPdf ? 'Gerando PDF...' : 'Baixar PDF'}
           </Button>
-          <Button variant="outline" size="sm" onClick={onClose}>
-            Fechar
-          </Button>
         </div>
+      }
+    >
+      <div className="space-y-5 p-5">
+        {detalheQuery.isLoading ? (
+          <p className="text-sm text-[var(--color-text-secondary)]">Carregando detalhes...</p>
+        ) : !devolucao ? (
+          <p className="text-sm text-[var(--color-text-secondary)]">
+            Não foi possível carregar a devolução.
+          </p>
+        ) : (
+          <>
+            {devolucao.observacoes ? (
+              <div className="rounded-2xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
+                  Observações
+                </p>
+                <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
+                  {devolucao.observacoes}
+                </p>
+              </div>
+            ) : null}
+
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {itens.map((item, index) => (
+                <div
+                  key={item.id}
+                  className="rounded-2xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] p-4 shadow-xs lg:hidden"
+                >
+                  <div className="mb-3 flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
+                        Item {index + 1}
+                      </p>
+                      <p className="mt-1 text-sm font-medium text-[var(--color-text-primary)]">
+                        {item.protocolo || '—'}
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-[var(--color-gray-100)] px-2 py-1 text-xs font-medium text-[var(--color-text-secondary)]">
+                      {item.volume || '—'}
+                    </span>
+                  </div>
+                  <dl className="space-y-2 text-sm">
+                    <div>
+                      <dt className="text-[var(--color-text-tertiary)]">Interessado</dt>
+                      <dd className="text-[var(--color-text-primary)]">{item.interessado || '—'}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-[var(--color-text-tertiary)]">Repositório</dt>
+                      <dd className="text-[var(--color-text-primary)]">{item.repositorio || '—'}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-[var(--color-text-tertiary)]">Observações</dt>
+                      <dd className="text-[var(--color-text-primary)]">{item.obs || '—'}</dd>
+                    </div>
+                  </dl>
+                </div>
+              ))}
+            </div>
+
+            <div className="hidden lg:block">
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableHeader>#</TableHeader>
+                    <TableHeader>Protocolo</TableHeader>
+                    <TableHeader>Interessado</TableHeader>
+                    <TableHeader>Repositório</TableHeader>
+                    <TableHeader>Vol.</TableHeader>
+                    <TableHeader>Obs.</TableHeader>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {itens.length === 0 ? (
+                    <TableEmptyState
+                      colSpan={6}
+                      title="Nenhum item vinculado"
+                      description="Esta devolução não possui itens cadastrados."
+                    />
+                  ) : (
+                    itens.map((item, index) => (
+                      <TableRow key={item.id}>
+                        <TableCell className="text-[var(--color-text-tertiary)]">{index + 1}</TableCell>
+                        <TableCell>{item.protocolo || '—'}</TableCell>
+                        <TableCell>{item.interessado || '—'}</TableCell>
+                        <TableCell>{item.repositorio || '—'}</TableCell>
+                        <TableCell>{item.volume || '—'}</TableCell>
+                        <TableCell className="text-[var(--color-text-secondary)]">
+                          {item.obs || '—'}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </>
+        )}
       </div>
-    </div>
+    </Modal>
   );
 }

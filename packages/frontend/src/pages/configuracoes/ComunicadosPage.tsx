@@ -1,9 +1,11 @@
 ﻿import { useEffect, useMemo, useState } from 'react';
 import type {
   ComunicadoAdminResumo,
+  ComunicadoCategoria,
   ComunicadoEscopoDestino,
   ComunicadoPrioridade,
   ComunicadoStatus,
+  ComunicadoTipo,
   PublicarComunicadoDTO,
 } from '@recorda/shared';
 import { Button } from '../../components/ui/Button';
@@ -23,6 +25,7 @@ import {
   useComunicadosAdmin,
   useComunicadoAdminDetalhe,
   useCriarComunicado,
+  useAtualizarComunicado,
   useEncerrarComunicado,
   useExcluirComunicado,
   usePublicarComunicado,
@@ -37,6 +40,11 @@ type FormState = {
   conteudo: string;
   prioridade: ComunicadoPrioridade;
   escopoDestino: ComunicadoEscopoDestino;
+  tipo: ComunicadoTipo;
+  categoria: ComunicadoCategoria;
+  resumo: string;
+  fixado: boolean;
+  leituraObrigatoria: boolean;
   usuarioIds: string[];
 };
 
@@ -46,11 +54,19 @@ type FiltroOrdenacao = 'mais-recentes' | 'mais-antigos' | 'mais-pendentes' | 'ma
 type FiltroLeituraDetalhe = 'todos' | 'pendentes' | 'lidos';
 type FiltroPrioridade = 'TODAS' | ComunicadoPrioridade;
 
+type FiltroTipo = 'TODAS' | ComunicadoTipo;
+type FiltroCategoria = 'TODAS' | ComunicadoCategoria;
+
 const initialFormState: FormState = {
   titulo: '',
   conteudo: '',
   prioridade: 'MEDIA',
   escopoDestino: 'TODOS',
+  tipo: 'COMUNICADO_GERAL',
+  categoria: 'GERAL',
+  resumo: '',
+  fixado: false,
+  leituraObrigatoria: false,
   usuarioIds: [],
 };
 const ITENS_POR_PAGINA = 10;
@@ -113,12 +129,15 @@ export function ComunicadosPage(): JSX.Element {
   const [modalAberto, setModalAberto] = useState(false);
   const [formData, setFormData] = useState<FormState>(initialFormState);
   const [publicandoDraft, setPublicandoDraft] = useState<ComunicadoAdminResumo | null>(null);
+  const [editingComunicado, setEditingComunicado] = useState<ComunicadoAdminResumo | null>(null);
   const [detalheAbertoId, setDetalheAbertoId] = useState<string | null>(null);
   const [draftUsuarioIds, setDraftUsuarioIds] = useState<string[]>([]);
   const [buscaInput, setBuscaInput] = useState('');
   const debouncedBusca = useDebounce(buscaInput, 400);
   const [filtroStatus, setFiltroStatus] = useState<FiltroStatus>('TODOS');
   const [filtroEscopo, setFiltroEscopo] = useState<FiltroEscopo>('QUALQUER');
+  const [filtroTipo] = useState<FiltroTipo>('TODAS');
+  const [filtroCategoria] = useState<FiltroCategoria>('TODAS');
   const [filtroPrioridade, setFiltroPrioridade] = useState<FiltroPrioridade>('TODAS');
   const [ordenacao, setOrdenacao] = useState<FiltroOrdenacao>('mais-recentes');
   const [dataInicio, setDataInicio] = useState('');
@@ -138,6 +157,8 @@ export function ComunicadosPage(): JSX.Element {
     busca: debouncedBusca || undefined,
     status: filtroStatus,
     escopo: filtroEscopo,
+    tipo: filtroTipo,
+    categoria: filtroCategoria,
     prioridade: filtroPrioridade,
     dataInicio: dataInicio || undefined,
     dataFim: dataFim || undefined,
@@ -146,6 +167,7 @@ export function ComunicadosPage(): JSX.Element {
   });
   const usuariosQuery = useUsuarios();
   const criarComunicado = useCriarComunicado();
+  const atualizarComunicado = useAtualizarComunicado();
   const publicarComunicado = usePublicarComunicado();
   const encerrarComunicado = useEncerrarComunicado();
   const excluirComunicado = useExcluirComunicado();
@@ -222,40 +244,75 @@ export function ComunicadosPage(): JSX.Element {
     }
 
     try {
-      const created = await criarComunicado.mutateAsync({
+      const dto = {
         titulo: formData.titulo.trim(),
         conteudo: formData.conteudo.trim(),
         prioridade: formData.prioridade,
         escopoDestino: formData.escopoDestino,
-      });
+        tipo: formData.tipo,
+        categoria: formData.categoria,
+        resumo: formData.resumo.trim() || null,
+        fixado: formData.fixado,
+        leituraObrigatoria: formData.leituraObrigatoria,
+      };
 
-      const comunicadoId = created.comunicado.id;
+      const comunicadoId = editingComunicado?.id;
       const publishBody: PublicarComunicadoDTO | undefined =
         formData.escopoDestino === 'USUARIOS_ESPECIFICOS'
           ? { usuarioIds: formData.usuarioIds }
           : undefined;
 
-      if (publicarAgora) {
-        try {
-          const publishResult = await publicarComunicado.mutateAsync({
-            id: comunicadoId,
-            body: publishBody,
-          });
-          toast.success(
-            'Comunicado publicado',
-            `${publishResult.totalDestinatarios} destinatário(s) receberam o comunicado.`
-          );
-        } catch (error) {
-          toast.error(
-            'Rascunho criado, mas a publicação falhou',
-            extractErrorMessage(error, 'Não foi possível publicar o comunicado agora.')
-          );
+      if (comunicadoId) {
+        await atualizarComunicado.mutateAsync({ id: comunicadoId, body: dto });
+        toast.success('Rascunho atualizado', 'O rascunho foi salvo com sucesso.');
+
+        if (publicarAgora) {
+          try {
+            const publishResult = await publicarComunicado.mutateAsync({
+              id: comunicadoId,
+              body: publishBody,
+            });
+            toast.success(
+              'Comunicado publicado',
+              `${publishResult.totalDestinatarios} destinatário(s) receberam o comunicado.`
+            );
+          } catch (error) {
+            toast.error(
+              'Rascunho atualizado, mas a publicação falhou',
+              extractErrorMessage(error, 'Não foi possível publicar o comunicado agora.')
+            );
+          }
         }
       } else {
-        toast.success('Rascunho salvo', 'O comunicado foi salvo e pode ser publicado depois.');
+        const created = await criarComunicado.mutateAsync(dto);
+        if (!created?.comunicado?.id) {
+          throw new Error('Falha ao criar comunicado');
+        }
+        const novoId = created.comunicado.id;
+
+        if (publicarAgora) {
+          try {
+            const publishResult = await publicarComunicado.mutateAsync({
+              id: novoId,
+              body: publishBody,
+            });
+            toast.success(
+              'Comunicado publicado',
+              `${publishResult.totalDestinatarios} destinatário(s) receberam o comunicado.`
+            );
+          } catch (error) {
+            toast.error(
+              'Rascunho criado, mas a publicação falhou',
+              extractErrorMessage(error, 'Não foi possível publicar o comunicado agora.')
+            );
+          }
+        } else {
+          toast.success('Rascunho salvo', 'O comunicado foi salvo e pode ser publicado depois.');
+        }
       }
 
       setModalAberto(false);
+      setEditingComunicado(null);
       resetFormulario();
     } catch (error) {
       toast.error('Erro ao salvar comunicado', extractErrorMessage(error, 'Tente novamente.'));
@@ -345,8 +402,31 @@ export function ComunicadosPage(): JSX.Element {
       conteudo: comunicado.conteudo,
       prioridade: comunicado.prioridade,
       escopoDestino: comunicado.escopoDestino,
+      tipo: comunicado.tipo,
+      categoria: comunicado.categoria,
+      resumo: comunicado.resumo ?? '',
+      fixado: comunicado.fixado,
+      leituraObrigatoria: comunicado.leituraObrigatoria,
       usuarioIds: [],
     });
+    setEditingComunicado(null);
+    setModalAberto(true);
+  };
+
+  const editarComunicado = (comunicado: ComunicadoAdminResumo): void => {
+    setFormData({
+      titulo: comunicado.titulo,
+      conteudo: comunicado.conteudo,
+      prioridade: comunicado.prioridade,
+      escopoDestino: comunicado.escopoDestino,
+      tipo: comunicado.tipo,
+      categoria: comunicado.categoria,
+      resumo: comunicado.resumo ?? '',
+      fixado: comunicado.fixado,
+      leituraObrigatoria: comunicado.leituraObrigatoria,
+      usuarioIds: [],
+    });
+    setEditingComunicado(comunicado);
     setModalAberto(true);
   };
 
@@ -576,7 +656,7 @@ export function ComunicadosPage(): JSX.Element {
         </Card>
 
         <Card>
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-8">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-11">
             <Input
               label="Buscar"
               value={buscaInput}
@@ -733,6 +813,15 @@ export function ComunicadosPage(): JSX.Element {
                             onClick={() => abrirDetalhe(comunicado.id)}
                           >
                             Acompanhar
+                          </Button>
+                        ) : null}
+                        {comunicado.status === 'RASCUNHO' ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => editarComunicado(comunicado)}
+                          >
+                            Editar
                           </Button>
                         ) : null}
                         <Button

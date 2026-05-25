@@ -1,6 +1,6 @@
 ﻿import { lazy, Suspense, useMemo, useState } from 'react';
 import { Button } from '../../components/ui/Button';
-import { Card } from '../../components/ui/Card';
+import { Card, CardFooter, CardHeader, CardSection } from '../../components/ui/Card';
 import { Input } from '../../components/ui/Input';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { PageState } from '../../components/ui/PageState';
@@ -576,51 +576,61 @@ export function ImportarProducaoPage(): JSX.Element {
 
         {/* Fontes Cadastradas */}
         <Card>
-          <h2 className="text-sm font-semibold text-gray-900 mb-3">Fontes cadastradas</h2>
+          <CardHeader
+            title="Fontes cadastradas"
+            description="Salve planilhas do Google Sheets para importar rapidamente."
+          />
           {fontes.length > 0 ? (
             <div className="space-y-2 mb-4">
               {fontes.map((f) => (
                 <div
                   key={f.id}
-                  className="flex items-center gap-3 p-3 bg-[var(--color-bg-secondary)] rounded-lg"
+                  className="rounded-xl border border-[var(--color-border-secondary)] bg-[var(--color-bg-secondary)] p-4"
                 >
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">{f.nome}</p>
-                    <p className="text-xs text-gray-400 truncate">{f.url}</p>
-                    {f.ultima_importacao_em && (
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        Última importação:{' '}
-                        {new Date(f.ultima_importacao_em).toLocaleString('pt-BR')}
-                      </p>
-                    )}
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-gray-900">{f.nome}</p>
+                      <p className="mt-1 break-all text-xs text-gray-400">{f.url}</p>
+                      {f.ultima_importacao_em && (
+                        <p className="mt-1 text-xs text-gray-400">
+                          Última importação:{' '}
+                          {new Date(f.ultima_importacao_em).toLocaleString('pt-BR')}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex flex-col gap-2 sm:flex-row lg:justify-end">
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        fullWidth
+                        onClick={() => void handleValidarDuplicatas(f.id)}
+                        loading={validandoFonteId === f.id}
+                        disabled={importandoFonteId !== null || validandoFonteId !== null}
+                      >
+                        Validar duplicatas
+                      </Button>
+                      <Button
+                        size="sm"
+                        fullWidth
+                        onClick={() => void handleImportarFonte(f.id)}
+                        loading={importandoFonteId === f.id}
+                        disabled={importandoFonteId !== null || validandoFonteId !== null}
+                      >
+                        Importar
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        fullWidth
+                        onClick={() => handleExcluirFonte(f.id, f.nome)}
+                        className="text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)]"
+                        title="Excluir fonte"
+                      >
+                        Excluir
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex gap-1">
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => void handleValidarDuplicatas(f.id)}
-                      loading={validandoFonteId === f.id}
-                      disabled={importandoFonteId !== null || validandoFonteId !== null}
-                    >
-                      Validar duplicatas
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={() => void handleImportarFonte(f.id)}
-                      loading={importandoFonteId === f.id}
-                      disabled={importandoFonteId !== null || validandoFonteId !== null}
-                    >
-                      Importar
-                    </Button>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleExcluirFonte(f.id, f.nome)}
-                    className="text-xs text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)] transition"
-                    title="Excluir fonte"
-                  >
-                    x
-                  </button>
                 </div>
               ))}
             </div>
@@ -753,8 +763,8 @@ export function ImportarProducaoPage(): JSX.Element {
             </div>
           )}
 
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-48 shrink-0">
+          <div className="grid gap-3 md:grid-cols-[minmax(0,14rem)_minmax(0,1fr)_auto]">
+            <div className="min-w-0">
               <Input
                 placeholder="Nome (ex: Produção Janeiro)"
                 value={novaFonteNome}
@@ -762,7 +772,7 @@ export function ImportarProducaoPage(): JSX.Element {
                 inputSize="sm"
               />
             </div>
-            <div className="flex-1">
+            <div className="min-w-0">
               <Input
                 type="url"
                 placeholder="URL do Google Sheets"
@@ -780,6 +790,7 @@ export function ImportarProducaoPage(): JSX.Element {
             <Button
               size="sm"
               variant="secondary"
+              fullWidth
               onClick={() => void handleSalvarFonte()}
               loading={criarFonteMut.isPending}
             >
@@ -790,25 +801,29 @@ export function ImportarProducaoPage(): JSX.Element {
 
         {/* Main import card */}
         <Card>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Importar produção</h2>
-            {fontes.length > 0 && (
-              <Button
-                variant="primary"
-                onClick={() => void handleImportarTodas()}
-                loading={importandoTodas}
-                disabled={
-                  importandoTodas || importandoFonteId !== null || validandoFonteId !== null
-                }
-              >
-                Importar Todas ({fontes.length})
-              </Button>
-            )}
-          </div>
+          <CardHeader
+            title="Importar produção"
+            description="Carregue um arquivo, consulte a planilha ou cole os dados antes de importar."
+            action={
+              fontes.length > 0 ? (
+                <Button
+                  variant="primary"
+                  fullWidth
+                  onClick={() => void handleImportarTodas()}
+                  loading={importandoTodas}
+                  disabled={
+                    importandoTodas || importandoFonteId !== null || validandoFonteId !== null
+                  }
+                >
+                  Importar todas ({fontes.length})
+                </Button>
+              ) : undefined
+            }
+          />
 
           {/* Source tabs */}
-          <div>
-            <div className="flex gap-1 bg-gray-100 p-1 rounded-lg w-fit mb-4">
+          <CardSection>
+            <div className="mb-4 grid grid-cols-1 gap-2 rounded-xl bg-gray-100 p-1 sm:grid-cols-3">
               {[
                 { key: 'csv' as const, label: 'Arquivo CSV' },
                 { key: 'sheets' as const, label: 'Google Sheets' },
@@ -816,8 +831,9 @@ export function ImportarProducaoPage(): JSX.Element {
               ].map((opt) => (
                 <button
                   key={opt.key}
+                  type="button"
                   onClick={() => setFonteProducao(opt.key)}
-                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                     fonteProducao === opt.key
                       ? 'bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] shadow-sm'
                       : 'text-gray-600 hover:text-gray-900'
@@ -845,8 +861,8 @@ export function ImportarProducaoPage(): JSX.Element {
 
             {fonteProducao === 'sheets' && (
               <div className="space-y-2">
-                <div className="flex gap-2">
-                  <div className="flex-1">
+                <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+                  <div className="min-w-0">
                     <Input
                       type="url"
                       placeholder="https://docs.google.com/spreadsheets/d/..."
@@ -861,7 +877,12 @@ export function ImportarProducaoPage(): JSX.Element {
                       inputSize="sm"
                     />
                   </div>
-                  <Button onClick={() => void handleFetchSheets()} loading={processando} size="sm">
+                  <Button
+                    onClick={() => void handleFetchSheets()}
+                    loading={processando}
+                    size="sm"
+                    fullWidth
+                  >
                     Buscar
                   </Button>
                 </div>
@@ -880,21 +901,23 @@ export function ImportarProducaoPage(): JSX.Element {
                   value={dadosColados}
                   onChange={(e) => setDadosColados(e.target.value)}
                   rows={5}
-                  className="w-full px-3 py-2 text-sm border border-[var(--color-border-primary)] rounded-lg font-mono focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-300)] focus:border-[var(--color-primary-500)]"
+                  className="w-full rounded-xl border border-[var(--color-border-primary)] px-3 py-2 text-sm font-mono focus:border-[var(--color-primary-500)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-300)]"
                 />
-                <Button onClick={handleCarregarColados} size="sm">
+                <Button onClick={handleCarregarColados} size="sm" fullWidth className="sm:w-auto">
                   Processar dados
                 </Button>
               </div>
             )}
-          </div>
+          </CardSection>
 
           {/* Import action */}
-          <div className="mt-4 pt-4 border-t flex items-center gap-3">
+          <CardFooter className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <Button
               onClick={() => void handleImportarProducao()}
               loading={processando || validando}
               disabled={registrosProducao.length === 0}
+              fullWidth
+              className="sm:w-auto"
             >
               {validando ? 'Verificando...' : 'Importar produção'}
             </Button>
@@ -903,45 +926,92 @@ export function ImportarProducaoPage(): JSX.Element {
                 ? `${arquivoNomeProducao} - ${registrosProducao.length} registros`
                 : 'Nenhum dado carregado'}
             </span>
-          </div>
+          </CardFooter>
 
           {/* Inline preview (only when data loaded) */}
           {previewProducao.length > 0 && (
-            <div className="mt-4 pt-4 border-t">
-              <h3 className="text-sm font-medium text-gray-700 mb-2">
-                Pré-visualização (
-                {registrosProducao.length > 10
-                  ? `10 de ${registrosProducao.length}`
-                  : registrosProducao.length}
-                )
-              </h3>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableHeader>Data (planilha)</TableHeader>
-                    <TableHeader>Colaborador</TableHeader>
-                    <TableHeader>Função</TableHeader>
-                    <TableHeader>Repositório</TableHeader>
-                    <TableHeader>Coord.</TableHeader>
-                    <TableHeader>Qtd</TableHeader>
-                    <TableHeader>Tipo</TableHeader>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {previewProducao.map((row, index) => (
-                    <TableRow key={`${row.repositorio}-${index}`}>
-                      <TableCell>{row.data}</TableCell>
-                      <TableCell>{row.colaborador}</TableCell>
-                      <TableCell>{row.funcao}</TableCell>
-                      <TableCell className="font-mono text-xs">{row.repositorio}</TableCell>
-                      <TableCell>{row.coordenadoria}</TableCell>
-                      <TableCell>{row.quantidade}</TableCell>
-                      <TableCell>{row.tipo}</TableCell>
+            <CardSection
+              title="Pré-visualização"
+              description={
+                registrosProducao.length > 10
+                  ? `Mostrando 10 de ${registrosProducao.length} registros carregados.`
+                  : `${registrosProducao.length} registros carregados.`
+              }
+              className="mt-5 border-t border-[var(--color-border-secondary)] pt-4"
+            >
+              <div className="space-y-3 lg:hidden">
+                {previewProducao.map((row, index) => (
+                  <div
+                    key={`${row.repositorio}-${index}`}
+                    className="rounded-xl border border-[var(--color-border-secondary)] bg-[var(--color-bg-secondary)] p-4"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-[var(--color-text-primary)]">
+                          {row.colaborador}
+                        </p>
+                        <p className="mt-1 break-all font-mono text-xs text-[var(--color-text-secondary)]">
+                          {row.repositorio}
+                        </p>
+                      </div>
+                      <span className="rounded-full bg-[var(--color-gray-100)] px-2.5 py-1 text-xs font-medium text-[var(--color-text-secondary)]">
+                        {row.quantidade || 'Sem qtd'}
+                      </span>
+                    </div>
+                    <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <dt className="text-[var(--color-text-tertiary)]">Data</dt>
+                        <dd className="mt-1 text-[var(--color-text-primary)]">{row.data || '-'}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-[var(--color-text-tertiary)]">Função</dt>
+                        <dd className="mt-1 text-[var(--color-text-primary)]">
+                          {row.funcao || '-'}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-[var(--color-text-tertiary)]">Coordenadoria</dt>
+                        <dd className="mt-1 text-[var(--color-text-primary)]">
+                          {row.coordenadoria || '-'}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-[var(--color-text-tertiary)]">Tipo</dt>
+                        <dd className="mt-1 text-[var(--color-text-primary)]">{row.tipo || '-'}</dd>
+                      </div>
+                    </dl>
+                  </div>
+                ))}
+              </div>
+              <div className="hidden lg:block">
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableHeader>Data (planilha)</TableHeader>
+                      <TableHeader>Colaborador</TableHeader>
+                      <TableHeader>Função</TableHeader>
+                      <TableHeader>Repositório</TableHeader>
+                      <TableHeader>Coord.</TableHeader>
+                      <TableHeader>Qtd</TableHeader>
+                      <TableHeader>Tipo</TableHeader>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHead>
+                  <TableBody>
+                    {previewProducao.map((row, index) => (
+                      <TableRow key={`${row.repositorio}-${index}`}>
+                        <TableCell>{row.data}</TableCell>
+                        <TableCell>{row.colaborador}</TableCell>
+                        <TableCell>{row.funcao}</TableCell>
+                        <TableCell className="font-mono text-xs">{row.repositorio}</TableCell>
+                        <TableCell>{row.coordenadoria}</TableCell>
+                        <TableCell>{row.quantidade}</TableCell>
+                        <TableCell>{row.tipo}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardSection>
           )}
         </Card>
 
@@ -961,73 +1031,170 @@ export function ImportarProducaoPage(): JSX.Element {
               </span>
             </button>
             {historicoAberto && (
-              <div className="px-5 pb-4 overflow-x-auto">
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableHeader>Data</TableHeader>
-                      <TableHeader>Destino</TableHeader>
-                      <TableHeader>Executado por</TableHeader>
-                      <TableHeader>Total</TableHeader>
-                      <TableHeader>OK</TableHeader>
-                      <TableHeader>Erro</TableHeader>
-                      <TableHeader align="right"></TableHeader>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {historico.map((item) => (
-                      <TableRow key={item.id}>
-                        <TableCell>{new Date(item.criado_em).toLocaleString('pt-BR')}</TableCell>
-                        <TableCell>{item.usuario_destino_nome}</TableCell>
-                        <TableCell>{item.executado_por_nome}</TableCell>
-                        <TableCell>{item.total_registros}</TableCell>
-                        <TableCell>{item.registros_sucesso}</TableCell>
-                        <TableCell>{item.registros_erro}</TableCell>
-                        <TableCell align="right">
-                          <div className="flex justify-end gap-2">
-                            <button
-                              className="text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] font-medium"
-                              onClick={() => void handleBaixarErrosCsv(item.id)}
-                            >
-                              Baixar CSV de erros
-                            </button>
-                            {isAdmin && item.tipo === 'PRODUCAO' && (
-                              <button
-                                className="text-xs text-red-600 hover:text-red-800 font-medium"
-                                onClick={() => handleRollbackImportacao(item.id)}
-                              >
-                                Desfazer
-                              </button>
-                            )}
-                            <button
-                              className="text-xs text-[var(--color-primary-600)] hover:text-[var(--color-primary-800)] font-medium"
-                              onClick={() => {
-                                const detalhes = {
-                                  id: item.id,
-                                  tipo: item.tipo,
-                                  criado_em: item.criado_em,
-                                  executado_por: item.executado_por,
-                                  usuario_destino_id: item.usuario_destino_id,
-                                  total_registros: item.total_registros,
-                                  registros_sucesso: item.registros_sucesso,
-                                  registros_erro: item.registros_erro,
-                                  detalhes_erros: item.detalhes_erros,
-                                };
-                                void navigator.clipboard
-                                  .writeText(JSON.stringify(detalhes, null, 2))
-                                  .then(() => {
-                                    toast.success('Detalhes copiados.');
-                                  });
-                              }}
-                            >
-                              Copiar
-                            </button>
-                          </div>
-                        </TableCell>
+              <div className="px-5 pb-4">
+                <div className="space-y-3 lg:hidden">
+                  {historico.map((item) => (
+                    <div
+                      key={item.id}
+                      className="rounded-xl border border-[var(--color-border-secondary)] bg-[var(--color-bg-secondary)] p-4"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-[var(--color-text-primary)]">
+                            {item.usuario_destino_nome}
+                          </p>
+                          <p className="mt-1 text-xs text-[var(--color-text-secondary)]">
+                            {new Date(item.criado_em).toLocaleString('pt-BR')}
+                          </p>
+                        </div>
+                        <span className="rounded-full bg-[var(--color-gray-100)] px-2.5 py-1 text-xs font-medium text-[var(--color-text-secondary)]">
+                          {item.tipo}
+                        </span>
+                      </div>
+
+                      <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                          <dt className="text-[var(--color-text-tertiary)]">Executado por</dt>
+                          <dd className="mt-1 text-[var(--color-text-primary)]">
+                            {item.executado_por_nome}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-[var(--color-text-tertiary)]">Total</dt>
+                          <dd className="mt-1 text-[var(--color-text-primary)]">
+                            {item.total_registros}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-[var(--color-text-tertiary)]">OK</dt>
+                          <dd className="mt-1 text-[var(--color-text-primary)]">
+                            {item.registros_sucesso}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-[var(--color-text-tertiary)]">Erro</dt>
+                          <dd className="mt-1 text-[var(--color-text-primary)]">
+                            {item.registros_erro}
+                          </dd>
+                        </div>
+                      </dl>
+
+                      <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          fullWidth
+                          onClick={() => void handleBaixarErrosCsv(item.id)}
+                        >
+                          Baixar CSV de erros
+                        </Button>
+                        {isAdmin && item.tipo === 'PRODUCAO' && (
+                          <Button
+                            size="sm"
+                            variant="danger"
+                            fullWidth
+                            onClick={() => handleRollbackImportacao(item.id)}
+                          >
+                            Desfazer
+                          </Button>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          fullWidth
+                          onClick={() => {
+                            const detalhes = {
+                              id: item.id,
+                              tipo: item.tipo,
+                              criado_em: item.criado_em,
+                              executado_por: item.executado_por,
+                              usuario_destino_id: item.usuario_destino_id,
+                              total_registros: item.total_registros,
+                              registros_sucesso: item.registros_sucesso,
+                              registros_erro: item.registros_erro,
+                              detalhes_erros: item.detalhes_erros,
+                            };
+                            void navigator.clipboard
+                              .writeText(JSON.stringify(detalhes, null, 2))
+                              .then(() => {
+                                toast.success('Detalhes copiados.');
+                              });
+                          }}
+                        >
+                          Copiar
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="hidden lg:block overflow-x-auto">
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        <TableHeader>Data</TableHeader>
+                        <TableHeader>Destino</TableHeader>
+                        <TableHeader>Executado por</TableHeader>
+                        <TableHeader>Total</TableHeader>
+                        <TableHeader>OK</TableHeader>
+                        <TableHeader>Erro</TableHeader>
+                        <TableHeader align="right"></TableHeader>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHead>
+                    <TableBody>
+                      {historico.map((item) => (
+                        <TableRow key={item.id}>
+                          <TableCell>{new Date(item.criado_em).toLocaleString('pt-BR')}</TableCell>
+                          <TableCell>{item.usuario_destino_nome}</TableCell>
+                          <TableCell>{item.executado_por_nome}</TableCell>
+                          <TableCell>{item.total_registros}</TableCell>
+                          <TableCell>{item.registros_sucesso}</TableCell>
+                          <TableCell>{item.registros_erro}</TableCell>
+                          <TableCell align="right">
+                            <div className="flex justify-end gap-2">
+                              <button
+                                className="text-xs font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
+                                onClick={() => void handleBaixarErrosCsv(item.id)}
+                              >
+                                Baixar CSV de erros
+                              </button>
+                              {isAdmin && item.tipo === 'PRODUCAO' && (
+                                <button
+                                  className="text-xs font-medium text-red-600 hover:text-red-800"
+                                  onClick={() => handleRollbackImportacao(item.id)}
+                                >
+                                  Desfazer
+                                </button>
+                              )}
+                              <button
+                                className="text-xs font-medium text-[var(--color-primary-600)] hover:text-[var(--color-primary-800)]"
+                                onClick={() => {
+                                  const detalhes = {
+                                    id: item.id,
+                                    tipo: item.tipo,
+                                    criado_em: item.criado_em,
+                                    executado_por: item.executado_por,
+                                    usuario_destino_id: item.usuario_destino_id,
+                                    total_registros: item.total_registros,
+                                    registros_sucesso: item.registros_sucesso,
+                                    registros_erro: item.registros_erro,
+                                    detalhes_erros: item.detalhes_erros,
+                                  };
+                                  void navigator.clipboard
+                                    .writeText(JSON.stringify(detalhes, null, 2))
+                                    .then(() => {
+                                      toast.success('Detalhes copiados.');
+                                    });
+                                }}
+                              >
+                                Copiar
+                              </button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               </div>
             )}
           </div>

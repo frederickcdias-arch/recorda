@@ -57,7 +57,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
     const selectId = id || label?.toLowerCase().replace(/\s+/g, '-');
 
     return (
-      <div className="w-full">
+      <div className="w-full min-w-0">
         {label && (
           <label
             htmlFor={selectId}
@@ -66,13 +66,13 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             {label}
           </label>
         )}
-        <div className="relative">
+        <div className="relative min-w-0">
           <select
             ref={ref}
             id={selectId}
             disabled={disabled}
             className={`
-              w-full rounded-lg border bg-[var(--color-bg-primary)] appearance-none
+              min-w-0 max-w-full w-full rounded-lg border bg-[var(--color-bg-primary)] appearance-none
               transition-all duration-150 ease-in-out
               focus:outline-none
               ${sizeClasses[selectSize]}

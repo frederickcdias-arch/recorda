@@ -1,9 +1,9 @@
 /**
- * Modal — componente de diálogo acessível com focus trap
+ * Modal - componente de dialogo acessivel com focus trap
  *
  * Uso:
- *   <Modal open={open} onClose={onClose} title="Título">
- *     conteúdo
+ *   <Modal open={open} onClose={onClose} title="Titulo">
+ *     conteudo
  *   </Modal>
  *
  * Props:
@@ -20,17 +20,10 @@ interface ModalProps {
   open: boolean;
   onClose: () => void;
   title: string;
-  /** Subtítulo opcional exibido abaixo do título */
   subtitle?: string;
-  /** Controla a largura máxima do modal (default: 'md') */
   size?: ModalSize;
-  /**
-   * Se true, o overlay fica scrollável e o conteúdo cresce livremente.
-   * Se false (default), o modal tem max-height 90vh com overflow-y-auto interno.
-   */
   scrollable?: boolean;
   children: React.ReactNode;
-  /** Slot para rodapé (botões de ação) */
   footer?: React.ReactNode;
 }
 
@@ -68,13 +61,11 @@ export function Modal({
     onCloseRef.current = onClose;
   }, [onClose]);
 
-  // Focus trap + restore focus
   useEffect(() => {
     if (!open) return;
 
     previousFocusRef.current = document.activeElement as HTMLElement;
 
-    // Delay to allow render
     const raf = requestAnimationFrame(() => {
       const panel = panelRef.current;
       if (!panel) return;
@@ -85,12 +76,12 @@ export function Modal({
       (firstInput ?? focusable[0])?.focus();
     });
 
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
         onCloseRef.current();
         return;
       }
-      if (e.key !== 'Tab') return;
+      if (event.key !== 'Tab') return;
 
       const panel = panelRef.current;
       if (!panel) return;
@@ -100,16 +91,14 @@ export function Modal({
       const first = focusable[0]!;
       const last = focusable[focusable.length - 1]!;
 
-      if (e.shiftKey) {
+      if (event.shiftKey) {
         if (document.activeElement === first) {
-          e.preventDefault();
+          event.preventDefault();
           last.focus();
         }
-      } else {
-        if (document.activeElement === last) {
-          e.preventDefault();
-          first.focus();
-        }
+      } else if (document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
       }
     };
 
@@ -121,25 +110,24 @@ export function Modal({
     };
   }, [open]);
 
-  // Prevent body scroll
   useEffect(() => {
     if (!open) return;
-    const prev = document.body.style.overflow;
+    const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => {
-      document.body.style.overflow = prev;
+      document.body.style.overflow = previousOverflow;
     };
   }, [open]);
 
   if (!open) return null;
 
   const overlayClass = scrollable
-    ? 'fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/55 px-4 py-8 backdrop-blur-sm'
-    : 'fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm';
+    ? 'fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/55 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] backdrop-blur-sm'
+    : 'fixed inset-0 z-50 flex items-end justify-center bg-black/55 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] backdrop-blur-sm sm:items-center';
 
   const panelClass = scrollable
-    ? `bg-[var(--color-bg-primary)] rounded-2xl shadow-2xl w-full ${sizeClasses[size]}`
-    : `bg-[var(--color-bg-primary)] rounded-2xl shadow-2xl w-full ${sizeClasses[size]} max-h-[90vh] flex flex-col`;
+    ? `w-full max-w-[calc(100vw-2rem)] ${sizeClasses[size]} rounded-2xl bg-[var(--color-bg-primary)] shadow-2xl`
+    : `flex w-full max-w-[calc(100vw-2rem)] ${sizeClasses[size]} max-h-[min(90vh,calc(100dvh-2rem-env(safe-area-inset-top)-env(safe-area-inset-bottom)))] flex-col rounded-2xl bg-[var(--color-bg-primary)] shadow-2xl`;
 
   return (
     <div
@@ -147,13 +135,12 @@ export function Modal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+      onClick={(event) => {
+        if (event.target === event.currentTarget) onClose();
       }}
     >
       <div ref={panelRef} className={panelClass}>
-        {/* Header */}
-        <div className="flex items-start justify-between p-5 border-b border-[var(--color-border-primary)] flex-shrink-0">
+        <div className="flex flex-shrink-0 items-start justify-between border-b border-[var(--color-border-primary)] p-5">
           <div>
             <h2
               id="modal-title"
@@ -161,29 +148,29 @@ export function Modal({
             >
               {title}
             </h2>
-            {subtitle && (
-              <p className="text-sm text-[var(--color-text-secondary)] mt-0.5">{subtitle}</p>
-            )}
+            {subtitle ? (
+              <p className="mt-0.5 text-sm text-[var(--color-text-secondary)]">{subtitle}</p>
+            ) : null}
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Fechar"
-            className="text-[var(--color-gray-400)] hover:text-[var(--color-gray-600)] p-1 -m-1 rounded transition-colors ml-4 flex-shrink-0"
+            className="ml-4 -m-1 flex-shrink-0 rounded p-1 text-[var(--color-gray-400)] transition-colors hover:text-[var(--color-gray-600)]"
           >
-            <Icon name="x" className="w-5 h-5" />
+            <Icon name="x" className="h-5 w-5" />
           </button>
         </div>
 
-        {/* Body */}
-        <div className={scrollable ? '' : 'overflow-y-auto flex-1'}>{children}</div>
+        <div className={scrollable ? '' : 'min-h-0 flex-1 overflow-y-auto overscroll-contain'}>
+          {children}
+        </div>
 
-        {/* Footer */}
-        {footer && (
-          <div className="border-t border-[var(--color-border-primary)] flex-shrink-0">
+        {footer ? (
+          <div className="flex-shrink-0 border-t border-[var(--color-border-primary)]">
             {footer}
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );

@@ -963,7 +963,7 @@ export function EtapaOperacionalPage(): JSX.Element {
 
         {/* Summary cards */}
         {totalGeral > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
             <div className="bg-[var(--color-bg-primary)] border border-[var(--color-border-primary)] rounded-xl px-4 py-3">
               <p className="text-xs text-[var(--color-text-secondary)] uppercase font-medium">
                 Total
@@ -989,7 +989,8 @@ export function EtapaOperacionalPage(): JSX.Element {
         {etapa === 'recebimento' ? (
           <>
             {/* Sub-tabs: Repositórios | Avulsos */}
-            <div className="flex gap-1 border-b border-gray-200">
+            <div className="overflow-x-auto border-b border-gray-200">
+              <div className="flex min-w-max gap-1">
               <button
                 className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
                   recebSubTab === 'repositorios'
@@ -1010,6 +1011,7 @@ export function EtapaOperacionalPage(): JSX.Element {
               >
                 Avulsos
               </button>
+              </div>
             </div>
 
             {recebSubTab === 'repositorios' ? (
@@ -1046,6 +1048,8 @@ export function EtapaOperacionalPage(): JSX.Element {
                         ) : null}
                       </div>
                       <Button
+                        fullWidth
+                        className="sm:w-auto"
                         onClick={() => void handleCompactarEtiquetasPdf()}
                         loading={etiquetaPdfProcessando}
                         disabled={etiquetaPdfFiles.length === 0 || etiquetaPdfProcessando}
@@ -1058,7 +1062,7 @@ export function EtapaOperacionalPage(): JSX.Element {
 
                 <Card>
                   <h2 className="text-lg font-semibold text-gray-900 mb-4">Criar Repositório</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
                     <Input
                       label="ID GED"
                       value={novoRepositorio.idRepositorioGed}
@@ -1102,9 +1106,9 @@ export function EtapaOperacionalPage(): JSX.Element {
                           </option>
                         ))}
                       </select>
-                      <div className="flex gap-1 mt-1">
+                      <div className="mt-1 flex flex-col gap-2 sm:flex-row">
                         <input
-                          className="flex-1 h-10 px-3 border rounded text-sm border-[var(--color-border-primary)] focus:outline-none focus:ring-2 focus:ring-primary-300 focus:border-primary-500"
+                          className="h-10 flex-1 rounded border border-[var(--color-border-primary)] px-3 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-300"
                           placeholder="Nova unidade..."
                           value={novaUnidadeInput}
                           onChange={(e) => setNovaUnidadeInput(e.target.value)}
@@ -1117,7 +1121,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                         />
                         <button
                           type="button"
-                          className="h-10 px-3 text-sm bg-primary-600 text-white rounded hover:bg-primary-700 disabled:opacity-50"
+                          className="h-10 rounded bg-primary-600 px-3 text-sm text-white hover:bg-primary-700 disabled:opacity-50"
                           onClick={() => void handleCriarUnidadeRapida()}
                           disabled={!novaUnidadeInput.trim() || processando}
                           title="Adicionar e selecionar unidade"
@@ -1149,9 +1153,9 @@ export function EtapaOperacionalPage(): JSX.Element {
                           </option>
                         ))}
                       </select>
-                      <div className="flex gap-1 mt-1">
+                      <div className="mt-1 flex flex-col gap-2 sm:flex-row">
                         <input
-                          className="flex-1 h-10 px-3 border rounded text-sm border-[var(--color-border-primary)] focus:outline-none focus:ring-2 focus:ring-primary-300 focus:border-primary-500"
+                          className="h-10 flex-1 rounded border border-[var(--color-border-primary)] px-3 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-300"
                           placeholder="Novo projeto..."
                           value={novoProjetoInput}
                           onChange={(e) => setNovoProjetoInput(e.target.value)}
@@ -1164,7 +1168,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                         />
                         <button
                           type="button"
-                          className="h-10 px-3 text-sm bg-primary-600 text-white rounded hover:bg-primary-700 disabled:opacity-50"
+                          className="h-10 rounded bg-primary-600 px-3 text-sm text-white hover:bg-primary-700 disabled:opacity-50"
                           onClick={() => void handleCriarProjetoRapido()}
                           disabled={!novoProjetoInput.trim() || processando}
                           title={
@@ -1206,6 +1210,8 @@ export function EtapaOperacionalPage(): JSX.Element {
                   <div className="mt-4">
                     <div className="relative inline-block">
                       <Button
+                        fullWidth
+                        className="sm:w-auto"
                         onClick={() => {
                           void handleCriarRepositorio();
                         }}
@@ -1238,7 +1244,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                 </Card>
 
                 <Card>
-                  <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 mb-4">
+                  <div className="mb-4 grid grid-cols-1 gap-3 lg:grid-cols-4">
                     <div>
                       <Input
                         label="Buscar"
@@ -1296,7 +1302,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                       />
                     </div>
                   </div>
-                  <div className="flex flex-wrap gap-2 items-center mb-4">
+                  <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
                     <Button
                       className="w-full md:w-auto"
                       variant="secondary"
@@ -1346,7 +1352,7 @@ export function EtapaOperacionalPage(): JSX.Element {
 
                   {debouncedBusca ? (
                     <div className="mb-4 p-3 border rounded-lg bg-amber-50 border-amber-200">
-                      <div className="flex items-center justify-between gap-3">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <p className="text-sm text-amber-900 font-medium">
                           {avulsosBuscaLoading
                             ? 'Buscando também nos avulsos...'
@@ -1356,8 +1362,10 @@ export function EtapaOperacionalPage(): JSX.Element {
                         </p>
                         {avulsosBuscaItens.length > 0 ? (
                           <Button
-                            size="xs"
+                            size="sm"
                             variant="outline"
+                            fullWidth
+                            className="sm:w-auto"
                             onClick={() => setRecebSubTab('avulsos')}
                           >
                             Ver avulsos
@@ -1668,7 +1676,7 @@ export function EtapaOperacionalPage(): JSX.Element {
           </Suspense>
         ) : etapa !== 'recebimento' ? (
           <Card>
-            <div className="flex gap-3 items-end mb-4">
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end">
               <div className="w-full md:w-80">
                 <Input
                   label="Buscar"
@@ -1680,12 +1688,105 @@ export function EtapaOperacionalPage(): JSX.Element {
                   placeholder="ID GED, unidade ou projeto"
                 />
               </div>
-              <Button variant="secondary" onClick={() => invalidateRepos()} loading={processando}>
+              <Button
+                variant="secondary"
+                fullWidth
+                className="sm:w-auto"
+                onClick={() => invalidateRepos()}
+                loading={processando}
+              >
                 Atualizar
               </Button>
             </div>
 
-            <div className="overflow-x-auto">
+            <div className="space-y-3 md:hidden">
+              {itens.length === 0 ? (
+                <div className="rounded-lg border px-4 py-8 text-center text-gray-500">
+                  Nenhum Repositório na Fila desta Etapa.
+                </div>
+              ) : (
+                itens.map((item) => (
+                  <div
+                    key={item.id_repositorio_recorda}
+                    className="rounded-xl border border-gray-200 bg-[var(--color-bg-primary)] p-3"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900">
+                          {item.id_repositorio_ged}
+                        </p>
+                        <p className="mt-0.5 text-xs text-gray-500">{item.orgao}</p>
+                        <p className="text-xs text-gray-500">{item.projeto}</p>
+                      </div>
+                      <StatusBadge status={item.status_atual} />
+                    </div>
+                    <div className="mt-3 flex items-center justify-between gap-2">
+                      <span
+                        className={`inline-flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold ${(item.total_processos ?? 0) > 0 ? 'bg-primary-100 text-primary-700' : 'bg-gray-100 text-gray-400'}`}
+                      >
+                        {item.total_processos ?? 0}
+                      </span>
+                      {item.segundos_na_etapa != null ? (
+                        <AgingBadge segundos={item.segundos_na_etapa} />
+                      ) : null}
+                    </div>
+                    <div className="mt-3">
+                      <ProgressIndicator
+                        steps={[
+                          {
+                            label: 'CK',
+                            done: !!item.checklist_concluido,
+                            active: !!item.checklist_aberto,
+                          },
+                          { label: 'Prod', done: !!item.producao_registrada },
+                          { label: 'Rel', done: (item.total_relatorios ?? 0) > 0 },
+                        ]}
+                      />
+                    </div>
+                    <div className="mt-3 flex justify-end">
+                      <ActionMenu
+                        disabled={processando}
+                        items={[
+                          {
+                            label: 'Checklist',
+                            onClick: () => void handleAbrirChecklist(item.id_repositorio_recorda),
+                          },
+                          {
+                            label: 'Rel. Produção',
+                            onClick: () =>
+                              void handleGerarRelatorioProducao(item.id_repositorio_recorda),
+                          },
+                          {
+                            label: 'Registrar Produção',
+                            onClick: () =>
+                              void handleRegistrarProducao(item.id_repositorio_recorda),
+                          },
+                          {
+                            label: 'Avançar Etapa',
+                            onClick: () => void handleOpenAvancar(item.id_repositorio_recorda),
+                            hidden: !etapaConfig.nextEtapaApi,
+                          },
+                          {
+                            label: 'Devolver',
+                            onClick: () =>
+                              void handleDevolverEtapaAnterior(item.id_repositorio_recorda),
+                            hidden: !etapaConfig.prevEtapaApi,
+                          },
+                          {
+                            label: 'Excluir',
+                            onClick: () => handleOpenExcluir(item.id_repositorio_recorda),
+                            variant: 'danger',
+                            hidden: !isAdmin,
+                          },
+                        ]}
+                      />
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="hidden md:block overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>

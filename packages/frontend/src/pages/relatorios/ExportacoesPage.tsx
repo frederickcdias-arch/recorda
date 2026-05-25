@@ -1,10 +1,20 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Icon } from '../../components/ui/Icon';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
-import { Input } from '../../components/ui/Input';
+import { DateRangePicker } from '../../components/ui/DateRangePicker';
+import { Icon } from '../../components/ui/Icon';
+import { Modal } from '../../components/ui/Modal';
 import { ActionFeedback } from '../../components/ui/PageState';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableEmptyState,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../components/ui/Table';
 import { api } from '../../services/api';
 import { formatDateBR, toDateInputValue } from '../../utils/date';
 import { formatCriticalNumber } from '../../utils/number';
@@ -53,13 +63,13 @@ interface ExportItem {
 const EXPORTACOES: ExportItem[] = [
   {
     id: 'gerencial',
-    nome: 'Relatório Gerencial de Produção',
-    descricao: 'Resumo consolidado da produção por período, coordenadoria e colaborador.',
+    nome: 'Relatorio gerencial de producao',
+    descricao: 'Resumo consolidado da producao por periodo, coordenadoria e colaborador.',
     detalhes: [
-      'Resumo geral por etapa (totais e unidades)',
-      'Produção por coordenadoria e etapa',
-      'Produção individual por colaborador',
-      'Glossário das etapas',
+      'Resumo geral por etapa',
+      'Producao por coordenadoria',
+      'Producao individual por colaborador',
+      'Totais consolidados do periodo',
     ],
     icon: 'briefcase',
     color: 'blue',
@@ -67,18 +77,282 @@ const EXPORTACOES: ExportItem[] = [
   },
   {
     id: 'operacional',
-    nome: 'Detalhamento Operacional',
-    descricao: 'Lista detalhada de todos os registros de produção no período.',
+    nome: 'Detalhamento operacional',
+    descricao: 'Lista detalhada de todos os registros de producao no periodo.',
     detalhes: [
-      'Data, colaborador, etapa, quantidade',
-      'Repositório e função de cada registro',
-      'Ideal para análise e auditoria',
+      'Data, colaborador e etapa',
+      'Repositorio e funcao por registro',
+      'Consulta util para analise e auditoria',
     ],
     icon: 'clipboard',
     color: 'blue',
     formatos: ['excel'],
   },
 ];
+
+function PreviewGerencialModal({
+  data,
+  onClose,
+  onExportPdf,
+  onExportExcel,
+}: {
+  data: PreviewData;
+  onClose: () => void;
+  onExportPdf: () => void;
+  onExportExcel: () => void;
+}): JSX.Element {
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title="Preview - relatorio gerencial"
+      subtitle={data.titulo || 'Consolidado do periodo selecionado.'}
+      size="xl"
+      scrollable
+      footer={
+        <div className="flex flex-col-reverse gap-3 px-5 py-4 sm:flex-row sm:justify-end">
+          <Button variant="outline" onClick={onClose} fullWidth>
+            Fechar
+          </Button>
+          <Button variant="secondary" onClick={onExportExcel} fullWidth>
+            Exportar Excel
+          </Button>
+          <Button variant="primary" onClick={onExportPdf} fullWidth>
+            Exportar PDF
+          </Button>
+        </div>
+      }
+    >
+      <div className="space-y-5 p-5">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <Card padding="sm" className="text-center">
+            <p className="text-xs text-[var(--color-text-tertiary)]">Total caixas</p>
+            <p className="mt-1 text-lg font-bold text-[var(--color-text-primary)]">
+              {formatCriticalNumber(data.totais.totalCaixas)}
+            </p>
+          </Card>
+          <Card padding="sm" className="text-center">
+            <p className="text-xs text-[var(--color-text-tertiary)]">Total imagens</p>
+            <p className="mt-1 text-lg font-bold text-[var(--color-text-primary)]">
+              {formatCriticalNumber(data.totais.totalImagens)}
+            </p>
+          </Card>
+          <Card padding="sm" className="text-center">
+            <p className="text-xs text-[var(--color-text-tertiary)]">Colaboradores</p>
+            <p className="mt-1 text-lg font-bold text-[var(--color-text-primary)]">
+              {formatCriticalNumber(data.totais.totalColaboradores)}
+            </p>
+          </Card>
+          <Card padding="sm" className="text-center">
+            <p className="text-xs text-[var(--color-text-tertiary)]">Coordenadorias</p>
+            <p className="mt-1 text-lg font-bold text-[var(--color-text-primary)]">
+              {formatCriticalNumber(data.totais.totalCoordenadorias)}
+            </p>
+          </Card>
+        </div>
+
+        {data.resumoPorEtapa.length > 0 ? (
+          <div className="space-y-3">
+            <h4 className="text-sm font-semibold text-[var(--color-text-primary)]">
+              Resumo por etapa
+            </h4>
+
+            <div className="grid gap-3 lg:hidden">
+              {data.resumoPorEtapa.map((item) => (
+                <Card key={item.etapaNome} padding="sm" className="space-y-2">
+                  <p className="text-sm font-medium text-[var(--color-text-primary)]">
+                    {item.etapaNome}
+                  </p>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-[var(--color-text-secondary)]">Total</span>
+                    <span className="font-semibold text-[var(--color-text-primary)]">
+                      {formatCriticalNumber(item.totalQuantidade)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-[var(--color-text-secondary)]">Unidade</span>
+                    <span className="text-[var(--color-text-primary)]">{item.unidade}</span>
+                  </div>
+                </Card>
+              ))}
+            </div>
+
+            <div className="hidden lg:block">
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableHeader>Etapa</TableHeader>
+                    <TableHeader align="right">Total</TableHeader>
+                    <TableHeader align="right">Unidade</TableHeader>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {data.resumoPorEtapa.map((item) => (
+                    <TableRow key={item.etapaNome}>
+                      <TableCell>{item.etapaNome}</TableCell>
+                      <TableCell align="right" className="font-semibold">
+                        {formatCriticalNumber(item.totalQuantidade)}
+                      </TableCell>
+                      <TableCell align="right" className="text-[var(--color-text-secondary)]">
+                        {item.unidade}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        ) : null}
+
+        {data.producaoPorCoordenadoria.length > 0 ? (
+          <div className="space-y-3">
+            <h4 className="text-sm font-semibold text-[var(--color-text-primary)]">
+              Por coordenadoria ({data.producaoPorCoordenadoria.length})
+            </h4>
+            <div className="grid gap-3">
+              {data.producaoPorCoordenadoria.map((item) => (
+                <Card key={item.coordenadoriaSigla} padding="sm" className="space-y-2">
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-[var(--color-text-primary)]">
+                        {item.coordenadoriaNome}
+                      </p>
+                      <p className="text-xs text-[var(--color-text-tertiary)]">
+                        {item.coordenadoriaSigla}
+                      </p>
+                    </div>
+                    <div className="text-sm text-[var(--color-text-secondary)]">
+                      {formatCriticalNumber(item.totalCaixas)} caixas ·{' '}
+                      {formatCriticalNumber(item.totalImagens)} imagens
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </div>
+        ) : null}
+      </div>
+    </Modal>
+  );
+}
+
+function PreviewOperacionalModal({
+  rows,
+  onClose,
+  onExportExcel,
+}: {
+  rows: OperacionalRow[];
+  onClose: () => void;
+  onExportExcel: () => void;
+}): JSX.Element {
+  const visibleRows = rows.slice(0, 100);
+
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title={`Preview - detalhamento operacional (${rows.length} registros)`}
+      subtitle="Mostrando ate 100 registros no preview."
+      size="xl"
+      scrollable
+      footer={
+        <div className="flex flex-col-reverse gap-3 px-5 py-4 sm:flex-row sm:justify-end">
+          <Button variant="outline" onClick={onClose} fullWidth>
+            Fechar
+          </Button>
+          <Button variant="primary" onClick={onExportExcel} fullWidth>
+            Exportar Excel
+          </Button>
+        </div>
+      }
+    >
+      <div className="space-y-4 p-5">
+        {rows.length === 0 ? (
+          <p className="py-8 text-center text-sm text-[var(--color-text-secondary)]">
+            Nenhum registro encontrado no periodo.
+          </p>
+        ) : (
+          <>
+            <div className="grid gap-3 lg:hidden">
+              {visibleRows.map((row, index) => (
+                <Card key={row.id || index} padding="sm" className="space-y-2">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-medium text-[var(--color-text-primary)]">
+                        {row.colaborador}
+                      </p>
+                      <p className="text-xs text-[var(--color-text-tertiary)]">{row.data}</p>
+                    </div>
+                    <span className="rounded-full bg-[var(--color-primary-100)] px-2 py-1 text-xs font-semibold text-[var(--color-primary-800)]">
+                      {formatCriticalNumber(row.quantidade)}
+                    </span>
+                  </div>
+                  <dl className="grid gap-2 text-sm sm:grid-cols-2">
+                    <div>
+                      <dt className="text-[var(--color-text-tertiary)]">Etapa</dt>
+                      <dd className="text-[var(--color-text-primary)]">{row.etapa}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-[var(--color-text-tertiary)]">Funcao</dt>
+                      <dd className="text-[var(--color-text-primary)]">{row.funcao || '—'}</dd>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <dt className="text-[var(--color-text-tertiary)]">Repositorio</dt>
+                      <dd className="break-all font-mono text-[var(--color-text-primary)]">
+                        {row.repositorio || '—'}
+                      </dd>
+                    </div>
+                  </dl>
+                </Card>
+              ))}
+            </div>
+
+            <div className="hidden lg:block">
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableHeader>Data</TableHeader>
+                    <TableHeader>Colaborador</TableHeader>
+                    <TableHeader>Etapa</TableHeader>
+                    <TableHeader>Repositorio</TableHeader>
+                    <TableHeader align="right">Qtd</TableHeader>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {visibleRows.length === 0 ? (
+                    <TableEmptyState
+                      colSpan={5}
+                      title="Nenhum registro encontrado"
+                      description="Nao ha registros para o periodo selecionado."
+                    />
+                  ) : (
+                    visibleRows.map((row, index) => (
+                      <TableRow key={row.id || index}>
+                        <TableCell>{row.data}</TableCell>
+                        <TableCell>{row.colaborador}</TableCell>
+                        <TableCell>{row.etapa}</TableCell>
+                        <TableCell className="font-mono text-xs">{row.repositorio}</TableCell>
+                        <TableCell align="right" className="font-semibold">
+                          {formatCriticalNumber(row.quantidade)}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+
+            {rows.length > 100 ? (
+              <p className="text-center text-xs text-[var(--color-text-tertiary)]">
+                Mostrando 100 de {rows.length} registros. Exporte para ver todos.
+              </p>
+            ) : null}
+          </>
+        )}
+      </div>
+    </Modal>
+  );
+}
 
 export function ExportacoesPage(): JSX.Element {
   const navigate = useNavigate();
@@ -89,12 +363,14 @@ export function ExportacoesPage(): JSX.Element {
   const [exportando, setExportando] = useState<string | null>(null);
   const [previewData, setPreviewData] = useState<PreviewData | null>(null);
   const [previewOperacional, setPreviewOperacional] = useState<OperacionalRow[] | null>(null);
+
   const dataInicioPadrao = useMemo(() => {
-    const d = new Date();
-    d.setMonth(d.getMonth() - 1);
-    return toDateInputValue(d);
+    const date = new Date();
+    date.setMonth(date.getMonth() - 1);
+    return toDateInputValue(date);
   }, []);
   const dataFimPadrao = useMemo(() => toDateInputValue(new Date()), []);
+
   const [dataInicio, setDataInicio] = useState(dataInicioPadrao);
   const [dataFim, setDataFim] = useState(dataFimPadrao);
   const ultimoAutoPreviewRef = useRef<string | null>(null);
@@ -102,6 +378,7 @@ export function ExportacoesPage(): JSX.Element {
   const filtrosUrl = useMemo(() => {
     const params = new URLSearchParams(location.search);
     const preview = params.get('preview');
+
     return {
       dataInicio: params.get('dataInicio') ?? dataInicioPadrao,
       dataFim: params.get('dataFim') ?? dataFimPadrao,
@@ -147,21 +424,26 @@ export function ExportacoesPage(): JSX.Element {
 
   const validarPeriodo = useCallback((): boolean => {
     if (!dataInicio || !dataFim) {
-      setMensagem({ tipo: 'error', texto: 'Selecione a data de início e fim.' });
+      setMensagem({ tipo: 'error', texto: 'Selecione a data de inicio e fim.' });
       return false;
     }
     if (new Date(dataInicio) > new Date(dataFim)) {
-      setMensagem({ tipo: 'error', texto: 'A data de início deve ser anterior à data de fim.' });
+      setMensagem({
+        tipo: 'error',
+        texto: 'A data de inicio deve ser anterior a data de fim.',
+      });
       return false;
     }
     return true;
-  }, [dataInicio, dataFim]);
+  }, [dataFim, dataInicio]);
 
   const handleExportar = async (tipo: string, formato: 'pdf' | 'excel') => {
     if (!validarPeriodo()) return;
+
     const key = `${tipo}-${formato}`;
     setExportando(key);
     setMensagem(null);
+
     try {
       const extension = formato === 'pdf' ? 'pdf' : 'xlsx';
 
@@ -176,11 +458,11 @@ export function ExportacoesPage(): JSX.Element {
         await api.download(endpoint, `relatorio_gerencial_${dataInicio}_${dataFim}.${extension}`);
       }
 
-      setMensagem({ tipo: 'success', texto: `Exportação ${formato.toUpperCase()} concluída!` });
+      setMensagem({ tipo: 'success', texto: `Exportacao ${formato.toUpperCase()} concluida.` });
     } catch (error) {
       setMensagem({
         tipo: 'error',
-        texto: error instanceof Error ? error.message : 'Erro ao Exportar Relatório',
+        texto: error instanceof Error ? error.message : 'Erro ao exportar relatorio',
       });
     } finally {
       setExportando(null);
@@ -190,8 +472,10 @@ export function ExportacoesPage(): JSX.Element {
   const handlePreview = useCallback(
     async (tipo: string) => {
       if (!validarPeriodo()) return;
+
       setExportando(`${tipo}-preview`);
       setMensagem(null);
+
       try {
         if (tipo === 'gerencial') {
           setPreviewOperacional(null);
@@ -212,15 +496,18 @@ export function ExportacoesPage(): JSX.Element {
               quantidade: number;
             }[];
           }>(`/relatorios/operacional?dataInicio=${dataInicio}&dataFim=${dataFim}`);
+
           setPreviewOperacional(
-            (data.registros ?? []).map((r) => ({
-              id: r.id,
-              data: formatDateBR(r.data_producao),
-              colaborador: r.colaborador ?? '',
-              etapa: r.etapa ?? '',
-              funcao: r.funcao ?? '',
-              repositorio: r.repositorio ?? '',
-              quantidade: Number.isFinite(Number(r.quantidade)) ? Number(r.quantidade) : Number.NaN,
+            (data.registros ?? []).map((registro) => ({
+              id: registro.id,
+              data: formatDateBR(registro.data_producao),
+              colaborador: registro.colaborador ?? '',
+              etapa: registro.etapa ?? '',
+              funcao: registro.funcao ?? '',
+              repositorio: registro.repositorio ?? '',
+              quantidade: Number.isFinite(Number(registro.quantidade))
+                ? Number(registro.quantidade)
+                : Number.NaN,
             }))
           );
         }
@@ -233,7 +520,7 @@ export function ExportacoesPage(): JSX.Element {
         setExportando(null);
       }
     },
-    [validarPeriodo, dataInicio, dataFim]
+    [dataFim, dataInicio, validarPeriodo]
   );
 
   useEffect(() => {
@@ -260,76 +547,66 @@ export function ExportacoesPage(): JSX.Element {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Exportações</h1>
-        <p className="text-gray-500 mt-1">Exporte Relatórios em PDF e Excel</p>
+        <h1 className="text-2xl font-bold text-gray-900">Exportacoes</h1>
+        <p className="mt-1 text-gray-500">Exporte relatorios em PDF e Excel.</p>
       </div>
 
-      {mensagem && (
+      {mensagem ? (
         <ActionFeedback
           type={mensagem.tipo}
           title=""
           message={mensagem.texto}
           onDismiss={() => setMensagem(null)}
         />
-      )}
+      ) : null}
 
-      {/* Filtro de período */}
       <Card padding="none">
         <div className="p-4">
-          <h2 className="text-sm font-semibold text-[var(--color-text-primary)] mb-3">
-            Período da Exportação
+          <h2 className="mb-3 text-sm font-semibold text-[var(--color-text-primary)]">
+            Periodo da exportacao
           </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Input
-              label="Data Início"
-              type="date"
-              value={dataInicio}
-              max={dataFim || undefined}
-              onChange={(e) => setDataInicio(e.target.value)}
-            />
-            <Input
-              label="Data Final"
-              type="date"
-              value={dataFim}
-              min={dataInicio || undefined}
-              onChange={(e) => setDataFim(e.target.value)}
-            />
-          </div>
+          <DateRangePicker
+            startDate={dataInicio}
+            endDate={dataFim}
+            onStartDateChange={setDataInicio}
+            onEndDateChange={setDataFim}
+          />
         </div>
       </Card>
 
-      {/* Export cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {EXPORTACOES.map((item) => {
           const colors = colorClasses[item.color] ?? colorClasses.blue!;
+
           return (
             <div
               key={item.id}
-              className={`bg-[var(--color-bg-primary)] rounded-xl border ${colors.border} shadow-sm overflow-hidden`}
+              className={`overflow-hidden rounded-xl border ${colors.border} bg-[var(--color-bg-primary)] shadow-sm`}
             >
               <div className="p-5">
                 <div className="flex items-start gap-4">
-                  <div className={`p-3 ${colors.bg} rounded-xl shrink-0`}>
-                    <Icon name={item.icon} className={`w-6 h-6 ${colors.icon}`} />
+                  <div className={`shrink-0 rounded-xl p-3 ${colors.bg}`}>
+                    <Icon name={item.icon} className={`h-6 w-6 ${colors.icon}`} />
                   </div>
-                  <div className="flex-1 min-w-0">
+                  <div className="min-w-0 flex-1">
                     <h3 className="text-base font-semibold text-gray-900">{item.nome}</h3>
-                    <p className="text-sm text-gray-500 mt-1">{item.descricao}</p>
+                    <p className="mt-1 text-sm text-gray-500">{item.descricao}</p>
                     <ul className="mt-3 space-y-1">
-                      {item.detalhes.map((d, i) => (
-                        <li key={i} className="flex items-start gap-2 text-xs text-gray-600">
+                      {item.detalhes.map((detail, index) => (
+                        <li key={index} className="flex items-start gap-2 text-xs text-gray-600">
                           <Icon
                             name="check"
-                            className={`w-3.5 h-3.5 ${colors.icon} shrink-0 mt-0.5`}
+                            className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${colors.icon}`}
                           />
-                          <span>{d}</span>
+                          <span>{detail}</span>
                         </li>
                       ))}
                     </ul>
                   </div>
                 </div>
               </div>
-              <div className="px-5 py-3 bg-gray-50 border-t flex flex-wrap items-center gap-2">
+
+              <div className="flex flex-col gap-2 border-t bg-gray-50 px-5 py-3 sm:flex-row sm:flex-wrap sm:items-center">
                 <Button
                   variant="outline"
                   size="sm"
@@ -337,10 +614,12 @@ export function ExportacoesPage(): JSX.Element {
                   onClick={() => void handlePreview(item.id)}
                   loading={exportando === `${item.id}-preview`}
                   disabled={exportando !== null}
+                  fullWidth
                 >
                   Visualizar
                 </Button>
-                {item.formatos.includes('pdf') && (
+
+                {item.formatos.includes('pdf') ? (
                   <Button
                     variant="secondary"
                     size="sm"
@@ -348,11 +627,13 @@ export function ExportacoesPage(): JSX.Element {
                     onClick={() => void handleExportar(item.id, 'pdf')}
                     loading={exportando === `${item.id}-pdf`}
                     disabled={exportando !== null}
+                    fullWidth
                   >
                     PDF
                   </Button>
-                )}
-                {item.formatos.includes('excel') && (
+                ) : null}
+
+                {item.formatos.includes('excel') ? (
                   <Button
                     variant="secondary"
                     size="sm"
@@ -360,214 +641,45 @@ export function ExportacoesPage(): JSX.Element {
                     onClick={() => void handleExportar(item.id, 'excel')}
                     loading={exportando === `${item.id}-excel`}
                     disabled={exportando !== null}
+                    fullWidth
                   >
                     Excel
                   </Button>
-                )}
-                <span className="text-xs text-gray-400 ml-auto">
-                  {item.formatos.map((f) => f.toUpperCase()).join(' / ')}
+                ) : null}
+
+                <span className="text-xs text-gray-400 sm:ml-auto">
+                  {item.formatos.map((format) => format.toUpperCase()).join(' / ')}
                 </span>
               </div>
             </div>
           );
         })}
       </div>
-      {/* Preview modal — gerencial JSON */}
+
       {previewData ? (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-[var(--color-bg-primary)] rounded-xl shadow-xl w-full max-w-3xl max-h-[85vh] flex flex-col overflow-hidden animate-scale-in">
-            <div className="px-6 py-4 border-b flex items-center justify-between shrink-0">
-              <h3 className="text-lg font-semibold text-gray-900">Preview — Relatório Gerencial</h3>
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  onClick={() => {
-                    setPreviewData(null);
-                    void handleExportar('gerencial', 'pdf');
-                  }}
-                >
-                  Exportar PDF
-                </Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => {
-                    setPreviewData(null);
-                    void handleExportar('gerencial', 'excel');
-                  }}
-                >
-                  Exportar Excel
-                </Button>
-                <Button size="sm" variant="secondary" onClick={() => setPreviewData(null)}>
-                  Fechar
-                </Button>
-              </div>
-            </div>
-            <div className="flex-1 overflow-auto p-6 space-y-4">
-              {/* Totais */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="bg-gray-50 rounded-lg p-3 text-center">
-                  <p className="text-xs text-gray-500">Total Caixas</p>
-                  <p className="text-lg font-bold text-gray-900">
-                    {formatCriticalNumber(previewData.totais.totalCaixas)}
-                  </p>
-                </div>
-                <div className="bg-gray-50 rounded-lg p-3 text-center">
-                  <p className="text-xs text-gray-500">Total Imagens</p>
-                  <p className="text-lg font-bold text-gray-900">
-                    {formatCriticalNumber(previewData.totais.totalImagens)}
-                  </p>
-                </div>
-                <div className="bg-gray-50 rounded-lg p-3 text-center">
-                  <p className="text-xs text-gray-500">Colaboradores</p>
-                  <p className="text-lg font-bold text-gray-900">
-                    {previewData.totais.totalColaboradores}
-                  </p>
-                </div>
-                <div className="bg-gray-50 rounded-lg p-3 text-center">
-                  <p className="text-xs text-gray-500">Coordenadorias</p>
-                  <p className="text-lg font-bold text-gray-900">
-                    {previewData.totais.totalCoordenadorias}
-                  </p>
-                </div>
-              </div>
-              {/* Resumo por Etapa */}
-              {previewData.resumoPorEtapa.length > 0 && (
-                <div>
-                  <h4 className="text-sm font-semibold text-gray-800 mb-2">Resumo por Etapa</h4>
-                  <table className="min-w-full divide-y divide-gray-200 text-sm">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">
-                          Etapa
-                        </th>
-                        <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">
-                          Total
-                        </th>
-                        <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">
-                          Unidade
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                      {previewData.resumoPorEtapa.map((r) => (
-                        <tr key={r.etapaNome} className="hover:bg-gray-50">
-                          <td className="px-3 py-2 text-gray-700">{r.etapaNome}</td>
-                          <td className="px-3 py-2 text-right text-gray-900 font-medium">
-                            {formatCriticalNumber(r.totalQuantidade)}
-                          </td>
-                          <td className="px-3 py-2 text-right text-gray-500 text-xs">
-                            {r.unidade}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-              {/* Por Coordenadoria */}
-              {previewData.producaoPorCoordenadoria.length > 0 && (
-                <div>
-                  <h4 className="text-sm font-semibold text-gray-800 mb-2">
-                    Por Coordenadoria ({previewData.producaoPorCoordenadoria.length})
-                  </h4>
-                  <div className="space-y-1">
-                    {previewData.producaoPorCoordenadoria.map((c) => (
-                      <div
-                        key={c.coordenadoriaSigla}
-                        className="flex items-center justify-between p-2 bg-gray-50 rounded"
-                      >
-                        <span className="text-sm text-gray-700">
-                          {c.coordenadoriaNome} ({c.coordenadoriaSigla})
-                        </span>
-                        <span className="text-sm font-medium text-gray-900">
-                          {formatCriticalNumber(c.totalCaixas)} caixas |{' '}
-                          {formatCriticalNumber(c.totalImagens)} imagens
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+        <PreviewGerencialModal
+          data={previewData}
+          onClose={() => setPreviewData(null)}
+          onExportPdf={() => {
+            setPreviewData(null);
+            void handleExportar('gerencial', 'pdf');
+          }}
+          onExportExcel={() => {
+            setPreviewData(null);
+            void handleExportar('gerencial', 'excel');
+          }}
+        />
       ) : null}
 
-      {/* Preview modal — operacional data table */}
       {previewOperacional ? (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-[var(--color-bg-primary)] rounded-xl shadow-xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden animate-scale-in">
-            <div className="px-6 py-4 border-b flex items-center justify-between shrink-0">
-              <h3 className="text-lg font-semibold text-gray-900">
-                Preview — Detalhamento Operacional ({previewOperacional.length} registros)
-              </h3>
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  onClick={() => {
-                    setPreviewOperacional(null);
-                    void handleExportar('operacional', 'excel');
-                  }}
-                >
-                  Exportar Excel
-                </Button>
-                <Button size="sm" variant="secondary" onClick={() => setPreviewOperacional(null)}>
-                  Fechar
-                </Button>
-              </div>
-            </div>
-            <div className="flex-1 overflow-auto p-4">
-              {previewOperacional.length === 0 ? (
-                <p className="text-sm text-gray-500 py-8 text-center">
-                  Nenhum registro encontrado no período.
-                </p>
-              ) : (
-                <table className="min-w-full divide-y divide-gray-200 text-sm">
-                  <thead className="bg-gray-50 sticky top-0">
-                    <tr>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">
-                        Data
-                      </th>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">
-                        Colaborador
-                      </th>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">
-                        Etapa
-                      </th>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">
-                        Repositório
-                      </th>
-                      <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">
-                        Qtd
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {previewOperacional.slice(0, 100).map((row, idx) => (
-                      <tr key={row.id || idx} className="hover:bg-gray-50">
-                        <td className="px-3 py-1.5 text-gray-700">{row.data}</td>
-                        <td className="px-3 py-1.5 text-gray-700">{row.colaborador}</td>
-                        <td className="px-3 py-1.5 text-gray-700">{row.etapa}</td>
-                        <td className="px-3 py-1.5 text-gray-700 font-mono text-xs">
-                          {row.repositorio}
-                        </td>
-                        <td className="px-3 py-1.5 text-right text-gray-900 font-medium">
-                          {formatCriticalNumber(row.quantidade)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-              {previewOperacional.length > 100 && (
-                <p className="text-xs text-gray-400 mt-2 text-center">
-                  Mostrando 100 de {previewOperacional.length} registros. Exporte para ver todos.
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
+        <PreviewOperacionalModal
+          rows={previewOperacional}
+          onClose={() => setPreviewOperacional(null)}
+          onExportExcel={() => {
+            setPreviewOperacional(null);
+            void handleExportar('operacional', 'excel');
+          }}
+        />
       ) : null}
     </div>
   );

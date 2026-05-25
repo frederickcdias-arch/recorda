@@ -1,23 +1,24 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Icon } from '../../components/ui/Icon';
 import { Button } from '../../components/ui/Button';
+import { Card } from '../../components/ui/Card';
+import { DateRangePicker } from '../../components/ui/DateRangePicker';
+import { FilterBar } from '../../components/ui/FilterBar';
+import { Icon } from '../../components/ui/Icon';
 import { ActionFeedback } from '../../components/ui/PageState';
 import { PageHeader } from '../../components/ui/PageHeader';
-import { FilterBar } from '../../components/ui/FilterBar';
-import { DateRangePicker } from '../../components/ui/DateRangePicker';
 import { Select } from '../../components/ui/Select';
 import {
   Table,
-  TableHead,
   TableBody,
-  TableRow,
-  TableHeader,
   TableCell,
   TableEmptyState,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from '../../components/ui/Table';
-import { api } from '../../services/api';
 import { useCoordenadorias } from '../../hooks/useQueries';
+import { api } from '../../services/api';
 import { formatDateBR, formatDateTimeBR } from '../../utils/date';
 import { formatCriticalNumber } from '../../utils/number';
 
@@ -81,8 +82,21 @@ interface RelatorioCompleto {
   };
 }
 
-function formatNum(n: unknown): string {
-  return formatCriticalNumber(n);
+function formatNum(value: unknown): string {
+  return formatCriticalNumber(value);
+}
+
+function ordemEtapa(nome: string): number {
+  const normalized = nome.toUpperCase();
+  if (normalized.includes('RECEBIMENTO')) return 1;
+  if (normalized.includes('PREPARA')) return 2;
+  if (normalized.includes('P/B')) return 3;
+  if (normalized.includes('COLORIDA')) return 4;
+  if (normalized.includes('CONFERENC')) return 5;
+  if (normalized.includes('MONTAGEM')) return 6;
+  if (normalized.includes('RECONFERENC') || normalized.includes('CONTROLE')) return 7;
+  if (normalized.includes('ENTREGA')) return 8;
+  return 99;
 }
 
 export function RelatoriosGerenciaisPage(): JSX.Element {
@@ -117,7 +131,7 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
     setDataInicio(filtrosUrl.dataInicio);
     setDataFim(filtrosUrl.dataFim);
     setCoordenadoriaId(filtrosUrl.coordenadoriaId);
-  }, [filtrosUrl.dataInicio, filtrosUrl.dataFim, filtrosUrl.coordenadoriaId]);
+  }, [filtrosUrl.coordenadoriaId, filtrosUrl.dataFim, filtrosUrl.dataInicio]);
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -139,14 +153,14 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
         { replace: true }
       );
     }
-  }, [dataInicio, dataFim, coordenadoriaId, location.pathname, location.search, navigate]);
+  }, [coordenadoriaId, dataFim, dataInicio, location.pathname, location.search, navigate]);
 
   const validarPeriodo = useCallback((): boolean => {
     if (!dataInicio || !dataFim) {
       setMensagem({
         tipo: 'error',
         texto: 'Período obrigatório',
-        detalhes: 'Selecione a data de início e fim para gerar o relatório',
+        detalhes: 'Selecione a data de início e fim para gerar o relatório.',
       });
       return false;
     }
@@ -154,12 +168,12 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
       setMensagem({
         tipo: 'error',
         texto: 'Período inválido',
-        detalhes: 'A data de início deve ser anterior à data de fim',
+        detalhes: 'A data de início deve ser anterior à data de fim.',
       });
       return false;
     }
     return true;
-  }, [dataInicio, dataFim]);
+  }, [dataFim, dataInicio]);
 
   const handleVisualizar = useCallback(async (): Promise<void> => {
     if (!validarPeriodo()) return;
@@ -171,19 +185,22 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
     try {
       const params = new URLSearchParams({ dataInicio, dataFim, formato: 'json' });
       if (coordenadoriaId) params.set('coordenadoriaId', coordenadoriaId);
-
       const data = await api.get<RelatorioCompleto>(`/relatorios?${params.toString()}`);
       setRelatorio(data);
     } catch (error: unknown) {
-      const msg =
+      const detalhes =
         error instanceof Error
           ? error.message
           : ((error as { error?: string })?.error ?? 'Erro ao carregar relatório');
-      setMensagem({ tipo: 'error', texto: 'Erro ao gerar relatório', detalhes: msg });
+      setMensagem({
+        tipo: 'error',
+        texto: 'Erro ao gerar relatório',
+        detalhes,
+      });
     } finally {
       setCarregandoRelatorio(false);
     }
-  }, [validarPeriodo, dataInicio, dataFim, coordenadoriaId]);
+  }, [coordenadoriaId, dataFim, dataInicio, validarPeriodo]);
 
   useEffect(() => {
     if (!dataInicio || !dataFim) {
@@ -195,7 +212,7 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
       setMensagem({
         tipo: 'error',
         texto: 'Período inválido',
-        detalhes: 'A data de início deve ser anterior à data de fim',
+        detalhes: 'A data de início deve ser anterior à data de fim.',
       });
       return;
     }
@@ -227,13 +244,17 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
       });
     } catch (error) {
       if (error instanceof Error && error.message.includes('Sessão expirada')) {
-        setMensagem({ tipo: 'error', texto: 'Sessão expirada', detalhes: 'Faça login novamente.' });
+        setMensagem({
+          tipo: 'error',
+          texto: 'Sessão expirada',
+          detalhes: 'Faça login novamente.',
+        });
       } else {
         setMensagem({
           tipo: 'error',
           texto: 'Erro ao exportar relatório',
           detalhes:
-            error instanceof Error ? error.message : 'Verifique sua conexão e tente novamente',
+            error instanceof Error ? error.message : 'Verifique sua conexão e tente novamente.',
         });
       }
     } finally {
@@ -241,56 +262,48 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
     }
   };
 
-  // Ordem dos serviços: Recebimento, Preparação, Digitalização P/B, Digitalização Colorida, Conferência, Montagem, Reconferência
-  const ordemEtapa = (nome: string): number => {
-    const n = nome.toUpperCase();
-    if (n.includes('RECEBIMENTO')) return 1;
-    if (n.includes('PREPARAÇ') || n.includes('PREPARAC')) return 2;
-    if (n.includes('P/B')) return 3;
-    if (n.includes('COLORIDA')) return 4;
-    if (n.includes('CONFERÊNC') || n.includes('CONFERENC')) return 5;
-    if (n.includes('MONTAGEM')) return 6;
-    if (n.includes('RECONFERÊNC') || n.includes('RECONFERENC') || n.includes('CONTROLE')) return 7;
-    if (n.includes('ENTREGA')) return 8;
-    return 99;
-  };
+  const coordEtapaRows = useMemo(() => {
+    const rows: { coordenadoria: string; etapa: string; total: number }[] = [];
+    if (!relatorio) return rows;
 
-  // Montar linhas da tabela "Por Coordenadoria e Etapa"
-  const coordEtapaRows: { coordenadoria: string; etapa: string; total: number }[] = [];
-  if (relatorio) {
-    for (const coord of relatorio.producaoPorCoordenadoria) {
-      for (const etapa of coord.totaisPorEtapa) {
-        coordEtapaRows.push({
-          coordenadoria: coord.coordenadoriaSigla || coord.coordenadoriaNome,
+    for (const coordenadoria of relatorio.producaoPorCoordenadoria) {
+      for (const etapa of coordenadoria.totaisPorEtapa) {
+        rows.push({
+          coordenadoria:
+            coordenadoria.coordenadoriaSigla || coordenadoria.coordenadoriaNome || '—',
           etapa: etapa.etapaNome,
           total: etapa.quantidade,
         });
       }
     }
-    coordEtapaRows.sort(
+
+    rows.sort(
       (a, b) =>
         a.coordenadoria.localeCompare(b.coordenadoria) || ordemEtapa(a.etapa) - ordemEtapa(b.etapa)
     );
-  }
+    return rows;
+  }, [relatorio]);
 
-  // Montar linhas da tabela "Produção por Colaborador" (agregar por colaborador+função across coordenadorias)
-  const colabRows: { colaborador: string; etapa: string; producao: number; unidade: string }[] = [];
-  if (relatorio) {
-    const colabMap = new Map<
+  const colabRows = useMemo(() => {
+    const rows: { colaborador: string; etapa: string; producao: number; unidade: string }[] = [];
+    if (!relatorio) return rows;
+
+    const map = new Map<
       string,
       { colaborador: string; etapa: string; producao: number; unidade: string }
     >();
-    for (const coord of relatorio.producaoPorCoordenadoria) {
-      for (const colab of coord.colaboradores) {
-        const nomeNorm = colab.colaboradorNome.trim().toLowerCase();
-        for (const etapa of colab.etapas) {
-          const chave = `${nomeNorm}||${etapa.etapaNome.toLowerCase()}`;
-          const existing = colabMap.get(chave);
+
+    for (const coordenadoria of relatorio.producaoPorCoordenadoria) {
+      for (const colaborador of coordenadoria.colaboradores) {
+        const nomeNorm = colaborador.colaboradorNome.trim().toLowerCase();
+        for (const etapa of colaborador.etapas) {
+          const key = `${nomeNorm}||${etapa.etapaNome.toLowerCase()}`;
+          const existing = map.get(key);
           if (existing) {
             existing.producao += etapa.quantidade;
           } else {
-            colabMap.set(chave, {
-              colaborador: colab.colaboradorNome,
+            map.set(key, {
+              colaborador: colaborador.colaboradorNome,
               etapa: etapa.etapaNome,
               producao: etapa.quantidade,
               unidade: etapa.unidade,
@@ -299,39 +312,41 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
         }
       }
     }
-    colabRows.push(...colabMap.values());
-    colabRows.sort(
+
+    rows.push(...map.values());
+    rows.sort(
       (a, b) =>
         a.colaborador.localeCompare(b.colaborador) || ordemEtapa(a.etapa) - ordemEtapa(b.etapa)
     );
-  }
+    return rows;
+  }, [relatorio]);
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Relatórios Gerenciais"
+        title="Relatórios gerenciais"
         subtitle="Resumo consolidado da produção por período, coordenadoria e colaborador."
       />
 
-      {mensagem && (
+      {mensagem ? (
         <ActionFeedback
           type={mensagem.tipo}
           title={mensagem.texto}
           message={mensagem.detalhes ?? ''}
           onDismiss={() => setMensagem(null)}
         />
-      )}
+      ) : null}
 
-      {/* Filtros */}
       <FilterBar
         actions={
-          <div className="flex flex-wrap gap-2">
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap">
             <Button
               variant="primary"
               icon="search"
               onClick={() => void handleVisualizar()}
               loading={carregandoRelatorio}
               disabled={carregandoRelatorio || gerando !== null}
+              fullWidth
             >
               Gerar visualização
             </Button>
@@ -341,6 +356,7 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
               onClick={() => void handleExportar('pdf')}
               loading={gerando === 'pdf'}
               disabled={gerando !== null || carregandoRelatorio}
+              fullWidth
             >
               PDF
             </Button>
@@ -350,57 +366,61 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
               onClick={() => void handleExportar('excel')}
               loading={gerando === 'excel'}
               disabled={gerando !== null || carregandoRelatorio}
+              fullWidth
             >
               Excel
             </Button>
           </div>
         }
       >
-        <div className="sm:col-span-2 lg:col-span-2">
+        <div className="sm:col-span-2 xl:col-span-2">
           <DateRangePicker
             startDate={dataInicio}
             endDate={dataFim}
             onStartDateChange={setDataInicio}
             onEndDateChange={setDataFim}
-            showPresets={false}
           />
         </div>
         <Select
           label="Coordenadoria"
           value={coordenadoriaId}
-          onChange={(e) => setCoordenadoriaId(e.target.value)}
+          onChange={(event) => setCoordenadoriaId(event.target.value)}
           disabled={carregandoCoordenadorias}
           options={[
             { value: '', label: carregandoCoordenadorias ? 'Carregando...' : 'Todas' },
-            ...coordenadorias.map((c) => ({ value: c.id, label: `${c.sigla} - ${c.nome}` })),
+            ...coordenadorias.map((coordenadoria) => ({
+              value: coordenadoria.id,
+              label: `${coordenadoria.sigla} - ${coordenadoria.nome}`,
+            })),
           ]}
         />
       </FilterBar>
 
-      {/* Dados do Relatório */}
-      {relatorio && (
+      {relatorio ? (
         <>
-          {/* Cabeçalho do relatório */}
-          <div className="bg-[var(--color-primary-50)] rounded-xl p-4 border border-[var(--color-primary-200)] text-center">
+          <Card
+            padding="sm"
+            className="border-[var(--color-primary-200)] bg-[var(--color-primary-50)] text-center"
+          >
             <h3 className="text-lg font-bold text-[var(--color-primary-900)]">
               {relatorio.titulo.toUpperCase()}
             </h3>
-            <p className="text-sm text-[var(--color-primary-700)] mt-1">
+            <p className="mt-1 text-sm text-[var(--color-primary-700)]">
               Período: {formatDateBR(relatorio.periodo.inicio)} a{' '}
-              {formatDateBR(relatorio.periodo.fim)}
-              {' | '}Emitido em: {formatDateTimeBR(relatorio.dataGeracao)}
+              {formatDateBR(relatorio.periodo.fim)} | Emitido em:{' '}
+              {formatDateTimeBR(relatorio.dataGeracao)}
             </p>
-          </div>
+          </Card>
 
-          {/* RESUMO GERAL POR ETAPA */}
-          <div className="bg-[var(--color-bg-primary)] rounded-xl shadow-xs border border-[var(--color-border-primary)] overflow-hidden">
-            <div className="flex items-center gap-2 px-5 py-3 bg-primary-800 text-white">
-              <Icon name="bar-chart" className="w-4 h-4" />
-              <h3 className="font-semibold text-sm">RESUMO GERAL POR ETAPA</h3>
+          <section className="overflow-hidden rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] shadow-xs">
+            <div className="flex items-center gap-2 bg-primary-800 px-5 py-3 text-white">
+              <Icon name="bar-chart" className="h-4 w-4" />
+              <h3 className="text-sm font-semibold">Resumo geral por etapa</h3>
             </div>
+
             <div className="space-y-2 p-3 md:hidden">
               {relatorio.resumoPorEtapa.map((etapa) => (
-                <div key={etapa.etapaId} className="rounded-lg border border-gray-200 p-3">
+                <Card key={etapa.etapaId} padding="sm" className="border border-gray-200 shadow-none">
                   <p className="text-sm font-medium text-gray-900">{etapa.etapaNome}</p>
                   <div className="mt-1 flex items-center justify-between text-xs">
                     <span className="text-gray-500">{etapa.unidade}</span>
@@ -408,21 +428,22 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
                       {formatNum(etapa.totalQuantidade)}
                     </span>
                   </div>
-                </div>
+                </Card>
               ))}
-              <div className="rounded-lg bg-gray-50 p-3">
-                <p className="text-xs font-semibold text-gray-600">TOTAL CAIXAS</p>
+              <Card padding="sm" className="bg-gray-50 shadow-none">
+                <p className="text-xs font-semibold text-gray-600">Total caixas</p>
                 <p className="mt-1 text-sm font-bold text-gray-900 tabular-nums">
                   {formatNum(relatorio.totais.totalCaixas)}
                 </p>
-              </div>
-              <div className="rounded-lg bg-gray-50 p-3">
-                <p className="text-xs font-semibold text-gray-600">TOTAL IMAGENS</p>
+              </Card>
+              <Card padding="sm" className="bg-gray-50 shadow-none">
+                <p className="text-xs font-semibold text-gray-600">Total imagens</p>
                 <p className="mt-1 text-sm font-bold text-gray-900 tabular-nums">
                   {formatNum(relatorio.totais.totalImagens)}
                 </p>
-              </div>
+              </Card>
             </div>
+
             <div className="hidden md:block">
               <Table>
                 <TableHead>
@@ -443,14 +464,14 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
                     </TableRow>
                   ))}
                   <TableRow>
-                    <TableCell className="font-bold">TOTAL CAIXAS</TableCell>
+                    <TableCell className="font-bold">Total caixas</TableCell>
                     <TableCell align="right" className="font-bold tabular-nums">
                       {formatNum(relatorio.totais.totalCaixas)}
                     </TableCell>
                     <TableCell className="font-bold">CAIXAS</TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell className="font-bold">TOTAL IMAGENS</TableCell>
+                    <TableCell className="font-bold">Total imagens</TableCell>
                     <TableCell align="right" className="font-bold tabular-nums">
                       {formatNum(relatorio.totais.totalImagens)}
                     </TableCell>
@@ -459,24 +480,25 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
                 </TableBody>
               </Table>
             </div>
-          </div>
+          </section>
 
-          {/* POR COORDENADORIA E ETAPA */}
-          <div className="bg-[var(--color-bg-primary)] rounded-xl shadow-xs border border-[var(--color-border-primary)] overflow-hidden">
-            <div className="flex items-center gap-2 px-5 py-3 bg-primary-700 text-white">
-              <Icon name="building" className="w-4 h-4" />
-              <h3 className="font-semibold text-sm">POR COORDENADORIA E ETAPA</h3>
+          <section className="overflow-hidden rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] shadow-xs">
+            <div className="flex items-center gap-2 bg-primary-700 px-5 py-3 text-white">
+              <Icon name="building" className="h-4 w-4" />
+              <h3 className="text-sm font-semibold">Por coordenadoria e etapa</h3>
             </div>
+
             <div className="space-y-2 p-3 md:hidden">
               {coordEtapaRows.length === 0 ? (
                 <div className="rounded-lg border border-dashed border-gray-200 p-4 text-center text-sm text-gray-400">
                   Sem dados
                 </div>
               ) : (
-                coordEtapaRows.map((row, i) => (
-                  <div
-                    key={`${row.coordenadoria}-${row.etapa}-${i}`}
-                    className="rounded-lg border border-gray-200 p-3"
+                coordEtapaRows.map((row, index) => (
+                  <Card
+                    key={`${row.coordenadoria}-${row.etapa}-${index}`}
+                    padding="sm"
+                    className="border border-gray-200 shadow-none"
                   >
                     <p className="text-sm font-medium text-gray-900">{row.coordenadoria}</p>
                     <div className="mt-1 flex items-center justify-between text-xs">
@@ -485,10 +507,11 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
                         {formatNum(row.total)}
                       </span>
                     </div>
-                  </div>
+                  </Card>
                 ))
               )}
             </div>
+
             <div className="hidden md:block">
               <Table>
                 <TableHead>
@@ -502,8 +525,8 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
                   {coordEtapaRows.length === 0 ? (
                     <TableEmptyState colSpan={3} title="Sem dados" />
                   ) : (
-                    coordEtapaRows.map((row, i) => (
-                      <TableRow key={`${row.coordenadoria}-${row.etapa}-${i}`}>
+                    coordEtapaRows.map((row, index) => (
+                      <TableRow key={`${row.coordenadoria}-${row.etapa}-${index}`}>
                         <TableCell className="font-medium">{row.coordenadoria}</TableCell>
                         <TableCell>{row.etapa}</TableCell>
                         <TableCell align="right" className="tabular-nums">
@@ -515,24 +538,25 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
                 </TableBody>
               </Table>
             </div>
-          </div>
+          </section>
 
-          {/* Produção por colaborador */}
-          <div className="bg-[var(--color-bg-primary)] rounded-xl shadow-xs border border-[var(--color-border-primary)] overflow-hidden">
-            <div className="flex items-center gap-2 px-5 py-3 bg-primary-600 text-white">
-              <Icon name="users" className="w-4 h-4" />
-              <h3 className="font-semibold text-sm">Produção por colaborador</h3>
+          <section className="overflow-hidden rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] shadow-xs">
+            <div className="flex items-center gap-2 bg-primary-600 px-5 py-3 text-white">
+              <Icon name="users" className="h-4 w-4" />
+              <h3 className="text-sm font-semibold">Produção por colaborador</h3>
             </div>
+
             <div className="space-y-2 p-3 md:hidden">
               {colabRows.length === 0 ? (
                 <div className="rounded-lg border border-dashed border-gray-200 p-4 text-center text-sm text-gray-400">
                   Sem dados
                 </div>
               ) : (
-                colabRows.map((row, i) => (
-                  <div
-                    key={`${row.colaborador}-${row.etapa}-${i}`}
-                    className="rounded-lg border border-gray-200 p-3"
+                colabRows.map((row, index) => (
+                  <Card
+                    key={`${row.colaborador}-${row.etapa}-${index}`}
+                    padding="sm"
+                    className="border border-gray-200 shadow-none"
                   >
                     <p className="text-sm font-medium text-gray-900">{row.colaborador}</p>
                     <div className="mt-1 flex items-center justify-between text-xs">
@@ -541,10 +565,11 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
                         {formatNum(row.producao)} {row.unidade}
                       </span>
                     </div>
-                  </div>
+                  </Card>
                 ))
               )}
             </div>
+
             <div className="hidden md:block">
               <Table>
                 <TableHead>
@@ -558,8 +583,8 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
                   {colabRows.length === 0 ? (
                     <TableEmptyState colSpan={3} title="Sem dados" />
                   ) : (
-                    colabRows.map((row, i) => (
-                      <TableRow key={`${row.colaborador}-${row.etapa}-${i}`}>
+                    colabRows.map((row, index) => (
+                      <TableRow key={`${row.colaborador}-${row.etapa}-${index}`}>
                         <TableCell className="font-medium">{row.colaborador}</TableCell>
                         <TableCell>{row.etapa}</TableCell>
                         <TableCell align="right" className="tabular-nums">
@@ -571,15 +596,14 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
                 </TableBody>
               </Table>
             </div>
-          </div>
+          </section>
 
-          {/* GLOSSÁRIO */}
-          <div className="bg-[var(--color-bg-primary)] rounded-xl shadow-xs border border-[var(--color-border-primary)] overflow-hidden">
-            <div className="flex items-center gap-2 px-5 py-3 bg-[var(--color-gray-600)] text-white">
-              <Icon name="book" className="w-4 h-4" />
-              <h3 className="font-semibold text-sm">Glossário das etapas</h3>
+          <section className="overflow-hidden rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] shadow-xs">
+            <div className="flex items-center gap-2 bg-[var(--color-gray-600)] px-5 py-3 text-white">
+              <Icon name="book" className="h-4 w-4" />
+              <h3 className="text-sm font-semibold">Glossário das etapas</h3>
             </div>
-            <div className="p-5 space-y-2">
+            <div className="space-y-2 p-5">
               {relatorio.glossario.map((item) => (
                 <p key={item.termo} className="text-sm text-gray-700">
                   <span className="font-semibold text-gray-900">{item.termo}:</span>{' '}
@@ -587,20 +611,20 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
                 </p>
               ))}
             </div>
-          </div>
+          </section>
         </>
-      )}
+      ) : null}
 
-      {/* Estado vazio */}
-      {!relatorio && !carregandoRelatorio && (
-        <div className="bg-gray-50 rounded-xl p-10 text-center border border-gray-200">
-          <Icon name="file-text" className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500 text-sm">
+      {!relatorio && !carregandoRelatorio ? (
+        <div className="rounded-xl border border-gray-200 bg-gray-50 p-10 text-center">
+          <Icon name="file-text" className="mx-auto mb-3 h-12 w-12 text-gray-300" />
+          <p className="text-sm text-gray-500">
             Selecione o período e clique em <strong>Gerar visualização</strong> para gerar o
             relatório.
           </p>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
+

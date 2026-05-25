@@ -97,8 +97,8 @@ export function DateRangePicker({
   endDate,
   onStartDateChange,
   onEndDateChange,
-  startLabel = 'Data Início',
-  endLabel = 'Data Final',
+  startLabel = 'Data início',
+  endLabel = 'Data fim',
   disabled = false,
   className,
   showPresets = false,
@@ -120,7 +120,7 @@ export function DateRangePicker({
           value={startDate}
           max={endDate || undefined}
           disabled={disabled}
-          onChange={(e) => onStartDateChange(e.target.value)}
+          onChange={(event) => onStartDateChange(event.target.value)}
         />
         <Input
           type="date"
@@ -128,7 +128,7 @@ export function DateRangePicker({
           value={endDate}
           min={startDate || undefined}
           disabled={disabled}
-          onChange={(e) => onEndDateChange(e.target.value)}
+          onChange={(event) => onEndDateChange(event.target.value)}
         />
       </div>
 
