@@ -173,14 +173,14 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
 
   const invalidate = () => void queryClient.invalidateQueries({ queryKey: ['auditoria'] });
 
-  const handleCopiar = (id: string, content: unknown) => {
-    void navigator.clipboard.writeText(JSON.stringify(content, null, 2)).then(() => {
+  const handleCopiar = (id: string, content: unknown): void => {
+    void navigator.clipboard.writeText(JSON.stringify(content, null, 2)).then((): void => {
       setCopiadoId(id);
-      setTimeout(() => setCopiadoId((prev) => (prev === id ? null : prev)), 1500);
+      setTimeout((): void => setCopiadoId((prev) => (prev === id ? null : prev)), 1500);
     });
   };
 
-  const formatarData = (data: string) => {
+  const formatarData = (data: string): string => {
     return new Date(data).toLocaleString('pt-BR');
   };
 
@@ -195,7 +195,7 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
     );
   };
 
-  const getOperacaoIcon = (operacao: string) => {
+  const getOperacaoIcon = (operacao: string): string => {
     const icons: Record<string, string> = {
       INSERT: 'plus',
       UPDATE: 'edit',
@@ -204,7 +204,7 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
     return icons[operacao] || 'activity';
   };
 
-  const getTabelaNome = (tabela: string) => {
+  const getTabelaNome = (tabela: string): string => {
     const nomes: Record<string, string> = {
       processos_principais: 'Processos',
       volumes: 'Volumes',
