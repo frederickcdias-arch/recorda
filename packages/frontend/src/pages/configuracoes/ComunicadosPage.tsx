@@ -1,4 +1,4 @@
-﻿import { useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import type {
   ComunicadoAdminResumo,
   ComunicadoEscopoDestino,
@@ -18,6 +18,7 @@ import { Input } from '../../components/ui/Input';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { useToastHelpers } from '../../components/ui/Toast';
 import { useConfirmDialog } from '../../hooks/useConfirmDialog';
+import { useDebounce } from '../../hooks/useDebounce';
 import {
   useComunicadosAdmin,
   useComunicadoAdminDetalhe,
@@ -53,6 +54,17 @@ const initialFormState: FormState = {
   usuarioIds: [],
 };
 const ITENS_POR_PAGINA = 10;
+
+function getPrioridadeLabel(prioridade: ComunicadoPrioridade): string {
+  switch (prioridade) {
+    case 'ALTA':
+      return 'Alta';
+    case 'MEDIA':
+      return 'Média';
+    case 'BAIXA':
+      return 'Baixa';
+  }
+}
 
 function getPrioridadeBadge(prioridade: ComunicadoPrioridade): string {
   switch (prioridade) {
@@ -103,7 +115,8 @@ export function ComunicadosPage(): JSX.Element {
   const [publicandoDraft, setPublicandoDraft] = useState<ComunicadoAdminResumo | null>(null);
   const [detalheAbertoId, setDetalheAbertoId] = useState<string | null>(null);
   const [draftUsuarioIds, setDraftUsuarioIds] = useState<string[]>([]);
-  const [busca, setBusca] = useState('');
+  const [buscaInput, setBuscaInput] = useState('');
+  const debouncedBusca = useDebounce(buscaInput, 400);
   const [filtroStatus, setFiltroStatus] = useState<FiltroStatus>('TODOS');
   const [filtroEscopo, setFiltroEscopo] = useState<FiltroEscopo>('QUALQUER');
   const [filtroPrioridade, setFiltroPrioridade] = useState<FiltroPrioridade>('TODAS');
@@ -114,10 +127,15 @@ export function ComunicadosPage(): JSX.Element {
   const [paginaHistorico, setPaginaHistorico] = useState(1);
   const [filtroLeituraDetalhe, setFiltroLeituraDetalhe] = useState<FiltroLeituraDetalhe>('todos');
   const [buscaDestinatario, setBuscaDestinatario] = useState('');
+
+  useEffect(() => {
+    setPaginaHistorico(1);
+  }, [debouncedBusca]);
+
   const comunicadosQuery = useComunicadosAdmin({
     pagina: paginaHistorico,
     limite: ITENS_POR_PAGINA,
-    busca: busca || undefined,
+    busca: debouncedBusca || undefined,
     status: filtroStatus,
     escopo: filtroEscopo,
     prioridade: filtroPrioridade,
@@ -159,6 +177,7 @@ export function ComunicadosPage(): JSX.Element {
   const resumo = comunicadosQuery.data?.resumo;
   const rascunhos = resumo?.rascunhos ?? 0;
   const publicados = resumo?.publicados ?? 0;
+  const encerrados = resumo?.encerrados ?? 0;
   const naoLidos = resumo?.pendenciasLeitura ?? 0;
   const comunicadosAlta = resumo?.prioridadeAlta ?? 0;
   const comunicadosMedia = resumo?.prioridadeMedia ?? 0;
@@ -281,8 +300,12 @@ export function ComunicadosPage(): JSX.Element {
       confirmLabel: 'Encerrar',
       variant: 'warning',
       onConfirm: async () => {
-        await encerrarComunicado.mutateAsync(comunicado.id);
-        toast.success('Comunicado encerrado');
+        try {
+          await encerrarComunicado.mutateAsync(comunicado.id);
+          toast.success('Comunicado encerrado');
+        } catch (error) {
+          toast.error('Erro ao encerrar', extractErrorMessage(error, 'Tente novamente.'));
+        }
       },
     });
   };
@@ -294,14 +317,18 @@ export function ComunicadosPage(): JSX.Element {
       confirmLabel: 'Excluir',
       variant: 'danger',
       onConfirm: async () => {
-        const result = await excluirComunicado.mutateAsync(comunicado.id);
-        if (detalheAbertoId === comunicado.id) {
-          setDetalheAbertoId(null);
+        try {
+          const result = await excluirComunicado.mutateAsync(comunicado.id);
+          if (detalheAbertoId === comunicado.id) {
+            setDetalheAbertoId(null);
+          }
+          toast.success(
+            'Comunicado excluído',
+            `${result.destinatariosRemovidos} destinatário(s) removidos.`
+          );
+        } catch (error) {
+          toast.error('Erro ao excluir', extractErrorMessage(error, 'Tente novamente.'));
         }
-        toast.success(
-          'Comunicado excluído',
-          `${result.destinatariosRemovidos} destinatário(s) removidos.`
-        );
       },
     });
   };
@@ -409,7 +436,7 @@ export function ComunicadosPage(): JSX.Element {
       const params = {
         pagina: 1,
         limite: 100,
-        busca,
+        busca: debouncedBusca,
         status: filtroStatus,
         escopo: filtroEscopo,
         prioridade: filtroPrioridade,
@@ -490,7 +517,7 @@ export function ComunicadosPage(): JSX.Element {
           }
         />
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Card>
             <p className="text-sm text-[var(--color-text-secondary)]">Rascunhos</p>
             <div className="mt-3 flex items-end justify-between">
@@ -503,6 +530,13 @@ export function ComunicadosPage(): JSX.Element {
             <div className="mt-3 flex items-end justify-between">
               <p className="text-3xl font-bold text-[var(--color-text-primary)]">{publicados}</p>
               <Icon name="mail" className="h-7 w-7 text-[var(--color-success-600)]" />
+            </div>
+          </Card>
+          <Card>
+            <p className="text-sm text-[var(--color-text-secondary)]">Encerrados</p>
+            <div className="mt-3 flex items-end justify-between">
+              <p className="text-3xl font-bold text-[var(--color-text-primary)]">{encerrados}</p>
+              <Icon name="archive" className="h-7 w-7 text-[var(--color-gray-400)]" />
             </div>
           </Card>
           <Card>
@@ -545,11 +579,8 @@ export function ComunicadosPage(): JSX.Element {
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-8">
             <Input
               label="Buscar"
-              value={busca}
-              onChange={(event) => {
-                setBusca(event.target.value);
-                setPaginaHistorico(1);
-              }}
+              value={buscaInput}
+              onChange={(event) => setBuscaInput(event.target.value)}
               placeholder="Título ou conteúdo"
             />
             <Select
@@ -639,7 +670,7 @@ export function ComunicadosPage(): JSX.Element {
                 variant="ghost"
                 fullWidth
                 onClick={() => {
-                  setBusca('');
+                  setBuscaInput('');
                   setFiltroStatus('TODOS');
                   setFiltroEscopo('QUALQUER');
                   setFiltroPrioridade('TODAS');
@@ -684,7 +715,7 @@ export function ComunicadosPage(): JSX.Element {
                         <span
                           className={`rounded-full border px-2.5 py-1 text-xs font-medium ${getPrioridadeBadge(comunicado.prioridade)}`}
                         >
-                          {comunicado.prioridade}
+                          {getPrioridadeLabel(comunicado.prioridade)}
                         </span>
                         <span
                           className={`rounded-full border px-2.5 py-1 text-xs font-medium ${getStatusBadge(comunicado.status)}`}
