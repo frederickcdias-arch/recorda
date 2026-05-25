@@ -491,11 +491,13 @@ export function CapturaMapaPage() {
 
   const editorPositionStyles = editorImageSize
     ? [
-        ...editorCorners.map(([x, y], index) =>
-          `.editor-corner-${index}{left:${(x / editorImageSize.width) * 100}%;top:${(y / editorImageSize.height) * 100}%;}`
+        ...editorCorners.map(
+          ([x, y], index) =>
+            `.editor-corner-${index}{left:${(x / editorImageSize.width) * 100}%;top:${(y / editorImageSize.height) * 100}%;}`
         ),
-        ...editorEdgeMidpoints.map(([x, y], index) =>
-          `.editor-edge-${index}{left:${(x / editorImageSize.width) * 100}%;top:${(y / editorImageSize.height) * 100}%;}`
+        ...editorEdgeMidpoints.map(
+          ([x, y], index) =>
+            `.editor-edge-${index}{left:${(x / editorImageSize.width) * 100}%;top:${(y / editorImageSize.height) * 100}%;}`
         ),
       ].join('\n')
     : '';
@@ -852,7 +854,7 @@ export function CapturaMapaPage() {
           {/* Zona de drop / botoes de adicao */}
           <div
             className={
-              `mb-4 flex flex-col items-center gap-4 rounded-xl border-2 px-6 py-8 dark:bg-neutral-900 ` +
+              `mb-4 flex flex-col items-center gap-4 rounded-xl border-2 bg-white px-6 py-8 text-neutral-600 dark:bg-neutral-900 dark:text-neutral-400 ` +
               (dragActive
                 ? 'border-primary-500 bg-primary-50 dark:border-primary-400 dark:bg-primary-950'
                 : 'border-dashed border-neutral-300 bg-neutral-50 dark:border-neutral-700')
@@ -861,9 +863,10 @@ export function CapturaMapaPage() {
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
           >
-            <Icon name="layers" className="h-10 w-10 text-neutral-400 dark:text-neutral-600" />
-            <p className="text-center text-sm text-neutral-500 dark:text-neutral-400">
-              Arraste e solte imagens aqui ou use a câmera. A perspectiva é corrigida automaticamente.
+            <Icon name="layers" className="h-10 w-10 text-neutral-500 dark:text-neutral-600" />
+            <p className="text-center text-sm text-neutral-600 dark:text-neutral-400">
+              Arraste e solte imagens aqui ou use a câmera. A perspectiva é corrigida
+              automaticamente.
             </p>
             <div className="flex flex-wrap justify-center gap-2">
               <Button
