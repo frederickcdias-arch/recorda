@@ -37,23 +37,24 @@ export function Card({
 }: CardProps): JSX.Element {
   const isClickable = !!onClick;
 
-  return (
-    <div
-      className={`
+  const tagClasses = `
         min-w-0 max-w-full rounded-2xl transition-all duration-150
         ${variantClasses[variant]}
         ${paddingClasses[padding]}
         ${hover || isClickable ? 'hover:shadow-md hover:border-[var(--color-gray-300)] hover:-translate-y-0.5' : ''}
         ${isClickable ? 'cursor-pointer active:scale-[0.99]' : ''}
         ${className}
-      `}
-      onClick={onClick}
-      role={isClickable ? 'button' : undefined}
-      tabIndex={isClickable ? 0 : undefined}
-    >
-      {children}
-    </div>
-  );
+      `;
+
+  if (isClickable) {
+    return (
+      <button type="button" className={tagClasses} onClick={onClick}>
+        {children}
+      </button>
+    );
+  }
+
+  return <div className={tagClasses}>{children}</div>;
 }
 
 interface CardHeaderProps {
