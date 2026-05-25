@@ -382,7 +382,7 @@ export const router = createBrowserRouter([
       {
         path: 'auditoria/acoes',
         element: (
-          <RoleRoute allowedProfiles={['operador', 'administrador']}>
+          <RoleRoute allowedProfiles={['administrador']}>
             <PageSuspense>
               <AuditoriaPage categoria="acoes" />
             </PageSuspense>

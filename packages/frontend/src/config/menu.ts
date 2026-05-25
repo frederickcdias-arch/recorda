@@ -172,7 +172,7 @@ export const menuSections: MenuSection[] = [
       },
       { id: 'ocr', label: 'OCR', icon: 'scan', path: '/auditoria/ocr' },
       { id: 'correcoes', label: 'Correções', icon: 'edit', path: '/auditoria/correcoes' },
-      { id: 'acoes', label: 'Ações de Usuários', icon: 'user-check', path: '/auditoria/acoes' },
+      { id: 'acoes', label: 'Ações de Usuários', icon: 'user-check', path: '/auditoria/acoes', allowedProfiles: ['administrador'] },
     ],
   },
 ];
