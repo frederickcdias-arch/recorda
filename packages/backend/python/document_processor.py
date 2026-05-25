@@ -269,20 +269,20 @@ def validate_supplied_corners(quad: np.ndarray, width: int, height: int) -> bool
 def reduce_shadows_and_balance(image: np.ndarray) -> np.ndarray:
     lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
     l_channel, a_channel, b_channel = cv2.split(lab)
-    clahe = cv2.createCLAHE(clipLimit=1.25, tileGridSize=(8, 8))
+    clahe = cv2.createCLAHE(clipLimit=1.0, tileGridSize=(8, 8))
     l_eq = clahe.apply(l_channel)
 
     blur = cv2.GaussianBlur(l_eq, (0, 0), sigmaX=21, sigmaY=21)
-    normalized = cv2.divide(l_eq, blur, scale=156)
-    normalized = cv2.addWeighted(l_eq, 0.82, normalized, 0.18, 0)
+    normalized = cv2.divide(l_eq, blur, scale=128)
+    normalized = cv2.addWeighted(l_eq, 0.88, normalized, 0.12, 0)
     merged = cv2.merge((normalized.astype(np.uint8), a_channel, b_channel))
     return cv2.cvtColor(merged, cv2.COLOR_LAB2BGR)
 
 
 def denoise_and_sharpen(image: np.ndarray) -> np.ndarray:
     denoised = cv2.fastNlMeansDenoisingColored(image, None, 2, 2, 7, 11)
-    blur = cv2.GaussianBlur(denoised, (0, 0), sigmaX=0.75, sigmaY=0.75)
-    sharpened = cv2.addWeighted(denoised, 1.04, blur, -0.04, 0)
+    blur = cv2.GaussianBlur(denoised, (0, 0), sigmaX=0.6, sigmaY=0.6)
+    sharpened = cv2.addWeighted(denoised, 1.02, blur, -0.02, 0)
     return np.clip(sharpened, 0, 255).astype(np.uint8)
 
 
@@ -458,7 +458,7 @@ def warp_document(image: np.ndarray, quad: np.ndarray) -> tuple[np.ndarray, tupl
         image,
         matrix,
         (out_w, out_h),
-        flags=cv2.INTER_CUBIC,
+        flags=cv2.INTER_LINEAR,
         borderMode=cv2.BORDER_CONSTANT,
         borderValue=(245, 245, 245),
     )
@@ -522,7 +522,7 @@ def process_document_image(input_path: str, output_path: str, corners_file: str 
 
     if detection.corners is not None and detection.confidence >= MIN_CONFIDENCE:
         processed, (width, height) = warp_document(source, detection.corners)
-        processed = enhance_document(processed, clean_paper=True)
+        processed = enhance_document(processed, clean_paper=False)
         processed = add_scan_margin(processed)
         height, width = processed.shape[:2]
         output_file = write_output(processed, output_path)
@@ -537,7 +537,8 @@ def process_document_image(input_path: str, output_path: str, corners_file: str 
                 corners_source='auto-detect',
                 manual_corners_received=False,
                 manual_finalize_used=False,
-                isolate_exterior=True,
+                isolate_exterior=False,
+                paper_normalization='minimal',
             ),
         }
 
