@@ -25,6 +25,7 @@ export function MobileBottomNav({ unreadComunicados = 0 }: MobileBottomNavProps)
   const primaryItems = useMemo(() => getMobilePrimaryNav(perfil), [perfil]);
   const sheetItems = useMemo(() => getMobileSheetNav(perfil), [perfil]);
   const showMais = sheetItems.length > 0;
+  const sheetHasComunicados = sheetItems.some((item) => item.id === 'comunicados');
   const maisIsActive =
     showMais && sheetItems.some((item) => location.pathname.startsWith(item.path));
   const totalItems = primaryItems.length + (showMais ? 1 : 0);
@@ -80,7 +81,14 @@ export function MobileBottomNav({ unreadComunicados = 0 }: MobileBottomNavProps)
                     : 'text-[var(--color-text-secondary)]'
                 }`}
               >
-                <Icon name="more-horizontal" className="h-5 w-5" />
+                <span className="relative">
+                  <Icon name="more-horizontal" className="h-5 w-5" />
+                  {sheetHasComunicados && unreadComunicados > 0 ? (
+                    <span className="absolute -right-1 -top-1 inline-flex min-w-[1rem] items-center justify-center rounded-full bg-[var(--color-error-600)] px-1 text-[9px] font-semibold text-white">
+                      {unreadComunicados > 99 ? '99+' : String(unreadComunicados)}
+                    </span>
+                  ) : null}
+                </span>
                 <span className="text-[11px] font-medium leading-none">Mais</span>
               </button>
             </li>

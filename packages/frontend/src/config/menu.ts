@@ -26,16 +26,9 @@ export const menuSections: MenuSection[] = [
     ],
   },
   {
-    id: 'comunicados',
-    label: 'Comunicados',
-    icon: 'mail',
-    basePath: '/comunicados',
-    items: [],
-  },
-  {
     id: 'minha-producao',
     label: 'Minha Produção',
-    icon: 'clipboard',
+    icon: 'list',
     basePath: '/minha-producao',
     allowedProfiles: ['colaborador'],
     items: [
@@ -60,6 +53,13 @@ export const menuSections: MenuSection[] = [
     ],
   },
   {
+    id: 'comunicados',
+    label: 'Comunicados',
+    icon: 'mail',
+    basePath: '/comunicados',
+    items: [],
+  },
+  {
     id: 'operacao',
     label: 'Operação',
     icon: 'clipboard',
@@ -75,7 +75,7 @@ export const menuSections: MenuSection[] = [
       {
         id: 'operacao-cq',
         label: 'Controle de Qualidade',
-        icon: 'shield',
+        icon: 'check-circle',
         path: '/operacao/controle-qualidade',
       },
       { id: 'operacao-kb', label: 'Conhecimento', icon: 'book', path: '/operacao/conhecimento' },
@@ -126,17 +126,17 @@ export const menuSections: MenuSection[] = [
       },
       {
         id: 'config-comunicados',
-        label: 'Comunicados',
+        label: 'Gestão de Comunicados',
         icon: 'mail',
         path: '/configuracoes/comunicados',
       },
       {
         id: 'ausencias',
         label: 'Justificativas de Ausência',
-        icon: 'file-text',
+        icon: 'calendar',
         path: '/configuracoes/ausencias',
       },
-      { id: 'admin', label: 'Administração', icon: 'settings', path: '/configuracoes/admin' },
+      { id: 'admin', label: 'Administração', icon: 'alert-triangle', path: '/configuracoes/admin' },
     ],
   },
   {
@@ -171,8 +171,7 @@ const mobileSheetNavMap: Record<PerfilUsuario, string[]> = {
     'operacao-devolucoes',
     'operacao-kb',
     'operacao-cq',
-    'configuracoes',
-    'usuarios',
+    'empresa',
     'auditoria',
   ],
   operador: ['comunicados', 'operacao-devolucoes', 'operacao-kb', 'operacao-cq', 'auditoria'],
