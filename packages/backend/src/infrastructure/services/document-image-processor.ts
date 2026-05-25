@@ -380,14 +380,14 @@ async function finalizeOutput(
     // without introducing additional saturation, gamma or sharpening artifacts.
   } else if (processingMode === 'map_document' || processingMode === 'color_document') {
     pipeline = pipeline
-      .gamma(1.025)
-      .modulate({ brightness: 1.006, saturation: 1.012 })
-      .sharpen({ sigma: 1.1, m1: 0.15, m2: 0.7 });
+      .gamma(1.02)
+      .modulate({ brightness: 1.003, saturation: 1.004 })
+      .sharpen({ sigma: 0.35, m1: 0.05, m2: 0.25 });
   } else {
     pipeline = pipeline
-      .gamma(1.06)
-      .modulate({ brightness: 1.012, saturation: 1 })
-      .sharpen({ sigma: 0.85, m1: 0.18, m2: 0.95 });
+      .gamma(1.04)
+      .modulate({ brightness: 1.01, saturation: 1 })
+      .sharpen({ sigma: 0.5, m1: 0.08, m2: 0.4 });
   }
 
   if (format === 'png') {
@@ -440,18 +440,9 @@ async function processWithSharpFallback(
   });
 
   if (processingMode === 'map_document' || processingMode === 'color_document') {
-    pipeline = pipeline
-      .toColourspace('srgb')
-      .gamma(1.018)
-      .modulate({ brightness: 1.006, saturation: 1.015 })
-      .linear(1.02, -1)
-      .sharpen({ sigma: 0.58, m1: 0.08, m2: 0.55 });
+    pipeline = pipeline.toColourspace('srgb').normalize();
   } else {
-    pipeline = pipeline
-      .normalize()
-      .gamma(1.04)
-      .modulate({ brightness: 1.01, saturation: 1 })
-      .sharpen({ sigma: 0.85, m1: 0.18, m2: 0.95 });
+    pipeline = pipeline.normalize().gamma(1.03);
   }
 
   if (format === 'png') {
