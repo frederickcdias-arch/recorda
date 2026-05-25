@@ -889,6 +889,7 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
                           <textarea
                             className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             rows={2}
+                            aria-label="Definição do termo"
                             value={editTermo.definicao}
                             onChange={(e) =>
                               setEditTermo((p) => ({ ...p, definicao: e.target.value }))
@@ -909,10 +910,10 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
                         </div>
                       ) : (
                         <div className="flex items-start justify-between">
-                          <div>
+                          <dl className="m-0">
                             <dt className="text-sm font-semibold text-gray-900">{item.termo}</dt>
                             <dd className="text-sm text-gray-600 mt-0.5">{item.definicao}</dd>
-                          </div>
+                          </dl>
                           {isAdmin && (
                             <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-3">
                               <Button
@@ -1013,6 +1014,7 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
                           <textarea
                             className="w-full p-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             rows={2}
+                            aria-label="Descrição da lei"
                             value={editLei.descricao}
                             onChange={(e) =>
                               setEditLei((p) => ({ ...p, descricao: e.target.value }))

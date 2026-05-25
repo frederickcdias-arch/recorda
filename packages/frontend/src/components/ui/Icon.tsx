@@ -572,6 +572,36 @@ export function Icon({
 }: IconProps): JSX.Element {
   const iconPath = icons[name] || icons['help-circle'];
 
+  if (ariaLabel) {
+    return (
+      <svg
+        className={className}
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+        xmlns="http://www.w3.org/2000/svg"
+        role="img"
+        aria-label={ariaLabel}
+      >
+        {iconPath}
+      </svg>
+    );
+  }
+
+  if (ariaHidden === false) {
+    return (
+      <svg
+        className={className}
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        {iconPath}
+      </svg>
+    );
+  }
+
   return (
     <svg
       className={className}
@@ -579,9 +609,7 @@ export function Icon({
       stroke="currentColor"
       viewBox="0 0 24 24"
       xmlns="http://www.w3.org/2000/svg"
-      aria-label={ariaLabel}
-      aria-hidden={ariaHidden ?? (ariaLabel ? undefined : true)}
-      role={ariaLabel ? 'img' : undefined}
+      aria-hidden="true"
     >
       {iconPath}
     </svg>
