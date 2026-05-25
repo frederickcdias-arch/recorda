@@ -332,12 +332,15 @@ function sanitizeCorners(
   return normalized;
 }
 
+type ImageEnhancementMode = 'standard' | 'conservative';
+
 async function finalizeOutput(
   buffer: Buffer,
   format: 'jpeg' | 'png' | 'webp',
   quality: number,
   preserveColors: boolean,
-  processingMode: DocumentProcessingMode
+  processingMode: DocumentProcessingMode,
+  enhancementMode: ImageEnhancementMode = 'standard'
 ): Promise<{ buffer: Buffer; width: number; height: number; mimeType: string }> {
   let pipeline = sharp(buffer, { failOn: 'none' }).rotate().resize({
     width: MAX_OUTPUT_DIMENSION,
@@ -350,7 +353,10 @@ async function finalizeOutput(
     pipeline = pipeline.toColourspace('srgb');
   }
 
-  if (processingMode === 'map_document' || processingMode === 'color_document') {
+  if (enhancementMode === 'conservative') {
+    // Preserve the frontend-corrected image as faithfully as possible,
+    // without introducing additional saturation, gamma or sharpening artifacts.
+  } else if (processingMode === 'map_document' || processingMode === 'color_document') {
     pipeline = pipeline
       .gamma(1.025)
       .modulate({ brightness: 1.006, saturation: 1.012 })
@@ -497,7 +503,8 @@ export async function processDocumentImage(
       outputFormat,
       quality,
       preserveColors,
-      processingMode
+      processingMode,
+      'conservative'
     );
     const thumbnailBuffer = await createThumbnail(finalized.buffer);
     return {
@@ -521,7 +528,7 @@ export async function processDocumentImage(
           cornersSource: normalizedManualCorners ? 'manual' : 'detected',
           manualCornersReceived: !!normalizedManualCorners,
           pythonUsed: false,
-          manualFinalizeUsed: false,
+          manualFinalizeUsed: true,
           borderCleanup: false,
           isolateExterior: false,
           marginMode: 'clean-white',
@@ -670,7 +677,8 @@ export async function processDocumentImage(
       outputFormat,
       quality,
       preserveColors,
-      processingMode
+      processingMode,
+      'conservative'
     );
     const thumbnailBuffer = await createThumbnail(finalized.buffer);
     return {
