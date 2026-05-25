@@ -136,6 +136,15 @@ export const menuSections: MenuSection[] = [
         icon: 'calendar',
         path: '/configuracoes/ausencias',
       },
+    ],
+  },
+  {
+    id: 'sistema',
+    label: 'Sistema',
+    icon: 'alert-triangle',
+    basePath: '/configuracoes/admin',
+    allowedProfiles: ['administrador'],
+    items: [
       { id: 'admin', label: 'Administração', icon: 'alert-triangle', path: '/configuracoes/admin' },
     ],
   },
