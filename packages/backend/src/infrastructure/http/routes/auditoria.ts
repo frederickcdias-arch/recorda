@@ -38,7 +38,10 @@ export function createAuditoriaRoutes(): FastifyPluginAsync {
               limite: { type: 'number', default: 50 },
             },
           },
-          response: { 500: { type: 'object', properties: { error: { type: 'string' } } } },
+          response: {
+            403: { type: 'object', properties: { error: { type: 'string' }, code: { type: 'string' } } },
+            500: { type: 'object', properties: { error: { type: 'string' } } },
+          },
         },
         preHandler: [
           server.authenticate,
@@ -63,6 +66,22 @@ export function createAuditoriaRoutes(): FastifyPluginAsync {
             pagina?: number;
             limite?: number;
           };
+
+          // Tabelas restritas ao perfil administrador
+          const ADMIN_ONLY_TABLES = ['usuarios'];
+          const tabelasSolicitadas = (tabela ?? '')
+            .split(',')
+            .map((t) => t.trim())
+            .filter(Boolean);
+          const user = request.user as { perfil: string } | undefined;
+          if (
+            tabelasSolicitadas.some((t) => ADMIN_ONLY_TABLES.includes(t)) &&
+            user?.perfil !== 'administrador'
+          ) {
+            return reply
+              .status(403)
+              .send({ error: 'Acesso negado. Permissão insuficiente.', code: 'FORBIDDEN' });
+          }
 
           const offset = (Number(pagina) - 1) * Number(limite);
           let query = `
