@@ -78,13 +78,22 @@ export const menuSections: MenuSection[] = [
         icon: 'check-circle',
         path: '/operacao/controle-qualidade',
       },
-      { id: 'operacao-kb', label: 'Conhecimento', icon: 'book', path: '/operacao/conhecimento' },
       {
         id: 'operacao-devolucoes',
         label: 'Devoluções',
         icon: 'corner-up-right',
         path: '/operacao/devolucoes',
       },
+    ],
+  },
+  {
+    id: 'conhecimento',
+    label: 'Conhecimento',
+    icon: 'book',
+    basePath: '/operacao/conhecimento',
+    allowedProfiles: ['operador', 'administrador'],
+    items: [
+      { id: 'operacao-kb', label: 'Base de Conhecimento', icon: 'book', path: '/operacao/conhecimento' },
     ],
   },
   {
