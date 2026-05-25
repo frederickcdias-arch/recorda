@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Button } from '../../components/ui/Button';
 import { Card, CardHeader } from '../../components/ui/Card';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
@@ -19,11 +19,13 @@ import {
 import { ActionFeedback, PageState } from '../../components/ui/PageState';
 import { useToastHelpers } from '../../components/ui/Toast';
 import { useConfirmDialog } from '../../hooks/useConfirmDialog';
+import { useDebounce } from '../../hooks/useDebounce';
 import {
   useAusenciasAdmin,
   useAprovarAusencia,
   useQueryClient,
   useRejeitarAusencia,
+  useUsuariosColaboradores,
 } from '../../hooks/useQueries';
 import type { AusenciaAdminItem, ListarAusenciasAdminParams } from '@recorda/shared';
 
@@ -41,6 +43,37 @@ const statusBadgeClass: Record<string, string> = {
   rejeitado: 'bg-[var(--color-error-50)] text-[var(--color-error-700)]',
   cancelado: 'bg-[var(--color-gray-100)] text-[var(--color-text-secondary)]',
 };
+
+function getAusenciaColorClass(cor: string): string {
+  switch (cor.toUpperCase()) {
+    case '#10B981':
+      return 'bg-[#10B981]';
+    case '#EF4444':
+      return 'bg-[#EF4444]';
+    case '#3B82F6':
+      return 'bg-[#3B82F6]';
+    case '#8B5CF6':
+      return 'bg-[#8B5CF6]';
+    case '#EC4899':
+      return 'bg-[#EC4899]';
+    case '#06B6D4':
+      return 'bg-[#06B6D4]';
+    case '#F59E0B':
+      return 'bg-[#F59E0B]';
+    case '#14B8A6':
+      return 'bg-[#14B8A6]';
+    case '#6B7280':
+      return 'bg-[#6B7280]';
+    case '#F472B6':
+      return 'bg-[#F472B6]';
+    case '#DC2626':
+      return 'bg-[#DC2626]';
+    case '#7C3AED':
+      return 'bg-[#7C3AED]';
+    default:
+      return 'bg-[var(--color-gray-300)]';
+  }
+}
 
 function formatDate(value: string | undefined | null): string {
   if (!value) return '-';
@@ -65,8 +98,11 @@ export function AusenciasPage(): JSX.Element {
     pagina: 1,
     limite: 20,
     status: 'TODOS',
-    busca: '',
+    busca: undefined,
+    usuarioId: undefined,
   });
+  const [buscaInput, setBuscaInput] = useState('');
+  const debouncedBusca = useDebounce(buscaInput, 400);
   const [motivoRejeicao, setMotivoRejeicao] = useState('');
   const [rejeicaoAberta, setRejeicaoAberta] = useState(false);
   const [selecionada, setSelecionada] = useState<AusenciaAdminItem | null>(null);
@@ -78,6 +114,7 @@ export function AusenciasPage(): JSX.Element {
   const queryClient = useQueryClient();
   const toast = useToastHelpers();
   const confirmDialog = useConfirmDialog();
+  const usuariosQuery = useUsuariosColaboradores();
   const ausenciasQuery = useAusenciasAdmin(filters);
   const aprovarAusencia = useAprovarAusencia();
   const rejeitarAusencia = useRejeitarAusencia();
@@ -108,6 +145,14 @@ export function AusenciasPage(): JSX.Element {
   const invalidarAusencias = async (): Promise<void> => {
     await queryClient.invalidateQueries({ queryKey: ['ausencias-admin'] });
   };
+
+  useEffect(() => {
+    setFilters((prev) => ({
+      ...prev,
+      busca: debouncedBusca || undefined,
+      pagina: 1,
+    }));
+  }, [debouncedBusca]);
 
   const handleFilterChange = (field: keyof ListarAusenciasAdminParams, value: string): void => {
     setFilters((prev) => ({
@@ -203,9 +248,25 @@ export function AusenciasPage(): JSX.Element {
           >
             <Input
               label="Buscar"
-              value={filters.busca ?? ''}
-              onChange={(event) => handleFilterChange('busca', event.target.value)}
+              value={buscaInput}
+              onChange={(event) => setBuscaInput(event.target.value)}
               placeholder="Colaborador, justificativa ou observações"
+            />
+            <Select
+              label="Colaborador"
+              value={filters.usuarioId ?? ''}
+              onChange={(event) => handleFilterChange('usuarioId', event.target.value)}
+              options={
+                [{ value: '', label: 'Todos colaboradores' }]
+                  .concat(
+                    usuariosQuery.data?.map((usuario) => ({
+                      value: usuario.id,
+                      label: `${usuario.nome} (${usuario.email})`,
+                    })) ?? []
+                  )
+              }
+              disabled={usuariosQuery.isLoading}
+              placeholder="Todos colaboradores"
             />
             <Select
               label="Status"
@@ -298,8 +359,9 @@ export function AusenciasPage(): JSX.Element {
                         className="inline-flex items-center gap-2 rounded-full bg-[var(--color-gray-100)] px-2.5 py-1 text-xs font-medium text-[var(--color-text-secondary)]"
                       >
                         <span
-                          className="h-2.5 w-2.5 rounded-full"
-                          style={{ backgroundColor: ausencia.tipoAusenciaCor }}
+                          className={`h-2.5 w-2.5 rounded-full ${getAusenciaColorClass(
+                            ausencia.tipoAusenciaCor
+                          )}`}
                         />
                         {ausencia.tipoAusenciaNome}
                       </span>

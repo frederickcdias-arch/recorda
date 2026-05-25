@@ -110,7 +110,7 @@ function MenuItemComponent({
       <div>
         <button
           onClick={() => setExpanded(!expanded)}
-          aria-expanded={expanded ? 'true' : 'false'}
+          aria-expanded={expanded}
           className={`flex w-full items-center gap-3 rounded-xl ${indentClass} py-3 text-sm transition-colors sm:py-2.5 ${
             isChildActive
               ? 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)]'
@@ -219,7 +219,7 @@ function MenuSectionComponent({
       <button
         onClick={onToggleExpanded}
         title={collapsed ? section.label : undefined}
-        aria-expanded={expanded ? 'true' : 'false'}
+        aria-expanded={expanded}
         aria-controls={sectionId}
         className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 transition-colors sm:py-2.5 ${
           isActive

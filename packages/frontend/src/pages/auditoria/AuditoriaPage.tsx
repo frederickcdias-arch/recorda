@@ -381,7 +381,7 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
                             <p className="text-sm text-gray-500">{formatarData(log.criado_em)}</p>
                             <button
                               type="button"
-                              aria-expanded={expandido === log.id ? 'true' : 'false'}
+                              aria-expanded={expandido === log.id}
                               aria-controls={`detalhes-${log.id}`}
                               onClick={() => setExpandido(expandido === log.id ? null : log.id)}
                               className="text-xs text-primary-600 hover:text-primary-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded"

@@ -65,6 +65,7 @@ export const queryKeys = {
   comunicadosUsuario: ['comunicados-usuario'] as const,
   comunicadosNaoLidos: ['comunicados-nao-lidos'] as const,
   ausenciasAdmin: (params: ListarAusenciasAdminParams) => ['ausencias-admin', params] as const,
+  usuariosColaboradores: ['usuarios-colaboradores'] as const,
   importacoesHistorico: ['importacoes-historico'] as const,
   fontesImportacao: ['fontes-importacao'] as const,
   recebimentoProcessos: (repoId: string) => ['recebimento-processos', repoId] as const,
@@ -1063,6 +1064,21 @@ export function useAusenciasAdmin(params: ListarAusenciasAdminParams) {
       const suffix = qs.toString() ? `?${qs.toString()}` : '';
       return api.get<ListarAusenciasAdminResponse>(`/admin/ausencias${suffix}`);
     },
+  });
+}
+
+interface UsuarioColaborador {
+  id: string;
+  nome: string;
+  email: string;
+  ativo: boolean;
+}
+
+export function useUsuariosColaboradores() {
+  return useQuery<UsuarioColaborador[]>({
+    queryKey: queryKeys.usuariosColaboradores,
+    queryFn: () => api.get<UsuarioColaborador[]>('/admin/usuarios-colaboradores'),
+    staleTime: 300_000,
   });
 }
 
