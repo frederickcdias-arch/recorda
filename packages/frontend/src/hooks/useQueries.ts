@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
-import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../services/api';
 import type {
   StatusRepositorio,
@@ -13,6 +13,10 @@ import type {
   ListarComunicadosUsuarioResponse,
   MarcarComunicadoLidoResponse,
   ObterComunicadoAdminResponse,
+  ListarAusenciasAdminParams,
+  ListarAusenciasAdminResponse,
+  AprovarAusenciaDTO,
+  RejeitarAusenciaDTO,
 } from '@recorda/shared';
 
 export { useQueryClient } from '@tanstack/react-query';
@@ -60,6 +64,7 @@ export const queryKeys = {
   comunicadoAdminDetalhe: (id: string) => ['comunicado-admin-detalhe', id] as const,
   comunicadosUsuario: ['comunicados-usuario'] as const,
   comunicadosNaoLidos: ['comunicados-nao-lidos'] as const,
+  ausenciasAdmin: (params: ListarAusenciasAdminParams) => ['ausencias-admin', params] as const,
   importacoesHistorico: ['importacoes-historico'] as const,
   fontesImportacao: ['fontes-importacao'] as const,
   recebimentoProcessos: (repoId: string) => ['recebimento-processos', repoId] as const,
@@ -1045,6 +1050,50 @@ export function useComunicadosNaoLidos(options?: {
   });
 }
 
+export function useAusenciasAdmin(params: ListarAusenciasAdminParams) {
+  return useQuery<ListarAusenciasAdminResponse>({
+    queryKey: queryKeys.ausenciasAdmin(params),
+    queryFn: () => {
+      const qs = new URLSearchParams();
+      for (const [key, value] of Object.entries(params)) {
+        if (value === undefined || value === null || value === '') continue;
+        qs.set(key, String(value));
+      }
+
+      const suffix = qs.toString() ? `?${qs.toString()}` : '';
+      return api.get<ListarAusenciasAdminResponse>(`/admin/ausencias${suffix}`);
+    },
+  });
+}
+
+export function useAprovarAusencia() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, body }: { id: string; body: AprovarAusenciaDTO }) =>
+      api.post<{ ausencia: { id: string; status: string } }>(
+        `/admin/ausencias/${id}/aprovar`,
+        body
+      ),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['ausencias-admin'] });
+    },
+  });
+}
+
+export function useRejeitarAusencia() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, body }: { id: string; body: RejeitarAusenciaDTO }) =>
+      api.post<{ ausencia: { id: string; status: string } }>(
+        `/admin/ausencias/${id}/rejeitar`,
+        body
+      ),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['ausencias-admin'] });
+    },
+  });
+}
+
 export function useCriarComunicado() {
   const qc = useQueryClient();
 
@@ -1283,7 +1332,6 @@ export function useProducao(params: {
 
   return useQuery({
     queryKey: queryKeys.producao(queryParams),
-    placeholderData: keepPreviousData,
     queryFn: () => {
       const qs = new URLSearchParams();
       for (const [k, v] of Object.entries(queryParams)) qs.set(k, String(v));
@@ -1657,7 +1705,6 @@ export function useDevolucoes(params: {
         totalPaginas: number;
       }>(`/operacional/devolucoes?${qs.toString()}`);
     },
-    placeholderData: keepPreviousData,
   });
 }
 

@@ -130,6 +130,12 @@ export const menuSections: MenuSection[] = [
         icon: 'mail',
         path: '/configuracoes/comunicados',
       },
+      {
+        id: 'ausencias',
+        label: 'Justificativas de Ausência',
+        icon: 'file-text',
+        path: '/configuracoes/ausencias',
+      },
       { id: 'admin', label: 'Administração', icon: 'settings', path: '/configuracoes/admin' },
     ],
   },

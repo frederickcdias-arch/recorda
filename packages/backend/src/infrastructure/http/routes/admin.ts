@@ -1,7 +1,171 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
+import type {
+  ListarAusenciasAdminParams,
+  ListarAusenciasAdminResponse,
+  AusenciaAdminItem,
+  AprovarAusenciaDTO,
+  RejeitarAusenciaDTO,
+} from '@recorda/shared';
 import { authorize } from '../middleware/auth.js';
+import { validateBody, validateParams, validateQuery } from '../middleware/validate.js';
 import { getCurrentUser } from './operacional-helpers.js';
 import { buildLegacyProducaoWhere } from '../../../domain/producao/producao-metrics.js';
+import { z } from 'zod';
+
+const ausenciaStatuses = ['TODOS', 'pendente', 'aprovado', 'rejeitado', 'cancelado'] as const;
+const ausenciaOrdenacoes = ['mais-recentes', 'mais-antigos'] as const;
+
+const listarAusenciasAdminQuerySchema = z.object({
+  pagina: z.coerce.number().int().min(1).default(1),
+  limite: z.coerce.number().int().min(1).max(100).default(20),
+  busca: z.string().trim().optional(),
+  status: z.enum(ausenciaStatuses).default('TODOS'),
+  tipoAusenciaId: z.string().uuid().optional(),
+  usuarioId: z.string().uuid().optional(),
+  dataInicio: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  dataFim: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  ordenacao: z.enum(ausenciaOrdenacoes).default('mais-recentes'),
+});
+
+const aprovarAusenciaSchema = z.object({
+  justificativa: z.string().trim().optional(),
+});
+
+const rejeitarAusenciaSchema = z.object({
+  motivoRejeicao: z.string().trim().min(3).max(1000),
+});
+
+function toIsoString(value: string | Date | null | undefined): string | null {
+  if (!value) return null;
+  return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
+}
+
+function mapAusenciaAdmin(row: AusenciaAdminRow): AusenciaAdminItem {
+  const dataInicioValue = row.data_inicio ?? '';
+  const dataFimValue = row.data_fim ?? '';
+
+  return {
+    id: row.id,
+    usuarioId: row.usuario_id,
+    usuarioNome: row.usuario_nome,
+    usuarioEmail: row.usuario_email,
+    tipoAusenciaId: row.tipo_ausencia_id,
+    tipoAusenciaNome: row.tipo_ausencia_nome,
+    tipoAusenciaCor: row.tipo_ausencia_cor,
+    dataInicio: (dataInicioValue instanceof Date
+      ? dataInicioValue.toISOString().split('T')[0]
+      : String(dataInicioValue)) as string,
+    dataFim: (dataFimValue instanceof Date
+      ? dataFimValue.toISOString().split('T')[0]
+      : String(dataFimValue)) as string,
+    periodo: row.periodo as unknown as 'dia_completo' | 'meio_periodo_manha' | 'meio_periodo_tarde' | 'horas',
+    horasAusencia: row.horas_ausencia ?? null,
+    justificativa: row.justificativa ?? null,
+    observacoes: row.observacoes ?? null,
+    status: row.status,
+    aprovadoPor: row.aprovado_por ?? null,
+    aprovadoEm: toIsoString(row.aprovado_em),
+    motivoRejeicao: row.motivo_rejeicao ?? null,
+    documentoAnexo: row.documento_anexo ?? null,
+    criadoPor: row.criado_por,
+    criadoEm: toIsoString(row.criado_em) ?? new Date().toISOString(),
+    atualizadoEm: toIsoString(row.atualizado_em) ?? new Date().toISOString(),
+  };
+}
+
+interface AusenciaAdminRow {
+  id: string;
+  usuario_id: string;
+  usuario_nome: string;
+  usuario_email: string;
+  tipo_ausencia_id: string;
+  tipo_ausencia_nome: string;
+  tipo_ausencia_cor: string;
+  data_inicio: string | Date;
+  data_fim: string | Date;
+  periodo: string;
+  horas_ausencia: string | null;
+  justificativa: string | null;
+  observacoes: string | null;
+  status: 'pendente' | 'aprovado' | 'rejeitado' | 'cancelado';
+  aprovado_por: string | null;
+  aprovado_em: string | Date | null;
+  motivo_rejeicao: string | null;
+  documento_anexo: string | null;
+  criado_por: string;
+  criado_em: string | Date;
+  atualizado_em: string | Date;
+}
+
+function buildAusenciasAdminFilters(query: z.infer<typeof listarAusenciasAdminQuerySchema>): {
+  whereSql: string;
+  params: unknown[];
+  paramIndex: number;
+} {
+  const whereClauses: string[] = [];
+  const params: unknown[] = [];
+  let paramIndex = 1;
+
+  if (query.busca) {
+    whereClauses.push(
+      `(u.nome ILIKE $${paramIndex} OR a.justificativa ILIKE $${paramIndex} OR a.observacoes ILIKE $${paramIndex})`
+    );
+    params.push(`%${query.busca}%`);
+    paramIndex += 1;
+  }
+
+  if (query.status && query.status !== 'TODOS') {
+    whereClauses.push(`a.status = $${paramIndex}`);
+    params.push(query.status);
+    paramIndex += 1;
+  }
+
+  if (query.tipoAusenciaId) {
+    whereClauses.push(`a.tipo_ausencia_id = $${paramIndex}`);
+    params.push(query.tipoAusenciaId);
+    paramIndex += 1;
+  }
+
+  if (query.usuarioId) {
+    whereClauses.push(`a.usuario_id = $${paramIndex}`);
+    params.push(query.usuarioId);
+    paramIndex += 1;
+  }
+
+  if (query.dataInicio) {
+    whereClauses.push(`a.data_inicio >= $${paramIndex}`);
+    params.push(query.dataInicio);
+    paramIndex += 1;
+  }
+
+  if (query.dataFim) {
+    whereClauses.push(`a.data_fim <= $${paramIndex}`);
+    params.push(query.dataFim);
+    paramIndex += 1;
+  }
+
+  return {
+    whereSql: whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '',
+    params,
+    paramIndex,
+  };
+}
+
+function getAusenciasAdminOrderBySql(orderacao: string): string {
+  switch (orderacao) {
+    case 'mais-antigos':
+      return 'a.criado_em ASC';
+    default:
+      return 'a.criado_em DESC';
+  }
+}
+
+async function setAuditUser(
+  client: { query: (sql: string, params?: unknown[]) => Promise<unknown> },
+  userId: string
+): Promise<void> {
+  await client.query(`SELECT set_config('app.current_user_id', $1, true)`, [userId]);
+}
 
 interface VincularProducoesBody {
   colaboradorNomeLegado: string;
@@ -493,6 +657,290 @@ export function createAdminRoutes(): FastifyPluginAsync {
         } catch (error) {
           const message = error instanceof Error ? error.message : 'Erro ao otimizar banco';
           return reply.status(500).send({ error: message });
+        }
+      }
+    );
+
+    // GET /admin/ausencias - Listar ausências pendentes e históricas
+    server.get<{ Querystring: ListarAusenciasAdminParams }>(
+      '/admin/ausencias',
+      {
+        schema: {
+          tags: ['admin'],
+          summary: 'Listar ausências para acompanhamento e decisão administrativa',
+          security: [{ bearerAuth: [] }],
+        },
+        preHandler: [
+          server.authenticate,
+          authorize('administrador'),
+          validateQuery(listarAusenciasAdminQuerySchema),
+        ],
+      },
+      async (request, reply) => {
+        try {
+          const {
+            pagina = 1,
+            limite = 20,
+            ordenacao = 'mais-recentes',
+          } = request.query as z.infer<typeof listarAusenciasAdminQuerySchema>;
+          const { whereSql, params, paramIndex } = buildAusenciasAdminFilters(
+            request.query as z.infer<typeof listarAusenciasAdminQuerySchema>
+          );
+
+          const countResult = await server.database.query<{ total: string }>(
+            `SELECT COUNT(*) as total
+             FROM ausencias a
+             JOIN usuarios u ON u.id = a.usuario_id
+             JOIN tipos_ausencia ta ON ta.id = a.tipo_ausencia_id
+             ${whereSql}`,
+            params
+          );
+
+          const total = Number(countResult.rows[0]?.total ?? 0);
+          const offset = (pagina - 1) * limite;
+          const orderBySql = getAusenciasAdminOrderBySql(ordenacao);
+          const rows = await server.database.query<AusenciaAdminRow>(
+            `SELECT
+               a.id,
+               a.usuario_id,
+               u.nome as usuario_nome,
+               u.email as usuario_email,
+               ta.id as tipo_ausencia_id,
+               ta.nome as tipo_ausencia_nome,
+               ta.cor as tipo_ausencia_cor,
+               a.data_inicio,
+               a.data_fim,
+               a.periodo,
+               a.horas_ausencia,
+               a.justificativa,
+               a.observacoes,
+               a.status,
+               a.aprovado_por,
+               a.aprovado_em,
+               a.motivo_rejeicao,
+               a.documento_anexo,
+               a.criado_por,
+               a.criado_em,
+               a.atualizado_em
+             FROM ausencias a
+             JOIN usuarios u ON u.id = a.usuario_id
+             JOIN tipos_ausencia ta ON ta.id = a.tipo_ausencia_id
+             ${whereSql}
+             ORDER BY ${orderBySql}
+             LIMIT $${paramIndex}
+             OFFSET $${paramIndex + 1}`,
+            [...params, limite, offset]
+          );
+
+          return reply.send({
+            itens: rows.rows.map(mapAusenciaAdmin),
+            total,
+            pagina,
+            totalPaginas: total === 0 ? 0 : Math.ceil(total / limite),
+          } as ListarAusenciasAdminResponse);
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : 'Erro ao listar ausências';
+          return reply.status(500).send({ error: message });
+        }
+      }
+    );
+
+    server.post<{ Params: { id: string }; Body: AprovarAusenciaDTO }>(
+      '/admin/ausencias/:id/aprovar',
+      {
+        schema: {
+          tags: ['admin'],
+          summary: 'Aprovar uma ausência pendente com justificativa administrativa',
+          security: [{ bearerAuth: [] }],
+        },
+        preHandler: [
+          server.authenticate,
+          authorize('administrador'),
+          validateParams(z.object({ id: z.string().uuid() })),
+          validateBody(aprovarAusenciaSchema),
+        ],
+      },
+      async (request, reply) => {
+        const user = getCurrentUser(request);
+        const { id } = request.params;
+        const { justificativa } = request.body as AprovarAusenciaDTO;
+        const client = await server.database.pool.connect();
+
+        try {
+          await client.query('BEGIN');
+          await setAuditUser(client, user.id);
+
+          const updateResult = await client.query(
+            `UPDATE ausencias
+             SET
+               status = 'aprovado',
+               aprovado_por = $1,
+               aprovado_em = CURRENT_TIMESTAMP,
+               justificativa = COALESCE(NULLIF($2, ''), justificativa),
+               motivo_rejeicao = NULL,
+               atualizado_em = CURRENT_TIMESTAMP
+             WHERE id = $3
+               AND status = 'pendente'
+             RETURNING id`,
+            [user.id, justificativa ?? null, id]
+          );
+
+          if (updateResult.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return reply.status(404).send({ error: 'Ausência não encontrada ou não está em estado pendente' });
+          }
+
+          const result = await client.query<AusenciaAdminRow>(
+            `SELECT
+               a.id,
+               a.usuario_id,
+               u.nome as usuario_nome,
+               u.email as usuario_email,
+               ta.id as tipo_ausencia_id,
+               ta.nome as tipo_ausencia_nome,
+               ta.cor as tipo_ausencia_cor,
+               a.data_inicio,
+               a.data_fim,
+               a.periodo,
+               a.horas_ausencia,
+               a.justificativa,
+               a.observacoes,
+               a.status,
+               a.aprovado_por,
+               a.aprovado_em,
+               a.motivo_rejeicao,
+               a.documento_anexo,
+               a.criado_por,
+               a.criado_em,
+               a.atualizado_em
+             FROM ausencias a
+             JOIN usuarios u ON u.id = a.usuario_id
+             JOIN tipos_ausencia ta ON ta.id = a.tipo_ausencia_id
+             WHERE a.id = $1`,
+            [id]
+          );
+
+          if (result.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return reply.status(404).send({ error: 'Ausência não encontrada após a atualização' });
+          }
+
+          const updatedAusencia = result.rows[0];
+          if (!updatedAusencia) {
+            await client.query('ROLLBACK');
+            return reply.status(404).send({ error: 'Ausência não encontrada após a atualização' });
+          }
+
+          await client.query('COMMIT');
+
+          return reply.send({ ausencia: mapAusenciaAdmin(updatedAusencia) });
+        } catch (error) {
+          await client.query('ROLLBACK');
+          const message =
+            error instanceof Error ? error.message : 'Erro ao aprovar ausência';
+          return reply.status(500).send({ error: message });
+        } finally {
+          client.release();
+        }
+      }
+    );
+
+    server.post<{ Params: { id: string }; Body: RejeitarAusenciaDTO }>(
+      '/admin/ausencias/:id/rejeitar',
+      {
+        schema: {
+          tags: ['admin'],
+          summary: 'Rejeitar uma ausência pendente com motivo de rejeição',
+          security: [{ bearerAuth: [] }],
+        },
+        preHandler: [
+          server.authenticate,
+          authorize('administrador'),
+          validateParams(z.object({ id: z.string().uuid() })),
+          validateBody(rejeitarAusenciaSchema),
+        ],
+      },
+      async (request, reply) => {
+        const user = getCurrentUser(request);
+        const { id } = request.params;
+        const { motivoRejeicao } = request.body as RejeitarAusenciaDTO;
+        const client = await server.database.pool.connect();
+
+        try {
+          await client.query('BEGIN');
+          await setAuditUser(client, user.id);
+
+          const updateResult = await client.query(
+            `UPDATE ausencias
+             SET
+               status = 'rejeitado',
+               aprovado_por = $1,
+               aprovado_em = CURRENT_TIMESTAMP,
+               motivo_rejeicao = $2,
+               atualizado_em = CURRENT_TIMESTAMP
+             WHERE id = $3
+               AND status = 'pendente'
+             RETURNING id`,
+            [user.id, motivoRejeicao, id]
+          );
+
+          if (updateResult.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return reply.status(404).send({ error: 'Ausência não encontrada ou não está em estado pendente' });
+          }
+
+          const result = await client.query<AusenciaAdminRow>(
+            `SELECT
+               a.id,
+               a.usuario_id,
+               u.nome as usuario_nome,
+               u.email as usuario_email,
+               ta.id as tipo_ausencia_id,
+               ta.nome as tipo_ausencia_nome,
+               ta.cor as tipo_ausencia_cor,
+               a.data_inicio,
+               a.data_fim,
+               a.periodo,
+               a.horas_ausencia,
+               a.justificativa,
+               a.observacoes,
+               a.status,
+               a.aprovado_por,
+               a.aprovado_em,
+               a.motivo_rejeicao,
+               a.documento_anexo,
+               a.criado_por,
+               a.criado_em,
+               a.atualizado_em
+             FROM ausencias a
+             JOIN usuarios u ON u.id = a.usuario_id
+             JOIN tipos_ausencia ta ON ta.id = a.tipo_ausencia_id
+             WHERE a.id = $1`,
+            [id]
+          );
+
+          if (result.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return reply.status(404).send({ error: 'Ausência não encontrada após a atualização' });
+          }
+
+          const updatedAusencia = result.rows[0];
+          if (!updatedAusencia) {
+            await client.query('ROLLBACK');
+            return reply.status(404).send({ error: 'Ausência não encontrada após a atualização' });
+          }
+
+          await client.query('COMMIT');
+
+          return reply.send({ ausencia: mapAusenciaAdmin(updatedAusencia) });
+        } catch (error) {
+          await client.query('ROLLBACK');
+          const message =
+            error instanceof Error ? error.message : 'Erro ao rejeitar ausência';
+          return reply.status(500).send({ error: message });
+        } finally {
+          client.release();
         }
       }
     );

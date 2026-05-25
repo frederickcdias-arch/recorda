@@ -84,6 +84,11 @@ const ComunicadosAdminPage = lazy(() =>
     default: m.ComunicadosPage,
   }))
 );
+const AusenciasPage = lazy(() =>
+  import('../pages/configuracoes/AusenciasPage').then((m) => ({
+    default: m.AusenciasPage,
+  }))
+);
 const DevolucoesPage = lazy(() =>
   import('../pages/operacao/DevolucoesPage').then((m) => ({ default: m.DevolucoesPage }))
 );
@@ -326,6 +331,16 @@ export const router = createBrowserRouter([
           <RoleRoute allowedProfiles={['administrador']}>
             <PageSuspense>
               <ComunicadosAdminPage />
+            </PageSuspense>
+          </RoleRoute>
+        ),
+      },
+      {
+        path: 'configuracoes/ausencias',
+        element: (
+          <RoleRoute allowedProfiles={['administrador']}>
+            <PageSuspense>
+              <AusenciasPage />
             </PageSuspense>
           </RoleRoute>
         ),
