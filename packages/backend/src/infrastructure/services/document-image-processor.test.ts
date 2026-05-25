@@ -61,4 +61,52 @@ describe('document-image-processor', () => {
     expect(result.processedBuffer.length).toBeGreaterThan(0);
     expect(result.processedBuffer).not.toEqual(originalImageBuffer);
   });
+
+  it('should preserve raw bytes for frontend-assisted JPEG images when no reencoding is needed', async () => {
+    const originalImageBuffer = await sharp({
+      create: {
+        width: 640,
+        height: 480,
+        channels: 3,
+        background: { r: 220, g: 220, b: 220 },
+      },
+    })
+      .jpeg({ quality: 92 })
+      .toBuffer();
+
+    const assistedImageBuffer = await sharp({
+      create: {
+        width: 640,
+        height: 480,
+        channels: 3,
+        background: { r: 100, g: 140, b: 200 },
+      },
+    })
+      .jpeg({ quality: 92 })
+      .toBuffer();
+
+    const result = await processDocumentImage({
+      imageBuffer: originalImageBuffer,
+      mimeType: 'image/jpeg',
+      manualCorners: [
+        { x: 10, y: 10 },
+        { x: 630, y: 10 },
+        { x: 630, y: 470 },
+        { x: 10, y: 470 },
+      ],
+      assistedImageBuffer,
+      assistedMimeType: 'image/jpeg',
+      options: {
+        outputFormat: 'jpeg',
+        quality: 92,
+        preserveColors: true,
+        processingMode: 'map_document',
+      },
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.outputMimeType).toBe('image/jpeg');
+    expect(result.metadata.engine).toBe('frontend-assisted');
+    expect(result.processedBuffer).toEqual(assistedImageBuffer);
+  });
 });

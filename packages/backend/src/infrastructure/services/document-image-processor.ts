@@ -342,7 +342,29 @@ async function finalizeOutput(
   processingMode: DocumentProcessingMode,
   enhancementMode: ImageEnhancementMode = 'standard'
 ): Promise<{ buffer: Buffer; width: number; height: number; mimeType: string }> {
-  let pipeline = sharp(buffer, { failOn: 'none' }).rotate().resize({
+  const image = sharp(buffer, { failOn: 'none' });
+  const inputMetadata = await image.metadata();
+  const width = inputMetadata.width ?? 0;
+  const height = inputMetadata.height ?? 0;
+  const inputFormat =
+    inputMetadata.format === 'png' ? 'png' : inputMetadata.format === 'webp' ? 'webp' : 'jpeg';
+
+  if (
+    enhancementMode === 'conservative' &&
+    width <= MAX_OUTPUT_DIMENSION &&
+    height <= MAX_OUTPUT_DIMENSION &&
+    format === inputFormat &&
+    preserveColors
+  ) {
+    return {
+      buffer,
+      width,
+      height,
+      mimeType: mimeTypeFromFormat(format),
+    };
+  }
+
+  let pipeline = image.rotate().resize({
     width: MAX_OUTPUT_DIMENSION,
     height: MAX_OUTPUT_DIMENSION,
     fit: 'inside',
@@ -360,7 +382,7 @@ async function finalizeOutput(
     pipeline = pipeline
       .gamma(1.025)
       .modulate({ brightness: 1.006, saturation: 1.012 })
-      .sharpen({ sigma: 0.6, m1: 0.1, m2: 0.58 });
+      .sharpen({ sigma: 1.1, m1: 0.15, m2: 0.7 });
   } else {
     pipeline = pipeline
       .gamma(1.06)
