@@ -34,17 +34,22 @@ export function BatchAddModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 animate-fade-in">
       <div className="flex max-h-[80vh] w-full max-w-lg flex-col overflow-hidden rounded-xl bg-[var(--color-bg-primary)] shadow-xl animate-scale-in">
-        <div className="border-b px-6 py-4">
-          <h3 className="text-lg font-semibold text-gray-900">Importação em Lote</h3>
-          <p className="mt-1 text-sm text-gray-500">
+        <div className="border-b border-[var(--color-border-primary)] px-6 py-4">
+          <h3 className="text-lg font-semibold text-[var(--color-text-primary)]">
+            Importação em Lote
+          </h3>
+          <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
             Formato: protocolo (TAB) interessado — um por linha.
           </p>
         </div>
 
         <div className="px-6 py-3">
-          <label className="mb-1 block text-sm font-medium text-gray-700">Repositório</label>
+          <label className="mb-1 block text-sm font-medium text-[var(--color-text-primary)]">
+            Repositório
+          </label>
           <select
-            className="h-9 w-full rounded-lg border px-3 text-sm"
+            aria-label="Repositório"
+            className="h-9 w-full rounded-lg border border-[var(--color-border-primary)] px-3 text-sm text-[var(--color-text-primary)]"
             value={repoId}
             onChange={(e) => setRepoId(e.target.value)}
           >
@@ -58,18 +63,22 @@ export function BatchAddModal({
         </div>
 
         <div className="flex-1 overflow-auto px-6 py-3">
-          <label className="mb-1 block text-sm font-medium text-gray-700">Dados</label>
+          <label className="mb-1 block text-sm font-medium text-[var(--color-text-primary)]">
+            Dados
+          </label>
           <textarea
-            className="h-64 w-full rounded-lg border px-3 py-2 font-mono text-sm"
+            className="h-64 w-full rounded-lg border border-[var(--color-border-primary)] px-3 py-2 font-mono text-sm text-[var(--color-text-primary)]"
             placeholder="502824/2021&#9;JBS S/A&#10;502825/2021&#9;Prefeitura Municipal"
             value={text}
             onChange={(e) => setText(e.target.value)}
           />
-          <p className="mt-1 text-xs text-gray-500">Separe protocolo e interessado com TAB.</p>
+          <p className="mt-1 text-xs text-[var(--color-text-secondary)]">
+            Separe protocolo e interessado com TAB.
+          </p>
         </div>
 
-        <div className="flex justify-end gap-2 border-t px-6 py-4">
-          <Button variant="secondary" onClick={onClose}>
+        <div className="flex justify-end gap-2 border-t border-[var(--color-border-primary)] px-6 py-4">
+          <Button variant="ghost" onClick={onClose}>
             Cancelar
           </Button>
           <Button

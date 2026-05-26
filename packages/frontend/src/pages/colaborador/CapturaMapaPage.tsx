@@ -288,7 +288,7 @@ const STATUS_LABEL: Record<ItemStatus, string> = {
 const STATUS_COLOR: Record<ItemStatus, string> = {
   corrigindo: 'text-primary-600 dark:text-primary-400',
   revisar: 'text-warning-700 dark:text-warning-300',
-  aguardando: 'text-neutral-500 dark:text-neutral-400',
+  aguardando: 'text-[var(--color-text-tertiary)]',
   processando: 'text-primary-600 dark:text-primary-400',
   concluido: 'text-success-600 dark:text-success-400',
   erro: 'text-error-600 dark:text-error-400',
@@ -824,6 +824,7 @@ export function CapturaMapaPage() {
   const concluidos = queue.filter((it) => it.status === 'concluido').length;
   const temErro = queue.some((it) => it.status === 'erro');
   const processandoAlgum = queue.some((it) => it.status === 'processando');
+  const podeProcessarLote = aguardando > 0 && revisar === 0 && corrigindo === 0;
   const editorItem = queue.find((it) => it.localId === editorItemId) ?? null;
   const previewItem = queue.find((it) => it.localId === previewItemId) ?? null;
 
@@ -833,64 +834,107 @@ export function CapturaMapaPage() {
     <div className="flex flex-col gap-6 pb-10">
       <PageHeader
         title="Captura de Mapas"
-        subtitle="Fotografe ou selecione mapas em lote, corrija a perspectiva automaticamente e processe tudo de uma vez."
+        subtitle="Capture, revise as bordas e processe em lote."
       />
 
       {/* Banner de aviso sobre retencao */}
-      <div className="flex items-start gap-3 rounded-lg border border-warning-200 bg-warning-50 px-4 py-3 text-sm text-warning-800 dark:border-warning-800 dark:bg-warning-950 dark:text-warning-300">
+      <div className="flex items-start gap-3 rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] px-4 py-3 text-sm text-[var(--color-text-secondary)]">
         <Icon
-          name="alert-triangle"
-          className="mt-0.5 h-4 w-4 flex-none text-warning-600 dark:text-warning-400"
+          name="history"
+          className="mt-0.5 h-4 w-4 flex-none text-[var(--color-text-tertiary)]"
         />
         <span>
-          <strong>Atencao:</strong> As imagens ficam disponiveis por <strong>30 dias</strong> e sao excluidas automaticamente depois desse prazo. Faca o download antes do vencimento.
+          As capturas ficam disponiveis por <strong>30 dias</strong>. Baixe antes do vencimento.
         </span>
       </div>
 
       {/* Area de captura em lote */}
       <Card>
         <div className="p-5 sm:p-6">
+          <div className="mb-4 flex flex-col gap-3 rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-1">
+              <h2 className="text-sm font-medium text-[var(--color-text-primary)]">
+                Envie as imagens e revise apenas o que precisar.
+              </h2>
+              <p className="text-sm text-[var(--color-text-secondary)]">
+                A correcao roda sozinha. Ajuste manualmente quando a folha nao for detectada.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2 text-xs text-[var(--color-text-secondary)]">
+              <span className="rounded-full bg-[var(--color-bg-primary)] px-3 py-1">
+                1. Capturar ou enviar
+              </span>
+              <span className="rounded-full bg-[var(--color-bg-primary)] px-3 py-1">
+                2. Revisar bordas
+              </span>
+              <span className="rounded-full bg-[var(--color-bg-primary)] px-3 py-1">
+                3. Processar lote
+              </span>
+            </div>
+          </div>
+
           {/* Zona de drop / botoes de adicao */}
           <div
             className={
-              `mb-4 flex flex-col items-center gap-4 rounded-xl border-2 bg-white px-6 py-8 text-neutral-600 dark:bg-neutral-900 dark:text-neutral-400 ` +
+              `mb-5 flex flex-col items-center gap-4 rounded-xl border px-4 py-6 text-center text-[var(--color-text-secondary)] transition-colors duration-200 sm:px-6 sm:py-8 ` +
               (dragActive
-                ? 'border-primary-500 bg-primary-50 dark:border-primary-400 dark:bg-primary-950'
-                : 'border-dashed border-neutral-300 bg-neutral-50 dark:border-neutral-700')
+                ? 'border-[var(--color-primary-600)] bg-[var(--color-primary-50)]'
+                : 'border-dashed border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)]')
             }
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
           >
-            <Icon name="layers" className="h-10 w-10 text-neutral-500 dark:text-neutral-600" />
-            <p className="text-center text-sm text-neutral-600 dark:text-neutral-400">
-              Arraste e solte imagens aqui ou use a camera. A perspectiva e corrigida automaticamente.
-            </p>
-            <div className="flex w-full flex-col justify-center gap-2 sm:w-auto sm:flex-row">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--color-bg-primary)] text-[var(--color-primary-600)] shadow-sm">
+              <Icon name="layers" className="h-5 w-5" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-[var(--color-text-primary)]">
+                Arraste imagens aqui ou use a camera.
+              </p>
+              <p className="text-sm text-[var(--color-text-secondary)]">
+                JPEG, PNG ou WEBP com ate 10 MB por arquivo.
+              </p>
+            </div>
+            <div className="flex flex-wrap justify-center gap-2 text-xs text-[var(--color-text-secondary)]">
+              <span className="rounded-full bg-[var(--color-bg-primary)] px-3 py-1">
+                Sem envio imediato
+              </span>
+              <span className="rounded-full bg-[var(--color-bg-primary)] px-3 py-1">
+                Revisao antes do lote
+              </span>
+              <span className="rounded-full bg-[var(--color-bg-primary)] px-3 py-1">
+                Preview da imagem final
+              </span>
+            </div>
+            <div className="grid w-full grid-cols-1 gap-2 sm:w-auto sm:grid-cols-2">
               <Button
                 variant="primary"
-                size="sm"
+                size="md"
                 icon="camera"
                 fullWidth
-                className="sm:w-auto"
+                className="sm:min-w-[11rem]"
                 onClick={() => {
                   cameraInputRef.current?.setAttribute('capture', 'environment');
                   cameraInputRef.current?.click();
                 }}
               >
-                Camera
+                Usar camera
               </Button>
               <Button
                 variant="secondary"
-                size="sm"
+                size="md"
                 icon="image"
                 fullWidth
-                className="sm:w-auto"
+                className="sm:min-w-[11rem]"
                 onClick={() => batchInputRef.current?.click()}
               >
-                Selecionar Arquivos
+                Escolher arquivos
               </Button>
             </div>
+            <p className="text-xs text-[var(--color-text-tertiary)]">
+              No celular, prefira enquadrar a folha inteira antes de capturar.
+            </p>
 
             <input
               ref={cameraInputRef}
@@ -921,85 +965,107 @@ export function CapturaMapaPage() {
           {queue.length > 0 && (
             <>
               {/* Barra de acoes do lote */}
-              <div className="mb-4 flex flex-col gap-3">
-                <p className="text-sm text-neutral-600 dark:text-neutral-400">
-                  {plural(queue.length, 'imagem na fila', 'imagens na fila')}
-                  {corrigindo > 0 && (
-                    <span className="ml-2 text-primary-600 dark:text-primary-400">
-                      {' '}
-                      corrigindo {corrigindo}...
-                    </span>
-                  )}
-                  {aguardando > 0 && (
-                    <span className="ml-2 text-neutral-500"> {aguardando} aguardando</span>
-                  )}
-                  {revisar > 0 && (
-                    <span className="ml-2 text-warning-700 dark:text-warning-300">
-                      {' '}
-                      {revisar} para revisar
-                    </span>
-                  )}
-                  {concluidos > 0 && (
-                    <span className="ml-2 text-success-600 dark:text-success-400">
-                      {' '}
-                      {concluidos} concluidas
-                    </span>
-                  )}
-                </p>
+              <div className="mb-4 rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-4">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-[var(--color-text-primary)]">
+                      {plural(queue.length, 'imagem na fila', 'imagens na fila')}
+                    </p>
+                    <div className="flex flex-wrap gap-2 text-xs text-[var(--color-text-secondary)]">
+                      {corrigindo > 0 && (
+                        <span className="rounded-full bg-[var(--color-primary-50)] px-3 py-1 text-[var(--color-primary-700)]">
+                          Corrigindo {corrigindo}
+                        </span>
+                      )}
+                      {aguardando > 0 && (
+                        <span className="rounded-full bg-[var(--color-bg-primary)] px-3 py-1">
+                          {aguardando} prontas
+                        </span>
+                      )}
+                      {revisar > 0 && (
+                        <span className="rounded-full bg-warning-50 px-3 py-1 text-warning-700 dark:bg-warning-950 dark:text-warning-300">
+                          {revisar} para revisar
+                        </span>
+                      )}
+                      {concluidos > 0 && (
+                        <span className="rounded-full bg-success-50 px-3 py-1 text-success-700 dark:bg-success-950 dark:text-success-300">
+                          {concluidos} concluidas
+                        </span>
+                      )}
+                    </div>
+                  </div>
 
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:flex">
-                  {concluidos > 0 && (
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:flex">
+                    {concluidos > 0 && (
+                      <Button
+                        variant="secondary"
+                        size="md"
+                        icon="download"
+                        fullWidth
+                        className="xl:w-auto"
+                        onClick={handleBaixarTodos}
+                      >
+                        Baixar todas
+                      </Button>
+                    )}
+                    {podeProcessarLote && (
+                      <Button
+                        variant="primary"
+                        size="md"
+                        icon="zap"
+                        fullWidth
+                        className="xl:w-auto"
+                        loading={processandoLote || processandoAlgum}
+                        onClick={handleProcessarLote}
+                      >
+                        {processandoLote || processandoAlgum
+                          ? 'Processando...'
+                          : `Processar ${plural(aguardando, 'imagem', 'imagens')}`}
+                      </Button>
+                    )}
+                    {!podeProcessarLote && aguardando > 0 && (
+                      <Button
+                        variant="secondary"
+                        size="md"
+                        icon="alert-triangle"
+                        fullWidth
+                        className="xl:w-auto"
+                        disabled
+                      >
+                        {revisar > 0 ? 'Revise as bordas pendentes' : 'Aguarde a correcao'}
+                      </Button>
+                    )}
+                    {temErro && (
+                      <Button
+                        variant="secondary"
+                        size="md"
+                        icon="refresh-cw"
+                        fullWidth
+                        className="xl:w-auto"
+                        onClick={() => {
+                          queue
+                            .filter((it) => it.status === 'erro')
+                            .forEach((it) => handleRetry(it.localId));
+                        }}
+                      >
+                        Tentar de novo
+                      </Button>
+                    )}
                     <Button
-                      variant="secondary"
-                      size="sm"
-                      icon="download"
+                      variant="ghost"
+                      size="md"
+                      icon="trash-2"
                       fullWidth
                       className="xl:w-auto"
-                      onClick={handleBaixarTodos}
+                      onClick={handleLimparFila}
                     >
-                      Baixar Todos
+                      Limpar fila
                     </Button>
-                  )}
-                  {aguardando > 0 && revisar === 0 && corrigindo === 0 && (
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      icon="zap"
-                      fullWidth
-                      className="xl:w-auto"
-                      loading={processandoLote || processandoAlgum}
-                      onClick={handleProcessarLote}
-                    >
-                      {processandoLote || processandoAlgum
-                        ? 'Processando...'
-                        : `Processar ${plural(aguardando, 'Imagem', 'Imagens')}`}
-                    </Button>
-                  )}
-                  {aguardando > 0 && (revisar > 0 || corrigindo > 0) && (
-                    <Button variant="secondary" size="sm" icon="alert-triangle" fullWidth className="xl:w-auto" disabled>
-                      {revisar > 0 ? 'Revise as bordas' : 'Aguarde a correcao'}
-                    </Button>
-                  )}
-                  {temErro && (
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      icon="refresh-cw"
-                      fullWidth
-                      className="xl:w-auto"
-                      onClick={() => {
-                        queue
-                          .filter((it) => it.status === 'erro')
-                          .forEach((it) => handleRetry(it.localId));
-                      }}
-                    >
-                      Tentar Novamente
-                    </Button>
-                  )}
-                  <Button variant="secondary" size="sm" icon="trash-2" fullWidth className="xl:w-auto" onClick={handleLimparFila}>
-                    Limpar
-                  </Button>
+                  </div>
                 </div>
+                <p className="mt-3 text-xs text-[var(--color-text-tertiary)]">
+                  O lote so e liberado quando todas as imagens estiverem prontas ou revisadas.
+                </p>
               </div>
 
               {/* Grade de miniaturas */}
@@ -1007,10 +1073,10 @@ export function CapturaMapaPage() {
                 {queue.map((item) => (
                   <div
                     key={item.localId}
-                    className="group relative flex flex-col overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-sm dark:border-neutral-700 dark:bg-neutral-800"
+                    className="group relative flex min-w-0 flex-col overflow-hidden rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] shadow-sm"
                   >
                     {/* Miniatura */}
-                    <div className="relative aspect-[3/4] overflow-hidden bg-neutral-100 dark:bg-neutral-900">
+                    <div className="relative aspect-[3/4] overflow-hidden bg-[var(--color-bg-secondary)]">
                       <img
                         src={item.thumbSrc}
                         alt="Miniatura"
@@ -1042,7 +1108,7 @@ export function CapturaMapaPage() {
 
                       {item.status === 'revisar' && (
                         <button
-                          className="absolute inset-x-2 bottom-2 rounded-md bg-warning-500 px-2 py-1 text-xs font-medium text-white shadow-sm"
+                          className="absolute inset-x-2 bottom-2 rounded-lg bg-warning-500 px-3 py-2 text-xs font-medium text-white shadow-sm"
                           onClick={() => void handleOpenEditor(item)}
                         >
                           Ajustar bordas
@@ -1052,26 +1118,26 @@ export function CapturaMapaPage() {
                       {/* Botao remover */}
                       {item.status !== 'processando' && (
                         <button
-                          className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                          className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/55 text-white opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
                           onClick={() => handleRemover(item.localId)}
                           aria-label="Remover"
                         >
-                          <Icon name="x" className="h-3 w-3" />
+                          <Icon name="x" className="h-3.5 w-3.5" />
                         </button>
                       )}
                     </div>
 
                     {/* Rodape do card */}
-                    <div className="px-2 py-1.5">
-                      <div className="flex items-center justify-between gap-1">
+                    <div className="space-y-2 px-3 py-3">
+                      <div className="flex items-start justify-between gap-2">
                         <span
-                          className={`truncate text-xs font-medium ${STATUS_COLOR[item.status]}`}
+                          className={`min-w-0 text-xs font-medium ${STATUS_COLOR[item.status]}`}
                         >
                           {item.status === 'concluido' && item.result
                             ? getProcessingBadge(item.result)
                             : STATUS_LABEL[item.status]}
                           {item.status === 'concluido' && item.result && (
-                            <span className="ml-1 font-normal text-neutral-400">
+                            <span className="ml-1 font-normal text-[var(--color-text-tertiary)]">
                               {' '}
                               {formatBytes(item.result.tamanhoBytes)}
                             </span>
@@ -1081,14 +1147,14 @@ export function CapturaMapaPage() {
                         {item.status === 'concluido' && item.result && (
                           <div className="flex flex-none gap-1">
                             <button
-                              className="text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300"
+                              className="flex h-8 w-8 items-center justify-center rounded-full text-[var(--color-primary-600)] transition-colors hover:bg-[var(--color-primary-50)] hover:text-[var(--color-primary-700)]"
                               onClick={() => setPreviewItemId(item.localId)}
                               aria-label="Visualizar"
                             >
                               <Icon name="eye" className="h-3.5 w-3.5" />
                             </button>
                             <button
-                              className="text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300"
+                              className="flex h-8 w-8 items-center justify-center rounded-full text-[var(--color-primary-600)] transition-colors hover:bg-[var(--color-primary-50)] hover:text-[var(--color-primary-700)]"
                               onClick={() => handleDownloadItem(item)}
                               aria-label="Baixar"
                             >
@@ -1100,7 +1166,7 @@ export function CapturaMapaPage() {
                         {item.status === 'revisar' && (
                           <div className="flex flex-none gap-1">
                             <button
-                              className="text-primary-600 hover:text-primary-800 dark:text-primary-400"
+                              className="flex h-8 w-8 items-center justify-center rounded-full text-[var(--color-primary-600)] transition-colors hover:bg-[var(--color-primary-50)] hover:text-[var(--color-primary-700)]"
                               onClick={() => void handleOpenEditor(item)}
                               aria-label="Ajustar bordas"
                             >
@@ -1111,7 +1177,7 @@ export function CapturaMapaPage() {
 
                         {item.status === 'erro' && (
                           <button
-                            className="flex-none text-error-600 hover:text-error-800 dark:text-error-400"
+                            className="flex h-8 w-8 flex-none items-center justify-center rounded-full text-error-600 transition-colors hover:bg-error-50 hover:text-error-700 dark:hover:bg-error-950"
                             onClick={() => handleRetry(item.localId)}
                             aria-label="Tentar novamente"
                           >
@@ -1121,7 +1187,7 @@ export function CapturaMapaPage() {
                       </div>
 
                       {item.status === 'concluido' && item.result && (
-                        <div className="mt-1 space-y-1 text-[11px] leading-4 text-neutral-500 dark:text-neutral-400">
+                        <div className="space-y-1 text-[11px] leading-4 text-[var(--color-text-secondary)]">
                           <div className="flex flex-wrap gap-x-2">
                             {formatConfidence(item.result.processamento.confidence) && (
                               <span>
@@ -1162,16 +1228,12 @@ export function CapturaMapaPage() {
         open={!!editorItem && !!editorImageSize}
         onClose={handleCloseEditor}
         title="Ajustar bordas"
-        subtitle="Arraste os cantos e os pontos do meio para enquadrar apenas a folha. A correcao final deve remover a mesa da imagem."
+        subtitle="Enquadre apenas a folha."
         size="xl"
+        scrollable
         footer={
           <div className="flex flex-col gap-2 p-4 sm:flex-row sm:flex-wrap sm:justify-end">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={handleCloseEditor}
-              disabled={editorSaving}
-            >
+            <Button variant="ghost" size="sm" onClick={handleCloseEditor} disabled={editorSaving}>
               Cancelar
             </Button>
             <Button
@@ -1187,9 +1249,12 @@ export function CapturaMapaPage() {
         }
       >
         {editorItem && editorImageSize && (
-          <div className="p-4">
+          <div className="space-y-3 p-4">
+            <p className="text-sm text-[var(--color-text-secondary)]">
+              Arraste os cantos e os pontos centrais ate remover mesa, fundo e sombras externas.
+            </p>
             <div
-              className={`relative mx-auto overflow-hidden rounded-lg bg-neutral-900 max-w-[760px] w-full ${editorAspectClass}`}
+              className={`relative mx-auto w-full max-w-[760px] overflow-hidden rounded-xl bg-[var(--color-gray-900)] ${editorAspectClass}`}
             >
               <style>{editorPositionStyles}</style>
               <img
@@ -1220,8 +1285,8 @@ export function CapturaMapaPage() {
                           .join(' ')
                       : editorCorners.map(([x, y]) => `${x},${y}`).join(' ')
                   }
-                  fill="rgba(14, 165, 233, 0.12)"
-                  stroke="rgb(14, 165, 233)"
+                  fill="rgba(68, 76, 231, 0.12)"
+                  stroke="rgb(68, 76, 231)"
                   strokeWidth={2}
                 />
               </svg>
@@ -1263,12 +1328,13 @@ export function CapturaMapaPage() {
       <Modal
         open={!!previewItem?.result}
         onClose={() => setPreviewItemId(null)}
-        title="Preview da imagem processada"
+        title="Imagem processada"
         subtitle={previewItem?.result?.nomeArquivo}
         size="xl"
+        scrollable
         footer={
           <div className="flex flex-col gap-2 p-4 sm:flex-row sm:flex-wrap sm:justify-end">
-            <Button variant="secondary" size="sm" onClick={() => setPreviewItemId(null)}>
+            <Button variant="ghost" size="sm" onClick={() => setPreviewItemId(null)}>
               Fechar
             </Button>
             {previewItem?.result && (
@@ -1285,30 +1351,30 @@ export function CapturaMapaPage() {
         }
       >
         {previewItem?.result && (
-          <div className="p-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="overflow-hidden rounded-lg border border-neutral-200 bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-900">
-                <div className="border-b border-neutral-200 px-3 py-2 text-xs font-medium text-neutral-500 dark:border-neutral-700 dark:text-neutral-400">
+          <div className="space-y-4 p-4">
+            <div className="grid gap-4 lg:grid-cols-2">
+              <div className="overflow-hidden rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)]">
+                <div className="border-b border-[var(--color-border-primary)] px-3 py-2 text-xs font-medium text-[var(--color-text-secondary)]">
                   Original
                 </div>
                 <img
                   src={previewItem.originalSrc}
                   alt="Imagem original"
-                  className="max-h-[70vh] w-full object-contain"
+                  className="max-h-[65vh] w-full object-contain"
                 />
               </div>
-              <div className="overflow-hidden rounded-lg border border-neutral-200 bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-900">
-                <div className="border-b border-neutral-200 px-3 py-2 text-xs font-medium text-neutral-500 dark:border-neutral-700 dark:text-neutral-400">
+              <div className="overflow-hidden rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)]">
+                <div className="border-b border-[var(--color-border-primary)] px-3 py-2 text-xs font-medium text-[var(--color-text-secondary)]">
                   Corrigida
                 </div>
                 <img
                   src={previewItem.result.imagemProcessada}
                   alt="Preview da imagem processada"
-                  className="max-h-[70vh] w-full object-contain"
+                  className="max-h-[65vh] w-full object-contain"
                 />
               </div>
             </div>
-            <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-neutral-500 dark:text-neutral-400">
+            <div className="flex flex-wrap gap-2 text-xs text-[var(--color-text-secondary)]">
               <span>{previewItem.result.nomeArquivo}</span>
               <span>{formatBytes(previewItem.result.tamanhoBytes)}</span>
               {formatConfidence(previewItem.result.processamento.confidence) && (
@@ -1331,7 +1397,7 @@ export function CapturaMapaPage() {
               </p>
             )}
             {previewItem.result.processamento.metadata?.warnings?.map((warning) => (
-              <p key={warning} className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+              <p key={warning} className="text-xs text-[var(--color-text-secondary)]">
                 {warning}
               </p>
             ))}
@@ -1342,52 +1408,60 @@ export function CapturaMapaPage() {
       {/* Capturas recentes (servidor) */}
       <Card>
         <div className="p-5 sm:p-6">
-          <div className="mb-4 flex items-center justify-between">
-            <h3 className="text-base font-semibold text-neutral-800 dark:text-neutral-200">
-              Capturas Recentes
-            </h3>
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-1">
+              <h3 className="text-base font-semibold text-[var(--color-text-primary)]">
+                Capturas recentes
+              </h3>
+              <p className="text-sm text-[var(--color-text-secondary)]">
+                Arquivos salvos nos ultimos 30 dias.
+              </p>
+            </div>
             <Button
               variant="secondary"
-              size="sm"
+              size="md"
               icon="refresh-cw"
               loading={carregandoLista}
+              fullWidth
+              className="sm:w-auto"
               onClick={handleCarregarCapturas}
             >
-              {listaExpandida ? 'Atualizar' : 'Carregar'}
+              {listaExpandida ? 'Atualizar lista' : 'Carregar lista'}
             </Button>
           </div>
 
           {!listaExpandida && (
-            <p className="text-sm text-neutral-500 dark:text-neutral-400">
-              Clique em &ldquo;Carregar&rdquo; para ver as imagens salvas nos ultimos 30 dias.
+            <p className="text-sm text-[var(--color-text-secondary)]">
+              Carregue a lista para ver imagens salvas.
             </p>
           )}
 
           {listaExpandida && capturasRecentes !== null && capturasRecentes.length === 0 && (
-            <div className="flex flex-col items-center gap-2 py-8 text-sm text-neutral-500 dark:text-neutral-400">
+            <div className="flex flex-col items-center gap-2 rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] py-8 text-sm text-[var(--color-text-secondary)]">
               <Icon name="image" className="h-8 w-8 opacity-40" />
-              <p className="font-medium">Nenhuma captura encontrada</p>
-              <p>Voce nao possui imagens salvas no momento.</p>
+              <p className="font-medium text-[var(--color-text-primary)]">Nenhuma captura salva</p>
             </div>
           )}
 
           {listaExpandida && capturasRecentes && capturasRecentes.length > 0 && (
-            <div className="divide-y divide-neutral-100 dark:divide-neutral-800">
+            <div className="space-y-3">
               {capturasRecentes.map((c) => {
                 const expirada = new Date(c.expira_em) < new Date();
                 const confidence = formatConfidence(c.processamento_confianca ?? null);
                 return (
                   <div
                     key={c.id}
-                    className="flex flex-col gap-3 border-b border-neutral-100 py-3 last:border-b-0 dark:border-neutral-800"
+                    className="rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-4"
                   >
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium text-neutral-800 dark:text-neutral-200">
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                      <div className="min-w-0 space-y-1">
+                        <p className="truncate text-sm font-medium text-[var(--color-text-primary)]">
                           {c.nome_arquivo}
                         </p>
-                        <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                          {formatDateBR(c.criado_em)} - {formatBytes(c.tamanho_bytes)} -{' '}
+                        <p className="text-xs text-[var(--color-text-secondary)]">
+                          {formatDateBR(c.criado_em)} - {formatBytes(c.tamanho_bytes)}
+                        </p>
+                        <p className="text-xs text-[var(--color-text-secondary)]">
                           {expirada ? (
                             <span className="text-error-600 dark:text-error-400">Expirada</span>
                           ) : (
@@ -1398,36 +1472,38 @@ export function CapturaMapaPage() {
                           )}
                         </p>
                       </div>
-                      <div className="flex flex-wrap items-center gap-2 text-xs text-neutral-500 dark:text-neutral-400">
+                      <div className="flex flex-wrap gap-2 text-xs text-[var(--color-text-secondary)]">
                         {c.processamento_status && (
-                          <span className="rounded-full border border-neutral-200 px-2 py-0.5 dark:border-neutral-700">
+                          <span className="rounded-full bg-[var(--color-bg-primary)] px-3 py-1">
                             {c.processamento_status}
                           </span>
                         )}
                         {c.processamento_engine && (
-                          <span className="rounded-full border border-neutral-200 px-2 py-0.5 dark:border-neutral-700">
+                          <span className="rounded-full bg-[var(--color-bg-primary)] px-3 py-1">
                             {c.processamento_engine}
                           </span>
                         )}
                         {confidence && (
-                          <span className="rounded-full border border-neutral-200 px-2 py-0.5 dark:border-neutral-700">
+                          <span className="rounded-full bg-[var(--color-bg-primary)] px-3 py-1">
                             {confidence}
                           </span>
                         )}
                         {c.processamento_fallback && (
-                          <span className="rounded-full border border-warning-200 bg-warning-50 px-2 py-0.5 text-warning-700 dark:border-warning-800 dark:bg-warning-950 dark:text-warning-300">
+                          <span className="rounded-full bg-warning-50 px-3 py-1 text-warning-700 dark:bg-warning-950 dark:text-warning-300">
                             Fallback
                           </span>
                         )}
                       </div>
                     </div>
-                    <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                    <div className="mt-3 grid grid-cols-1 gap-2 sm:flex sm:flex-wrap">
                       {!expirada && (
                         <Button
                           variant="secondary"
-                          size="sm"
+                          size="md"
                           icon="download"
                           loading={baixandoId === c.id}
+                          fullWidth
+                          className="sm:w-auto"
                           onClick={() => handleDownload(c.id, c.nome_arquivo)}
                           aria-label="Baixar"
                         >
@@ -1435,10 +1511,12 @@ export function CapturaMapaPage() {
                         </Button>
                       )}
                       <Button
-                        variant="danger"
-                        size="sm"
+                        variant="ghost"
+                        size="md"
                         icon="trash-2"
                         loading={excluindoId === c.id}
+                        fullWidth
+                        className="sm:w-auto"
                         onClick={() => handleExcluir(c.id)}
                         aria-label="Excluir"
                       >

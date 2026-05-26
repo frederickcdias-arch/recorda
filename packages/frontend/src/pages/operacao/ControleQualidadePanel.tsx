@@ -282,14 +282,14 @@ export function ControleQualidadePanel({
   const resultadoBadge = (resultado: string): JSX.Element => {
     if (resultado === 'APROVADO')
       return (
-        <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800">
-          OK Aprovado
+        <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700">
+          Aprovado
         </span>
       );
     if (resultado === 'REPROVADO')
       return (
-        <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">
-          X Reprovado
+        <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-600">
+          Reprovado
         </span>
       );
     return (
@@ -334,12 +334,12 @@ export function ControleQualidadePanel({
             <h3 className="text-base font-semibold text-[var(--color-text-primary)] mb-2">
               Concluir Controle de Qualidade?
             </h3>
-            <p className="text-sm text-gray-600 mb-1">
+            <p className="text-sm text-[var(--color-text-secondary)] mb-1">
               {resumo.reprovados > 0
                 ? `${resumo.reprovados} documento(s) reprovado(s). O repositorio sera marcado como CQ_REPROVADO.`
                 : 'Todos os documentos foram aprovados. O repositorio sera marcado como CQ_APROVADO.'}
             </p>
-            <p className="text-xs text-gray-400 mb-5">
+            <p className="text-xs text-[var(--color-text-tertiary)] mb-5">
               Esta acao nao pode ser desfeita sem devolucao.
             </p>
             <div className="flex gap-2 justify-end">
@@ -364,16 +364,16 @@ export function ControleQualidadePanel({
             <h3 className="text-base font-semibold text-[var(--color-text-primary)] mb-1">
               Reprovar documento
             </h3>
-            <p className="text-sm text-gray-500 mb-3 font-mono">
+            <p className="text-sm text-[var(--color-text-secondary)] mb-3 font-mono">
               {docs.find((d) => d.processo_id === reprovandoId)?.protocolo}
             </p>
-            <label className="block text-xs font-medium text-gray-700 mb-1">
+            <label className="block text-xs font-medium text-[var(--color-text-secondary)] mb-1">
               Motivo da reprovacao <span className="text-red-500">*</span>
             </label>
             <input
               ref={obsInputRef}
               type="text"
-              className="w-full h-9 px-3 border rounded-lg text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-red-300"
+              className="w-full h-9 px-3 border border-[var(--color-border-primary)] rounded-lg text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-red-300"
               placeholder="Descreva o motivo..."
               value={obsPorDoc[reprovandoId] ?? ''}
               onChange={(e) =>
@@ -399,13 +399,15 @@ export function ControleQualidadePanel({
 
       <Card>
         <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-          <h2 className="text-lg font-semibold text-gray-900">Repositorios</h2>
-          <span className="text-xs text-gray-400">{todosRepositoriosCQ.length} total</span>
+          <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">Repositórios</h2>
+          <span className="text-xs text-[var(--color-text-tertiary)]">
+            {todosRepositoriosCQ.length} total
+          </span>
         </div>
         <div className="flex flex-wrap gap-2 mb-3">
           <input
             type="text"
-            className="h-8 px-3 border rounded-lg text-sm w-44 focus:outline-none focus:ring-2 focus:ring-blue-200"
+            className="h-8 px-3 border border-[var(--color-border-primary)] rounded-lg text-sm w-44 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-300)]"
             placeholder="Buscar repositório..."
             value={buscaRepo}
             onChange={(e) => setBuscaRepo(e.target.value)}
@@ -424,14 +426,16 @@ export function ControleQualidadePanel({
             <button
               key={key}
               onClick={() => setFiltroRepo(key)}
-              className={`px-3 h-8 rounded-lg text-xs font-medium border transition-colors ${filtroRepo === key ? 'bg-blue-50 text-blue-700 border-blue-300' : 'bg-[var(--color-bg-primary)] text-gray-600 border-gray-200 hover:bg-gray-50'}`}
+              className={`px-3 h-8 rounded-lg text-xs font-medium border transition-colors ${filtroRepo === key ? 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)] border-[var(--color-primary-300)]' : 'bg-[var(--color-bg-primary)] text-[var(--color-text-secondary)] border-[var(--color-border-primary)] hover:bg-[var(--color-bg-secondary)]'}`}
             >
               {label}
             </button>
           ))}
         </div>
         {reposFiltrados.length === 0 ? (
-          <p className="text-sm text-gray-400 py-2">Nenhum repositorio corresponde ao filtro.</p>
+          <p className="text-sm text-[var(--color-text-tertiary)] py-2">
+            Nenhum repositório corresponde ao filtro.
+          </p>
         ) : (
           <div className="space-y-1 max-h-56 overflow-y-auto pr-1">
             {reposFiltrados.map((repo) => (
@@ -443,15 +447,19 @@ export function ControleQualidadePanel({
                   setBusca('');
                   setFiltroStatus('TODOS');
                 }}
-                className={`w-full text-left px-3 py-2 rounded-lg border transition-colors flex items-center justify-between gap-2 ${repoSelecionadoId === repo.id_repositorio_recorda ? 'bg-blue-50 border-blue-300 ring-1 ring-blue-300' : 'bg-[var(--color-bg-primary)] border-gray-200 hover:bg-gray-50'}`}
+                className={`w-full text-left px-3 py-2 rounded-lg border transition-colors flex items-center justify-between gap-2 ${repoSelecionadoId === repo.id_repositorio_recorda ? 'bg-[var(--color-primary-50)] border-[var(--color-primary-300)] ring-1 ring-[var(--color-primary-300)]' : 'bg-[var(--color-bg-primary)] border-[var(--color-border-primary)] hover:bg-[var(--color-bg-secondary)]'}`}
               >
                 <div className="min-w-0">
-                  <span className="text-sm font-medium text-gray-900">
+                  <span className="text-sm font-medium text-[var(--color-text-primary)]">
                     {repo.id_repositorio_ged}
                   </span>
-                  <span className="text-xs text-gray-500 ml-2">{repo.orgao}</span>
+                  <span className="text-xs text-[var(--color-text-tertiary)] ml-2">
+                    {repo.orgao}
+                  </span>
                 </div>
-                <span className="text-xs text-gray-500">{repo.status_atual}</span>
+                <span className="text-xs text-[var(--color-text-tertiary)]">
+                  {repo.status_atual}
+                </span>
               </button>
             ))}
           </div>
@@ -461,7 +469,7 @@ export function ControleQualidadePanel({
       {repoSelecionadoId ? (
         <Card>
           <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
-            <h3 className="text-base font-semibold text-gray-900">
+            <h3 className="text-base font-semibold text-[var(--color-text-primary)]">
               {repoSelecionado?.id_repositorio_ged} - {repoSelecionado?.orgao}
             </h3>
             <div className="flex flex-wrap gap-2">
@@ -525,7 +533,7 @@ export function ControleQualidadePanel({
           <div className="flex flex-wrap gap-2 mb-3">
             <input
               type="text"
-              className="h-8 px-3 border rounded-lg text-sm w-48 focus:outline-none focus:ring-2 focus:ring-blue-200"
+              className="h-8 px-3 border border-[var(--color-border-primary)] rounded-lg text-sm w-48 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-300)]"
               placeholder="Buscar protocolo..."
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
@@ -534,7 +542,7 @@ export function ControleQualidadePanel({
               <button
                 key={f}
                 onClick={() => setFiltroStatus(f)}
-                className={`px-3 h-8 rounded-lg text-xs font-medium border transition-colors ${filtroStatus === f ? 'bg-blue-50 text-blue-700 border-blue-300' : 'bg-[var(--color-bg-primary)] text-gray-600 border-gray-200 hover:bg-gray-50'}`}
+                className={`px-3 h-8 rounded-lg text-xs font-medium border transition-colors ${filtroStatus === f ? 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)] border-[var(--color-primary-300)]' : 'bg-[var(--color-bg-primary)] text-[var(--color-text-secondary)] border-[var(--color-border-primary)] hover:bg-[var(--color-bg-secondary)]'}`}
               >
                 {f}
               </button>
@@ -542,52 +550,60 @@ export function ControleQualidadePanel({
           </div>
 
           {docs.length === 0 ? (
-            <p className="text-sm text-gray-500 py-4">
-              Nenhum processo cadastrado neste repositorio.
+            <p className="text-sm text-[var(--color-text-secondary)] py-4">
+              Nenhum processo cadastrado.
             </p>
           ) : docsFiltrados.length === 0 ? (
-            <p className="text-sm text-gray-400 py-4 text-center">
-              Nenhum documento corresponde ao filtro.
+            <p className="text-sm text-[var(--color-text-tertiary)] py-4 text-center">
+              Nenhum resultado.
             </p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-[var(--color-border-primary)]">
+                <thead className="bg-[var(--color-bg-secondary)]">
                   <tr>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase">
+                    <th className="px-3 py-2 text-left text-xs font-medium text-[var(--color-text-secondary)]">
                       #
                     </th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase">
+                    <th className="px-3 py-2 text-left text-xs font-medium text-[var(--color-text-secondary)]">
                       Protocolo
                     </th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase">
+                    <th className="px-3 py-2 text-left text-xs font-medium text-[var(--color-text-secondary)]">
                       Interessado
                     </th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase">
+                    <th className="px-3 py-2 text-left text-xs font-medium text-[var(--color-text-secondary)]">
                       Vol.
                     </th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase">
+                    <th className="px-3 py-2 text-left text-xs font-medium text-[var(--color-text-secondary)]">
                       Status
                     </th>
-                    <th className="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase">
-                      Observacao
+                    <th className="px-3 py-2 text-left text-xs font-medium text-[var(--color-text-secondary)]">
+                      Observação
                     </th>
-                    <th className="px-3 py-2 text-right text-xs font-semibold text-gray-500 uppercase">
-                      Acoes
+                    <th className="px-3 py-2 text-right text-xs font-medium text-[var(--color-text-secondary)]">
+                      Ações
                     </th>
                   </tr>
                 </thead>
                 <tbody className="bg-[var(--color-bg-primary)] divide-y divide-[var(--color-border-secondary)]">
                   {docsFiltrados.map((doc, idx) => (
                     <tr key={doc.processo_id}>
-                      <td className="px-3 py-2 text-xs text-gray-400">{idx + 1}</td>
-                      <td className="px-3 py-2 text-sm font-medium text-gray-900">
+                      <td className="px-3 py-2 text-xs text-[var(--color-text-tertiary)]">
+                        {idx + 1}
+                      </td>
+                      <td className="px-3 py-2 text-sm font-medium text-[var(--color-text-primary)]">
                         {doc.protocolo}
                       </td>
-                      <td className="px-3 py-2 text-sm text-gray-700">{doc.interessado}</td>
-                      <td className="px-3 py-2 text-sm text-gray-700">{doc.volume}</td>
+                      <td className="px-3 py-2 text-sm text-[var(--color-text-secondary)]">
+                        {doc.interessado}
+                      </td>
+                      <td className="px-3 py-2 text-sm text-[var(--color-text-secondary)]">
+                        {doc.volume}
+                      </td>
                       <td className="px-3 py-2">{resultadoBadge(doc.resultado)}</td>
-                      <td className="px-3 py-2 text-xs text-gray-600">{doc.observacao ?? '-'}</td>
+                      <td className="px-3 py-2 text-xs text-[var(--color-text-secondary)]">
+                        {doc.observacao ?? '-'}
+                      </td>
                       <td className="px-3 py-2 text-right">
                         {!isConcluido ? (
                           <div className="inline-flex gap-1">
@@ -607,7 +623,9 @@ export function ControleQualidadePanel({
                             </button>
                           </div>
                         ) : (
-                          <span className="text-xs text-gray-400">{doc.avaliador_nome ?? '-'}</span>
+                          <span className="text-xs text-[var(--color-text-tertiary)]">
+                            {doc.avaliador_nome ?? '-'}
+                          </span>
                         )}
                       </td>
                     </tr>
@@ -621,15 +639,17 @@ export function ControleQualidadePanel({
 
       {reposAprovados.length > 0 ? (
         <Card>
-          <h2 className="text-lg font-semibold text-gray-900 mb-3">Termo de Devolucao Combinado</h2>
-          <p className="text-sm text-gray-500 mb-3">
-            Selecione repositorios aprovados para gerar um unico Termo de Devolucao.
+          <h2 className="text-lg font-semibold text-[var(--color-text-primary)] mb-3">
+            Termo de Devolução Combinado
+          </h2>
+          <p className="text-sm text-[var(--color-text-secondary)] mb-3">
+            Selecione repositórios aprovados para gerar um único Termo de Devolução.
           </p>
           <div className="space-y-2 max-h-48 overflow-auto">
             {reposAprovados.map((repo) => (
               <label
                 key={repo.id_repositorio_recorda}
-                className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer ${reposSelecionadosDev.has(repo.id_repositorio_recorda) ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
+                className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer ${reposSelecionadosDev.has(repo.id_repositorio_recorda) ? 'bg-[var(--color-primary-50)]' : 'hover:bg-[var(--color-bg-secondary)]'}`}
               >
                 <input
                   type="checkbox"
@@ -645,7 +665,7 @@ export function ControleQualidadePanel({
                   }}
                   className="rounded"
                 />
-                <span className="text-sm text-gray-900">
+                <span className="text-sm text-[var(--color-text-primary)]">
                   {repo.id_repositorio_ged} - {repo.orgao}
                 </span>
               </label>
@@ -661,7 +681,7 @@ export function ControleQualidadePanel({
               Gerar Termo ({reposSelecionadosDev.size})
             </Button>
             {reposSelecionadosDev.size > 0 ? (
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-[var(--color-text-tertiary)]">
                 {reposSelecionadosDev.size} repositorio(s) selecionado(s)
               </span>
             ) : null}
@@ -672,8 +692,10 @@ export function ControleQualidadePanel({
       {previewDevolucaoUrl ? (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in">
           <div className="bg-[var(--color-bg-primary)] rounded-xl shadow-xl w-full max-w-4xl h-[85vh] flex flex-col overflow-hidden animate-scale-in">
-            <div className="px-6 py-4 border-b flex items-center justify-between shrink-0">
-              <h3 className="text-lg font-semibold text-gray-900">Termo de Devolucao</h3>
+            <div className="px-6 py-4 border-b border-[var(--color-border-primary)] flex items-center justify-between shrink-0">
+              <h3 className="text-lg font-semibold text-[var(--color-text-primary)]">
+                Termo de Devolução
+              </h3>
               <div className="flex gap-2">
                 <Button
                   size="sm"

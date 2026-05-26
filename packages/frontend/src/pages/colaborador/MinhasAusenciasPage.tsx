@@ -149,9 +149,9 @@ export function MinhasAusenciasPage(): JSX.Element {
 
   function handleCancelar(item: MinhaAusenciaItem): void {
     confirmDialog.confirm({
-      title: 'Cancelar solicitacao',
-      message: `Deseja cancelar a solicitacao de "${item.tipoAusenciaNome}"? Esta acao nao pode ser desfeita.`,
-      confirmLabel: 'Cancelar solicitacao',
+      title: 'Cancelar ausência',
+      message: `Cancelar "${item.tipoAusenciaNome}"? Esta ação não pode ser desfeita.`,
+      confirmLabel: 'Cancelar',
       variant: 'danger',
       onConfirm: async () => {
         try {
@@ -173,10 +173,7 @@ export function MinhasAusenciasPage(): JSX.Element {
 
   return (
     <div className="flex flex-col gap-6 p-4 sm:p-6">
-      <PageHeader
-        title="Justificativas de Ausencia"
-        subtitle="Consulte o historico das suas justificativas registradas pela administracao."
-      />
+      <PageHeader title="Minhas Ausências" subtitle="Histórico de ausências registradas." />
 
       <PageState
         loading={ausenciasQuery.isLoading}
@@ -193,8 +190,8 @@ export function MinhasAusenciasPage(): JSX.Element {
           ausencias.length === 0 && !ausenciasQuery.isLoading && !ausenciasQuery.isError
             ? {
                 icon: 'calendar',
-                title: 'Nenhuma justificativa registrada',
-                description: 'Ainda nao ha justificativas de ausencia vinculadas ao seu perfil.',
+                title: 'Nenhuma ausência registrada',
+                description: 'Nenhuma ausência vinculada ao seu perfil até o momento.',
               }
             : null
         }

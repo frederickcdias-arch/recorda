@@ -553,11 +553,11 @@ export function ImportarProducaoPage(): JSX.Element {
       <div className="space-y-6">
         <PageHeader
           title="Importar Produção"
-          subtitle="Importe dados por CSV, Google Sheets ou colagem."
+          subtitle="Carregue, revise e importe dados históricos."
           actions={
             isAdmin ? (
               <Button
-                variant="secondary"
+                variant="danger"
                 onClick={() => void handleLimparImportacoes()}
                 loading={processando}
               >
@@ -578,10 +578,10 @@ export function ImportarProducaoPage(): JSX.Element {
         <Card>
           <CardHeader
             title="Fontes cadastradas"
-            description="Salve planilhas do Google Sheets para importar rapidamente."
+            description="Salve links para importar mais rapido."
           />
           {fontes.length > 0 ? (
-            <div className="space-y-2 mb-4">
+            <div className="mb-4 space-y-3">
               {fontes.map((f) => (
                 <div
                   key={f.id}
@@ -589,10 +589,14 @@ export function ImportarProducaoPage(): JSX.Element {
                 >
                   <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-gray-900">{f.nome}</p>
-                      <p className="mt-1 break-all text-xs text-gray-400">{f.url}</p>
+                      <p className="text-sm font-medium text-[var(--color-text-primary)]">
+                        {f.nome}
+                      </p>
+                      <p className="mt-1 break-all text-xs text-[var(--color-text-tertiary)]">
+                        {f.url}
+                      </p>
                       {f.ultima_importacao_em && (
-                        <p className="mt-1 text-xs text-gray-400">
+                        <p className="mt-1 text-xs text-[var(--color-text-tertiary)]">
                           Última importação:{' '}
                           {new Date(f.ultima_importacao_em).toLocaleString('pt-BR')}
                         </p>
@@ -600,7 +604,7 @@ export function ImportarProducaoPage(): JSX.Element {
                     </div>
                     <div className="flex flex-col gap-2 sm:flex-row lg:justify-end">
                       <Button
-                        size="sm"
+                        size="md"
                         variant="secondary"
                         fullWidth
                         onClick={() => void handleValidarDuplicatas(f.id)}
@@ -610,7 +614,7 @@ export function ImportarProducaoPage(): JSX.Element {
                         Validar duplicatas
                       </Button>
                       <Button
-                        size="sm"
+                        size="md"
                         fullWidth
                         onClick={() => void handleImportarFonte(f.id)}
                         loading={importandoFonteId === f.id}
@@ -620,7 +624,7 @@ export function ImportarProducaoPage(): JSX.Element {
                       </Button>
                       <Button
                         type="button"
-                        size="sm"
+                        size="md"
                         variant="ghost"
                         fullWidth
                         onClick={() => handleExcluirFonte(f.id, f.nome)}
@@ -635,27 +639,31 @@ export function ImportarProducaoPage(): JSX.Element {
               ))}
             </div>
           ) : (
-            <p className="text-sm text-gray-400 mb-4">
-              Nenhuma fonte cadastrada. Adicione um link do Google Sheets abaixo.
+            <p className="mb-4 text-sm text-[var(--color-text-secondary)]">
+              Nenhuma fonte salva. Adicione um link do Google Sheets abaixo.
             </p>
           )}
 
           {ultimoResultado && (
-            <div className="mb-4 p-3 bg-[var(--color-primary-50)] border border-[var(--color-primary-100)] rounded-lg text-sm">
-              <p className="font-medium text-gray-900">{ultimoResultado.fonte}</p>
-              <p className="text-gray-600 mt-1">
+            <div className="mb-4 rounded-xl border border-[var(--color-primary-100)] bg-[var(--color-primary-50)] p-4 text-sm">
+              <p className="font-medium text-[var(--color-text-primary)]">
+                {ultimoResultado.fonte}
+              </p>
+              <p className="mt-1 text-[var(--color-text-secondary)]">
                 <span className="font-semibold text-[var(--color-primary-700)]">
                   {ultimoResultado.importados}
                 </span>{' '}
                 novos
                 {' - '}
-                <span className="text-gray-500">
+                <span className="text-[var(--color-text-tertiary)]">
                   {ultimoResultado.duplicados} duplicados ignorados
                 </span>
                 {ultimoResultado.erros > 0 && (
                   <>
                     {' - '}
-                    <span className="text-gray-600">{ultimoResultado.erros} erros</span>
+                    <span className="text-[var(--color-text-secondary)]">
+                      {ultimoResultado.erros} erros
+                    </span>
                   </>
                 )}
               </p>
@@ -663,35 +671,40 @@ export function ImportarProducaoPage(): JSX.Element {
           )}
 
           {validacaoResult && (
-            <div className="mb-4 p-3 bg-yellow-50 border border-yellow-100 rounded-lg text-sm">
-              <p className="font-medium text-gray-900">
+            <div className="mb-4 rounded-xl border border-warning-200 bg-warning-50 p-4 text-sm dark:border-warning-800 dark:bg-warning-950">
+              <p className="font-medium text-[var(--color-text-primary)]">
                 {validacaoResult.fonte.nome} - Validação de duplicatas
               </p>
-              <p className="text-gray-600 mt-1">
-                <span className="font-semibold text-green-700">
+              <p className="mt-1 text-[var(--color-text-secondary)]">
+                <span className="font-semibold text-success-700 dark:text-success-300">
                   {validacaoResult.novos.quantidade}
                 </span>{' '}
                 novos registros
                 {' - '}
-                <span className="text-orange-600">
+                <span className="text-warning-700 dark:text-warning-300">
                   {validacaoResult.duplicados.quantidade} duplicados
                 </span>
                 {' · '}
-                <span className="text-gray-500">{validacaoResult.total} total</span>
+                <span className="text-[var(--color-text-tertiary)]">
+                  {validacaoResult.total} total
+                </span>
               </p>
               {validacaoResult.novos.quantidade > 0 && (
                 <details className="mt-2">
-                  <summary className="cursor-pointer text-xs text-gray-600 hover:text-gray-800">
+                  <summary className="cursor-pointer text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]">
                     Ver novos registros (amostra)
                   </summary>
-                  <div className="mt-1 text-xs text-gray-600">
+                  <div className="mt-1 text-xs text-[var(--color-text-secondary)]">
                     {validacaoResult.novos.itens.slice(0, 3).map((item, i) => (
-                      <div key={i} className="py-1 border-b border-gray-100 last:border-0">
+                      <div
+                        key={i}
+                        className="border-b border-[var(--color-border-primary)] py-1 last:border-0"
+                      >
                         Linha {item.linha}: {item.dados.colaborador} - {item.dados.repositorio}
                       </div>
                     ))}
                     {validacaoResult.novos.quantidade > 3 && (
-                      <p className="text-gray-400 mt-1">
+                      <p className="mt-1 text-[var(--color-text-tertiary)]">
                         ... e mais {validacaoResult.novos.quantidade - 3} registros
                       </p>
                     )}
@@ -700,17 +713,20 @@ export function ImportarProducaoPage(): JSX.Element {
               )}
               {validacaoResult.duplicados.quantidade > 0 && (
                 <details className="mt-2">
-                  <summary className="cursor-pointer text-xs text-gray-600 hover:text-gray-800">
+                  <summary className="cursor-pointer text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]">
                     Ver duplicados (amostra)
                   </summary>
-                  <div className="mt-1 text-xs text-gray-600">
+                  <div className="mt-1 text-xs text-[var(--color-text-secondary)]">
                     {validacaoResult.duplicados.itens.slice(0, 3).map((item, i) => (
-                      <div key={i} className="py-1 border-b border-gray-100 last:border-0">
+                      <div
+                        key={i}
+                        className="border-b border-[var(--color-border-primary)] py-1 last:border-0"
+                      >
                         Linha {item.linha}: {item.dados.colaborador} - {item.dados.repositorio}
                       </div>
                     ))}
                     {validacaoResult.duplicados.quantidade > 3 && (
-                      <p className="text-gray-400 mt-1">
+                      <p className="mt-1 text-[var(--color-text-tertiary)]">
                         ... e mais {validacaoResult.duplicados.quantidade - 3} duplicados
                       </p>
                     )}
@@ -721,26 +737,30 @@ export function ImportarProducaoPage(): JSX.Element {
           )}
 
           {resultadoImportacaoTodas && (
-            <div className="mb-4 p-3 bg-green-50 border border-green-100 rounded-lg text-sm">
-              <p className="font-medium text-gray-900">Importação em lote concluída</p>
-              <p className="text-gray-600 mt-1">
-                <span className="font-semibold text-green-700">
+            <div className="mb-4 rounded-xl border border-success-100 bg-success-50 p-4 text-sm dark:border-success-900 dark:bg-success-950">
+              <p className="font-medium text-[var(--color-text-primary)]">
+                Importação em lote concluída
+              </p>
+              <p className="mt-1 text-[var(--color-text-secondary)]">
+                <span className="font-semibold text-success-700 dark:text-success-300">
                   {resultadoImportacaoTodas.resumo.importados}
                 </span>{' '}
                 novos
                 {' · '}
-                <span className="text-orange-600">
+                <span className="text-warning-700 dark:text-warning-300">
                   {resultadoImportacaoTodas.resumo.duplicados} duplicados
                 </span>
                 {' · '}
-                <span className="text-red-600">{resultadoImportacaoTodas.resumo.erros} erros</span>
+                <span className="text-error-700 dark:text-error-300">
+                  {resultadoImportacaoTodas.resumo.erros} erros
+                </span>
                 {' · '}
-                <span className="text-gray-500">
+                <span className="text-[var(--color-text-tertiary)]">
                   {resultadoImportacaoTodas.total} fontes processadas
                 </span>
               </p>
               <details className="mt-2">
-                <summary className="cursor-pointer text-xs text-gray-600 hover:text-gray-800">
+                <summary className="cursor-pointer text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]">
                   Ver detalhes por fonte
                 </summary>
                 <div className="mt-1 space-y-1">
@@ -749,8 +769,8 @@ export function ImportarProducaoPage(): JSX.Element {
                       key={i}
                       className={`py-1 px-2 rounded text-xs ${
                         resultado.sucesso
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-red-100 text-red-800'
+                          ? 'bg-success-50 text-success-700 dark:bg-success-950 dark:text-success-300'
+                          : 'bg-error-50 text-error-700 dark:bg-error-950 dark:text-error-300'
                       }`}
                     >
                       {resultado.fonte}: {resultado.importados} novos, {resultado.duplicados}{' '}
@@ -803,11 +823,12 @@ export function ImportarProducaoPage(): JSX.Element {
         <Card>
           <CardHeader
             title="Importar produção"
-            description="Carregue um arquivo, consulte a planilha ou cole os dados antes de importar."
+            description="Escolha a origem, carregue os dados e revise antes de importar."
             action={
               fontes.length > 0 ? (
                 <Button
                   variant="primary"
+                  size="md"
                   fullWidth
                   onClick={() => void handleImportarTodas()}
                   loading={importandoTodas}
@@ -823,36 +844,49 @@ export function ImportarProducaoPage(): JSX.Element {
 
           {/* Source tabs */}
           <CardSection>
-            <div className="mb-4 grid grid-cols-1 gap-2 rounded-xl bg-gray-100 p-1 sm:grid-cols-3">
-              {[
-                { key: 'csv' as const, label: 'Arquivo CSV' },
-                { key: 'sheets' as const, label: 'Google Sheets' },
-                { key: 'colar' as const, label: 'Colar Dados' },
-              ].map((opt) => (
-                <button
-                  key={opt.key}
-                  type="button"
-                  onClick={() => setFonteProducao(opt.key)}
-                  className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-                    fonteProducao === opt.key
-                      ? 'bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
+            <div className="mb-4 rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-4">
+              <div className="mb-3 flex flex-wrap gap-2 text-xs text-[var(--color-text-secondary)]">
+                <span className="rounded-full bg-[var(--color-bg-primary)] px-3 py-1">
+                  1. Carregar origem
+                </span>
+                <span className="rounded-full bg-[var(--color-bg-primary)] px-3 py-1">
+                  2. Conferir preview
+                </span>
+                <span className="rounded-full bg-[var(--color-bg-primary)] px-3 py-1">
+                  3. Importar
+                </span>
+              </div>
+              <div className="grid grid-cols-1 gap-2 rounded-xl bg-[var(--color-bg-primary)] p-1 sm:grid-cols-3">
+                {[
+                  { key: 'csv' as const, label: 'Arquivo CSV' },
+                  { key: 'sheets' as const, label: 'Google Sheets' },
+                  { key: 'colar' as const, label: 'Colar Dados' },
+                ].map((opt) => (
+                  <button
+                    key={opt.key}
+                    type="button"
+                    onClick={() => setFonteProducao(opt.key)}
+                    className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                      fonteProducao === opt.key
+                        ? 'bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] shadow-sm'
+                        : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {fonteProducao === 'csv' && (
-              <div className="space-y-2">
+              <div className="space-y-3 rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-4">
                 <input
                   type="file"
                   accept=".csv,text/csv,.tsv,.txt"
                   onChange={(e) => void handleUploadCsvProducao(e.target.files?.[0] ?? null)}
-                  className="block w-full text-sm text-gray-700"
+                  className="block w-full text-sm text-[var(--color-text-primary)]"
                 />
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-[var(--color-text-secondary)]">
                   CSV ou TSV. Obrigatório: <strong>Colaborador</strong> e{' '}
                   <strong>Repositório</strong>.
                 </p>
@@ -860,7 +894,7 @@ export function ImportarProducaoPage(): JSX.Element {
             )}
 
             {fonteProducao === 'sheets' && (
-              <div className="space-y-2">
+              <div className="space-y-3 rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-4">
                 <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
                   <div className="min-w-0">
                     <Input
@@ -880,20 +914,20 @@ export function ImportarProducaoPage(): JSX.Element {
                   <Button
                     onClick={() => void handleFetchSheets()}
                     loading={processando}
-                    size="sm"
+                    size="md"
                     fullWidth
                   >
                     Buscar
                   </Button>
                 </div>
-                <p className="text-xs text-gray-400">
-                  A planilha deve estar com compartilhamento &quot;Qualquer pessoa com o link&quot;.
+                <p className="text-xs text-[var(--color-text-secondary)]">
+                  Use uma planilha com acesso por link.
                 </p>
               </div>
             )}
 
             {fonteProducao === 'colar' && (
-              <div className="space-y-2">
+              <div className="space-y-3 rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-4">
                 <textarea
                   placeholder={
                     'Data\tColaborador\tFunção\tRepositório\tCoordenadoria\tQuantidade\tTipo\n01/01/2025\tJoão Silva\tPreparação\tREP-001\tCOORD-A\t50\tProcesso'
@@ -901,9 +935,9 @@ export function ImportarProducaoPage(): JSX.Element {
                   value={dadosColados}
                   onChange={(e) => setDadosColados(e.target.value)}
                   rows={5}
-                  className="w-full rounded-xl border border-[var(--color-border-primary)] px-3 py-2 text-sm font-mono focus:border-[var(--color-primary-500)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-300)]"
+                  className="w-full rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] px-3 py-2 text-sm font-mono text-[var(--color-text-primary)] focus:border-[var(--color-primary-500)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary-300)]"
                 />
-                <Button onClick={handleCarregarColados} size="sm" fullWidth className="sm:w-auto">
+                <Button onClick={handleCarregarColados} size="md" fullWidth className="sm:w-auto">
                   Processar dados
                 </Button>
               </div>
@@ -917,11 +951,12 @@ export function ImportarProducaoPage(): JSX.Element {
               loading={processando || validando}
               disabled={registrosProducao.length === 0}
               fullWidth
+              size="md"
               className="sm:w-auto"
             >
               {validando ? 'Verificando...' : 'Importar produção'}
             </Button>
-            <span className="text-sm text-gray-500">
+            <span className="text-sm text-[var(--color-text-secondary)]">
               {arquivoNomeProducao
                 ? `${arquivoNomeProducao} - ${registrosProducao.length} registros`
                 : 'Nenhum dado carregado'}
@@ -934,7 +969,7 @@ export function ImportarProducaoPage(): JSX.Element {
               title="Pré-visualização"
               description={
                 registrosProducao.length > 10
-                  ? `Mostrando 10 de ${registrosProducao.length} registros carregados.`
+                  ? `Mostrando 10 de ${registrosProducao.length} registros.`
                   : `${registrosProducao.length} registros carregados.`
               }
               className="mt-5 border-t border-[var(--color-border-secondary)] pt-4"
@@ -947,7 +982,7 @@ export function ImportarProducaoPage(): JSX.Element {
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="text-sm font-semibold text-[var(--color-text-primary)]">
+                        <p className="text-sm font-medium text-[var(--color-text-primary)]">
                           {row.colaborador}
                         </p>
                         <p className="mt-1 break-all font-mono text-xs text-[var(--color-text-secondary)]">
@@ -983,7 +1018,7 @@ export function ImportarProducaoPage(): JSX.Element {
                   </div>
                 ))}
               </div>
-              <div className="hidden lg:block">
+              <div className="hidden overflow-x-auto lg:block">
                 <Table>
                   <TableHead>
                     <TableRow>
@@ -1017,16 +1052,16 @@ export function ImportarProducaoPage(): JSX.Element {
 
         {/* Collapsible history */}
         {historico.length > 0 && (
-          <div className="bg-[var(--color-bg-primary)] rounded-xl border border-[var(--color-border-primary)] shadow-sm">
+          <div className="rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] shadow-sm">
             <button
               type="button"
               onClick={() => setHistoricoAberto(!historicoAberto)}
-              className="w-full flex items-center justify-between px-5 py-4 text-left"
+              className="flex w-full items-center justify-between px-5 py-4 text-left"
             >
-              <span className="text-sm font-semibold text-gray-900">
+              <span className="text-sm font-medium text-[var(--color-text-primary)]">
                 Histórico de importações ({historico.length})
               </span>
-              <span className="text-xs text-gray-400">
+              <span className="text-xs text-[var(--color-text-tertiary)]">
                 {historicoAberto ? 'Recolher' : 'Expandir'}
               </span>
             </button>
@@ -1040,7 +1075,7 @@ export function ImportarProducaoPage(): JSX.Element {
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="text-sm font-semibold text-[var(--color-text-primary)]">
+                          <p className="text-sm font-medium text-[var(--color-text-primary)]">
                             {item.usuario_destino_nome}
                           </p>
                           <p className="mt-1 text-xs text-[var(--color-text-secondary)]">
@@ -1159,7 +1194,7 @@ export function ImportarProducaoPage(): JSX.Element {
                               </button>
                               {isAdmin && item.tipo === 'PRODUCAO' && (
                                 <button
-                                  className="text-xs font-medium text-red-600 hover:text-red-800"
+                                  className="text-xs font-medium text-error-600 hover:text-error-700"
                                   onClick={() => handleRollbackImportacao(item.id)}
                                 >
                                   Desfazer

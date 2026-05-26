@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Button } from '../../components/ui/Button';
 import { Card, CardHeader } from '../../components/ui/Card';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
@@ -45,7 +45,7 @@ function ToggleCard({
   onChange: (value: boolean) => void;
 }): JSX.Element {
   return (
-    <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-4 transition-colors hover:bg-[var(--color-gray-50)]">
+    <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-4 transition-colors hover:bg-[var(--color-gray-50)]">
       <input
         type="checkbox"
         checked={checked}
@@ -83,6 +83,7 @@ export function EmpresaPage(): JSX.Element {
     null
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const logoContainerRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
   const saveEmpresa = useSaveEmpresa();
   const uploadLogo = useUploadLogo();
@@ -128,6 +129,24 @@ export function EmpresaPage(): JSX.Element {
     setLogoLoadError(false);
   }, [config.logoUrl]);
 
+  useLayoutEffect(() => {
+    const el = logoContainerRef.current;
+    if (!el) return;
+    el.style.setProperty('--logo-w', `${config.logoLarguraRelatorio}px`);
+    el.style.setProperty('--logo-top', `${Math.max(config.logoDeslocamentoYRelatorio, -12)}px`);
+    const left =
+      config.logoAlinhamentoRelatorio === 'ESQUERDA'
+        ? '0'
+        : config.logoAlinhamentoRelatorio === 'DIREITA'
+          ? `calc(100% - ${config.logoLarguraRelatorio}px)`
+          : `calc(50% - ${config.logoLarguraRelatorio / 2}px)`;
+    el.style.setProperty('--logo-left', left);
+  }, [
+    config.logoLarguraRelatorio,
+    config.logoDeslocamentoYRelatorio,
+    config.logoAlinhamentoRelatorio,
+  ]);
+
   const handleChange = (field: keyof EmpresaConfig, value: string | boolean | number): void => {
     setConfig((prev) => ({ ...prev, [field]: value }));
   };
@@ -140,13 +159,12 @@ export function EmpresaPage(): JSX.Element {
       await saveEmpresa.mutateAsync(config);
       setMensagem({
         tipo: 'success',
-        texto:
-          'Configurações salvas com sucesso. As alterações serão refletidas nos próximos relatórios gerados.',
+        texto: 'Configurações salvas com sucesso.',
       });
     } catch {
       setMensagem({
         tipo: 'error',
-        texto: 'Não foi possível salvar as configurações. Verifique sua conexão e tente novamente.',
+        texto: 'Não foi possível salvar. Verifique sua conexão.',
       });
     } finally {
       setSalvando(false);
@@ -231,7 +249,7 @@ export function EmpresaPage(): JSX.Element {
       <div className="mx-auto max-w-5xl space-y-6">
         <PageHeader
           title="Empresa"
-          subtitle="Configure identidade institucional e dados exibidos em relatórios e documentos."
+          subtitle="Identidade institucional e dados para relatórios."
           actions={
             <div className="flex flex-wrap gap-2">
               <Button
@@ -266,7 +284,7 @@ export function EmpresaPage(): JSX.Element {
         <Card>
           <CardHeader
             title="Dados da empresa"
-            description="Informações que poderão aparecer em relatórios, cabeçalhos e rodapés."
+            description="Informações exibidas em relatórios e documentos."
           />
 
           <div className="space-y-4">
@@ -317,7 +335,7 @@ export function EmpresaPage(): JSX.Element {
 
           <div className="space-y-5">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
-              <div className="flex h-40 w-full max-w-[13rem] items-center justify-center overflow-hidden rounded-2xl border border-dashed border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)]">
+              <div className="flex h-40 w-full max-w-[13rem] items-center justify-center overflow-hidden rounded-xl border border-dashed border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)]">
                 {logoSrc && !logoLoadError ? (
                   <img
                     src={logoSrc}
@@ -339,8 +357,8 @@ export function EmpresaPage(): JSX.Element {
               </div>
 
               <div className="min-w-0 flex-1 space-y-4">
-                <div className="rounded-2xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-4 text-sm text-[var(--color-text-secondary)]">
-                  Envie a logo da empresa em PNG, JPG, SVG ou WebP. Tamanho máximo: 5 MB.
+                <div className="rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-3 text-sm text-[var(--color-text-secondary)]">
+                  PNG, JPG, SVG ou WebP — máx. 5 MB.
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3">
@@ -351,6 +369,8 @@ export function EmpresaPage(): JSX.Element {
                     onChange={handleUploadLogo}
                     className="hidden"
                     id="logo-upload"
+                    title="Selecionar logo da empresa"
+                    aria-label="Selecionar logo da empresa"
                   />
                   <Button
                     variant="primary"
@@ -368,7 +388,7 @@ export function EmpresaPage(): JSX.Element {
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                  <div className="rounded-2xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] p-4">
+                  <div className="rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] p-3">
                     <label
                       htmlFor="logo-largura"
                       className="mb-1 block text-sm font-medium text-[var(--color-text-primary)]"
@@ -390,7 +410,7 @@ export function EmpresaPage(): JSX.Element {
                     </p>
                   </div>
 
-                  <div className="rounded-2xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] p-4">
+                  <div className="rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] p-3">
                     <Select
                       id="logo-alinhamento"
                       label="Alinhamento da logo"
@@ -408,7 +428,7 @@ export function EmpresaPage(): JSX.Element {
                     </Select>
                   </div>
 
-                  <div className="rounded-2xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] p-4">
+                  <div className="rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] p-3">
                     <label
                       htmlFor="logo-offset-y"
                       className="mb-1 block text-sm font-medium text-[var(--color-text-primary)]"
@@ -438,27 +458,14 @@ export function EmpresaPage(): JSX.Element {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-4">
-              <p className="mb-3 text-sm font-semibold text-[var(--color-text-primary)]">
-                Pré-visualização no relatório
-              </p>
+            <div className="rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-4">
               <div className="mx-auto w-full max-w-[720px] rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] px-8 py-6 shadow-xs">
-                <div className="relative h-24">
+                <div ref={logoContainerRef} className="relative h-24">
                   {config.exibirLogoRelatorio && logoSrc && !logoLoadError ? (
                     <img
                       src={logoSrc}
                       alt="Pré-visualização da logo"
-                      className="absolute max-h-20 object-contain"
-                      style={{
-                        width: `${config.logoLarguraRelatorio}px`,
-                        top: `${Math.max(config.logoDeslocamentoYRelatorio, -12)}px`,
-                        left:
-                          config.logoAlinhamentoRelatorio === 'ESQUERDA'
-                            ? '0'
-                            : config.logoAlinhamentoRelatorio === 'DIREITA'
-                              ? `calc(100% - ${config.logoLarguraRelatorio}px)`
-                              : `calc(50% - ${config.logoLarguraRelatorio / 2}px)`,
-                      }}
+                      className="absolute max-h-20 object-contain [width:var(--logo-w)] [top:var(--logo-top)] [left:var(--logo-left)]"
                     />
                   ) : (
                     <div className="absolute inset-0 flex items-center justify-center text-xs text-[var(--color-text-tertiary)]">
@@ -478,7 +485,7 @@ export function EmpresaPage(): JSX.Element {
         <Card>
           <CardHeader
             title="Exibição nos relatórios"
-            description="Defina quais informações institucionais entram em cada documento."
+            description="Informações institucionais exibidas em cada documento."
           />
 
           <div className="space-y-3">

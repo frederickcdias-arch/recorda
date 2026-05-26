@@ -361,7 +361,7 @@ export function EtapaOperacionalPage(): JSX.Element {
         setAvulsosBuscaLoading(false);
       });
 
-    return () => {
+    return (): void => {
       ativo = false;
     };
   }, [debouncedBusca, etapa]);
@@ -390,7 +390,7 @@ export function EtapaOperacionalPage(): JSX.Element {
       }
     : null;
 
-  const invalidateRepos = () =>
+  const invalidateRepos = (): void =>
     void queryClient.invalidateQueries({ queryKey: queryKeys.repositoriosAll });
 
   const createRepo = useCreateRepositorio();
@@ -439,7 +439,11 @@ export function EtapaOperacionalPage(): JSX.Element {
   }, [novoRepositorio.orgao, novoRepositorio.projeto, novoRepositorio.idGedEditado, ultimoIdGed]);
 
   if (!etapaConfig) {
-    return <div className="text-center text-gray-600 py-12">Etapa Operacional inválida.</div>;
+    return (
+      <div className="text-center text-[var(--color-text-secondary)] py-12">
+        Etapa Operacional inválida.
+      </div>
+    );
   }
 
   const irProximaEtapa = (): void => {
@@ -937,7 +941,7 @@ export function EtapaOperacionalPage(): JSX.Element {
         ...erro,
         action: {
           label: 'Tentar novamente',
-          onClick: () => invalidateRepos(),
+          onClick: (): void => invalidateRepos(),
         },
       }
     : null;
@@ -951,7 +955,7 @@ export function EtapaOperacionalPage(): JSX.Element {
       <div className="space-y-6">
         <PageHeader
           title={etapaConfig.label}
-          subtitle="Gestão operacional por etapa."
+          subtitle="Fila operacional."
           actions={
             etapaConfig.nextPath ? (
               <Button variant="secondary" size="sm" onClick={irProximaEtapa}>
@@ -965,9 +969,7 @@ export function EtapaOperacionalPage(): JSX.Element {
         {totalGeral > 0 ? (
           <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
             <div className="bg-[var(--color-bg-primary)] border border-[var(--color-border-primary)] rounded-xl px-4 py-3">
-              <p className="text-xs text-[var(--color-text-secondary)] uppercase font-medium">
-                Total
-              </p>
+              <p className="text-xs text-[var(--color-text-secondary)] font-medium">Total</p>
               <p className="text-2xl font-bold text-[var(--color-text-primary)] mt-1">
                 {totalGeral}
               </p>
@@ -977,10 +979,10 @@ export function EtapaOperacionalPage(): JSX.Element {
                 key={status}
                 className="bg-[var(--color-bg-primary)] border border-[var(--color-border-primary)] rounded-xl px-4 py-3"
               >
-                <p className="text-xs text-[var(--color-text-secondary)] uppercase font-medium truncate">
+                <p className="text-xs text-[var(--color-text-secondary)] font-medium truncate">
                   <StatusBadge status={status} />
                 </p>
-                <p className="text-2xl font-bold text-[var(--color-primary-700)] mt-1">{qtd}</p>
+                <p className="text-2xl font-bold text-[var(--color-text-primary)] mt-1">{qtd}</p>
               </div>
             ))}
           </div>
@@ -989,28 +991,28 @@ export function EtapaOperacionalPage(): JSX.Element {
         {etapa === 'recebimento' ? (
           <>
             {/* Sub-tabs: Repositórios | Avulsos */}
-            <div className="overflow-x-auto border-b border-gray-200">
+            <div className="overflow-x-auto border-b border-[var(--color-border-primary)]">
               <div className="flex min-w-max gap-1">
-              <button
-                className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
-                  recebSubTab === 'repositorios'
-                    ? 'border-primary-600 text-primary-700'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
-                onClick={() => setRecebSubTab('repositorios')}
-              >
-                Repositórios ({itens.length})
-              </button>
-              <button
-                className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
-                  recebSubTab === 'avulsos'
-                    ? 'border-primary-600 text-primary-700'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
-                onClick={() => setRecebSubTab('avulsos')}
-              >
-                Avulsos
-              </button>
+                <button
+                  className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+                    recebSubTab === 'repositorios'
+                      ? 'border-primary-600 text-primary-700'
+                      : 'border-transparent text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)]'
+                  }`}
+                  onClick={() => setRecebSubTab('repositorios')}
+                >
+                  Repositórios ({itens.length})
+                </button>
+                <button
+                  className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+                    recebSubTab === 'avulsos'
+                      ? 'border-primary-600 text-primary-700'
+                      : 'border-transparent text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)]'
+                  }`}
+                  onClick={() => setRecebSubTab('avulsos')}
+                >
+                  Avulsos
+                </button>
               </div>
             </div>
 
@@ -1019,17 +1021,19 @@ export function EtapaOperacionalPage(): JSX.Element {
                 <Card>
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                     <div className="max-w-2xl">
-                      <h2 className="text-lg font-semibold text-gray-900">
+                      <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">
                         Etiquetas de localização
                       </h2>
-                      <p className="mt-1 text-sm text-gray-600">
-                        Envie vários PDFs de etiquetas para o sistema agrupar 4 por folha, em layout
-                        vertical: 1, 2, 3 e 4 na primeira folha; 5, 6, 7 e 8 na segunda.
+                      <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+                        Agrupa 4 etiquetas por folha, em layout vertical.
                       </p>
                     </div>
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
                       <div>
-                        <label htmlFor="etiquetaPdfFiles" className="block text-sm font-medium text-gray-700 mb-1">
+                        <label
+                          htmlFor="etiquetaPdfFiles"
+                          className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1"
+                        >
                           PDFs de etiquetas
                         </label>
                         <input
@@ -1038,11 +1042,11 @@ export function EtapaOperacionalPage(): JSX.Element {
                           type="file"
                           accept="application/pdf,.pdf"
                           multiple
-                          className="block w-full text-sm text-gray-700 file:mr-3 file:rounded-md file:border-0 file:bg-gray-100 file:px-3 file:py-2 file:text-sm file:font-medium file:text-gray-700 hover:file:bg-gray-200"
+                          className="block w-full text-sm text-[var(--color-text-secondary)] file:mr-3 file:rounded-md file:border-0 file:bg-[var(--color-bg-secondary)] file:px-3 file:py-2 file:text-sm file:font-medium file:text-[var(--color-text-secondary)] hover:file:bg-[var(--color-border-primary)]"
                           onChange={(e) => setEtiquetaPdfFiles(Array.from(e.target.files ?? []))}
                         />
                         {etiquetaPdfFiles.length > 0 ? (
-                          <p className="mt-1 text-xs text-gray-500">
+                          <p className="mt-1 text-xs text-[var(--color-text-tertiary)]">
                             {etiquetaPdfFiles.length} arquivo(s) selecionado(s).
                           </p>
                         ) : null}
@@ -1061,7 +1065,9 @@ export function EtapaOperacionalPage(): JSX.Element {
                 </Card>
 
                 <Card>
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Criar Repositório</h2>
+                  <h2 className="text-lg font-semibold text-[var(--color-text-primary)] mb-4">
+                    Criar Repositório
+                  </h2>
                   <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
                     <Input
                       label="ID GED"
@@ -1084,7 +1090,10 @@ export function EtapaOperacionalPage(): JSX.Element {
                       }
                     />
                     <div>
-                      <label htmlFor="novoRepositorioUnidade" className="block text-sm font-medium text-gray-700 mb-1">
+                      <label
+                        htmlFor="novoRepositorioUnidade"
+                        className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1"
+                      >
                         Unidade
                       </label>
                       <select
@@ -1131,7 +1140,10 @@ export function EtapaOperacionalPage(): JSX.Element {
                       </div>
                     </div>
                     <div>
-                      <label htmlFor="novoRepositorioProjeto" className="block text-sm font-medium text-gray-700 mb-1">
+                      <label
+                        htmlFor="novoRepositorioProjeto"
+                        className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1"
+                      >
                         Projeto
                       </label>
                       <select
@@ -1181,13 +1193,16 @@ export function EtapaOperacionalPage(): JSX.Element {
                         </button>
                       </div>
                       {!isAdmin ? (
-                        <p className="mt-1 text-[11px] text-gray-500">
+                        <p className="mt-1 text-[11px] text-[var(--color-text-tertiary)]">
                           Cadastro rápido disponível para administrador.
                         </p>
                       ) : null}
                     </div>
                     <div>
-                      <label htmlFor="novoRepositorioClassificacao" className="block text-sm font-medium text-gray-700 mb-1">
+                      <label
+                        htmlFor="novoRepositorioClassificacao"
+                        className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1"
+                      >
                         Classificação
                       </label>
                       <select
@@ -1257,12 +1272,15 @@ export function EtapaOperacionalPage(): JSX.Element {
                       />
                     </div>
                     <div>
-                      <label htmlFor="filtroUnidade" className="block text-sm font-medium text-gray-700 mb-1">
+                      <label
+                        htmlFor="filtroUnidade"
+                        className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1"
+                      >
                         Unidade
                       </label>
                       <select
                         id="filtroUnidade"
-                        className="w-full h-11 px-3 border rounded-lg text-sm"
+                        className="w-full h-11 px-3 border border-[var(--color-border-primary)] rounded-lg text-sm bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)]"
                         value={filtroUnidade}
                         onChange={(e) => {
                           setFiltroUnidade(e.target.value);
@@ -1386,22 +1404,26 @@ export function EtapaOperacionalPage(): JSX.Element {
 
                   <div className="md:hidden space-y-3">
                     {itens.length === 0 ? (
-                      <div className="px-4 py-8 text-center text-gray-500 border rounded-lg">
+                      <div className="px-4 py-8 text-center text-[var(--color-text-secondary)] border border-[var(--color-border-primary)] rounded-lg">
                         Nenhum Repositório na Fila desta Etapa.
                       </div>
                     ) : (
                       itens.map((item) => (
                         <div
                           key={item.id_repositorio_recorda}
-                          className={`border rounded-xl p-3 ${reposSelecionadosTermo.has(item.id_repositorio_recorda) ? 'bg-primary-50 border-primary-200' : 'bg-[var(--color-bg-primary)] border-gray-200'}`}
+                          className={`border rounded-xl p-3 ${reposSelecionadosTermo.has(item.id_repositorio_recorda) ? 'bg-[var(--color-primary-50)] border-[var(--color-primary-300)]' : 'bg-[var(--color-bg-primary)] border-[var(--color-border-primary)]'}`}
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div>
-                              <p className="text-sm font-semibold text-gray-900">
+                              <p className="text-sm font-semibold text-[var(--color-text-primary)]">
                                 {item.id_repositorio_ged}
                               </p>
-                              <p className="text-xs text-gray-500 mt-0.5">{item.orgao}</p>
-                              <p className="text-xs text-gray-500">{item.projeto}</p>
+                              <p className="text-xs text-[var(--color-text-tertiary)] mt-0.5">
+                                {item.orgao}
+                              </p>
+                              <p className="text-xs text-[var(--color-text-tertiary)]">
+                                {item.projeto}
+                              </p>
                             </div>
                             <input
                               type="checkbox"
@@ -1422,7 +1444,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                           <div className="mt-3 flex items-center justify-between gap-2">
                             <StatusBadge status={item.status_atual} />
                             <span
-                              className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold ${(item.total_processos ?? 0) > 0 ? 'bg-primary-100 text-primary-700' : 'bg-gray-100 text-gray-400'}`}
+                              className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-xs font-medium ${(item.total_processos ?? 0) > 0 ? 'bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)]' : 'bg-[var(--color-bg-secondary)] text-[var(--color-text-tertiary)]'}`}
                             >
                               {item.total_processos ?? 0}
                             </span>
@@ -1491,8 +1513,8 @@ export function EtapaOperacionalPage(): JSX.Element {
                   </div>
 
                   <div className="hidden md:block overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
+                    <table className="min-w-full divide-y divide-[var(--color-border-primary)]">
+                      <thead className="bg-[var(--color-bg-secondary)]">
                         <tr>
                           <th className="px-3 py-3 text-left w-10">
                             <input
@@ -1513,28 +1535,28 @@ export function EtapaOperacionalPage(): JSX.Element {
                               aria-label="Selecionar todos os repositórios"
                             />
                           </th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                          <th className="px-4 py-3 text-left text-xs font-medium text-[var(--color-text-secondary)]">
                             ID GED
                           </th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                          <th className="px-4 py-3 text-left text-xs font-medium text-[var(--color-text-secondary)]">
                             Unidade
                           </th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                          <th className="px-4 py-3 text-left text-xs font-medium text-[var(--color-text-secondary)]">
                             Projeto
                           </th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                          <th className="px-4 py-3 text-left text-xs font-medium text-[var(--color-text-secondary)]">
                             Status
                           </th>
-                          <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase">
+                          <th className="px-4 py-3 text-center text-xs font-medium text-[var(--color-text-secondary)]">
                             Proc.
                           </th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                          <th className="px-4 py-3 text-left text-xs font-medium text-[var(--color-text-secondary)]">
                             Progresso
                           </th>
-                          <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                          <th className="px-4 py-3 text-left text-xs font-medium text-[var(--color-text-secondary)]">
                             Tempo
                           </th>
-                          <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">
+                          <th className="px-4 py-3 text-right text-xs font-medium text-[var(--color-text-secondary)]">
                             Ações
                           </th>
                         </tr>
@@ -1542,7 +1564,10 @@ export function EtapaOperacionalPage(): JSX.Element {
                       <tbody className="bg-[var(--color-bg-primary)] divide-y divide-[var(--color-border-secondary)]">
                         {itens.length === 0 ? (
                           <tr>
-                            <td colSpan={9} className="px-4 py-8 text-center text-gray-500">
+                            <td
+                              colSpan={9}
+                              className="px-4 py-8 text-center text-[var(--color-text-secondary)]"
+                            >
                               Nenhum Repositório na Fila desta Etapa.
                             </td>
                           </tr>
@@ -1550,7 +1575,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                           itens.map((item) => (
                             <tr
                               key={item.id_repositorio_recorda}
-                              className={`hover:bg-gray-50 transition-colors ${reposSelecionadosTermo.has(item.id_repositorio_recorda) ? 'bg-primary-50' : ''}`}
+                              className={`hover:bg-[var(--color-bg-secondary)] transition-colors ${reposSelecionadosTermo.has(item.id_repositorio_recorda) ? 'bg-[var(--color-primary-50)]' : ''}`}
                             >
                               <td className="px-3 py-3">
                                 <input
@@ -1569,17 +1594,21 @@ export function EtapaOperacionalPage(): JSX.Element {
                                   aria-label={`Selecionar repositório ${item.id_repositorio_ged}`}
                                 />
                               </td>
-                              <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                              <td className="px-4 py-3 text-sm font-medium text-[var(--color-text-primary)]">
                                 {item.id_repositorio_ged}
                               </td>
-                              <td className="px-4 py-3 text-sm text-gray-700">{item.orgao}</td>
-                              <td className="px-4 py-3 text-sm text-gray-700">{item.projeto}</td>
+                              <td className="px-4 py-3 text-sm text-[var(--color-text-secondary)]">
+                                {item.orgao}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-[var(--color-text-secondary)]">
+                                {item.projeto}
+                              </td>
                               <td className="px-4 py-3">
                                 <StatusBadge status={item.status_atual} />
                               </td>
                               <td className="px-4 py-3 text-center">
                                 <span
-                                  className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold ${(item.total_processos ?? 0) > 0 ? 'bg-primary-100 text-primary-700' : 'bg-gray-100 text-gray-400'}`}
+                                  className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-medium ${(item.total_processos ?? 0) > 0 ? 'bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)]' : 'bg-[var(--color-bg-secondary)] text-[var(--color-text-tertiary)]'}`}
                                 >
                                   {item.total_processos ?? 0}
                                 </span>
@@ -1701,28 +1730,30 @@ export function EtapaOperacionalPage(): JSX.Element {
 
             <div className="space-y-3 md:hidden">
               {itens.length === 0 ? (
-                <div className="rounded-lg border px-4 py-8 text-center text-gray-500">
+                <div className="rounded-lg border border-[var(--color-border-primary)] px-4 py-8 text-center text-[var(--color-text-secondary)]">
                   Nenhum Repositório na Fila desta Etapa.
                 </div>
               ) : (
                 itens.map((item) => (
                   <div
                     key={item.id_repositorio_recorda}
-                    className="rounded-xl border border-gray-200 bg-[var(--color-bg-primary)] p-3"
+                    className="rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] p-3"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-sm font-semibold text-gray-900">
+                        <p className="text-sm font-semibold text-[var(--color-text-primary)]">
                           {item.id_repositorio_ged}
                         </p>
-                        <p className="mt-0.5 text-xs text-gray-500">{item.orgao}</p>
-                        <p className="text-xs text-gray-500">{item.projeto}</p>
+                        <p className="mt-0.5 text-xs text-[var(--color-text-tertiary)]">
+                          {item.orgao}
+                        </p>
+                        <p className="text-xs text-[var(--color-text-tertiary)]">{item.projeto}</p>
                       </div>
                       <StatusBadge status={item.status_atual} />
                     </div>
                     <div className="mt-3 flex items-center justify-between gap-2">
                       <span
-                        className={`inline-flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold ${(item.total_processos ?? 0) > 0 ? 'bg-primary-100 text-primary-700' : 'bg-gray-100 text-gray-400'}`}
+                        className={`inline-flex h-8 w-8 items-center justify-center rounded-full text-xs font-medium ${(item.total_processos ?? 0) > 0 ? 'bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)]' : 'bg-[var(--color-bg-secondary)] text-[var(--color-text-tertiary)]'}`}
                       >
                         {item.total_processos ?? 0}
                       </span>
@@ -1787,31 +1818,31 @@ export function EtapaOperacionalPage(): JSX.Element {
             </div>
 
             <div className="hidden md:block overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-[var(--color-border-primary)]">
+                <thead className="bg-[var(--color-bg-secondary)]">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-[var(--color-text-secondary)]">
                       ID GED
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-[var(--color-text-secondary)]">
                       Unidade
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-[var(--color-text-secondary)]">
                       Projeto
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-[var(--color-text-secondary)]">
                       Status
                     </th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase">
+                    <th className="px-4 py-3 text-center text-xs font-medium text-[var(--color-text-secondary)]">
                       Proc.
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-[var(--color-text-secondary)]">
                       Progresso
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-[var(--color-text-secondary)]">
                       Tempo
                     </th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase">
+                    <th className="px-4 py-3 text-right text-xs font-medium text-[var(--color-text-secondary)]">
                       Ações
                     </th>
                   </tr>
@@ -1819,7 +1850,10 @@ export function EtapaOperacionalPage(): JSX.Element {
                 <tbody className="bg-[var(--color-bg-primary)] divide-y divide-[var(--color-border-secondary)]">
                   {itens.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
+                      <td
+                        colSpan={8}
+                        className="px-4 py-8 text-center text-[var(--color-text-secondary)]"
+                      >
                         Nenhum Repositório na Fila desta Etapa.
                       </td>
                     </tr>
@@ -1827,19 +1861,23 @@ export function EtapaOperacionalPage(): JSX.Element {
                     itens.map((item) => (
                       <tr
                         key={item.id_repositorio_recorda}
-                        className="hover:bg-gray-50 transition-colors"
+                        className="hover:bg-[var(--color-bg-secondary)] transition-colors"
                       >
-                        <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                        <td className="px-4 py-3 text-sm font-medium text-[var(--color-text-primary)]">
                           {item.id_repositorio_ged}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-700">{item.orgao}</td>
-                        <td className="px-4 py-3 text-sm text-gray-700">{item.projeto}</td>
+                        <td className="px-4 py-3 text-sm text-[var(--color-text-secondary)]">
+                          {item.orgao}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-[var(--color-text-secondary)]">
+                          {item.projeto}
+                        </td>
                         <td className="px-4 py-3">
                           <StatusBadge status={item.status_atual} />
                         </td>
                         <td className="px-4 py-3 text-center">
                           <span
-                            className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold ${(item.total_processos ?? 0) > 0 ? 'bg-primary-100 text-primary-700' : 'bg-gray-100 text-gray-400'}`}
+                            className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-medium ${(item.total_processos ?? 0) > 0 ? 'bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)]' : 'bg-[var(--color-bg-secondary)] text-[var(--color-text-tertiary)]'}`}
                           >
                             {item.total_processos ?? 0}
                           </span>

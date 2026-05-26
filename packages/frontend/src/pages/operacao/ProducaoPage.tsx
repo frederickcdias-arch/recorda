@@ -328,7 +328,7 @@ export function ProducaoPage(): JSX.Element {
           title="Produção"
           subtitle={
             <>
-              {totalFormatado} Registros de Produção
+              {totalFormatado} registros de produção
               {atualizando && (
                 <span className="ml-2 text-xs text-[var(--color-primary-500)] animate-pulse">
                   Atualizando...
@@ -355,14 +355,10 @@ export function ProducaoPage(): JSX.Element {
                 onClick={() => void handleExportarExcel()}
                 loading={exportando}
                 disabled={exportando || !dataInicio || !dataFim}
+                title={!dataInicio || !dataFim ? 'Selecione um período para exportar' : undefined}
               >
                 Exportar Excel
               </Button>
-              {(!dataInicio || !dataFim) && (
-                <p className="text-xs text-[var(--color-text-tertiary)] text-center sm:text-right">
-                  Informe o período para exportar
-                </p>
-              )}
             </div>
           }
         />
@@ -390,7 +386,7 @@ export function ProducaoPage(): JSX.Element {
                 }}
               >
                 <Icon name="x" className="w-3 h-3" />
-                Limpar Filtros
+                Limpar filtros
               </Button>
             ) : undefined
           }

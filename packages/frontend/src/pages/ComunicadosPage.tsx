@@ -109,7 +109,7 @@ export function ComunicadosPage(): JSX.Element {
       <div className="space-y-6">
         <PageHeader
           title="Comunicados"
-          subtitle="Consulte os comunicados e registre a leitura."
+          subtitle="Seus comunicados internos."
           actions={
             <Button
               variant="secondary"
@@ -125,24 +125,28 @@ export function ComunicadosPage(): JSX.Element {
           <Card>
             <p className="text-sm text-[var(--color-text-secondary)]">Total recebidos</p>
             <div className="mt-3 flex items-end justify-between">
-              <p className="text-3xl font-bold text-[var(--color-text-primary)]">
+              <p className="text-2xl font-semibold text-[var(--color-text-primary)]">
                 {comunicados.length}
               </p>
-              <Icon name="mail" className="h-7 w-7 text-[var(--color-primary-600)]" />
+              <Icon name="mail" className="h-5 w-5 text-[var(--color-primary-600)]" />
             </div>
           </Card>
           <Card>
             <p className="text-sm text-[var(--color-text-secondary)]">Não lidos</p>
             <div className="mt-3 flex items-end justify-between">
-              <p className="text-3xl font-bold text-[var(--color-text-primary)]">{totalNaoLidos}</p>
-              <Icon name="alert-triangle" className="h-7 w-7 text-[var(--color-warning-600)]" />
+              <p className="text-2xl font-semibold text-[var(--color-text-primary)]">
+                {totalNaoLidos}
+              </p>
+              <Icon name="alert-triangle" className="h-5 w-5 text-[var(--color-warning-600)]" />
             </div>
           </Card>
           <Card>
             <p className="text-sm text-[var(--color-text-secondary)]">Lidos</p>
             <div className="mt-3 flex items-end justify-between">
-              <p className="text-3xl font-bold text-[var(--color-text-primary)]">{totalLidos}</p>
-              <Icon name="check-circle" className="h-7 w-7 text-[var(--color-success-600)]" />
+              <p className="text-2xl font-semibold text-[var(--color-text-primary)]">
+                {totalLidos}
+              </p>
+              <Icon name="check-circle" className="h-5 w-5 text-[var(--color-success-600)]" />
             </div>
           </Card>
         </div>
@@ -150,54 +154,42 @@ export function ComunicadosPage(): JSX.Element {
         <Card>
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">
-                  Caixa de entrada
-                </h2>
-                <p className="text-sm text-[var(--color-text-secondary)]">
-                  Separe ativos do histórico e filtre as leituras.
-                </p>
-              </div>
-              <div className="flex flex-col gap-2 sm:items-end">
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant={visao === 'ativos' ? 'primary' : 'secondary'}
-                    size="sm"
-                    onClick={() => setVisao('ativos')}
-                  >
-                    Ativos ({ativos.length})
-                  </Button>
-                  <Button
-                    variant={visao === 'historico' ? 'primary' : 'secondary'}
-                    size="sm"
-                    onClick={() => setVisao('historico')}
-                  >
-                    Histórico ({historico.length})
-                  </Button>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant={filtro === 'todos' ? 'primary' : 'secondary'}
-                    size="sm"
-                    onClick={() => setFiltro('todos')}
-                  >
-                    Todos
-                  </Button>
-                  <Button
-                    variant={filtro === 'nao-lidos' ? 'primary' : 'secondary'}
-                    size="sm"
-                    onClick={() => setFiltro('nao-lidos')}
-                  >
-                    Não lidos
-                  </Button>
-                  <Button
-                    variant={filtro === 'lidos' ? 'primary' : 'secondary'}
-                    size="sm"
-                    onClick={() => setFiltro('lidos')}
-                  >
-                    Lidos
-                  </Button>
-                </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant={visao === 'ativos' ? 'primary' : 'secondary'}
+                  size="sm"
+                  onClick={() => setVisao('ativos')}
+                >
+                  Ativos ({ativos.length})
+                </Button>
+                <Button
+                  variant={visao === 'historico' ? 'primary' : 'secondary'}
+                  size="sm"
+                  onClick={() => setVisao('historico')}
+                >
+                  Histórico ({historico.length})
+                </Button>
+                <Button
+                  variant={filtro === 'todos' ? 'primary' : 'secondary'}
+                  size="sm"
+                  onClick={() => setFiltro('todos')}
+                >
+                  Todos
+                </Button>
+                <Button
+                  variant={filtro === 'nao-lidos' ? 'primary' : 'secondary'}
+                  size="sm"
+                  onClick={() => setFiltro('nao-lidos')}
+                >
+                  Não lidos
+                </Button>
+                <Button
+                  variant={filtro === 'lidos' ? 'primary' : 'secondary'}
+                  size="sm"
+                  onClick={() => setFiltro('lidos')}
+                >
+                  Lidos
+                </Button>
               </div>
             </div>
 
@@ -250,8 +242,8 @@ export function ComunicadosPage(): JSX.Element {
 
         {itensFiltrados.length === 0 ? (
           <Card className="text-center">
-            <Icon name="mail" className="mx-auto h-12 w-12 text-[var(--color-gray-300)]" />
-            <h2 className="mt-4 text-lg font-semibold text-[var(--color-text-primary)]">
+            <Icon name="mail" className="mx-auto h-8 w-8 text-[var(--color-gray-300)]" />
+            <h2 className="mt-3 text-base font-semibold text-[var(--color-text-primary)]">
               Nenhum comunicado encontrado
             </h2>
             <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
@@ -285,18 +277,11 @@ export function ComunicadosPage(): JSX.Element {
                           >
                             {comunicado.prioridade}
                           </span>
-                          <span
-                            className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                              naoLido
-                                ? 'bg-[var(--color-warning-50)] text-[var(--color-warning-700)]'
-                                : 'bg-[var(--color-success-50)] text-[var(--color-success-700)]'
-                            }`}
-                          >
-                            {naoLido ? 'Não lido' : 'Lido'}
-                          </span>
-                          <span className="rounded-full bg-[var(--color-gray-100)] px-2.5 py-1 text-xs font-medium text-[var(--color-gray-700)]">
-                            {comunicado.status === 'ENCERRADO' ? 'Encerrado' : 'Ativo'}
-                          </span>
+                          {naoLido ? (
+                            <span className="rounded-full px-2.5 py-1 text-xs font-medium bg-[var(--color-warning-50)] text-[var(--color-warning-700)]">
+                              Não lido
+                            </span>
+                          ) : null}
                         </div>
                         <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
                           Publicado em{' '}

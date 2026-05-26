@@ -530,7 +530,7 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
         ) : null}
 
         {/* Tabs */}
-        <div className="flex gap-1 bg-gray-100 p-1 rounded-lg w-fit">
+        <div className="flex gap-1 bg-[var(--color-gray-100)] p-1 rounded-lg w-fit">
           {TAB_OPTIONS.map((tab) => (
             <button
               key={tab.key}
@@ -538,13 +538,13 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-1.5 ${
                 activeTab === tab.key
                   ? 'bg-[var(--color-bg-primary)] text-[var(--color-text-primary)] shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
+                  : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
               }`}
             >
               {tab.label}
               {tab.count != null && tab.count > 0 && (
                 <span
-                  className={`text-xs px-1.5 py-0.5 rounded-full ${activeTab === tab.key ? 'bg-blue-100 text-blue-700' : 'bg-gray-200 text-gray-500'}`}
+                  className={`text-xs px-1.5 py-0.5 rounded-full ${activeTab === tab.key ? 'bg-[var(--color-primary-100)] text-[var(--color-primary-700)]' : 'bg-[var(--color-gray-200)] text-[var(--color-text-tertiary)]'}`}
                 >
                   {tab.count}
                 </span>
@@ -602,19 +602,21 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               <div className="space-y-2 max-h-[65vh] overflow-auto pr-1">
                 {itens.length === 0 ? (
-                  <p className="text-sm text-gray-500 p-3">Nenhum documento encontrado.</p>
+                  <p className="text-sm text-[var(--color-text-tertiary)] p-3">
+                    Nenhum documento encontrado.
+                  </p>
                 ) : (
                   itens.map((doc) => (
                     <button
                       key={doc.id}
                       type="button"
-                      className={`w-full text-left rounded-lg border p-3 transition ${selectedId === doc.id ? 'border-blue-500 bg-blue-50' : 'border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] hover:border-blue-200'}`}
+                      className={`w-full text-left rounded-lg border p-3 transition ${selectedId === doc.id ? 'border-[var(--color-primary-500)] bg-[var(--color-primary-50)]' : 'border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] hover:border-[var(--color-primary-200)]'}`}
                       onClick={() => setSelectedId(doc.id)}
                     >
-                      <div className="font-medium text-sm text-gray-900">
+                      <div className="font-medium text-sm text-[var(--color-text-primary)]">
                         {doc.codigo} — {doc.titulo}
                       </div>
-                      <div className="text-xs text-gray-500 mt-1">
+                      <div className="text-xs text-[var(--color-text-tertiary)] mt-1">
                         {categoriaLabel(doc.categoria)} · v{doc.versao_atual}
                       </div>
                       {Array.isArray(doc.etapas) && doc.etapas.length > 0 && (
@@ -622,7 +624,7 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
                           {doc.etapas.map((e) => (
                             <span
                               key={e}
-                              className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500"
+                              className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-gray-100)] text-[var(--color-text-tertiary)]"
                             >
                               {etapaLabel(e)}
                             </span>
@@ -636,12 +638,14 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
 
               <Card className="lg:col-span-2">
                 {!detalhe ? (
-                  <p className="text-sm text-gray-500">Selecione um documento.</p>
+                  <p className="text-sm text-[var(--color-text-tertiary)]">
+                    Selecione um documento.
+                  </p>
                 ) : (
                   <div className="space-y-3">
                     <div>
                       <div className="flex items-start justify-between gap-2">
-                        <h3 className="text-base font-semibold text-gray-900">
+                        <h3 className="text-base font-semibold text-[var(--color-text-primary)]">
                           {detalhe.documento.codigo} — {detalhe.documento.titulo}
                         </h3>
                         {isAdmin && !editandoMeta && (
@@ -651,7 +655,7 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
                         )}
                       </div>
                       {editandoMeta ? (
-                        <div className="mt-2 space-y-2 p-3 rounded-lg bg-gray-50 border">
+                        <div className="mt-2 space-y-2 p-3 rounded-lg bg-[var(--color-bg-secondary)] border border-[var(--color-border-primary)]">
                           <Input
                             label="Título"
                             value={editMeta.titulo}
@@ -679,14 +683,16 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
                             ]}
                           />
                           <div>
-                            <p className="text-xs font-medium text-gray-700 mb-1.5">Etapas</p>
+                            <p className="text-xs font-medium text-[var(--color-text-secondary)] mb-1.5">
+                              Etapas
+                            </p>
                             <div className="flex flex-wrap gap-1.5">
                               {ETAPAS.map((etapa) => (
                                 <button
                                   key={etapa}
                                   type="button"
                                   onClick={() => toggleMetaEtapa(etapa)}
-                                  className={`px-2.5 py-1 rounded-full border text-xs ${editMeta.etapas.includes(etapa) ? 'bg-blue-100 border-blue-500 text-blue-700' : 'bg-[var(--color-bg-primary)] border-gray-300 text-gray-700'}`}
+                                  className={`px-2.5 py-1 rounded-full border text-xs ${editMeta.etapas.includes(etapa) ? 'bg-[var(--color-primary-100)] border-[var(--color-primary-500)] text-[var(--color-primary-700)]' : 'bg-[var(--color-bg-primary)] border-[var(--color-border-primary)] text-[var(--color-text-secondary)]'}`}
                                 >
                                   {etapaLabel(etapa)}
                                 </button>
@@ -711,7 +717,7 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
                           </div>
                         </div>
                       ) : (
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-[var(--color-text-tertiary)] mt-1">
                           {categoriaLabel(detalhe.documento.categoria)} · Etapas:{' '}
                           {detalhe.etapas.map(etapaLabel).join(', ') || '—'}
                           {detalhe.documento.status === 'INATIVO' && (
@@ -720,12 +726,12 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
                         </p>
                       )}
                     </div>
-                    <div className="rounded-lg border bg-gray-50 overflow-hidden">
+                    <div className="rounded-lg border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] overflow-hidden">
                       <div className="flex items-center justify-between px-3 py-2 border-b bg-[var(--color-bg-secondary)]">
-                        <span className="text-xs font-medium text-gray-600">
+                        <span className="text-xs font-medium text-[var(--color-text-secondary)]">
                           v{detalhe.versaoAtual?.versao ?? '-'}
                         </span>
-                        <span className="text-xs text-gray-400">
+                        <span className="text-xs text-[var(--color-text-tertiary)]">
                           {detalhe.versaoAtual?.publicado_por_nome ?? '-'} ·{' '}
                           {detalhe.versaoAtual?.publicado_em
                             ? new Date(detalhe.versaoAtual.publicado_em).toLocaleDateString('pt-BR')
@@ -743,14 +749,14 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
 
                     {detalhe.versoes.length > 1 && (
                       <details className="text-sm">
-                        <summary className="cursor-pointer text-blue-600 text-xs font-medium">
+                        <summary className="cursor-pointer text-[var(--color-primary-600)] text-xs font-medium">
                           Histórico ({detalhe.versoes.length} versões)
                         </summary>
                         <div className="mt-2 space-y-1">
                           {detalhe.versoes.map((v) => (
                             <div
                               key={v.id}
-                              className="text-xs text-gray-600 border rounded px-2 py-1"
+                              className="text-xs text-[var(--color-text-secondary)] border border-[var(--color-border-primary)] rounded px-2 py-1"
                             >
                               v{v.versao} — {v.resumo_alteracao} ({v.publicado_por_nome},{' '}
                               {new Date(v.publicado_em).toLocaleDateString('pt-BR')})
@@ -792,8 +798,8 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
             </div>
 
             {isAdmin ? (
-              <details className="bg-[var(--color-bg-primary)] rounded-xl border border-gray-100 shadow-sm">
-                <summary className="px-5 py-4 cursor-pointer text-sm font-semibold text-gray-900">
+              <details className="bg-[var(--color-bg-primary)] rounded-xl border border-[var(--color-border-primary)] shadow-sm">
+                <summary className="px-5 py-4 cursor-pointer text-sm font-semibold text-[var(--color-text-primary)]">
                   Novo Documento
                 </summary>
                 <div className="px-5 pb-5 space-y-3">
@@ -831,7 +837,7 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
                         key={item}
                         type="button"
                         onClick={() => toggleEtapa(item)}
-                        className={`px-3 py-1 rounded-full border text-xs ${novoDoc.etapas.includes(item) ? 'bg-blue-100 border-blue-500 text-blue-700' : 'bg-[var(--color-bg-primary)] border-gray-300 text-gray-700'}`}
+                        className={`px-3 py-1 rounded-full border text-xs ${novoDoc.etapas.includes(item) ? 'bg-[var(--color-primary-100)] border-[var(--color-primary-500)] text-[var(--color-primary-700)]' : 'bg-[var(--color-bg-primary)] border-[var(--color-border-primary)] text-[var(--color-text-secondary)]'}`}
                       >
                         {etapaLabel(item)}
                       </button>
@@ -859,10 +865,10 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
         {activeTab === 'glossario' && (
           <Card>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">
-                Glossário de Gestão Documental
-              </h2>
-              <span className="text-xs text-gray-400">{glossarioItens.length} termos</span>
+              <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">Glossário</h2>
+              <span className="text-xs text-[var(--color-text-tertiary)]">
+                {glossarioItens.length} termos
+              </span>
             </div>
             <div className="mb-4">
               <Input
@@ -873,10 +879,10 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
             </div>
 
             {glossarioQuery.isLoading ? (
-              <p className="text-sm text-gray-500">Carregando glossário...</p>
+              <p className="text-sm text-[var(--color-text-tertiary)]">Carregando glossário...</p>
             ) : (
               <>
-                <div className="divide-y divide-gray-100">
+                <div className="divide-y divide-[var(--color-border-primary)]">
                   {glossarioFiltrado.map((item) => (
                     <div key={item.id} className="py-3 group">
                       {editandoTermoId === item.id ? (
@@ -911,8 +917,12 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
                       ) : (
                         <div className="flex items-start justify-between">
                           <dl className="m-0">
-                            <dt className="text-sm font-semibold text-gray-900">{item.termo}</dt>
-                            <dd className="text-sm text-gray-600 mt-0.5">{item.definicao}</dd>
+                            <dt className="text-sm font-semibold text-[var(--color-text-primary)]">
+                              {item.termo}
+                            </dt>
+                            <dd className="text-sm text-[var(--color-text-secondary)] mt-0.5">
+                              {item.definicao}
+                            </dd>
                           </dl>
                           {isAdmin && (
                             <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-3">
@@ -940,7 +950,7 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
                     </div>
                   ))}
                   {glossarioFiltrado.length === 0 && (
-                    <p className="text-sm text-gray-500 py-4">
+                    <p className="text-sm text-[var(--color-text-tertiary)] py-4">
                       {buscaGlossario.trim()
                         ? 'Nenhum termo encontrado.'
                         : 'Nenhum termo cadastrado.'}
@@ -950,7 +960,9 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
 
                 {isAdmin && (
                   <div className="mt-4 pt-4 border-t space-y-2">
-                    <h3 className="text-sm font-medium text-gray-700">Adicionar Termo</h3>
+                    <h3 className="text-sm font-medium text-[var(--color-text-secondary)]">
+                      Adicionar Termo
+                    </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                       <Input
                         value={novoTermo.termo}
@@ -981,10 +993,12 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
         {activeTab === 'leis' && (
           <Card>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">
-                Legislação e Normas de Gestão Documental
+              <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">
+                Leis e Normas
               </h2>
-              <span className="text-xs text-gray-400">{leisItens.length} itens</span>
+              <span className="text-xs text-[var(--color-text-tertiary)]">
+                {leisItens.length} itens
+              </span>
             </div>
             <div className="mb-4">
               <Input
@@ -995,14 +1009,16 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
             </div>
 
             {leisQuery.isLoading ? (
-              <p className="text-sm text-gray-500">Carregando leis e normas...</p>
+              <p className="text-sm text-[var(--color-text-tertiary)]">
+                Carregando leis e normas...
+              </p>
             ) : (
               <>
                 <div className="space-y-3">
                   {leisFiltradas.map((item) => (
                     <div
                       key={item.id}
-                      className="p-3 rounded-lg border border-gray-100 bg-gray-50 group"
+                      className="p-3 rounded-lg border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] group"
                     >
                       {editandoLeiId === item.id ? (
                         <div className="space-y-2">
@@ -1050,13 +1066,13 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
                       ) : (
                         <div className="flex items-start justify-between gap-3">
                           <div>
-                            <h3 className="text-sm font-semibold text-gray-900">
+                            <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">
                               {item.url ? (
                                 <a
                                   href={item.url}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="hover:text-blue-600 hover:underline"
+                                  className="hover:text-[var(--color-primary-600)] hover:underline"
                                 >
                                   {item.nome}
                                 </a>
@@ -1064,11 +1080,13 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
                                 item.nome
                               )}
                             </h3>
-                            <p className="text-sm text-gray-600 mt-0.5">{item.descricao}</p>
+                            <p className="text-sm text-[var(--color-text-secondary)] mt-0.5">
+                              {item.descricao}
+                            </p>
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
                             {item.referencia && (
-                              <span className="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
+                              <span className="text-xs text-[var(--color-primary-700)] bg-[var(--color-primary-50)] px-2 py-0.5 rounded">
                                 {item.referencia}
                               </span>
                             )}
@@ -1104,7 +1122,7 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
                     </div>
                   ))}
                   {leisFiltradas.length === 0 && (
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-[var(--color-text-tertiary)]">
                       {buscaLeis.trim()
                         ? 'Nenhuma lei/norma encontrada.'
                         : 'Nenhuma lei/norma cadastrada.'}
@@ -1114,7 +1132,9 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
 
                 {isAdmin && (
                   <div className="mt-4 pt-4 border-t space-y-2">
-                    <h3 className="text-sm font-medium text-gray-700">Adicionar Lei/Norma</h3>
+                    <h3 className="text-sm font-medium text-[var(--color-text-secondary)]">
+                      Adicionar Lei/Norma
+                    </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                       <Input
                         value={novaLei.nome}

@@ -190,7 +190,7 @@ class ApiService {
     }
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({})) as { error?: string };
+      const errorData = (await response.json().catch(() => ({}))) as { error?: string };
       throw new Error(errorData.error ?? `Erro ${response.status}`);
     }
 

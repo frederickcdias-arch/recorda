@@ -269,8 +269,7 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
     for (const coordenadoria of relatorio.producaoPorCoordenadoria) {
       for (const etapa of coordenadoria.totaisPorEtapa) {
         rows.push({
-          coordenadoria:
-            coordenadoria.coordenadoriaSigla || coordenadoria.coordenadoriaNome || '—',
+          coordenadoria: coordenadoria.coordenadoriaSigla || coordenadoria.coordenadoriaNome || '—',
           etapa: etapa.etapaNome,
           total: etapa.quantidade,
         });
@@ -325,7 +324,7 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
     <div className="space-y-6">
       <PageHeader
         title="Relatórios gerenciais"
-        subtitle="Resumo consolidado da produção por período, coordenadoria e colaborador."
+        subtitle="Produção consolidada por período, coordenadoria e colaborador."
       />
 
       {mensagem ? (
@@ -400,45 +399,56 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
         <>
           <Card
             padding="sm"
-            className="border-[var(--color-primary-200)] bg-[var(--color-primary-50)] text-center"
+            className="border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] text-center"
           >
-            <h3 className="text-lg font-bold text-[var(--color-primary-900)]">
-              {relatorio.titulo.toUpperCase()}
+            <h3 className="text-base font-semibold text-[var(--color-text-primary)]">
+              {relatorio.titulo}
             </h3>
-            <p className="mt-1 text-sm text-[var(--color-primary-700)]">
-              Período: {formatDateBR(relatorio.periodo.inicio)} a{' '}
-              {formatDateBR(relatorio.periodo.fim)} | Emitido em:{' '}
-              {formatDateTimeBR(relatorio.dataGeracao)}
+            <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+              {formatDateBR(relatorio.periodo.inicio)} a {formatDateBR(relatorio.periodo.fim)} ·
+              Emitido em {formatDateTimeBR(relatorio.dataGeracao)}
             </p>
           </Card>
 
           <section className="overflow-hidden rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] shadow-xs">
-            <div className="flex items-center gap-2 bg-primary-800 px-5 py-3 text-white">
-              <Icon name="bar-chart" className="h-4 w-4" />
-              <h3 className="text-sm font-semibold">Resumo geral por etapa</h3>
+            <div className="flex items-center gap-2 border-b border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] px-5 py-3">
+              <Icon name="bar-chart" className="h-4 w-4 text-[var(--color-text-tertiary)]" />
+              <h3 className="text-sm font-medium text-[var(--color-text-primary)]">
+                Resumo geral por etapa
+              </h3>
             </div>
 
             <div className="space-y-2 p-3 md:hidden">
               {relatorio.resumoPorEtapa.map((etapa) => (
-                <Card key={etapa.etapaId} padding="sm" className="border border-gray-200 shadow-none">
-                  <p className="text-sm font-medium text-gray-900">{etapa.etapaNome}</p>
+                <Card
+                  key={etapa.etapaId}
+                  padding="sm"
+                  className="border border-[var(--color-border-primary)] shadow-none"
+                >
+                  <p className="text-sm font-medium text-[var(--color-text-primary)]">
+                    {etapa.etapaNome}
+                  </p>
                   <div className="mt-1 flex items-center justify-between text-xs">
-                    <span className="text-gray-500">{etapa.unidade}</span>
-                    <span className="font-semibold text-gray-900 tabular-nums">
+                    <span className="text-[var(--color-text-secondary)]">{etapa.unidade}</span>
+                    <span className="font-medium tabular-nums text-[var(--color-text-primary)]">
                       {formatNum(etapa.totalQuantidade)}
                     </span>
                   </div>
                 </Card>
               ))}
-              <Card padding="sm" className="bg-gray-50 shadow-none">
-                <p className="text-xs font-semibold text-gray-600">Total caixas</p>
-                <p className="mt-1 text-sm font-bold text-gray-900 tabular-nums">
+              <Card padding="sm" className="bg-[var(--color-bg-secondary)] shadow-none">
+                <p className="text-xs font-medium text-[var(--color-text-secondary)]">
+                  Total caixas
+                </p>
+                <p className="mt-1 text-sm font-semibold tabular-nums text-[var(--color-text-primary)]">
                   {formatNum(relatorio.totais.totalCaixas)}
                 </p>
               </Card>
-              <Card padding="sm" className="bg-gray-50 shadow-none">
-                <p className="text-xs font-semibold text-gray-600">Total imagens</p>
-                <p className="mt-1 text-sm font-bold text-gray-900 tabular-nums">
+              <Card padding="sm" className="bg-[var(--color-bg-secondary)] shadow-none">
+                <p className="text-xs font-medium text-[var(--color-text-secondary)]">
+                  Total imagens
+                </p>
+                <p className="mt-1 text-sm font-semibold tabular-nums text-[var(--color-text-primary)]">
                   {formatNum(relatorio.totais.totalImagens)}
                 </p>
               </Card>
@@ -464,18 +474,18 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
                     </TableRow>
                   ))}
                   <TableRow>
-                    <TableCell className="font-bold">Total caixas</TableCell>
-                    <TableCell align="right" className="font-bold tabular-nums">
+                    <TableCell className="font-medium">Total caixas</TableCell>
+                    <TableCell align="right" className="font-medium tabular-nums">
                       {formatNum(relatorio.totais.totalCaixas)}
                     </TableCell>
-                    <TableCell className="font-bold">CAIXAS</TableCell>
+                    <TableCell className="font-medium">Caixas</TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell className="font-bold">Total imagens</TableCell>
-                    <TableCell align="right" className="font-bold tabular-nums">
+                    <TableCell className="font-medium">Total imagens</TableCell>
+                    <TableCell align="right" className="font-medium tabular-nums">
                       {formatNum(relatorio.totais.totalImagens)}
                     </TableCell>
-                    <TableCell className="font-bold">IMAGENS</TableCell>
+                    <TableCell className="font-medium">Imagens</TableCell>
                   </TableRow>
                 </TableBody>
               </Table>
@@ -483,14 +493,16 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
           </section>
 
           <section className="overflow-hidden rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] shadow-xs">
-            <div className="flex items-center gap-2 bg-primary-700 px-5 py-3 text-white">
-              <Icon name="building" className="h-4 w-4" />
-              <h3 className="text-sm font-semibold">Por coordenadoria e etapa</h3>
+            <div className="flex items-center gap-2 border-b border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] px-5 py-3">
+              <Icon name="building" className="h-4 w-4 text-[var(--color-text-tertiary)]" />
+              <h3 className="text-sm font-medium text-[var(--color-text-primary)]">
+                Por coordenadoria e etapa
+              </h3>
             </div>
 
             <div className="space-y-2 p-3 md:hidden">
               {coordEtapaRows.length === 0 ? (
-                <div className="rounded-lg border border-dashed border-gray-200 p-4 text-center text-sm text-gray-400">
+                <div className="rounded-lg border border-dashed border-[var(--color-border-primary)] p-4 text-center text-sm text-[var(--color-text-tertiary)]">
                   Sem dados
                 </div>
               ) : (
@@ -498,12 +510,14 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
                   <Card
                     key={`${row.coordenadoria}-${row.etapa}-${index}`}
                     padding="sm"
-                    className="border border-gray-200 shadow-none"
+                    className="border border-[var(--color-border-primary)] shadow-none"
                   >
-                    <p className="text-sm font-medium text-gray-900">{row.coordenadoria}</p>
+                    <p className="text-sm font-medium text-[var(--color-text-primary)]">
+                      {row.coordenadoria}
+                    </p>
                     <div className="mt-1 flex items-center justify-between text-xs">
-                      <span className="text-gray-600">{row.etapa}</span>
-                      <span className="font-semibold text-gray-900 tabular-nums">
+                      <span className="text-[var(--color-text-secondary)]">{row.etapa}</span>
+                      <span className="font-medium tabular-nums text-[var(--color-text-primary)]">
                         {formatNum(row.total)}
                       </span>
                     </div>
@@ -541,14 +555,16 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
           </section>
 
           <section className="overflow-hidden rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] shadow-xs">
-            <div className="flex items-center gap-2 bg-primary-600 px-5 py-3 text-white">
-              <Icon name="users" className="h-4 w-4" />
-              <h3 className="text-sm font-semibold">Produção por colaborador</h3>
+            <div className="flex items-center gap-2 border-b border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] px-5 py-3">
+              <Icon name="users" className="h-4 w-4 text-[var(--color-text-tertiary)]" />
+              <h3 className="text-sm font-medium text-[var(--color-text-primary)]">
+                Produção por colaborador
+              </h3>
             </div>
 
             <div className="space-y-2 p-3 md:hidden">
               {colabRows.length === 0 ? (
-                <div className="rounded-lg border border-dashed border-gray-200 p-4 text-center text-sm text-gray-400">
+                <div className="rounded-lg border border-dashed border-[var(--color-border-primary)] p-4 text-center text-sm text-[var(--color-text-tertiary)]">
                   Sem dados
                 </div>
               ) : (
@@ -556,12 +572,14 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
                   <Card
                     key={`${row.colaborador}-${row.etapa}-${index}`}
                     padding="sm"
-                    className="border border-gray-200 shadow-none"
+                    className="border border-[var(--color-border-primary)] shadow-none"
                   >
-                    <p className="text-sm font-medium text-gray-900">{row.colaborador}</p>
+                    <p className="text-sm font-medium text-[var(--color-text-primary)]">
+                      {row.colaborador}
+                    </p>
                     <div className="mt-1 flex items-center justify-between text-xs">
-                      <span className="text-gray-600">{row.etapa}</span>
-                      <span className="font-semibold text-gray-900 tabular-nums">
+                      <span className="text-[var(--color-text-secondary)]">{row.etapa}</span>
+                      <span className="font-medium tabular-nums text-[var(--color-text-primary)]">
                         {formatNum(row.producao)} {row.unidade}
                       </span>
                     </div>
@@ -599,14 +617,18 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
           </section>
 
           <section className="overflow-hidden rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] shadow-xs">
-            <div className="flex items-center gap-2 bg-[var(--color-gray-600)] px-5 py-3 text-white">
-              <Icon name="book" className="h-4 w-4" />
-              <h3 className="text-sm font-semibold">Glossário das etapas</h3>
+            <div className="flex items-center gap-2 border-b border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] px-5 py-3">
+              <Icon name="book" className="h-4 w-4 text-[var(--color-text-tertiary)]" />
+              <h3 className="text-sm font-medium text-[var(--color-text-primary)]">
+                Glossário das etapas
+              </h3>
             </div>
             <div className="space-y-2 p-5">
               {relatorio.glossario.map((item) => (
-                <p key={item.termo} className="text-sm text-gray-700">
-                  <span className="font-semibold text-gray-900">{item.termo}:</span>{' '}
+                <p key={item.termo} className="text-sm text-[var(--color-text-secondary)]">
+                  <span className="font-medium text-[var(--color-text-primary)]">
+                    {item.termo}:
+                  </span>{' '}
                   {item.definicao}
                 </p>
               ))}
@@ -616,15 +638,16 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
       ) : null}
 
       {!relatorio && !carregandoRelatorio ? (
-        <div className="rounded-xl border border-gray-200 bg-gray-50 p-10 text-center">
-          <Icon name="file-text" className="mx-auto mb-3 h-12 w-12 text-gray-300" />
-          <p className="text-sm text-gray-500">
-            Selecione o período e clique em <strong>Gerar visualização</strong> para gerar o
-            relatório.
+        <div className="rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-8 text-center">
+          <Icon
+            name="file-text"
+            className="mx-auto mb-3 h-8 w-8 text-[var(--color-text-tertiary)]"
+          />
+          <p className="text-sm text-[var(--color-text-secondary)]">
+            Selecione o período e clique em <strong>Gerar visualização</strong>.
           </p>
         </div>
       ) : null}
     </div>
   );
 }
-

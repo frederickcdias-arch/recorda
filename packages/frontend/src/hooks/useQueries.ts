@@ -1165,10 +1165,7 @@ export function useAtualizarComunicado() {
 
   return useMutation({
     mutationFn: ({ id, body }: { id: string; body: AtualizarComunicadoDTO }) =>
-      api.patch<{ comunicado: { id: string; status: string } }>(
-        `/admin/comunicados/${id}`,
-        body
-      ),
+      api.patch<{ comunicado: { id: string; status: string } }>(`/admin/comunicados/${id}`, body),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: queryKeys.comunicadosAdmin });
       void qc.invalidateQueries({ queryKey: ['comunicado-admin-detalhe'] });

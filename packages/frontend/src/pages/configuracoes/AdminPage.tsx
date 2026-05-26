@@ -206,19 +206,15 @@ export function AdminPage(): JSX.Element {
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card padding="sm">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
-            Ambiente
-          </p>
+          <p className="text-xs font-medium text-[var(--color-text-tertiary)]">Ambiente</p>
           <p className="mt-2 text-lg font-semibold text-[var(--color-text-primary)]">{ambiente}</p>
         </Card>
         <Card padding="sm">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
-            Versão
-          </p>
+          <p className="text-xs font-medium text-[var(--color-text-tertiary)]">Versão</p>
           <p className="mt-2 text-lg font-semibold text-[var(--color-text-primary)]">{versao}</p>
         </Card>
         <Card padding="sm">
-          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
+          <p className="text-xs font-medium text-[var(--color-text-tertiary)]">
             Última atualização
           </p>
           <p className="mt-2 text-lg font-semibold text-[var(--color-text-primary)]">
@@ -230,12 +226,12 @@ export function AdminPage(): JSX.Element {
       <Card>
         <CardHeader
           title="Limpeza de dados"
-          description="Ações destrutivas e controladas para remover duplicidades."
+          description="Remove duplicidades em registros de produção e recebimento."
         />
         <div className="grid gap-4 md:grid-cols-2">
           <ActionTile
             title="Duplicatas de produção"
-            description="Remove registros duplicados de produção com base em colaborador, data, etapa e quantidade."
+            description="Remove registros duplicados de produção. Não pode ser desfeito."
             icon="trash"
             accentClass="bg-[var(--color-error-50)] text-[var(--color-error-600)]"
             buttonLabel="Limpar duplicatas"
@@ -245,7 +241,7 @@ export function AdminPage(): JSX.Element {
           />
           <ActionTile
             title="Duplicatas de recebimento"
-            description="Remove registros duplicados de recebimento com base em processo e repositório."
+            description="Remove registros duplicados de recebimento. Não pode ser desfeito."
             icon="trash"
             accentClass="bg-[var(--color-warning-50)] text-[var(--color-warning-600)]"
             buttonLabel="Limpar duplicatas"
@@ -259,7 +255,7 @@ export function AdminPage(): JSX.Element {
       <Card>
         <CardHeader
           title="Manutenção do sistema"
-          description="Operações administrativas para atualização de estatísticas e performance."
+          description="Atualização de estatísticas e performance."
         />
         <div className="grid gap-4 md:grid-cols-2">
           <ActionTile

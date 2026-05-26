@@ -27,17 +27,17 @@ const CATEGORIA_CONFIG: Record<
 > = {
   importacoes: {
     titulo: 'Auditoria de importações',
-    descricao: 'Histórico de importações e registros importados.',
+    descricao: 'Histórico de importações.',
     tabelasFiltro: ['importacoes', 'importacoes_legado_operacional', 'registros_importados'],
   },
   ocr: {
     titulo: 'Auditoria de OCR',
-    descricao: 'Histórico de processamento OCR e documentos digitalizados.',
+    descricao: 'Histórico de processamento OCR.',
     tabelasFiltro: ['documentos_ocr', 'recebimento_documentos'],
   },
   correcoes: {
     titulo: 'Auditoria de correções',
-    descricao: 'Histórico de atualizações e correções em registros.',
+    descricao: 'Histórico de correções em registros.',
     tabelasFiltro: [
       'repositorios',
       'recebimento_processos',
@@ -52,7 +52,7 @@ const CATEGORIA_CONFIG: Record<
   },
   acoes: {
     titulo: 'Ações de usuários',
-    descricao: 'Histórico de ações realizadas no sistema.',
+    descricao: 'Histórico de ações no sistema.',
     tabelasFiltro: ['usuarios'],
   },
 };
@@ -166,10 +166,7 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
     : null;
 
   const temFiltroAtivo = Boolean(
-    filtroTabela ||
-      filtroOperacao ||
-      dataInicio !== dataInicioPadrao ||
-      dataFim !== dataFimPadrao
+    filtroTabela || filtroOperacao || dataInicio !== dataInicioPadrao || dataFim !== dataFimPadrao
   );
 
   const invalidate = () => void queryClient.invalidateQueries({ queryKey: ['auditoria'] });
@@ -322,17 +319,20 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
         <Card>
           <div className="p-4">
             {logs.length === 0 ? (
-              <div className="py-12 text-center text-gray-500">
-                <Icon name="shield" className="mx-auto mb-4 h-12 w-12 text-gray-300" />
-                <p className="text-lg font-medium">
+              <div className="py-10 text-center text-[var(--color-text-secondary)]">
+                <Icon
+                  name="shield"
+                  className="mx-auto mb-3 h-8 w-8 text-[var(--color-text-tertiary)]"
+                />
+                <p className="text-sm font-medium text-[var(--color-text-primary)]">
                   {temFiltroAtivo
                     ? 'Nenhum resultado para os filtros aplicados'
                     : 'Nenhum evento de auditoria encontrado.'}
                 </p>
-                <p className="text-sm">
+                <p className="mt-1 text-xs text-[var(--color-text-tertiary)]">
                   {temFiltroAtivo
                     ? 'Tente ampliar o período ou remover filtros.'
-                    : 'As ações do sistema aparecerão aqui conforme forem realizadas.'}
+                    : 'Os eventos aparecerão aqui conforme ocorrem.'}
                 </p>
               </div>
             ) : (
@@ -340,7 +340,7 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
                 {logs.map((log) => (
                   <div
                     key={log.id}
-                    className="rounded-xl border border-gray-200 p-4 transition-colors hover:bg-gray-50"
+                    className="rounded-xl border border-[var(--color-border-primary)] p-4 transition-colors hover:bg-[var(--color-bg-secondary)]"
                   >
                     <div className="flex items-start gap-4">
                       <div
@@ -352,8 +352,10 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                           <div className="min-w-0">
-                            <p className="font-medium text-gray-900">{getTabelaNome(log.tabela)}</p>
-                            <p className="text-sm text-gray-500">
+                            <p className="font-medium text-[var(--color-text-primary)]">
+                              {getTabelaNome(log.tabela)}
+                            </p>
+                            <p className="text-sm text-[var(--color-text-secondary)]">
                               {log.operacao === 'INSERT' && 'Registro criado'}
                               {log.operacao === 'UPDATE' && 'Registro atualizado'}
                               {log.operacao === 'DELETE' && 'Registro excluído'}
@@ -370,7 +372,9 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
                           </div>
 
                           <div className="text-left sm:text-right">
-                            <p className="text-sm text-gray-500">{formatarData(log.criado_em)}</p>
+                            <p className="text-sm text-[var(--color-text-tertiary)]">
+                              {formatarData(log.criado_em)}
+                            </p>
                             {expandido === log.id ? (
                               <button
                                 type="button"
@@ -403,7 +407,7 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
                             {log.dados_antigos && Object.keys(log.dados_antigos).length > 0 ? (
                               <div>
                                 <div className="mb-2 flex items-center justify-between">
-                                  <p className="text-xs font-medium text-gray-500">
+                                  <p className="text-xs font-medium text-[var(--color-text-tertiary)]">
                                     Dados anteriores
                                   </p>
                                   <button
@@ -416,7 +420,7 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
                                     {copiadoId === `${log.id}-antigos` ? '✓ Copiado' : 'Copiar'}
                                   </button>
                                 </div>
-                                <pre className="max-h-64 overflow-auto rounded-lg bg-gray-50 p-3 text-xs">
+                                <pre className="max-h-64 overflow-auto rounded-lg bg-[var(--color-bg-secondary)] p-3 text-xs">
                                   {JSON.stringify(log.dados_antigos, null, 2)}
                                 </pre>
                               </div>
@@ -425,7 +429,9 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
                             {log.dados_novos && Object.keys(log.dados_novos).length > 0 ? (
                               <div>
                                 <div className="mb-2 flex items-center justify-between">
-                                  <p className="text-xs font-medium text-gray-500">Dados novos</p>
+                                  <p className="text-xs font-medium text-[var(--color-text-tertiary)]">
+                                    Dados novos
+                                  </p>
                                   <button
                                     type="button"
                                     className="text-xs font-medium text-primary-600 hover:text-primary-800"
@@ -450,7 +456,7 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
           </div>
 
           {totalPaginas > 1 ? (
-            <div className="border-t border-gray-200 px-6 py-4">
+            <div className="border-t border-[var(--color-border-primary)] px-6 py-4">
               <Pagination
                 pagina={pagina}
                 totalPaginas={totalPaginas}

@@ -1,4 +1,5 @@
 import { Button } from '../../components/ui/Button';
+import { Modal } from '../../components/ui/Modal';
 import { formatDateBR } from '../../utils/date';
 
 interface PreviewImportacao {
@@ -29,6 +30,31 @@ interface PreviewImportacaoModalProps {
   onClose: () => void;
 }
 
+function SummaryBadge({
+  label,
+  value,
+  tone = 'neutral',
+}: {
+  label: string;
+  value: number;
+  tone?: 'neutral' | 'success' | 'warning' | 'error';
+}): JSX.Element {
+  const toneClass =
+    tone === 'success'
+      ? 'bg-success-50 text-success-700 dark:bg-success-950 dark:text-success-300'
+      : tone === 'warning'
+        ? 'bg-warning-50 text-warning-700 dark:bg-warning-950 dark:text-warning-300'
+        : tone === 'error'
+          ? 'bg-error-50 text-error-700 dark:bg-error-950 dark:text-error-300'
+          : 'bg-[var(--color-bg-primary)] text-[var(--color-text-secondary)]';
+
+  return (
+    <span className={`rounded-full px-3 py-1 text-xs font-medium ${toneClass}`}>
+      {label}: {value}
+    </span>
+  );
+}
+
 export function PreviewImportacaoModal({
   preview,
   processando,
@@ -36,85 +62,124 @@ export function PreviewImportacaoModal({
   onClose,
 }: PreviewImportacaoModalProps): JSX.Element {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 animate-fade-in">
-      <div className="mx-4 w-full max-w-lg animate-scale-in rounded-xl bg-[var(--color-bg-primary)] p-6 shadow-xl">
-        <h3 className="mb-3 text-lg font-bold text-gray-900">Preview de importacao</h3>
-        <div className="space-y-3 text-sm text-gray-700">
-          <p>
-            <strong>{preview.totalRegistros}</strong> registros na planilha.
-            <strong className="text-gray-900"> {preview.registrosValidos}</strong> validos.
-          </p>
-          <p className="text-xs text-gray-600">
-            Insercoes: <strong>{preview.impacto.inseridosPrevistos}</strong> · Atualizacoes:{' '}
-            <strong>{preview.impacto.atualizadosPrevistos}</strong> · Ignorados:{' '}
-            <strong>{preview.impacto.ignoradosPrevistos}</strong> · Invalidos:{' '}
-            <strong>{preview.impacto.invalidos}</strong>
-          </p>
-          {preview.duplicadasPlanilha.length > 0 && (
-            <div>
-              <p className="font-semibold text-gray-700">Duplicadas na planilha:</p>
-              <p className="max-h-24 overflow-y-auto rounded bg-[var(--color-bg-secondary)] p-2 font-mono text-xs">
-                Linhas: {preview.duplicadasPlanilha.join(', ')}
-              </p>
-            </div>
-          )}
-          {preview.duplicadasBanco.length > 0 && (
-            <div>
-              <p className="font-semibold text-gray-700">Ja existentes no sistema:</p>
-              <p className="max-h-24 overflow-y-auto rounded bg-[var(--color-primary-50)] p-2 font-mono text-xs">
-                Linhas: {preview.duplicadasBanco.join(', ')}
-              </p>
-            </div>
-          )}
-          {preview.linhasInvalidas.length > 0 && (
-            <div>
-              <p className="font-semibold text-gray-700">Linhas invalidas:</p>
-              <p className="max-h-24 overflow-y-auto rounded bg-red-50 p-2 font-mono text-xs">
-                {preview.linhasInvalidas
-                  .slice(0, 10)
-                  .map((item) => `${item.linha}: ${item.erro}`)
-                  .join(' | ')}
-              </p>
-            </div>
-          )}
-          {preview.amostraDatas.length > 0 && (
-            <div>
-              <p className="font-semibold text-gray-700">Amostra da normalizacao das datas:</p>
-              <div className="max-h-40 space-y-2 overflow-y-auto rounded bg-gray-50 p-2 text-xs">
-                {preview.amostraDatas.slice(0, 8).map((item) => (
-                  <div
-                    key={`${item.status}-${item.linha}`}
-                    className="border-b border-gray-100 pb-2 last:border-0 last:pb-0"
-                  >
-                    <p className="font-mono text-gray-700">Linha {item.linha}</p>
-                    <p className="text-gray-600">
-                      Planilha: <strong>{item.dataOriginal || '-'}</strong>
-                    </p>
-                    <p className={item.status === 'valido' ? 'text-green-700' : 'text-red-700'}>
-                      Sistema:{' '}
-                      <strong>
-                        {item.dataNormalizada ? formatDateBR(item.dataNormalizada) : '-'}
-                      </strong>
-                      {item.erro ? ` | ${item.erro}` : ''}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="mt-5 flex gap-3">
-          {preview.registrosValidos > 0 && (
-            <Button onClick={onConfirm} loading={processando}>
-              Confirmar importacao ({preview.registrosValidos})
-            </Button>
-          )}
-          <Button variant="secondary" onClick={onClose}>
+    <Modal
+      open
+      onClose={onClose}
+      title="Pré-visualização da importação"
+      subtitle="Confira os impactos antes de confirmar."
+      size="lg"
+      scrollable
+      footer={
+        <div className="flex flex-col gap-2 p-4 sm:flex-row sm:flex-wrap sm:justify-end">
+          <Button variant="ghost" size="sm" onClick={onClose}>
             Cancelar
           </Button>
+          {preview.registrosValidos > 0 && (
+            <Button variant="primary" size="sm" onClick={onConfirm} loading={processando}>
+              Confirmar importação ({preview.registrosValidos})
+            </Button>
+          )}
         </div>
+      }
+    >
+      <div className="space-y-4 p-4">
+        <div className="rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-4">
+          <p className="text-sm text-[var(--color-text-secondary)]">
+            <span className="font-medium text-[var(--color-text-primary)]">
+              {preview.totalRegistros}
+            </span>{' '}
+            registros na planilha.
+            <span className="font-medium text-[var(--color-text-primary)]">
+              {' '}
+              {preview.registrosValidos}
+            </span>{' '}
+            válidos para importar.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <SummaryBadge
+              label="Inserções"
+              value={preview.impacto.inseridosPrevistos}
+              tone="success"
+            />
+            <SummaryBadge label="Atualizações" value={preview.impacto.atualizadosPrevistos} />
+            <SummaryBadge
+              label="Ignorados"
+              value={preview.impacto.ignoradosPrevistos}
+              tone="warning"
+            />
+            <SummaryBadge label="Inválidos" value={preview.impacto.invalidos} tone="error" />
+          </div>
+        </div>
+
+        {preview.duplicadasPlanilha.length > 0 && (
+          <div className="rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-4">
+            <p className="text-sm font-medium text-[var(--color-text-primary)]">
+              Duplicadas na planilha
+            </p>
+            <p className="mt-2 max-h-24 overflow-y-auto rounded-lg bg-[var(--color-bg-primary)] p-3 font-mono text-xs text-[var(--color-text-secondary)]">
+              Linhas: {preview.duplicadasPlanilha.join(', ')}
+            </p>
+          </div>
+        )}
+
+        {preview.duplicadasBanco.length > 0 && (
+          <div className="rounded-xl border border-warning-200 bg-warning-50 p-4 dark:border-warning-800 dark:bg-warning-950">
+            <p className="text-sm font-medium text-[var(--color-text-primary)]">
+              Já existentes no sistema
+            </p>
+            <p className="mt-2 max-h-24 overflow-y-auto rounded-lg bg-[var(--color-bg-primary)] p-3 font-mono text-xs text-[var(--color-text-secondary)]">
+              Linhas: {preview.duplicadasBanco.join(', ')}
+            </p>
+          </div>
+        )}
+
+        {preview.linhasInvalidas.length > 0 && (
+          <div className="rounded-xl border border-error-200 bg-error-50 p-4 dark:border-error-800 dark:bg-error-950">
+            <p className="text-sm font-medium text-[var(--color-text-primary)]">Linhas inválidas</p>
+            <div className="mt-2 max-h-32 space-y-2 overflow-y-auto rounded-lg bg-[var(--color-bg-primary)] p-3 text-xs text-[var(--color-text-secondary)]">
+              {preview.linhasInvalidas.slice(0, 10).map((item) => (
+                <p key={`${item.linha}-${item.erro}`}>
+                  Linha {item.linha}: {item.erro}
+                </p>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {preview.amostraDatas.length > 0 && (
+          <div className="rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-4">
+            <p className="text-sm font-medium text-[var(--color-text-primary)]">
+              Amostra das datas
+            </p>
+            <div className="mt-2 max-h-56 space-y-2 overflow-y-auto rounded-lg bg-[var(--color-bg-primary)] p-3 text-xs">
+              {preview.amostraDatas.slice(0, 8).map((item) => (
+                <div
+                  key={`${item.status}-${item.linha}`}
+                  className="border-b border-[var(--color-border-primary)] pb-2 last:border-0 last:pb-0"
+                >
+                  <p className="font-mono text-[var(--color-text-secondary)]">Linha {item.linha}</p>
+                  <p className="mt-1 text-[var(--color-text-secondary)]">
+                    Planilha: <strong>{item.dataOriginal || '-'}</strong>
+                  </p>
+                  <p
+                    className={
+                      item.status === 'valido'
+                        ? 'mt-1 text-success-700 dark:text-success-300'
+                        : 'mt-1 text-error-700 dark:text-error-300'
+                    }
+                  >
+                    Sistema:{' '}
+                    <strong>
+                      {item.dataNormalizada ? formatDateBR(item.dataNormalizada) : '-'}
+                    </strong>
+                    {item.erro ? ` | ${item.erro}` : ''}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
-    </div>
+    </Modal>
   );
 }

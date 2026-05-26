@@ -1,7 +1,11 @@
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Alert } from '../components/ui/Alert';
+import { Button } from '../components/ui/Button';
+import { Icon } from '../components/ui/Icon';
+import { Input } from '../components/ui/Input';
 import { api } from '../services/api';
+import { AuthShell } from './auth/AuthShell';
 
 export function ResetPasswordPage(): JSX.Element {
   const [searchParams] = useSearchParams();
@@ -61,139 +65,90 @@ export function ResetPasswordPage(): JSX.Element {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-4">
-      <div className="w-full max-w-md">
-        <div className="mb-8 space-y-2 text-center">
-          <div
-            className="mx-auto h-16 w-16 rounded-full bg-[var(--color-bg-primary)] shadow-lg"
-            style={{
-              backgroundImage: 'url(/images/logo-icon.png)',
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              backgroundRepeat: 'no-repeat',
-            }}
-            aria-label="Recorda - Gestão documental e operacional"
+    <AuthShell
+      title="Redefinir senha"
+      subtitle="Informe o token e defina a nova senha."
+      footer={
+        <Link
+          to="/login"
+          className="font-medium text-[var(--color-primary-600)] transition-colors duration-200 hover:text-[var(--color-primary-700)]"
+        >
+          Voltar ao login
+        </Link>
+      }
+    >
+      {mensagem && (!redefinido || mensagem.tipo === 'error') ? (
+        <div className="mb-4">
+          <Alert variant={mensagem.tipo} onClose={() => setMensagem(null)}>
+            {mensagem.texto}
+          </Alert>
+        </div>
+      ) : null}
+
+      {!redefinido ? (
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <Input
+            id="token"
+            type="text"
+            label="Token"
+            value={token}
+            onChange={(e) => setToken(e.target.value)}
+            placeholder="Cole o token recebido por e-mail"
+            inputSize="lg"
+            className="font-mono text-sm"
+            required
+            disabled={carregando}
           />
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-wide text-white">Recorda</p>
-            <p className="text-xs text-blue-100">Gestão documental e operacional</p>
+
+          <Input
+            id="novaSenha"
+            type="password"
+            label="Nova senha"
+            value={novaSenha}
+            onChange={(e) => setNovaSenha(e.target.value)}
+            placeholder="••••••••"
+            leftIcon="lock"
+            inputSize="lg"
+            helperText="Mínimo de 8 caracteres"
+            required
+            minLength={8}
+            disabled={carregando}
+          />
+
+          <Input
+            id="confirmarSenha"
+            type="password"
+            label="Confirmar nova senha"
+            value={confirmarSenha}
+            onChange={(e) => setConfirmarSenha(e.target.value)}
+            placeholder="••••••••"
+            leftIcon="lock"
+            inputSize="lg"
+            required
+            minLength={8}
+            disabled={carregando}
+          />
+
+          <Button type="submit" size="lg" fullWidth loading={carregando} disabled={carregando}>
+            Redefinir senha
+          </Button>
+        </form>
+      ) : (
+        <div className="space-y-4 text-center">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--color-primary-50)] text-[var(--color-primary-600)]">
+            <Icon name="check" className="h-6 w-6" />
           </div>
-        </div>
-
-        <div className="rounded-2xl bg-[var(--color-bg-primary)] p-8 shadow-2xl">
-          <h2 className="mb-2 text-center text-xl font-semibold text-gray-900">Redefinir senha</h2>
-          <p className="mb-6 text-center text-sm text-gray-500">
-            Informe o token recebido e defina a nova senha.
-          </p>
-
-          {mensagem ? (
-            <div className="mb-4">
-              <Alert variant={mensagem.tipo} onClose={() => setMensagem(null)}>
-                {mensagem.texto}
-              </Alert>
-            </div>
-          ) : null}
-
-          {!redefinido ? (
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div>
-                <label htmlFor="token" className="mb-1 block text-sm font-medium text-gray-700">
-                  Token de redefinição
-                </label>
-                <input
-                  id="token"
-                  type="text"
-                  value={token}
-                  onChange={(e) => setToken(e.target.value)}
-                  placeholder="Cole o token recebido por e-mail"
-                  className="w-full rounded-lg border border-gray-300 px-4 py-3 font-mono text-sm transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                  required
-                  disabled={carregando}
-                />
-              </div>
-
-              <div>
-                <label htmlFor="novaSenha" className="mb-1 block text-sm font-medium text-gray-700">
-                  Nova senha
-                </label>
-                <input
-                  id="novaSenha"
-                  type="password"
-                  value={novaSenha}
-                  onChange={(e) => setNovaSenha(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full rounded-lg border border-gray-300 px-4 py-3 transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                  required
-                  minLength={8}
-                  disabled={carregando}
-                />
-                <p className="mt-1 text-xs text-gray-400">Mínimo de 8 caracteres</p>
-              </div>
-
-              <div>
-                <label
-                  htmlFor="confirmarSenha"
-                  className="mb-1 block text-sm font-medium text-gray-700"
-                >
-                  Confirmar nova senha
-                </label>
-                <input
-                  id="confirmarSenha"
-                  type="password"
-                  value={confirmarSenha}
-                  onChange={(e) => setConfirmarSenha(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full rounded-lg border border-gray-300 px-4 py-3 transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                  required
-                  minLength={8}
-                  disabled={carregando}
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={carregando}
-                className="w-full rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white transition-all hover:bg-blue-700 focus:ring-4 focus:ring-blue-200 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {carregando ? 'Redefinindo...' : 'Redefinir senha'}
-              </button>
-            </form>
-          ) : (
-            <div className="text-center">
-              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-100">
-                <svg
-                  className="h-8 w-8 text-blue-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-              </div>
-              <p className="mb-4 text-gray-600">Sua senha foi redefinida com sucesso.</p>
-              <button
-                onClick={() => navigate('/login')}
-                className="w-full rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white transition-all hover:bg-blue-700 focus:ring-4 focus:ring-blue-200"
-              >
-                Ir para o login
-              </button>
-            </div>
-          )}
-
-          <div className="mt-6 text-center">
-            <Link to="/login" className="text-sm font-medium text-blue-600 hover:text-blue-700">
-              ← Voltar para o login
-            </Link>
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-[var(--color-text-primary)]">Senha redefinida</p>
+            <p className="text-sm text-[var(--color-text-secondary)]">
+              {mensagem?.texto ?? 'Sua senha foi atualizada com sucesso.'}
+            </p>
           </div>
+          <Button type="button" size="lg" fullWidth onClick={() => navigate('/login')}>
+            Ir para o login
+          </Button>
         </div>
-
-        <p className="mt-6 text-center text-sm text-blue-200">Recorda</p>
-      </div>
-    </div>
+      )}
+    </AuthShell>
   );
 }

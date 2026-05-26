@@ -101,7 +101,7 @@ export function ProjetosPage(): JSX.Element {
       <div className="space-y-6">
         <PageHeader
           title="Projetos"
-          subtitle="Gerencie os projetos disponíveis para cadastro e organização no sistema."
+          subtitle="Gerencie os projetos disponíveis para uso no sistema."
           actions={
             <Button
               variant="primary"
@@ -129,25 +129,19 @@ export function ProjetosPage(): JSX.Element {
 
         <div className="grid gap-4 sm:grid-cols-3">
           <Card padding="sm">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
-              Projetos
-            </p>
-            <p className="mt-2 text-2xl font-semibold text-[var(--color-text-primary)]">
+            <p className="text-xs font-medium text-[var(--color-text-tertiary)]">Projetos</p>
+            <p className="mt-2 text-xl font-semibold text-[var(--color-text-primary)]">
               {projetos.length}
             </p>
           </Card>
           <Card padding="sm">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
-              Visíveis
-            </p>
-            <p className="mt-2 text-2xl font-semibold text-[var(--color-text-primary)]">
+            <p className="text-xs font-medium text-[var(--color-text-tertiary)]">Visíveis</p>
+            <p className="mt-2 text-xl font-semibold text-[var(--color-text-primary)]">
               {projetosFiltrados.length}
             </p>
           </Card>
           <Card padding="sm">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
-              Status padrão
-            </p>
+            <p className="text-xs font-medium text-[var(--color-text-tertiary)]">Status padrão</p>
             <p className="mt-2 text-lg font-semibold text-[var(--color-text-primary)]">Ativo</p>
           </Card>
         </div>
@@ -172,7 +166,6 @@ export function ProjetosPage(): JSX.Element {
         <Card padding="none">
           <CardHeader
             title="Projetos cadastrados"
-            description="Lista atual de projetos configurados para uso no sistema."
             className="px-5 pt-5"
             badge={<Badge variant="info">{projetosFiltrados.length}</Badge>}
           />

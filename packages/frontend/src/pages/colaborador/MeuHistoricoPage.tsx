@@ -300,8 +300,10 @@ export function MeuHistoricoPage(): JSX.Element {
             <div className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-500">Total de Registros</p>
-                  <p className="text-2xl font-bold text-gray-900">{formatCriticalNumber(total)}</p>
+                  <p className="text-sm text-[var(--color-text-secondary)]">Total de registros</p>
+                  <p className="text-2xl font-semibold text-[var(--color-text-primary)]">
+                    {formatCriticalNumber(total)}
+                  </p>
                 </div>
                 <Icon name="clipboard" className="w-8 h-8 text-primary-600" />
               </div>
@@ -312,8 +314,8 @@ export function MeuHistoricoPage(): JSX.Element {
             <div className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-500">Quantidade Total</p>
-                  <p className="text-2xl font-bold text-gray-900">
+                  <p className="text-sm text-[var(--color-text-secondary)]">Quantidade total</p>
+                  <p className="text-2xl font-semibold text-[var(--color-text-primary)]">
                     {formatCriticalNumber(totalQuantidade)}
                   </p>
                 </div>
@@ -326,12 +328,12 @@ export function MeuHistoricoPage(): JSX.Element {
             <div className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-500">Últimos 7 dias</p>
-                  <p className="text-2xl font-bold text-gray-900">
+                  <p className="text-sm text-[var(--color-text-secondary)]">Últimos 7 dias</p>
+                  <p className="text-2xl font-semibold text-[var(--color-text-primary)]">
                     {formatCriticalNumber(registrosUltimos7Dias)}
                   </p>
                   {quantidadeUltimos7Dias > 0 ? (
-                    <p className="text-xs text-gray-400 mt-0.5">
+                    <p className="mt-0.5 text-xs text-[var(--color-text-tertiary)]">
                       {quantidadeUltimos7Dias.toLocaleString('pt-BR')} itens
                     </p>
                   ) : null}
@@ -346,12 +348,18 @@ export function MeuHistoricoPage(): JSX.Element {
         <Card>
           <div className="p-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">Produção por Etapa</h2>
-              <p className="text-xs text-gray-500">Mesmos filtros aplicados à tabela abaixo</p>
+              <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">
+                Produção por etapa
+              </h2>
+              <p className="text-xs text-[var(--color-text-secondary)]">
+                Mesmos filtros da tabela abaixo
+              </p>
             </div>
 
             {producaoPorEtapa.length === 0 ? (
-              <p className="text-gray-500 text-sm py-4">Nenhuma produção encontrada</p>
+              <p className="py-4 text-sm text-[var(--color-text-secondary)]">
+                Nenhuma produção encontrada
+              </p>
             ) : (
               <div className="space-y-3">
                 {producaoPorEtapa.map((item) => {
@@ -367,17 +375,17 @@ export function MeuHistoricoPage(): JSX.Element {
                           >
                             {item.etapa}
                           </span>
-                          <span className="text-gray-400 text-xs">
+                          <span className="text-xs text-[var(--color-text-tertiary)]">
                             {item.registros.toLocaleString('pt-BR')} registro
                             {item.registros !== 1 ? 's' : ''}
                           </span>
                         </div>
-                        <span className="font-semibold text-gray-900">
+                        <span className="font-medium text-[var(--color-text-primary)]">
                           {item.quantidade.toLocaleString('pt-BR')}
                         </span>
                       </div>
                       <progress
-                        className="h-3 w-full overflow-hidden rounded-full bg-gray-100 accent-primary-500"
+                        className="h-3 w-full overflow-hidden rounded-full bg-[var(--color-bg-secondary)] accent-primary-500"
                         value={largura}
                         max={100}
                       />
@@ -427,7 +435,7 @@ export function MeuHistoricoPage(): JSX.Element {
                       <span className={`px-2 py-1 text-xs rounded-full ${cor.bg} ${cor.text}`}>
                         {label}
                       </span>
-                      <span className="text-sm font-bold text-[var(--color-text-primary)]">
+                      <span className="text-sm font-semibold text-[var(--color-text-primary)]">
                         {p.quantidade.toLocaleString('pt-BR')}
                       </span>
                     </div>

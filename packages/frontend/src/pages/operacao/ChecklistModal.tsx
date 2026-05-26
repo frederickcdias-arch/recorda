@@ -47,12 +47,12 @@ export function ChecklistModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 animate-fade-in">
       <div className="flex max-h-[88vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl bg-[var(--color-bg-primary)] shadow-xl animate-scale-in">
-        <div className="flex items-center justify-between border-b px-5 py-3 shrink-0 sm:px-6 sm:py-4">
+        <div className="flex items-center justify-between border-b border-[var(--color-border-primary)] px-5 py-3 shrink-0 sm:px-6 sm:py-4">
           <div>
-            <h3 className="text-base font-semibold text-gray-900 sm:text-lg">
+            <h3 className="text-base font-semibold text-[var(--color-text-primary)] sm:text-lg">
               Checklist — {header.etapa}
             </h3>
-            <p className="mt-0.5 text-sm text-gray-500">
+            <p className="mt-0.5 text-sm text-[var(--color-text-secondary)]">
               {preenchidos}/{totalItens} preenchidos
               {obrigatorios > 0 ? ` · ${obrigatoriosPreenchidos}/${obrigatorios} obrigatórios` : ''}
             </p>
@@ -67,26 +67,29 @@ export function ChecklistModal({
             return (
               <div
                 key={item.id}
-                className={`rounded-lg border px-4 py-3 transition-colors ${preenchido ? 'border-primary-200 bg-primary-50/30' : 'border-gray-200'}`}
+                className={`rounded-lg border px-4 py-3 transition-colors ${preenchido ? 'border-[var(--color-primary-300)] bg-[var(--color-primary-50)]/30' : 'border-[var(--color-border-primary)]'}`}
               >
                 <div className="flex items-start gap-3">
                   <span
-                    className={`mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold ${preenchido ? 'bg-primary-600 text-white' : 'bg-gray-200 text-gray-500'}`}
+                    className={`mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold ${preenchido ? 'bg-[var(--color-primary-600)] text-white' : 'bg-[var(--color-bg-tertiary)] text-[var(--color-text-secondary)]'}`}
                   >
                     {idx + 1}
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="mb-2 flex items-center gap-2">
-                      <span className="text-sm font-medium text-gray-900">{item.descricao}</span>
+                      <span className="text-sm font-medium text-[var(--color-text-primary)]">
+                        {item.descricao}
+                      </span>
                       {item.obrigatorio ? (
-                        <span className="rounded bg-primary-100 px-1.5 py-0.5 text-[10px] font-semibold text-primary-600">
+                        <span className="rounded bg-[var(--color-primary-100)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--color-primary-600)]">
                           Obrigatório
                         </span>
                       ) : null}
                     </div>
                     <div className="flex flex-col gap-2 sm:flex-row">
                       <select
-                        className={`h-9 flex-shrink-0 rounded-lg border px-3 text-sm sm:w-56 ${!preenchido && item.obrigatorio ? 'border-primary-300' : 'border-gray-300'}`}
+                        className={`h-9 flex-shrink-0 rounded-lg border px-3 text-sm sm:w-56 ${!preenchido && item.obrigatorio ? 'border-[var(--color-primary-300)]' : 'border-[var(--color-border-primary)]'}`}
+                        aria-label={`Resultado: ${item.descricao ?? 'item'}`}
                         value={item.resultado ?? ''}
                         onChange={(e) => {
                           const value = e.target.value as ResultadoChecklist;
@@ -106,7 +109,7 @@ export function ChecklistModal({
                       {naoConforme ? (
                         <input
                           type="text"
-                          className="h-9 flex-1 rounded-lg border border-gray-300 px-3 text-sm"
+                          className="h-9 flex-1 rounded-lg border border-[var(--color-border-primary)] px-3 text-sm"
                           placeholder="Observação (obrigatória para não conforme)"
                           value={item.observacao ?? ''}
                           onChange={(e) =>
@@ -126,14 +129,14 @@ export function ChecklistModal({
           })}
         </div>
 
-        <div className="flex items-center justify-between border-t px-5 py-3 shrink-0 sm:px-6 sm:py-4">
-          <p className="text-xs text-gray-500">
+        <div className="flex items-center justify-between border-t border-[var(--color-border-primary)] px-5 py-3 shrink-0 sm:px-6 sm:py-4">
+          <p className="text-xs text-[var(--color-text-secondary)]">
             {todosObrigatoriosOk
               ? 'Todos os itens obrigatórios preenchidos.'
               : `Faltam ${obrigatorios - obrigatoriosPreenchidos} item(ns) obrigatório(s).`}
           </p>
           <div className="flex gap-2">
-            <Button variant="secondary" onClick={onClose}>
+            <Button variant="ghost" onClick={onClose}>
               Cancelar
             </Button>
             <Button

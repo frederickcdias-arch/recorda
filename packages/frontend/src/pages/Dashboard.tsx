@@ -197,16 +197,12 @@ function StatCard({
             <p className="mt-2 text-2xl font-semibold text-[var(--color-text-primary)]">
               {displayValue}
             </p>
-            {subtitle ? (
-              <p className={`mt-2 text-sm ${toneClass.text}`}>{subtitle}</p>
-            ) : (
-              <p className="mt-2 text-sm text-[var(--color-text-tertiary)]">Atualizado agora</p>
-            )}
+            {subtitle ? <p className={`mt-2 text-sm ${toneClass.text}`}>{subtitle}</p> : null}
           </div>
           <div
-            className={`flex h-12 w-12 items-center justify-center rounded-2xl ${toneClass.surface} ${toneClass.icon}`}
+            className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl ${toneClass.surface} ${toneClass.icon}`}
           >
-            <Icon name={icon} className="h-6 w-6" />
+            <Icon name={icon} className="h-5 w-5" />
           </div>
         </div>
       </Card>
@@ -222,13 +218,13 @@ function InsightCard({
   icon,
 }: InsightCardProps): JSX.Element {
   return (
-    <Card padding="lg">
-      <div className="flex items-start gap-4">
-        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--color-primary-50)] text-[var(--color-primary-700)]">
-          <Icon name={icon} className="h-5 w-5" />
+    <Card padding="md">
+      <div className="flex items-start gap-3">
+        <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-[var(--color-gray-100)] text-[var(--color-text-secondary)]">
+          <Icon name={icon} className="h-4 w-4" />
         </div>
         <div className="min-w-0 flex-1">
-          <h3 className="text-base font-semibold text-[var(--color-text-primary)]">{title}</h3>
+          <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">{title}</h3>
           <p className="mt-1 text-sm text-[var(--color-text-secondary)]">{description}</p>
           {actionLabel && onAction ? (
             <Button variant="ghost" size="sm" className="mt-3 px-0" onClick={onAction}>
@@ -349,12 +345,9 @@ function DashboardColaborador(): JSX.Element {
         />
       </section>
 
-      <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1.6fr_1fr]">
+      <section className="grid grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-[1.6fr_1fr]">
         <Card padding="lg">
-          <CardHeader
-            title="Produção por etapa"
-            description="Distribuição da sua produção por etapa."
-          />
+          <CardHeader title="Produção por etapa" />
           {producaoPorEtapa.length === 0 ? (
             <p className="py-4 text-sm text-[var(--color-text-secondary)]">
               Nenhuma produção registrada.
@@ -382,7 +375,7 @@ function DashboardColaborador(): JSX.Element {
                       </span>
                     </div>
                     <progress
-                      className={`h-3 w-full overflow-hidden rounded-full bg-[var(--color-gray-100)] ${cor.bar}`}
+                      className={`h-2 w-full overflow-hidden rounded-full bg-[var(--color-gray-100)] ${cor.bar}`}
                       value={Math.max((item.quantidade / maxQuantidadeEtapa) * 100, 2)}
                       max={100}
                     />
@@ -394,7 +387,7 @@ function DashboardColaborador(): JSX.Element {
         </Card>
 
         <Card padding="lg">
-          <CardHeader title="Produção por tipo" description="Resumo por classificação principal." />
+          <CardHeader title="Produção por tipo" />
           {producaoPorTipo.length === 0 ? (
             <p className="py-4 text-sm text-[var(--color-text-secondary)]">
               Nenhum dado disponível para o período.
@@ -406,23 +399,23 @@ function DashboardColaborador(): JSX.Element {
                 return (
                   <div
                     key={item.tipo}
-                    className="rounded-2xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-4"
+                    className="rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-3"
                   >
                     <div className="flex items-center gap-3">
                       <div
-                        className={`flex h-10 w-10 items-center justify-center rounded-xl ${cor.bg} ${cor.text}`}
+                        className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg ${cor.bg} ${cor.text}`}
                       >
-                        <Icon name={cor.icon} className="h-5 w-5" />
+                        <Icon name={cor.icon} className="h-4 w-4" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className={`text-sm font-semibold ${cor.text}`}>{item.tipo}</p>
+                        <p className={`text-sm font-medium ${cor.text}`}>{item.tipo}</p>
                         <p className="text-xs text-[var(--color-text-tertiary)]">
                           {item.registros.toLocaleString('pt-BR')} registro
                           {item.registros !== 1 ? 's' : ''}
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="text-lg font-semibold text-[var(--color-text-primary)]">
+                        <p className="text-base font-semibold text-[var(--color-text-primary)]">
                           {item.quantidade.toLocaleString('pt-BR')}
                         </p>
                       </div>
@@ -435,11 +428,10 @@ function DashboardColaborador(): JSX.Element {
         </Card>
       </section>
 
-      <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1.7fr_1fr]">
+      <section className="grid grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-[1.7fr_1fr]">
         <Card padding="none">
           <CardHeader
             title="Histórico recente"
-            description="Últimos lançamentos para conferência rápida."
             className="px-5 pt-5"
             action={
               <Button
@@ -452,12 +444,12 @@ function DashboardColaborador(): JSX.Element {
             }
           />
           {producoesRecentes.length === 0 ? (
-            <div className="p-12 text-center">
+            <div className="p-8 text-center">
               <Icon
                 name="inbox"
-                className="mx-auto mb-4 h-16 w-16 text-[var(--color-text-tertiary)]"
+                className="mx-auto mb-3 h-10 w-10 text-[var(--color-text-tertiary)]"
               />
-              <p className="mb-4 text-[var(--color-text-secondary)]">
+              <p className="mb-3 text-sm text-[var(--color-text-secondary)]">
                 Nenhuma produção registrada ainda.
               </p>
               <Button variant="primary" onClick={() => navigate('/minha-producao/lancar')}>
@@ -544,10 +536,7 @@ function DashboardContent({ data }: { data: DashboardData }): JSX.Element {
   const maxProducao = Math.max(...producaoPorEtapa.map((e) => parseFiniteNumber(e?.valor) ?? 0), 1);
 
   return (
-    <DashboardShell
-      title="Dashboard"
-      subtitle="Visão consolidada da produção e do fluxo operacional."
-    >
+    <DashboardShell title="Dashboard">
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <StatCard
           title="Produção do mês"
@@ -584,12 +573,9 @@ function DashboardContent({ data }: { data: DashboardData }): JSX.Element {
         />
       </section>
 
-      <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1.4fr_1fr]">
+      <section className="grid grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-[1.4fr_1fr]">
         <Card padding="lg">
-          <CardHeader
-            title="Produção por etapa"
-            description="Distribuição consolidada por etapa."
-          />
+          <CardHeader title="Produção por etapa" />
           <div className="space-y-4">
             {producaoPorEtapa.length === 0 ? (
               <p className="text-sm text-[var(--color-text-secondary)]">
@@ -614,7 +600,7 @@ function DashboardContent({ data }: { data: DashboardData }): JSX.Element {
                       </span>
                     </div>
                     <progress
-                      className="h-3 w-full overflow-hidden rounded-full bg-[var(--color-gray-100)] accent-primary-500"
+                      className="h-2 w-full overflow-hidden rounded-full bg-[var(--color-gray-100)] accent-primary-500"
                       value={Math.max(percentual, 2)}
                       max={100}
                     />
@@ -626,10 +612,7 @@ function DashboardContent({ data }: { data: DashboardData }): JSX.Element {
         </Card>
 
         <Card padding="lg">
-          <CardHeader
-            title="Status da produção"
-            description="Situação atual dos indicadores do fluxo."
-          />
+          <CardHeader title="Status da produção" />
           <div className="space-y-3">
             {statusProducao.map((item) => (
               <button
@@ -639,8 +622,8 @@ function DashboardContent({ data }: { data: DashboardData }): JSX.Element {
                 className="flex w-full items-center justify-between rounded-2xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-3 text-left transition-colors hover:bg-[var(--color-primary-50)]"
               >
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--color-primary-50)] text-[var(--color-primary-700)]">
-                    <Icon name={item.icon} className="h-5 w-5" />
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--color-gray-100)] text-[var(--color-text-secondary)]">
+                    <Icon name={item.icon} className="h-4 w-4" />
                   </div>
                   <span className="text-[var(--color-text-primary)]">{item.status}</span>
                 </div>
@@ -656,17 +639,14 @@ function DashboardContent({ data }: { data: DashboardData }): JSX.Element {
       {retrabalhoCQ.length > 0 ? (
         <section>
           <Card padding="lg">
-            <CardHeader
-              title="Retrabalho em CQ"
-              description="Motivos e repositórios envolvidos em retrabalho recente."
-            />
+            <CardHeader title="Retrabalho em CQ" />
             <div className="grid gap-3 lg:grid-cols-3">
               {retrabalhoCQ.map((item, i) => (
                 <div
                   key={`${item.motivo}-${i}`}
-                  className="rounded-2xl border border-[var(--color-primary-100)] bg-[var(--color-primary-50)] p-4"
+                  className="rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-3"
                 >
-                  <div className="mb-2 flex items-center justify-between gap-3">
+                  <div className="mb-1.5 flex items-center justify-between gap-3">
                     <span className="text-sm font-medium text-[var(--color-text-primary)]">
                       {item.motivo}
                     </span>
@@ -710,7 +690,7 @@ function DashboardAdminPage(): JSX.Element {
 
   if (isLoading) {
     return (
-      <DashboardShell title="Dashboard" subtitle="Carregando a visão consolidada da operação.">
+      <DashboardShell title="Dashboard">
         <SkeletonCards count={4} />
       </DashboardShell>
     );

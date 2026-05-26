@@ -31,7 +31,10 @@ const STATUS_OPTIONS = [
   { value: 'cancelado', label: 'Cancelado' },
 ];
 
-const STATUS_BADGE: Record<AusenciaStatus, { variant: 'warning' | 'success' | 'error' | 'default'; label: string }> = {
+const STATUS_BADGE: Record<
+  AusenciaStatus,
+  { variant: 'warning' | 'success' | 'error' | 'default'; label: string }
+> = {
   pendente: { variant: 'warning', label: 'Pendente' },
   aprovado: { variant: 'success', label: 'Aprovado' },
   rejeitado: { variant: 'error', label: 'Rejeitado' },
@@ -100,14 +103,10 @@ function SummaryCard({
           : 'border-[var(--color-border-primary)] bg-[var(--color-bg-primary)]'
       }`}
     >
-      <p className="text-xs font-medium text-[var(--color-text-secondary)] uppercase tracking-wide">
-        {label}
-      </p>
+      <p className="text-xs font-medium text-[var(--color-text-secondary)]">{label}</p>
       <p
-        className={`mt-1 text-2xl font-bold tabular-nums ${
-          highlight
-            ? 'text-[var(--color-primary-700)]'
-            : 'text-[var(--color-text-primary)]'
+        className={`mt-1 text-xl font-semibold tabular-nums ${
+          highlight ? 'text-[var(--color-primary-700)]' : 'text-[var(--color-text-primary)]'
         }`}
       >
         {value}
@@ -137,9 +136,9 @@ export function RelatorioAusenciasPage(): JSX.Element {
   const [colaboradoresOpcoes, setColaboradoresOpcoes] = useState<
     Array<{ id: string; nome: string }>
   >([]);
-  const [tiposOpcoes, setTiposOpcoes] = useState<
-    Array<{ id: string; nome: string; cor: string }>
-  >([]);
+  const [tiposOpcoes, setTiposOpcoes] = useState<Array<{ id: string; nome: string; cor: string }>>(
+    []
+  );
 
   const [exportando, setExportando] = useState(false);
   const lastParamsRef = useRef<string>('');
@@ -217,8 +216,7 @@ export function RelatorioAusenciasPage(): JSX.Element {
     try {
       await api.download(`/relatorios/ausencias/exportar${suffix}`, `ausencias-${today}.csv`);
     } catch (error: unknown) {
-      const msg =
-        error instanceof Error ? error.message : 'Erro ao exportar relatório';
+      const msg = error instanceof Error ? error.message : 'Erro ao exportar relatório';
       setMensagem({ tipo: 'error', texto: 'Erro ao exportar', detalhes: msg });
     } finally {
       setExportando(false);
@@ -231,8 +229,8 @@ export function RelatorioAusenciasPage(): JSX.Element {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Relatório de Justificativas de Ausência"
-        subtitle="Visão mensal de ausências para fechamento administrativo e folha."
+        title="Relatório de Ausências"
+        subtitle="Visão mensal para fechamento administrativo."
       />
 
       {mensagem && (
@@ -325,18 +323,9 @@ export function RelatorioAusenciasPage(): JSX.Element {
               value={totais.totalPorStatus['pendente'] ?? 0}
               highlight={(totais.totalPorStatus['pendente'] ?? 0) > 0}
             />
-            <SummaryCard
-              label="Aprovados"
-              value={totais.totalPorStatus['aprovado'] ?? 0}
-            />
-            <SummaryCard
-              label="Rejeitados"
-              value={totais.totalPorStatus['rejeitado'] ?? 0}
-            />
-            <SummaryCard
-              label="Cancelados"
-              value={totais.totalPorStatus['cancelado'] ?? 0}
-            />
+            <SummaryCard label="Aprovados" value={totais.totalPorStatus['aprovado'] ?? 0} />
+            <SummaryCard label="Rejeitados" value={totais.totalPorStatus['rejeitado'] ?? 0} />
+            <SummaryCard label="Cancelados" value={totais.totalPorStatus['cancelado'] ?? 0} />
             <SummaryCard
               label="Dias aprovados"
               value={totais.diasAprovados}
@@ -347,8 +336,10 @@ export function RelatorioAusenciasPage(): JSX.Element {
           {/* Totais por tipo */}
           {totais.totalPorTipo.length > 0 && (
             <div className="rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] overflow-hidden">
-              <div className="flex items-center gap-2 px-5 py-3 bg-[var(--color-primary-700)] text-white">
-                <span className="text-sm font-semibold">TOTAIS POR TIPO DE AUSÊNCIA</span>
+              <div className="flex items-center gap-2 px-5 py-3 bg-[var(--color-gray-50)] border-b border-[var(--color-border-primary)]">
+                <span className="text-sm font-semibold text-[var(--color-text-primary)]">
+                  Totais por tipo de ausência
+                </span>
               </div>
               <div className="flex flex-wrap gap-3 p-4">
                 {totais.totalPorTipo
@@ -375,8 +366,10 @@ export function RelatorioAusenciasPage(): JSX.Element {
           {/* Totais por colaborador */}
           {totais.totalPorColaborador.length > 0 && (
             <div className="rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] overflow-hidden">
-              <div className="flex items-center gap-2 px-5 py-3 bg-[var(--color-primary-600)] text-white">
-                <span className="text-sm font-semibold">TOTAIS POR COLABORADOR</span>
+              <div className="flex items-center gap-2 px-5 py-3 bg-[var(--color-gray-50)] border-b border-[var(--color-border-primary)]">
+                <span className="text-sm font-semibold text-[var(--color-text-primary)]">
+                  Totais por colaborador
+                </span>
               </div>
               <div className="overflow-x-auto">
                 <Table>
@@ -406,9 +399,9 @@ export function RelatorioAusenciasPage(): JSX.Element {
 
           {/* ── Listagem detalhada ── */}
           <div className="rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] overflow-hidden">
-            <div className="flex items-center gap-2 px-5 py-3 bg-[var(--color-primary-800)] text-white">
-              <span className="text-sm font-semibold">
-                REGISTROS DETALHADOS ({registros.length})
+            <div className="flex items-center gap-2 px-5 py-3 bg-[var(--color-gray-50)] border-b border-[var(--color-border-primary)]">
+              <span className="text-sm font-semibold text-[var(--color-text-primary)]">
+                Registros detalhados ({registros.length})
               </span>
             </div>
 
@@ -434,8 +427,7 @@ export function RelatorioAusenciasPage(): JSX.Element {
                       {r.tipoAusenciaNome}
                     </p>
                     <p className="text-xs text-[var(--color-text-tertiary)]">
-                      {formatDateBR(r.dataInicio)} →{' '}
-                      {formatDateBR(r.dataFim)} •{' '}
+                      {formatDateBR(r.dataInicio)} → {formatDateBR(r.dataFim)} •{' '}
                       {periodoLabel(r.periodo)}
                     </p>
                     {r.justificativa ? (
@@ -479,9 +471,7 @@ export function RelatorioAusenciasPage(): JSX.Element {
                             : undefined
                         }
                       >
-                        <TableCell className="font-medium">
-                          {r.colaboradorNome}
-                        </TableCell>
+                        <TableCell className="font-medium">{r.colaboradorNome}</TableCell>
                         <TableCell>
                           <span className="flex items-center gap-1.5">
                             <span
@@ -490,12 +480,8 @@ export function RelatorioAusenciasPage(): JSX.Element {
                             {r.tipoAusenciaNome}
                           </span>
                         </TableCell>
-                        <TableCell className="tabular-nums">
-                          {formatDateBR(r.dataInicio)}
-                        </TableCell>
-                        <TableCell className="tabular-nums">
-                          {formatDateBR(r.dataFim)}
-                        </TableCell>
+                        <TableCell className="tabular-nums">{formatDateBR(r.dataInicio)}</TableCell>
+                        <TableCell className="tabular-nums">{formatDateBR(r.dataFim)}</TableCell>
                         <TableCell>{periodoLabel(r.periodo)}</TableCell>
                         <TableCell align="right" className="tabular-nums">
                           {r.diasAusencia}
@@ -506,7 +492,7 @@ export function RelatorioAusenciasPage(): JSX.Element {
                         <TableCell className="max-w-[200px] truncate text-[var(--color-text-secondary)]">
                           {r.status === 'rejeitado' && r.motivoRejeicao
                             ? r.motivoRejeicao
-                            : r.justificativa ?? '—'}
+                            : (r.justificativa ?? '—')}
                         </TableCell>
                       </TableRow>
                     ))

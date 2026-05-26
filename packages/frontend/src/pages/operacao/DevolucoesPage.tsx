@@ -297,7 +297,7 @@ function ModalNovaDevolucao({ onClose, onSaved }: ModalDevolucaoProps): JSX.Elem
       open
       onClose={onClose}
       title="Nova devolução operacional"
-      subtitle="Registre os dados principais e vincule os itens devolvidos."
+      subtitle="Preencha os dados e vincule os itens devolvidos."
       size="xl"
       scrollable
       footer={
@@ -375,7 +375,7 @@ function ModalNovaDevolucao({ onClose, onSaved }: ModalDevolucaoProps): JSX.Elem
                 Itens da devolução
               </h3>
               <p className="text-sm text-[var(--color-text-secondary)]">
-                Adicione itens buscados no recebimento ou informe manualmente.
+                Adicione do recebimento ou manualmente.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -405,7 +405,7 @@ function ModalNovaDevolucao({ onClose, onSaved }: ModalDevolucaoProps): JSX.Elem
           </div>
 
           {modoItem === 'busca' ? (
-            <div className="space-y-3 rounded-2xl border border-[var(--color-primary-200)] bg-[var(--color-primary-50)] p-4">
+            <div className="space-y-3 rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-4">
               <div className="relative">
                 <Input
                   placeholder="Buscar por protocolo, interessado, repositório ou unidade..."
@@ -418,9 +418,6 @@ function ModalNovaDevolucao({ onClose, onSaved }: ModalDevolucaoProps): JSX.Elem
                   </span>
                 ) : null}
               </div>
-              <p className="text-xs text-[var(--color-text-secondary)]">
-                Digite ao menos 2 caracteres para buscar automaticamente.
-              </p>
               {mostrarBusca ? (
                 <div className="max-h-56 space-y-2 overflow-y-auto">
                   {resultadosBusca.length === 0 ? (
@@ -459,7 +456,7 @@ function ModalNovaDevolucao({ onClose, onSaved }: ModalDevolucaoProps): JSX.Elem
               ) : null}
             </div>
           ) : (
-            <div className="space-y-3 rounded-2xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-4">
+            <div className="space-y-3 rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-4">
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <Input
                   label="Repositório"
@@ -534,7 +531,7 @@ function ModalNovaDevolucao({ onClose, onSaved }: ModalDevolucaoProps): JSX.Elem
                   <Card key={item.tempId} padding="sm" className="space-y-3">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
+                        <p className="text-xs font-medium text-[var(--color-text-tertiary)]">
                           Item {index + 1}
                         </p>
                         <p className="mt-1 text-sm font-medium text-[var(--color-text-primary)]">
@@ -554,7 +551,9 @@ function ModalNovaDevolucao({ onClose, onSaved }: ModalDevolucaoProps): JSX.Elem
                     <dl className="grid gap-2 text-sm sm:grid-cols-2">
                       <div>
                         <dt className="text-[var(--color-text-tertiary)]">Interessado</dt>
-                        <dd className="text-[var(--color-text-primary)]">{item.interessado || '—'}</dd>
+                        <dd className="text-[var(--color-text-primary)]">
+                          {item.interessado || '—'}
+                        </dd>
                       </div>
                       <div>
                         <dt className="text-[var(--color-text-tertiary)]">Unidade</dt>
@@ -562,7 +561,9 @@ function ModalNovaDevolucao({ onClose, onSaved }: ModalDevolucaoProps): JSX.Elem
                       </div>
                       <div>
                         <dt className="text-[var(--color-text-tertiary)]">Repositório</dt>
-                        <dd className="text-[var(--color-text-primary)]">{item.repositorio || '—'}</dd>
+                        <dd className="text-[var(--color-text-primary)]">
+                          {item.repositorio || '—'}
+                        </dd>
                       </div>
                       <div>
                         <dt className="text-[var(--color-text-tertiary)]">Volume</dt>
@@ -589,7 +590,9 @@ function ModalNovaDevolucao({ onClose, onSaved }: ModalDevolucaoProps): JSX.Elem
                   <TableBody>
                     {itens.map((item, index) => (
                       <TableRow key={item.tempId}>
-                        <TableCell className="text-[var(--color-text-tertiary)]">{index + 1}</TableCell>
+                        <TableCell className="text-[var(--color-text-tertiary)]">
+                          {index + 1}
+                        </TableCell>
                         <TableCell>{item.protocolo || '—'}</TableCell>
                         <TableCell>{item.interessado || '—'}</TableCell>
                         <TableCell>{item.orgao || '—'}</TableCell>
@@ -616,15 +619,15 @@ function ModalNovaDevolucao({ onClose, onSaved }: ModalDevolucaoProps): JSX.Elem
         </section>
 
         {mostrarPreview ? (
-          <div className="overflow-hidden rounded-2xl border border-[var(--color-primary-200)] bg-[var(--color-primary-50)]">
-            <div className="flex items-center justify-between border-b border-[var(--color-primary-200)] bg-[var(--color-primary-100)] px-4 py-2">
-              <span className="text-sm font-semibold text-[var(--color-primary-800)]">
+          <div className="overflow-hidden rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)]">
+            <div className="flex items-center justify-between border-b border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] px-4 py-2">
+              <span className="text-sm font-semibold text-[var(--color-text-primary)]">
                 Pré-visualização do termo
               </span>
               <button
                 type="button"
                 onClick={() => setMostrarPreview(false)}
-                className="text-[var(--color-primary-500)] transition-colors hover:text-[var(--color-primary-700)]"
+                className="text-[var(--color-text-tertiary)] transition-colors hover:text-[var(--color-text-primary)]"
                 aria-label="Fechar pré-visualização"
               >
                 ×
@@ -662,7 +665,7 @@ function ModalNovaDevolucao({ onClose, onSaved }: ModalDevolucaoProps): JSX.Elem
                   {itens.map((item, index) => (
                     <div
                       key={item.tempId}
-                      className="rounded-xl border border-[var(--color-primary-200)] bg-[var(--color-bg-primary)] p-3 text-sm"
+                      className="rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] p-3 text-sm"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div>
@@ -705,9 +708,7 @@ export function DevolucoesPage(): JSX.Element {
   const [modalAberto, setModalAberto] = useState(false);
   const [devolucaoDetalheId, setDevolucaoDetalheId] = useState<string | null>(null);
   const [devolucaoEditando, setDevolucaoEditando] = useState<DevolucaoOperacional | null>(null);
-  const [confirmandoExclusao, setConfirmandoExclusao] = useState<DevolucaoOperacional | null>(
-    null
-  );
+  const [confirmandoExclusao, setConfirmandoExclusao] = useState<DevolucaoOperacional | null>(null);
 
   const excluirMut = useExcluirDevolucao();
   const debouncedBusca = useDebounce(busca, 400);
@@ -771,7 +772,7 @@ export function DevolucoesPage(): JSX.Element {
       <div className="space-y-6">
         <PageHeader
           title="Devoluções operacionais"
-          subtitle="Registro de processos e documentos devolvidos a coordenadorias."
+          subtitle="Processos e documentos devolvidos a coordenadorias."
           actions={
             <Button variant="primary" onClick={() => setModalAberto(true)} fullWidth>
               + Nova devolução
@@ -835,17 +836,17 @@ export function DevolucoesPage(): JSX.Element {
                   <Card key={devolucao.id} padding="sm" className="space-y-4">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
+                        <p className="text-xs font-medium text-[var(--color-text-tertiary)]">
                           {formatarData(devolucao.data_devolucao)}
                         </p>
-                        <p className="mt-1 text-sm font-semibold text-[var(--color-primary-700)]">
+                        <p className="mt-1 text-sm font-semibold text-[var(--color-text-primary)]">
                           {devolucao.coordenadoria_destino}
                         </p>
                         <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
                           {devolucao.responsavel_retirada}
                         </p>
                       </div>
-                      <span className="inline-flex min-w-[2rem] items-center justify-center rounded-full bg-[var(--color-primary-100)] px-2 py-1 text-xs font-semibold text-[var(--color-primary-800)]">
+                      <span className="inline-flex min-w-[2rem] items-center justify-center rounded-full bg-[var(--color-gray-100)] px-2 py-1 text-xs font-medium text-[var(--color-text-secondary)]">
                         {devolucao.total_itens}
                       </span>
                     </div>
@@ -922,13 +923,13 @@ export function DevolucoesPage(): JSX.Element {
                             {formatarData(devolucao.data_devolucao)}
                           </TableCell>
                           <TableCell>
-                            <span className="font-medium text-[var(--color-primary-700)]">
+                            <span className="font-medium text-[var(--color-text-primary)]">
                               {devolucao.coordenadoria_destino}
                             </span>
                           </TableCell>
                           <TableCell>{devolucao.responsavel_retirada}</TableCell>
                           <TableCell align="center">
-                            <span className="inline-flex min-w-[1.75rem] items-center justify-center rounded-full bg-[var(--color-primary-100)] px-2 py-1 text-xs font-semibold text-[var(--color-primary-800)]">
+                            <span className="inline-flex min-w-[1.75rem] items-center justify-center rounded-full bg-[var(--color-gray-100)] px-2 py-1 text-xs font-medium text-[var(--color-text-secondary)]">
                               {devolucao.total_itens}
                             </span>
                           </TableCell>

@@ -178,11 +178,13 @@ export function RecebimentoAvulsosPanel({
       {/* Formulário de novo avulso */}
       {formAberto && (
         <Card>
-          <h3 className="text-sm font-semibold text-gray-900 mb-3">Cadastrar Processo Avulso</h3>
+          <h3 className="text-sm font-semibold text-[var(--color-text-primary)] mb-3">
+            Cadastrar Processo Avulso
+          </h3>
 
           {/* OCR photo upload */}
-          <div className="mb-4 p-3 bg-blue-50 rounded-lg">
-            <p className="text-xs font-medium text-blue-800 mb-2">Preencher via Foto (OCR)</p>
+          <div className="mb-4 p-3 bg-[var(--color-bg-secondary)] rounded-lg">
+            <p className="text-xs font-medium text-[var(--color-text-primary)] mb-2">Foto (OCR)</p>
             <input
               ref={cameraRef}
               type="file"
@@ -238,10 +240,15 @@ export function RecebimentoAvulsosPanel({
 
             {/* Setor */}
             <div>
-              <label htmlFor="recebimentoSetor" className="block text-sm font-medium text-gray-700 mb-1">Setor</label>
+              <label
+                htmlFor="recebimentoSetor"
+                className="block text-sm font-medium text-[var(--color-text-primary)] mb-1"
+              >
+                Setor
+              </label>
               <select
                 id="recebimentoSetor"
-                className="w-full h-9 px-3 border rounded-lg text-sm"
+                className="w-full h-9 px-3 border border-[var(--color-border-primary)] rounded-lg text-sm"
                 value={form.setorId}
                 onChange={(e) => setForm((p) => ({ ...p, setorId: e.target.value }))}
               >
@@ -268,7 +275,7 @@ export function RecebimentoAvulsosPanel({
                 />
                 <button
                   type="button"
-                  className="h-8 px-2 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                  className="h-8 px-2 text-xs bg-[var(--color-primary-600)] text-white rounded hover:bg-[var(--color-primary-700)] disabled:opacity-50"
                   onClick={() => void handleCriarSetor()}
                   disabled={!novoSetorInput.trim()}
                 >
@@ -279,10 +286,15 @@ export function RecebimentoAvulsosPanel({
 
             {/* Classificação */}
             <div>
-              <label htmlFor="recebimentoClassificacao" className="block text-sm font-medium text-gray-700 mb-1">Classificação</label>
+              <label
+                htmlFor="recebimentoClassificacao"
+                className="block text-sm font-medium text-[var(--color-text-primary)] mb-1"
+              >
+                Classificação
+              </label>
               <select
                 id="recebimentoClassificacao"
-                className="w-full h-9 px-3 border rounded-lg text-sm"
+                className="w-full h-9 px-3 border border-[var(--color-border-primary)] rounded-lg text-sm"
                 value={form.classificacaoId}
                 onChange={(e) => setForm((p) => ({ ...p, classificacaoId: e.target.value }))}
               >
@@ -309,7 +321,7 @@ export function RecebimentoAvulsosPanel({
                 />
                 <button
                   type="button"
-                  className="h-8 px-2 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                  className="h-8 px-2 text-xs bg-[var(--color-primary-600)] text-white rounded hover:bg-[var(--color-primary-700)] disabled:opacity-50"
                   onClick={() => void handleCriarClassificacao()}
                   disabled={!novaClassifInput.trim()}
                 >
@@ -333,7 +345,7 @@ export function RecebimentoAvulsosPanel({
                   }
                 />
               </div>
-              <span className="self-end pb-2 text-gray-500 text-sm">de</span>
+              <span className="self-end pb-2 text-[var(--color-text-secondary)] text-sm">de</span>
               <div className="flex-1">
                 <Input
                   label="Total"
@@ -384,11 +396,11 @@ export function RecebimentoAvulsosPanel({
       {/* Lista de avulsos */}
       <Card>
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-gray-900">
+          <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">
             Processos Avulsos ({avulsos.length})
           </h3>
           {avulsos.length > 0 && (
-            <label className="flex items-center gap-2 text-xs text-gray-500 cursor-pointer">
+            <label className="flex items-center gap-2 text-xs text-[var(--color-text-secondary)] cursor-pointer">
               <input
                 type="checkbox"
                 checked={selecionados.size === avulsos.length && avulsos.length > 0}
@@ -401,18 +413,18 @@ export function RecebimentoAvulsosPanel({
         </div>
 
         {avulsos.length === 0 ? (
-          <p className="text-sm text-gray-500 text-center py-8">
-            Nenhum Processo Avulso cadastrado.
+          <p className="text-sm text-[var(--color-text-secondary)] text-center py-8">
+            Nenhum processo avulso cadastrado.
           </p>
         ) : (
           <div className="space-y-3">
             {avulsos.map((proc) => (
               <div
                 key={proc.id}
-                className={`border rounded-lg overflow-hidden ${selecionados.has(proc.id) ? 'ring-2 ring-blue-400' : ''}`}
+                className={`border border-[var(--color-border-primary)] rounded-lg overflow-hidden ${selecionados.has(proc.id) ? 'ring-2 ring-[var(--color-primary-300)]' : ''}`}
               >
                 {/* Processo principal */}
-                <div className="bg-blue-50 px-4 py-3">
+                <div className="bg-[var(--color-bg-secondary)] px-4 py-3">
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-3 flex-1 min-w-0">
                       <input
@@ -424,27 +436,31 @@ export function RecebimentoAvulsosPanel({
                       />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-semibold text-sm text-blue-900">
+                          <span className="font-medium text-sm text-[var(--color-text-primary)]">
                             {proc.protocolo}
                           </span>
-                          <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">
+                          <span className="text-xs bg-[var(--color-bg-tertiary)] text-[var(--color-text-secondary)] px-1.5 py-0.5 rounded">
                             Vol. {proc.volume_atual}
                             {proc.volume_total > 0 ? ` de ${proc.volume_total}` : ' (único)'}
                           </span>
                           {proc.setor_nome ? (
-                            <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">
+                            <span className="text-xs bg-[var(--color-bg-tertiary)] text-[var(--color-text-secondary)] px-1.5 py-0.5 rounded">
                               {proc.setor_nome}
                             </span>
                           ) : null}
                           {proc.classificacao_nome ? (
-                            <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">
+                            <span className="text-xs bg-[var(--color-bg-tertiary)] text-[var(--color-text-secondary)] px-1.5 py-0.5 rounded">
                               {proc.classificacao_nome}
                             </span>
                           ) : null}
                         </div>
-                        <p className="text-sm text-gray-700 mt-0.5">{proc.interessado}</p>
+                        <p className="text-sm text-[var(--color-text-secondary)] mt-0.5">
+                          {proc.interessado}
+                        </p>
                         {proc.observacao ? (
-                          <p className="text-xs text-gray-500 mt-0.5">{proc.observacao}</p>
+                          <p className="text-xs text-[var(--color-text-tertiary)] mt-0.5">
+                            {proc.observacao}
+                          </p>
                         ) : null}
                       </div>
                     </div>
@@ -479,8 +495,8 @@ export function RecebimentoAvulsosPanel({
 
                 {/* Inline apenso form */}
                 {apensoFormAberto && apensoProcessoId === proc.id ? (
-                  <div className="border-t bg-blue-50 px-4 py-3">
-                    <h5 className="text-xs font-semibold text-blue-800 mb-2">
+                  <div className="border-t border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] px-4 py-3">
+                    <h5 className="text-xs font-medium text-[var(--color-text-primary)] mb-2">
                       Novo Apenso para {proc.protocolo}
                     </h5>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -514,7 +530,9 @@ export function RecebimentoAvulsosPanel({
                             }
                           />
                         </div>
-                        <span className="self-end pb-2 text-gray-500 text-xs">de</span>
+                        <span className="self-end pb-2 text-[var(--color-text-secondary)] text-xs">
+                          de
+                        </span>
                         <div className="flex-1">
                           <Input
                             label="Total"
@@ -559,15 +577,21 @@ export function RecebimentoAvulsosPanel({
                     {proc.apensos.map((ap) => (
                       <div
                         key={ap.id}
-                        className="px-4 py-2 bg-gray-50 border-b last:border-b-0 flex items-center justify-between"
+                        className="px-4 py-2 bg-[var(--color-bg-secondary)] border-b border-[var(--color-border-primary)] last:border-b-0 flex items-center justify-between"
                       >
                         <div className="flex items-center gap-2 min-w-0">
-                          <span className="text-xs text-gray-400">↳ Apenso</span>
-                          <span className="text-sm font-medium text-gray-800">{ap.protocolo}</span>
+                          <span className="text-xs text-[var(--color-text-tertiary)]">
+                            \u21b3 Apenso
+                          </span>
+                          <span className="text-sm font-medium text-[var(--color-text-primary)]">
+                            {ap.protocolo}
+                          </span>
                           {ap.interessado ? (
-                            <span className="text-xs text-gray-500">— {ap.interessado}</span>
+                            <span className="text-xs text-[var(--color-text-secondary)]">
+                              — {ap.interessado}
+                            </span>
                           ) : null}
-                          <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">
+                          <span className="text-xs bg-[var(--color-bg-tertiary)] text-[var(--color-text-secondary)] px-1.5 py-0.5 rounded">
                             Vol. {ap.volume_atual}
                             {ap.volume_total > 0 ? ` de ${ap.volume_total}` : ''}
                           </span>
@@ -600,11 +624,11 @@ export function RecebimentoAvulsosPanel({
       {vincularModalOpen && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 animate-fade-in">
           <div className="bg-[var(--color-bg-primary)] rounded-xl shadow-xl w-full max-w-lg max-h-[80vh] overflow-hidden flex flex-col animate-scale-in">
-            <div className="px-6 py-4 border-b">
-              <h3 className="text-lg font-semibold text-gray-900">
+            <div className="px-6 py-4 border-b border-[var(--color-border-primary)]">
+              <h3 className="text-lg font-semibold text-[var(--color-text-primary)]">
                 Vincular {selecionados.size} processo(s) a repositório
               </h3>
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-sm text-[var(--color-text-secondary)] mt-1">
                 Selecione o repositório de destino na etapa de Recebimento.
               </p>
             </div>
@@ -620,8 +644,8 @@ export function RecebimentoAvulsosPanel({
 
             <div className="flex-1 overflow-auto px-6 pb-3">
               {reposFiltrados.length === 0 ? (
-                <p className="text-sm text-gray-500 text-center py-6">
-                  Nenhum Repositório encontrado na Etapa de Recebimento.
+                <p className="text-sm text-[var(--color-text-secondary)] text-center py-6">
+                  Nenhum repositório encontrado na Etapa de Recebimento.
                 </p>
               ) : (
                 <div className="space-y-2">
@@ -630,8 +654,8 @@ export function RecebimentoAvulsosPanel({
                       key={repo.id_repositorio_recorda}
                       className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
                         repoSelecionado === repo.id_repositorio_recorda
-                          ? 'border-blue-500 bg-blue-50'
-                          : 'border-gray-200 hover:bg-gray-50'
+                          ? 'border-[var(--color-primary-600)] bg-[var(--color-primary-50)]'
+                          : 'border-[var(--color-border-primary)] hover:bg-[var(--color-bg-secondary)]'
                       }`}
                     >
                       <input
@@ -642,11 +666,13 @@ export function RecebimentoAvulsosPanel({
                         className="text-blue-600"
                       />
                       <div className="min-w-0">
-                        <span className="text-sm font-medium text-gray-900">
+                        <span className="text-sm font-medium text-[var(--color-text-primary)]">
                           {repo.id_repositorio_ged}
                         </span>
-                        <span className="text-xs text-gray-500 ml-2">{repo.orgao}</span>
-                        <p className="text-xs text-gray-500">{repo.projeto}</p>
+                        <span className="text-xs text-[var(--color-text-secondary)] ml-2">
+                          {repo.orgao}
+                        </span>
+                        <p className="text-xs text-[var(--color-text-secondary)]">{repo.projeto}</p>
                       </div>
                     </label>
                   ))}
@@ -654,8 +680,8 @@ export function RecebimentoAvulsosPanel({
               )}
             </div>
 
-            <div className="px-6 py-4 border-t flex justify-end gap-2">
-              <Button variant="secondary" onClick={() => setVincularModalOpen(false)}>
+            <div className="px-6 py-4 border-t border-[var(--color-border-primary)] flex justify-end gap-2">
+              <Button variant="ghost" onClick={() => setVincularModalOpen(false)}>
                 Cancelar
               </Button>
               <Button

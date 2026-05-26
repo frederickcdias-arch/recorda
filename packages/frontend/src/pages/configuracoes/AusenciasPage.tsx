@@ -149,7 +149,9 @@ function LancarAusenciaModal({
   const [tipoAusenciaId, setTipoAusenciaId] = useState('');
   const [dataInicio, setDataInicio] = useState('');
   const [dataFim, setDataFim] = useState('');
-  const [periodo, setPeriodo] = useState<'dia_completo' | 'meio_periodo_manha' | 'meio_periodo_tarde' | 'horas'>('dia_completo');
+  const [periodo, setPeriodo] = useState<
+    'dia_completo' | 'meio_periodo_manha' | 'meio_periodo_tarde' | 'horas'
+  >('dia_completo');
   const [horasAusencia, setHorasAusencia] = useState('');
   const [statusInicial, setStatusInicial] = useState<'pendente' | 'aprovado'>('pendente');
   const [justificativa, setJustificativa] = useState('');
@@ -210,17 +212,20 @@ function LancarAusenciaModal({
     if (!tipoAusenciaId) e.tipoAusenciaId = 'Selecione o tipo de ausência.';
     if (!dataInicio) e.dataInicio = 'Informe a data de início.';
     if (!dataFim) e.dataFim = 'Informe a data de fim.';
-    if (dataInicio && dataFim && dataFim < dataInicio) e.dataFim = 'Data fim não pode ser anterior à data início.';
+    if (dataInicio && dataFim && dataFim < dataInicio)
+      e.dataFim = 'Data fim não pode ser anterior à data início.';
     if (periodo === 'horas') {
       const h = Number(horasAusencia);
-      if (!horasAusencia || isNaN(h) || h <= 0 || h > 24) e.horasAusencia = 'Informe um valor entre 0.5 e 24.';
+      if (!horasAusencia || isNaN(h) || h <= 0 || h > 24)
+        e.horasAusencia = 'Informe um valor entre 0.5 e 24.';
     }
     if (tipoSelecionado?.requerJustificativa && !justificativa.trim()) {
       e.justificativa = 'Este tipo exige justificativa.';
     }
     if (tipoSelecionado?.requerDocumento && !arquivo) {
       if (!observacoes.trim()) {
-        e.observacoes = 'Este tipo exige documento. Sem anexo, forneça observação explicando o motivo.';
+        e.observacoes =
+          'Este tipo exige documento. Sem anexo, forneça observação explicando o motivo.';
       }
     }
     setErros(e);
@@ -270,7 +275,6 @@ function LancarAusenciaModal({
     >
       <form onSubmit={(e) => void handleSubmit(e)} noValidate>
         <div className="space-y-4 p-5">
-
           {/* Colaborador */}
           <div>
             <Select
@@ -347,7 +351,11 @@ function LancarAusenciaModal({
                 value={periodo}
                 onChange={(e) =>
                   setPeriodo(
-                    e.target.value as 'dia_completo' | 'meio_periodo_manha' | 'meio_periodo_tarde' | 'horas'
+                    e.target.value as
+                      | 'dia_completo'
+                      | 'meio_periodo_manha'
+                      | 'meio_periodo_tarde'
+                      | 'horas'
                   )
                 }
                 options={PERIODO_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
@@ -366,7 +374,9 @@ function LancarAusenciaModal({
                   placeholder="Ex: 4"
                 />
                 {erros.horasAusencia ? (
-                  <p className="mt-1 text-xs text-[var(--color-error-600)]">{erros.horasAusencia}</p>
+                  <p className="mt-1 text-xs text-[var(--color-error-600)]">
+                    {erros.horasAusencia}
+                  </p>
                 ) : null}
               </div>
             ) : null}
@@ -414,7 +424,8 @@ function LancarAusenciaModal({
               htmlFor="documento-anexo-ausencia"
               className="mb-1.5 block text-sm font-medium text-[var(--color-text-primary)]"
             >
-              Documento anexo{tipoSelecionado?.requerDocumento ? ' (exigido pelo tipo)' : ' (opcional)'}
+              Documento anexo
+              {tipoSelecionado?.requerDocumento ? ' (exigido pelo tipo)' : ' (opcional)'}
             </label>
             <input
               id="documento-anexo-ausencia"
@@ -441,7 +452,10 @@ function LancarAusenciaModal({
               htmlFor="observacoes-ausencia"
               className="mb-1.5 block text-sm font-medium text-[var(--color-text-primary)]"
             >
-              Observações{tipoSelecionado?.requerDocumento && !arquivo ? ' * (obrigatória sem anexo)' : ' (opcional)'}
+              Observações
+              {tipoSelecionado?.requerDocumento && !arquivo
+                ? ' * (obrigatória sem anexo)'
+                : ' (opcional)'}
             </label>
             <textarea
               id="observacoes-ausencia"
@@ -455,7 +469,6 @@ function LancarAusenciaModal({
               <p className="mt-1 text-xs text-[var(--color-error-600)]">{erros.observacoes}</p>
             ) : null}
           </div>
-
         </div>
 
         <div className="flex justify-end gap-2 border-t border-[var(--color-border-primary)] px-5 py-4">
@@ -560,8 +573,7 @@ export function AusenciasPage(): JSX.Element {
           setMensagemAcao({ tipo: 'success', texto: 'Ausência aprovada com sucesso.' });
           await invalidarAusencias();
         } catch (error) {
-          const message =
-            error instanceof Error ? error.message : 'Erro ao aprovar ausência';
+          const message = error instanceof Error ? error.message : 'Erro ao aprovar ausência';
           setMensagemAcao({ tipo: 'error', texto: message });
         }
       },
@@ -593,8 +605,7 @@ export function AusenciasPage(): JSX.Element {
       setMotivoRejeicao('');
       await invalidarAusencias();
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Erro ao rejeitar ausência';
+      const message = error instanceof Error ? error.message : 'Erro ao rejeitar ausência';
       setMensagemAcao({ tipo: 'error', texto: message });
     }
   };
@@ -641,8 +652,8 @@ export function AusenciasPage(): JSX.Element {
     <PageState loading={carregando} loadingMessage="Carregando ausências..." error={erro}>
       <div className="space-y-6">
         <PageHeader
-          title="Justificativas de Ausência"
-          subtitle="Acompanhe, aprove, rejeite e lance ausências dos colaboradores."
+          title="Ausências"
+          subtitle="Gerencie e aprove ausências dos colaboradores."
           actions={
             <Button variant="primary" onClick={() => setLancamentoAberto(true)}>
               Lançar ausência
@@ -677,15 +688,12 @@ export function AusenciasPage(): JSX.Element {
               label="Colaborador"
               value={filters.usuarioId ?? ''}
               onChange={(event) => handleFilterChange('usuarioId', event.target.value)}
-              options={
-                [{ value: '', label: 'Todos colaboradores' }]
-                  .concat(
-                    usuariosQuery.data?.map((usuario) => ({
-                      value: usuario.id,
-                      label: `${usuario.nome} (${usuario.email})`,
-                    })) ?? []
-                  )
-              }
+              options={[{ value: '', label: 'Todos colaboradores' }].concat(
+                usuariosQuery.data?.map((usuario) => ({
+                  value: usuario.id,
+                  label: `${usuario.nome} (${usuario.email})`,
+                })) ?? []
+              )}
               disabled={usuariosQuery.isLoading}
               placeholder="Todos colaboradores"
             />
@@ -715,13 +723,13 @@ export function AusenciasPage(): JSX.Element {
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Card padding="sm">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
+            <p className="text-xs font-medium text-[var(--color-text-tertiary)]">
               Total de resultados
             </p>
             <p className="mt-2 text-2xl font-semibold text-[var(--color-text-primary)]">{total}</p>
           </Card>
           <Card padding="sm">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
+            <p className="text-xs font-medium text-[var(--color-text-tertiary)]">
               Pendentes na página
             </p>
             <p className="mt-2 text-2xl font-semibold text-[var(--color-warning-600)]">
@@ -729,7 +737,7 @@ export function AusenciasPage(): JSX.Element {
             </p>
           </Card>
           <Card padding="sm">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
+            <p className="text-xs font-medium text-[var(--color-text-tertiary)]">
               Aprovadas na página
             </p>
             <p className="mt-2 text-2xl font-semibold text-[var(--color-success-600)]">
@@ -737,7 +745,7 @@ export function AusenciasPage(): JSX.Element {
             </p>
           </Card>
           <Card padding="sm">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
+            <p className="text-xs font-medium text-[var(--color-text-tertiary)]">
               Rejeitadas na página
             </p>
             <p className="mt-2 text-2xl font-semibold text-[var(--color-error-600)]">
@@ -747,11 +755,7 @@ export function AusenciasPage(): JSX.Element {
         </div>
 
         <Card padding="none">
-          <CardHeader
-            title="Solicitações de ausência"
-            description="Visualize as solicitações e realize decisões administrativas de aprovação ou rejeição."
-            className="px-5 pt-5"
-          />
+          <CardHeader title="Solicitações de ausência" className="px-5 pt-5" />
           <Table>
             <TableHead>
               <tr>
@@ -784,9 +788,7 @@ export function AusenciasPage(): JSX.Element {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <span
-                        className="inline-flex items-center gap-2 rounded-full bg-[var(--color-gray-100)] px-2.5 py-1 text-xs font-medium text-[var(--color-text-secondary)]"
-                      >
+                      <span className="inline-flex items-center gap-2 rounded-full bg-[var(--color-gray-100)] px-2.5 py-1 text-xs font-medium text-[var(--color-text-secondary)]">
                         <span
                           className={`h-2.5 w-2.5 rounded-full ${getAusenciaColorClass(
                             ausencia.tipoAusenciaCor
@@ -809,16 +811,23 @@ export function AusenciasPage(): JSX.Element {
                     </TableCell>
                     <TableCell>
                       <div className="space-y-1">
-                        <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${statusBadgeClass[ausencia.status] ?? ''}`}>
+                        <span
+                          className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${statusBadgeClass[ausencia.status] ?? ''}`}
+                        >
                           {STATUS_LABELS[ausencia.status] ?? ausencia.status}
                         </span>
-                        {(ausencia.status === 'aprovado' || ausencia.status === 'rejeitado') && ausencia.aprovadoEm ? (
-                          <p className="text-xs text-[var(--color-text-tertiary)]">{formatDate(ausencia.aprovadoEm)}</p>
+                        {(ausencia.status === 'aprovado' || ausencia.status === 'rejeitado') &&
+                        ausencia.aprovadoEm ? (
+                          <p className="text-xs text-[var(--color-text-tertiary)]">
+                            {formatDate(ausencia.aprovadoEm)}
+                          </p>
                         ) : null}
                         {ausencia.documentoAnexo ? (
                           <button
                             type="button"
-                            onClick={() => void api.openAnexo(`/admin/ausencias/${ausencia.id}/anexo`)}
+                            onClick={() =>
+                              void api.openAnexo(`/admin/ausencias/${ausencia.id}/anexo`)
+                            }
                             className="text-xs font-medium text-[var(--color-primary-700)] underline underline-offset-2 hover:text-[var(--color-primary-900)] transition-colors"
                           >
                             📎 Ver anexo
@@ -855,14 +864,14 @@ export function AusenciasPage(): JSX.Element {
                               Aprovar
                             </Button>
                             <Button
-                              variant="danger"
+                              variant="ghost"
                               size="sm"
                               onClick={() => handleAbrirRejeicao(ausencia)}
                             >
                               Rejeitar
                             </Button>
                             <Button
-                              variant="secondary"
+                              variant="ghost"
                               size="sm"
                               onClick={() => handleAbrirCancelamento(ausencia)}
                             >
@@ -905,13 +914,14 @@ export function AusenciasPage(): JSX.Element {
           open={rejeicaoAberta}
           onClose={handleFecharRejeicao}
           title="Rejeitar ausência"
-          subtitle={selecionada ? `${selecionada.usuarioNome} • ${formatDate(selecionada.dataInicio)} até ${formatDate(selecionada.dataFim)}` : undefined}
+          subtitle={
+            selecionada
+              ? `${selecionada.usuarioNome} • ${formatDate(selecionada.dataInicio)} até ${formatDate(selecionada.dataFim)}`
+              : undefined
+          }
           size="md"
         >
           <div className="space-y-4 p-5">
-            <p className="text-sm text-[var(--color-text-secondary)]">
-              Informe o motivo da rejeição para registrar a decisão administrativa.
-            </p>
             <textarea
               value={motivoRejeicao}
               onChange={(event) => setMotivoRejeicao(event.target.value)}
@@ -938,12 +948,15 @@ export function AusenciasPage(): JSX.Element {
           open={cancelamentoAberto}
           onClose={handleFecharCancelamento}
           title="Cancelar ausência"
-          subtitle={selecionada ? `${selecionada.usuarioNome} • ${formatDate(selecionada.dataInicio)} até ${formatDate(selecionada.dataFim)}` : undefined}
+          subtitle={
+            selecionada
+              ? `${selecionada.usuarioNome} • ${formatDate(selecionada.dataInicio)} até ${formatDate(selecionada.dataFim)}`
+              : undefined
+          }
           size="md"
         >
           <div className="space-y-4 p-5">
             <p className="text-sm text-[var(--color-text-secondary)]">
-              Informe o motivo administrativo para cancelar esta ausência.
               Esta ação não pode ser desfeita.
             </p>
             <textarea

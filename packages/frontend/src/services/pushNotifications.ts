@@ -132,8 +132,9 @@ export async function ensurePushSubscription(): Promise<PushSubscriptionStatus> 
       }
 
       console.debug(PUSH_DIAGNOSTIC_PREFIX, 'subscribing to push');
-      const applicationServerKey =
-        urlBase64ToUint8Array(vapidPublicKey) as PushSubscriptionOptionsInit['applicationServerKey'];
+      const applicationServerKey = urlBase64ToUint8Array(
+        vapidPublicKey
+      ) as PushSubscriptionOptionsInit['applicationServerKey'];
       subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey,

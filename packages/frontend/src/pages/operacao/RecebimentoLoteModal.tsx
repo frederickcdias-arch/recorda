@@ -283,14 +283,18 @@ export function RecebimentoLoteModal({
   // ---------------------------------------------------------------------------
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center animate-fade-in">
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center animate-fade-in">
       <div className="bg-[var(--color-bg-primary)] w-full h-full sm:h-auto sm:max-h-[92vh] sm:max-w-lg sm:rounded-xl sm:shadow-xl overflow-hidden flex flex-col animate-scale-in">
         {/* Header */}
-        <div className="px-4 py-3 border-b flex items-center justify-between shrink-0">
+        <div className="px-4 py-3 border-b border-[var(--color-border-primary)] flex items-center justify-between shrink-0">
           <div className="min-w-0">
-            <h3 className="text-base font-semibold text-gray-900">Adicionar Processos</h3>
+            <h3 className="text-base font-semibold text-[var(--color-text-primary)]">
+              Adicionar Processos
+            </h3>
             {salvos.length > 0 && (
-              <p className="text-xs text-blue-600">{salvos.length} registrado(s)</p>
+              <p className="text-xs text-[var(--color-primary-600)]">
+                {salvos.length} registrado(s)
+              </p>
             )}
           </div>
           <Button variant="ghost" icon="x" iconOnly onClick={handleFinalizar} />
@@ -298,19 +302,18 @@ export function RecebimentoLoteModal({
 
         {/* Queue progress bar */}
         {hasQueue && (step === 'processando' || step === 'formulario') && (
-          <div className="px-4 py-2 bg-blue-50 border-b shrink-0">
-            <div className="flex items-center justify-between text-xs text-blue-700 mb-1">
+          <div className="px-4 py-2 bg-[var(--color-bg-secondary)] border-b border-[var(--color-border-primary)] shrink-0">
+            <div className="flex items-center justify-between text-xs text-[var(--color-text-secondary)] mb-1">
               <span>
                 Imagem {queueCurrent} de {queueTotal}
               </span>
               <span>{salvos.length} registrado(s)</span>
             </div>
-            <div className="w-full bg-blue-100 rounded-full h-1.5">
-              <div
-                className="bg-blue-600 h-1.5 rounded-full transition-all duration-300"
-                style={{ width: `${(queueCurrent / queueTotal) * 100}%` }}
-              />
-            </div>
+            <progress
+              value={queueCurrent}
+              max={queueTotal}
+              className="w-full h-1.5 rounded-full [appearance:none] bg-[var(--color-bg-tertiary)] [&::-webkit-progress-bar]:rounded-full [&::-webkit-progress-bar]:bg-[var(--color-bg-tertiary)] [&::-webkit-progress-value]:rounded-full [&::-webkit-progress-value]:bg-[var(--color-primary-600)] [&::-webkit-progress-value]:transition-all [&::-webkit-progress-value]:duration-300 [&::-moz-progress-bar]:rounded-full [&::-moz-progress-bar]:bg-[var(--color-primary-600)]"
+            />
           </div>
         )}
 
@@ -321,9 +324,9 @@ export function RecebimentoLoteModal({
             <div className="space-y-4">
               <Card>
                 <div className="text-center space-y-4 py-4">
-                  <div className="w-16 h-16 mx-auto rounded-full bg-blue-50 flex items-center justify-center">
+                  <div className="w-16 h-16 mx-auto rounded-full bg-[var(--color-bg-secondary)] flex items-center justify-center">
                     <svg
-                      className="w-8 h-8 text-blue-600"
+                      className="w-8 h-8 text-[var(--color-primary-600)]"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -341,10 +344,10 @@ export function RecebimentoLoteModal({
                       />
                     </svg>
                   </div>
-                  <h4 className="text-sm font-semibold text-gray-900">
+                  <h4 className="text-sm font-semibold text-[var(--color-text-primary)]">
                     Leitura de Protocolo (OCR)
                   </h4>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-[var(--color-text-secondary)]">
                     Capture ou selecione imagens para extração automática de protocolo e
                     interessado.
                   </p>
@@ -354,9 +357,10 @@ export function RecebimentoLoteModal({
                     ref={cameraInputRef}
                     type="file"
                     accept="image/png,image/jpeg,image/jpg,image/webp"
-                    capture="environment"
                     onChange={(e) => handleCameraCapture(e.target.files?.[0] ?? null)}
                     className="hidden"
+                    aria-hidden="true"
+                    tabIndex={-1}
                   />
                   <input
                     ref={multiFileInputRef}
@@ -365,6 +369,8 @@ export function RecebimentoLoteModal({
                     multiple
                     onChange={(e) => handleMultiFileSelect(e.target.files)}
                     className="hidden"
+                    aria-hidden="true"
+                    tabIndex={-1}
                   />
 
                   <div className="flex flex-col gap-2">
@@ -391,17 +397,19 @@ export function RecebimentoLoteModal({
 
               {salvos.length > 0 && (
                 <Card>
-                  <h4 className="text-xs font-semibold text-gray-700 mb-2">
+                  <h4 className="text-xs font-medium text-[var(--color-text-primary)] mb-2">
                     Registrados ({salvos.length})
                   </h4>
                   <div className="space-y-1 max-h-40 overflow-auto">
                     {salvos.map((s, i) => (
                       <div
                         key={i}
-                        className="flex items-center gap-2 text-xs text-gray-600 bg-blue-50 rounded px-2 py-1.5"
+                        className="flex items-center gap-2 text-xs text-[var(--color-text-secondary)] bg-[var(--color-bg-secondary)] rounded px-2 py-1.5"
                       >
-                        <span className="font-medium text-blue-800">{s.protocolo}</span>
-                        <span className="text-gray-400">—</span>
+                        <span className="font-medium text-[var(--color-text-primary)]">
+                          {s.protocolo}
+                        </span>
+                        <span className="text-[var(--color-text-tertiary)]">—</span>
                         <span className="truncate">{s.interessado}</span>
                       </div>
                     ))}
@@ -414,9 +422,9 @@ export function RecebimentoLoteModal({
           {/* ====== STEP: PROCESSANDO ====== */}
           {step === 'processando' && (
             <div className="flex flex-col items-center justify-center py-16 space-y-4">
-              <div className="animate-spin rounded-full h-10 w-10 border-4 border-blue-200 border-t-blue-600" />
-              <p className="text-sm text-gray-600">Processando OCR...</p>
-              <p className="text-xs text-gray-400">
+              <div className="animate-spin rounded-full h-10 w-10 border-4 border-[var(--color-bg-tertiary)] border-t-[var(--color-primary-600)]" />
+              <p className="text-sm text-[var(--color-text-secondary)]">Processando OCR...</p>
+              <p className="text-xs text-[var(--color-text-tertiary)]">
                 {hasQueue
                   ? `Processando imagem ${queueCurrent} de ${queueTotal}`
                   : 'Extraindo dados da imagem'}
@@ -428,7 +436,7 @@ export function RecebimentoLoteModal({
           {step === 'formulario' && (
             <div className="space-y-3">
               {form.ocrConfianca !== null && (
-                <div className="text-xs bg-blue-50 text-blue-700 rounded-lg px-3 py-2">
+                <div className="text-xs bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)] rounded-lg px-3 py-2">
                   Dados extraídos via OCR (confiança: {(form.ocrConfianca * 100).toFixed(0)}%).
                   Revise antes de salvar.
                 </div>
@@ -449,9 +457,12 @@ export function RecebimentoLoteModal({
 
               {/* Setor */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Setor</label>
+                <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-1">
+                  Setor
+                </label>
                 <select
-                  className="w-full h-9 px-3 border rounded-lg text-sm"
+                  className="w-full h-9 px-3 border border-[var(--color-border-primary)] rounded-lg text-sm"
+                  aria-label="Setor"
                   value={form.setorId}
                   onChange={(e) => setForm((p) => ({ ...p, setorId: e.target.value }))}
                 >
@@ -478,7 +489,7 @@ export function RecebimentoLoteModal({
                   />
                   <button
                     type="button"
-                    className="h-8 px-2 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                    className="h-8 px-2 text-xs bg-[var(--color-primary-600)] text-white rounded hover:bg-[var(--color-primary-700)] disabled:opacity-50"
                     onClick={() => void handleCriarSetor()}
                     disabled={!novoSetorInput.trim()}
                   >
@@ -489,11 +500,12 @@ export function RecebimentoLoteModal({
 
               {/* Classificação */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-[var(--color-text-primary)] mb-1">
                   Classificação
                 </label>
                 <select
-                  className="w-full h-9 px-3 border rounded-lg text-sm"
+                  className="w-full h-9 px-3 border border-[var(--color-border-primary)] rounded-lg text-sm"
+                  aria-label="Classificação"
                   value={form.classificacaoId}
                   onChange={(e) => setForm((p) => ({ ...p, classificacaoId: e.target.value }))}
                 >
@@ -520,7 +532,7 @@ export function RecebimentoLoteModal({
                   />
                   <button
                     type="button"
-                    className="h-8 px-2 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                    className="h-8 px-2 text-xs bg-[var(--color-primary-600)] text-white rounded hover:bg-[var(--color-primary-700)] disabled:opacity-50"
                     onClick={() => void handleCriarClassificacao()}
                     disabled={!novaClassifInput.trim()}
                   >
@@ -545,7 +557,7 @@ export function RecebimentoLoteModal({
                     }
                   />
                 </div>
-                <span className="pb-2 text-gray-500 text-sm">de</span>
+                <span className="pb-2 text-[var(--color-text-secondary)] text-sm">de</span>
                 <div className="flex-1">
                   <Input
                     label="Total"
@@ -582,7 +594,10 @@ export function RecebimentoLoteModal({
                     checked={form.caixaNova}
                     onChange={(e) => setForm((p) => ({ ...p, caixaNova: e.target.checked }))}
                   />
-                  <label htmlFor="lote-caixa-nova" className="text-sm text-gray-700">
+                  <label
+                    htmlFor="lote-caixa-nova"
+                    className="text-sm text-[var(--color-text-secondary)]"
+                  >
                     Caixa nova
                   </label>
                 </div>
@@ -602,9 +617,9 @@ export function RecebimentoLoteModal({
             <div className="space-y-4">
               <Card>
                 <div className="text-center space-y-3 py-4">
-                  <div className="w-16 h-16 mx-auto rounded-full bg-blue-50 flex items-center justify-center">
+                  <div className="w-16 h-16 mx-auto rounded-full bg-[var(--color-bg-secondary)] flex items-center justify-center">
                     <svg
-                      className="w-8 h-8 text-blue-600"
+                      className="w-8 h-8 text-[var(--color-primary-600)]"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -617,12 +632,14 @@ export function RecebimentoLoteModal({
                       />
                     </svg>
                   </div>
-                  <h4 className="text-base font-semibold text-gray-900">
+                  <h4 className="text-base font-semibold text-[var(--color-text-primary)]">
                     {salvos.length === 1
                       ? 'Processo Registrado'
                       : `${salvos.length} Processos Registrados`}
                   </h4>
-                  <p className="text-sm text-gray-500">Cadastro concluído com sucesso.</p>
+                  <p className="text-sm text-[var(--color-text-secondary)]">
+                    Cadastro concluído com sucesso.
+                  </p>
                   <div className="flex flex-col gap-2 pt-2">
                     <Button fullWidth size="lg" onClick={handleAdicionarOutro}>
                       Novo Cadastro
@@ -634,17 +651,19 @@ export function RecebimentoLoteModal({
                 </div>
               </Card>
               <Card>
-                <h4 className="text-xs font-semibold text-gray-700 mb-2">
+                <h4 className="text-xs font-medium text-[var(--color-text-primary)] mb-2">
                   Registrados ({salvos.length})
                 </h4>
                 <div className="space-y-1 max-h-48 overflow-auto">
                   {salvos.map((s, i) => (
                     <div
                       key={i}
-                      className="flex items-center gap-2 text-xs text-gray-600 bg-blue-50 rounded px-2 py-1.5"
+                      className="flex items-center gap-2 text-xs text-[var(--color-text-secondary)] bg-[var(--color-bg-secondary)] rounded px-2 py-1.5"
                     >
-                      <span className="font-medium text-blue-800">{s.protocolo}</span>
-                      <span className="text-gray-400">—</span>
+                      <span className="font-medium text-[var(--color-text-primary)]">
+                        {s.protocolo}
+                      </span>
+                      <span className="text-[var(--color-text-tertiary)]">—</span>
                       <span className="truncate">{s.interessado}</span>
                     </div>
                   ))}
@@ -656,7 +675,7 @@ export function RecebimentoLoteModal({
 
         {/* Footer — only on formulario step */}
         {step === 'formulario' && (
-          <div className="px-4 py-3 border-t shrink-0 space-y-2">
+          <div className="px-4 py-3 border-t border-[var(--color-border-primary)] shrink-0 space-y-2">
             <div className="flex gap-2">
               <Button
                 variant="secondary"

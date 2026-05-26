@@ -181,7 +181,7 @@ export function UsuariosPage(): JSX.Element {
       <div className="space-y-6">
         <PageHeader
           title="Usuários"
-          subtitle="Gerencie acessos e perfis do sistema sem alterar os fluxos operacionais."
+          subtitle="Gerencie acessos e perfis do sistema."
           actions={
             <Button variant="primary" icon="plus" onClick={handleAbrirModalNovo}>
               Novo usuário
@@ -202,37 +202,27 @@ export function UsuariosPage(): JSX.Element {
 
         <div className="grid gap-4 sm:grid-cols-3">
           <Card padding="sm">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
-              Total
-            </p>
-            <p className="mt-2 text-2xl font-semibold text-[var(--color-text-primary)]">
+            <p className="text-xs font-medium text-[var(--color-text-tertiary)]">Total</p>
+            <p className="mt-2 text-xl font-semibold text-[var(--color-text-primary)]">
               {resumo.total}
             </p>
           </Card>
           <Card padding="sm">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
-              Ativos
-            </p>
-            <p className="mt-2 text-2xl font-semibold text-[var(--color-text-primary)]">
+            <p className="text-xs font-medium text-[var(--color-text-tertiary)]">Ativos</p>
+            <p className="mt-2 text-xl font-semibold text-[var(--color-text-primary)]">
               {resumo.ativos}
             </p>
           </Card>
           <Card padding="sm">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-tertiary)]">
-              Administradores
-            </p>
-            <p className="mt-2 text-2xl font-semibold text-[var(--color-text-primary)]">
+            <p className="text-xs font-medium text-[var(--color-text-tertiary)]">Administradores</p>
+            <p className="mt-2 text-xl font-semibold text-[var(--color-text-primary)]">
               {resumo.admins}
             </p>
           </Card>
         </div>
 
         <Card padding="none">
-          <CardHeader
-            title="Acessos cadastrados"
-            description="Lista completa de usuários com status, perfil e ações rápidas."
-            className="px-5 pt-5"
-          />
+          <CardHeader title="Acessos cadastrados" className="px-5 pt-5" />
 
           <Table>
             <TableHead>
@@ -256,7 +246,7 @@ export function UsuariosPage(): JSX.Element {
                   <TableRow key={usuario.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--color-primary-50)] text-sm font-semibold text-[var(--color-primary-700)]">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--color-gray-100)] text-sm font-semibold text-[var(--color-text-secondary)]">
                           {usuario.nome.trim().charAt(0).toUpperCase()}
                         </div>
                         <div className="min-w-0">
@@ -327,11 +317,7 @@ export function UsuariosPage(): JSX.Element {
           open={modalAberto}
           onClose={() => setModalAberto(false)}
           title={usuarioEditando ? 'Editar usuário' : 'Novo usuário'}
-          subtitle={
-            usuarioEditando
-              ? 'Atualize os dados mantendo o mesmo fluxo de acesso.'
-              : 'Cadastre um novo acesso com perfil e credenciais iniciais.'
-          }
+          subtitle={usuarioEditando ? '' : ''}
           footer={
             <div className="flex flex-col-reverse gap-3 p-5 sm:flex-row sm:justify-end">
               <Button variant="secondary" onClick={() => setModalAberto(false)}>
@@ -383,15 +369,15 @@ export function UsuariosPage(): JSX.Element {
               ))}
             </Select>
             {!usuarioEditando ? (
-              <div className="rounded-2xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] px-4 py-3 text-sm text-[var(--color-text-secondary)]">
+              <div className="rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] px-4 py-3 text-sm text-[var(--color-text-secondary)]">
                 <div className="flex items-start gap-3">
                   <Icon
                     name="info"
                     className="mt-0.5 h-4 w-4 shrink-0 text-[var(--color-primary-600)]"
                   />
                   <p>
-                    O novo usuário será criado com o perfil selecionado e poderá acessar apenas as
-                    áreas permitidas por esse perfil.
+                    O novo usuário poderá acessar apenas as áreas permitidas pelo perfil
+                    selecionado.
                   </p>
                 </div>
               </div>

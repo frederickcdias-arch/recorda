@@ -105,8 +105,8 @@ function PreviewGerencialModal({
     <Modal
       open
       onClose={onClose}
-      title="Preview - relatorio gerencial"
-      subtitle={data.titulo || 'Consolidado do periodo selecionado.'}
+      title="Preview — relatório gerencial"
+      subtitle={data.titulo || ''}
       size="xl"
       scrollable
       footer={
@@ -127,25 +127,25 @@ function PreviewGerencialModal({
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <Card padding="sm" className="text-center">
             <p className="text-xs text-[var(--color-text-tertiary)]">Total caixas</p>
-            <p className="mt-1 text-lg font-bold text-[var(--color-text-primary)]">
+            <p className="mt-1 text-base font-semibold text-[var(--color-text-primary)]">
               {formatCriticalNumber(data.totais.totalCaixas)}
             </p>
           </Card>
           <Card padding="sm" className="text-center">
             <p className="text-xs text-[var(--color-text-tertiary)]">Total imagens</p>
-            <p className="mt-1 text-lg font-bold text-[var(--color-text-primary)]">
+            <p className="mt-1 text-base font-semibold text-[var(--color-text-primary)]">
               {formatCriticalNumber(data.totais.totalImagens)}
             </p>
           </Card>
           <Card padding="sm" className="text-center">
             <p className="text-xs text-[var(--color-text-tertiary)]">Colaboradores</p>
-            <p className="mt-1 text-lg font-bold text-[var(--color-text-primary)]">
+            <p className="mt-1 text-base font-semibold text-[var(--color-text-primary)]">
               {formatCriticalNumber(data.totais.totalColaboradores)}
             </p>
           </Card>
           <Card padding="sm" className="text-center">
             <p className="text-xs text-[var(--color-text-tertiary)]">Coordenadorias</p>
-            <p className="mt-1 text-lg font-bold text-[var(--color-text-primary)]">
+            <p className="mt-1 text-base font-semibold text-[var(--color-text-primary)]">
               {formatCriticalNumber(data.totais.totalCoordenadorias)}
             </p>
           </Card>
@@ -251,8 +251,8 @@ function PreviewOperacionalModal({
     <Modal
       open
       onClose={onClose}
-      title={`Preview - detalhamento operacional (${rows.length} registros)`}
-      subtitle="Mostrando ate 100 registros no preview."
+      title={`Preview — detalhamento operacional (${rows.length} registros)`}
+      subtitle=""
       size="xl"
       scrollable
       footer={
