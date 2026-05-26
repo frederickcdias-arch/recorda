@@ -66,7 +66,7 @@ export function MeuHistoricoPage(): JSX.Element {
   const [dataInicio, setDataInicio] = useState('');
   const [dataFim, setDataFim] = useState('');
   const [buscaInput, setBuscaInput] = useState('');
-  const busca = useDebounce(buscaInput, 400);
+  const busca = useDebounce(buscaInput, 600);
   const limite = 50;
 
   type SortField =

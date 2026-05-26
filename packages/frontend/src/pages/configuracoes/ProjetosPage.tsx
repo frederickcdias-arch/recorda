@@ -41,7 +41,7 @@ export function ProjetosPage(): JSX.Element {
   const [formulario, setFormulario] = useState<ProjetoForm>(initialForm);
   const [mostrarForm, setMostrarForm] = useState(false);
   const [busca, setBusca] = useState('');
-  const debouncedBusca = useDebounce(busca, 400);
+  const debouncedBusca = useDebounce(busca, 600);
   const [mensagem, setMensagem] = useState<{ tipo: 'success' | 'error'; texto: string } | null>(
     null
   );

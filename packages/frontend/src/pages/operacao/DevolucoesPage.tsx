@@ -173,7 +173,7 @@ function ModalNovaDevolucao({ onClose, onSaved }: ModalDevolucaoProps): JSX.Elem
     obs: '',
   });
 
-  const debouncedBuscaProcesso = useDebounce(buscaProcesso, 350);
+  const debouncedBuscaProcesso = useDebounce(buscaProcesso, 600);
   const { mutateAsync: executarBusca } = buscarProcessosMut;
 
   const opcoesCoordenadorias = coordOpcoes.data ?? [];
@@ -711,7 +711,7 @@ export function DevolucoesPage(): JSX.Element {
   const [confirmandoExclusao, setConfirmandoExclusao] = useState<DevolucaoOperacional | null>(null);
 
   const excluirMut = useExcluirDevolucao();
-  const debouncedBusca = useDebounce(busca, 400);
+  const debouncedBusca = useDebounce(busca, 600);
 
   useEffect(() => {
     setPagina(1);

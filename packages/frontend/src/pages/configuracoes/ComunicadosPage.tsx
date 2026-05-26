@@ -133,7 +133,7 @@ export function ComunicadosPage(): JSX.Element {
   const [detalheAbertoId, setDetalheAbertoId] = useState<string | null>(null);
   const [draftUsuarioIds, setDraftUsuarioIds] = useState<string[]>([]);
   const [buscaInput, setBuscaInput] = useState('');
-  const debouncedBusca = useDebounce(buscaInput, 400);
+  const debouncedBusca = useDebounce(buscaInput, 600);
   const [filtroStatus, setFiltroStatus] = useState<FiltroStatus>('TODOS');
   const [filtroEscopo, setFiltroEscopo] = useState<FiltroEscopo>('QUALQUER');
   const [filtroTipo, setFiltroTipo] = useState<FiltroTipo>('TODAS');

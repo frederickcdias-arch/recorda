@@ -40,7 +40,7 @@ export function ComunicadosPage(): JSX.Element {
   const [visao, setVisao] = useState<FiltroVisao>('ativos');
   const [filtro, setFiltro] = useState<FiltroLeitura>('todos');
   const [busca, setBusca] = useState('');
-  const debouncedBusca = useDebounce(busca, 400);
+  const debouncedBusca = useDebounce(busca, 600);
   const [prioridade, setPrioridade] = useState<FiltroPrioridade>('todas');
   const [ordenacao, setOrdenacao] = useState<FiltroOrdenacao>('mais-recentes');
 

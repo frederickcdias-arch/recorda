@@ -118,9 +118,9 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
   const [selectedId, setSelectedId] = useState('');
   const [buscaGlossario, setBuscaGlossario] = useState('');
   const [buscaLeis, setBuscaLeis] = useState('');
-  const debouncedBusca = useDebounce(busca, 400);
-  const debouncedBuscaGlossario = useDebounce(buscaGlossario, 400);
-  const debouncedBuscaLeis = useDebounce(buscaLeis, 400);
+  const debouncedBusca = useDebounce(busca, 600);
+  const debouncedBuscaGlossario = useDebounce(buscaGlossario, 600);
+  const debouncedBuscaLeis = useDebounce(buscaLeis, 600);
   const [editandoMeta, setEditandoMeta] = useState(false);
   const [editMeta, setEditMeta] = useState({
     titulo: '',

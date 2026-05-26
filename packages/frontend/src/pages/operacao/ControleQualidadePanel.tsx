@@ -83,8 +83,8 @@ export function ControleQualidadePanel({
   const [confirmConcluir, setConfirmConcluir] = useState(false);
   const [filtroRepo, setFiltroRepo] = useState<string>('TODOS');
   const [buscaRepo, setBuscaRepo] = useState('');
-  const debouncedBusca = useDebounce(busca, 400);
-  const debouncedBuscaRepo = useDebounce(buscaRepo, 400);
+  const debouncedBusca = useDebounce(busca, 600);
+  const debouncedBuscaRepo = useDebounce(buscaRepo, 600);
   const obsInputRef = useRef<HTMLInputElement>(null);
 
   const avaliarMut = useAvaliarDocumentoCQ();

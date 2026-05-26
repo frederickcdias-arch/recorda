@@ -493,7 +493,7 @@ export function AusenciasPage(): JSX.Element {
     usuarioId: undefined,
   });
   const [buscaInput, setBuscaInput] = useState('');
-  const debouncedBusca = useDebounce(buscaInput, 400);
+  const debouncedBusca = useDebounce(buscaInput, 600);
   const [motivoRejeicao, setMotivoRejeicao] = useState('');
   const [rejeicaoAberta, setRejeicaoAberta] = useState(false);
   const [lancamentoAberto, setLancamentoAberto] = useState(false);

@@ -299,7 +299,7 @@ export function EtapaOperacionalPage(): JSX.Element {
     setFiltroDataFim(filtrosUrl.dataFim);
   }, [filtrosUrl.busca, filtrosUrl.orgao, filtrosUrl.dataInicio, filtrosUrl.dataFim]);
 
-  const debouncedBusca = useDebounce(filtroBusca.trim(), 300);
+  const debouncedBusca = useDebounce(filtroBusca.trim(), 600);
 
   useEffect(() => {
     const params = new URLSearchParams();
