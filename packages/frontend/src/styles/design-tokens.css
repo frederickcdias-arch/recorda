@@ -7,8 +7,17 @@
  * Princípios:
  * - Minimalismo sofisticado
  * - Hierarquia visual clara
- * - Microinterações suaves
+ * - Microinterações suaves (sensação Journey: calma, respiração, silêncio, foco)
  * - Acessibilidade WCAG AA
+ *
+ * Regra 60/30/10:
+ *   60% — branco (#fff) + gray-50 — superfícies e fundos
+ *   30% — cinza — textos, bordas, estrutura de navegação
+ *   10% — primary-600 (#444ce7) — ações primárias, indicadores ativos, foco
+ *
+ * IMPORTANTE: Journey = sensação, NÃO paleta.
+ *   A identidade cromática azul-índigo do Recorda é PRESERVADA.
+ *   Não introduzir areia, âmbar, terracota ou off-white quente.
  */
 
 :root {
@@ -87,6 +96,11 @@
   --color-bg-secondary: var(--color-gray-50);
   --color-bg-tertiary: var(--color-gray-100);
   --color-bg-inverse: var(--color-gray-900);
+  --color-surface-primary: var(--color-bg-primary);
+  --color-surface-secondary: var(--color-bg-secondary);
+  --color-surface-tertiary: var(--color-bg-tertiary);
+  --color-surface-elevated: #ffffff;
+  --color-overlay-backdrop: rgb(12 17 29 / 0.4);
 
   /* Cores de borda */
   --color-border-primary: var(--color-gray-200);
@@ -100,6 +114,21 @@
   --color-text-placeholder: var(--color-gray-400);
   --color-text-inverse: #ffffff;
   --color-text-brand: var(--color-primary-600);
+  --color-fill-hover: var(--color-gray-50);
+  --color-fill-hover-strong: var(--color-gray-100);
+  --color-fill-selected: var(--color-primary-50);
+  --color-fill-selected-strong: var(--color-primary-100);
+  --color-info-25: var(--color-primary-25);
+  --color-info-50: var(--color-primary-50);
+  --color-info-100: var(--color-primary-100);
+  --color-info-200: var(--color-primary-200);
+  --color-info-300: var(--color-primary-300);
+  --color-info-400: var(--color-primary-400);
+  --color-info-500: var(--color-primary-500);
+  --color-info-600: var(--color-primary-600);
+  --color-info-700: var(--color-primary-700);
+  --color-info-800: var(--color-primary-800);
+  --color-info-900: var(--color-primary-900);
 
   /* ═══════════════════════════════════════════════════════════════
      TIPOGRAFIA - Sistema tipográfico refinado
@@ -198,22 +227,22 @@
   --shadow-xl: 0 20px 25px -5px rgb(16 24 40 / 0.1), 0 8px 10px -6px rgb(16 24 40 / 0.1);
   --shadow-2xl: 0 25px 50px -12px rgb(16 24 40 / 0.25);
 
-  /* Sombras coloridas para estados */
-  --shadow-primary: 0 0 0 3px var(--color-primary-100);
-  --shadow-error: 0 0 0 3px var(--color-error-100);
-  --shadow-success: 0 0 0 3px var(--color-success-100);
+  /* Sombras coloridas para estados — anel de foco suave (2px) */
+  --shadow-primary: 0 0 0 2px var(--color-primary-100);
+  --shadow-error: 0 0 0 2px var(--color-error-100);
+  --shadow-success: 0 0 0 2px var(--color-success-100);
 
   /* ═══════════════════════════════════════════════════════════════
      TRANSIÇÕES E ANIMAÇÕES
      ═══════════════════════════════════════════════════════════════ */
 
-  /* Durações */
+  /* Durações — calibradas para sensação Journey (calma, sem pressa) */
   --duration-instant: 50ms;
-  --duration-fast: 100ms;
-  --duration-normal: 150ms;
-  --duration-moderate: 200ms;
-  --duration-slow: 300ms;
-  --duration-slower: 400ms;
+  --duration-fast: 150ms;
+  --duration-normal: 200ms;
+  --duration-moderate: 250ms;
+  --duration-slow: 350ms;
+  --duration-slower: 450ms;
 
   /* Easings */
   --ease-linear: linear;
@@ -695,6 +724,9 @@ html {
 }
 
 /* Garante que elementos nativos sem bg explícito herdem o tema escuro */
+.dark select,
+.dark input:not([type='checkbox']):not([type='radio']),
+.dark textarea,
 [data-theme='dark'] select,
 [data-theme='dark'] input:not([type='checkbox']):not([type='radio']),
 [data-theme='dark'] textarea {
@@ -709,33 +741,39 @@ html {
    Inspirado em Linear, Stripe — cool-tinted, thin & elegant
    ═══════════════════════════════════════════════════════════════ */
 
+.dark,
 [data-theme='dark'] {
   /* Instrui o browser a renderizar controles nativos (select, input, scrollbar) em modo escuro */
   color-scheme: dark;
 
   /* Escala gray invertida para superfícies escuras */
-  --color-gray-25: #111115;
-  --color-gray-50: #16161c;
-  --color-gray-100: #1e1e28;
-  --color-gray-200: #28283c;
-  --color-gray-300: #3a3a52;
-  --color-gray-400: #64648a;
-  --color-gray-500: #9090b0;
-  --color-gray-600: #b4b4cc;
-  --color-gray-700: #d0d0e4;
-  --color-gray-800: #e4e4f4;
-  --color-gray-900: #ededf9;
-  --color-gray-950: #f4f4fc;
+  --color-gray-25: #131722;
+  --color-gray-50: #171c28;
+  --color-gray-100: #1d2431;
+  --color-gray-200: #293243;
+  --color-gray-300: #38445a;
+  --color-gray-400: #6e7a92;
+  --color-gray-500: #94a0b7;
+  --color-gray-600: #bcc6d8;
+  --color-gray-700: #d6deeb;
+  --color-gray-800: #e6ebf5;
+  --color-gray-900: #f3f6fc;
+  --color-gray-950: #fbfcfe;
 
   /* Fundo base — ligeiramente mais escuro que gray-50 */
-  --color-bg-primary: #111115;
+  --color-bg-primary: #10141d;
   --color-bg-secondary: var(--color-gray-50);
   --color-bg-tertiary: var(--color-gray-100);
   --color-bg-inverse: var(--color-gray-900);
+  --color-surface-primary: var(--color-bg-primary);
+  --color-surface-secondary: var(--color-bg-secondary);
+  --color-surface-tertiary: var(--color-bg-tertiary);
+  --color-surface-elevated: #1a2130;
+  --color-overlay-backdrop: rgb(8 12 20 / 0.68);
 
   /* Bordas */
   --color-border-primary: var(--color-gray-200);
-  --color-border-secondary: var(--color-gray-100);
+  --color-border-secondary: #202838;
   --color-border-focus: var(--color-primary-400);
 
   /* Texto */
@@ -743,18 +781,35 @@ html {
   --color-text-secondary: var(--color-gray-600);
   --color-text-tertiary: var(--color-gray-500);
   --color-text-placeholder: var(--color-gray-400);
-  --color-text-inverse: #111115;
+  --color-text-inverse: #10141d;
   --color-text-brand: var(--color-primary-400);
+  --color-fill-hover: rgba(148, 160, 183, 0.12);
+  --color-fill-hover-strong: rgba(148, 160, 183, 0.2);
+  --color-fill-selected: rgba(68, 76, 231, 0.16);
+  --color-fill-selected-strong: rgba(68, 76, 231, 0.24);
 
   /* Primárias claras — remapeadas para tints translúcidos sobre fundo escuro */
-  --color-primary-25: rgba(97, 114, 243, 0.06);
-  --color-primary-50: rgba(97, 114, 243, 0.12);
-  --color-primary-100: rgba(97, 114, 243, 0.18);
-  --color-primary-200: rgba(97, 114, 243, 0.28);
-  --color-primary-300: rgba(97, 114, 243, 0.45);
-  --color-primary-700: #a5b4fc;
-  --color-primary-800: #c7d2fe;
-  --color-primary-900: #e0e7ff;
+  --color-primary-25: rgba(68, 76, 231, 0.05);
+  --color-primary-50: rgba(68, 76, 231, 0.11);
+  --color-primary-100: rgba(68, 76, 231, 0.18);
+  --color-primary-200: rgba(68, 76, 231, 0.28);
+  --color-primary-300: rgba(68, 76, 231, 0.42);
+  --color-primary-400: #7d89f7;
+  --color-primary-500: #5f6df2;
+  --color-primary-700: #a8b2ff;
+  --color-primary-800: #c8d0ff;
+  --color-primary-900: #e3e8ff;
+  --color-info-25: var(--color-primary-25);
+  --color-info-50: var(--color-primary-50);
+  --color-info-100: var(--color-primary-100);
+  --color-info-200: var(--color-primary-200);
+  --color-info-300: var(--color-primary-300);
+  --color-info-400: var(--color-primary-400);
+  --color-info-500: var(--color-primary-500);
+  --color-info-600: var(--color-primary-600);
+  --color-info-700: var(--color-primary-700);
+  --color-info-800: var(--color-primary-800);
+  --color-info-900: var(--color-primary-900);
 
   /* Success — backgrounds translúcidos + texto claro legível em dark */
   --color-success-25: rgba(34, 197, 94, 0.05);
@@ -793,9 +848,9 @@ html {
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.6), 0 4px 6px -4px rgb(0 0 0 / 0.4);
   --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.6), 0 8px 10px -6px rgb(0 0 0 / 0.4);
   --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.7);
-  --shadow-primary: 0 0 0 3px var(--color-primary-800);
-  --shadow-error: 0 0 0 3px var(--color-error-800);
-  --shadow-success: 0 0 0 3px var(--color-success-800);
+  --shadow-primary: 0 0 0 2px var(--color-primary-300);
+  --shadow-error: 0 0 0 2px var(--color-error-200);
+  --shadow-success: 0 0 0 2px var(--color-success-200);
 
   /* Shimmer escuro */
   .animate-shimmer {

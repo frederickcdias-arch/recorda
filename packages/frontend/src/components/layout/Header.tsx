@@ -71,16 +71,13 @@ function ThemeToggle(): JSX.Element {
               className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm transition-colors ${
                 theme === option.value
                   ? 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)]'
-                  : 'text-[var(--color-text-primary)] hover:bg-[var(--color-gray-50)]'
+                  : 'text-[var(--color-text-primary)] hover:bg-[var(--color-bg-secondary)]'
               }`}
             >
               <Icon name={option.icon} className="h-3.5 w-3.5 shrink-0" />
               <span>{option.label}</span>
               {theme === option.value ? (
-                <Icon
-                  name="check"
-                  className="ml-auto h-3 w-3 text-[var(--color-primary-600)]"
-                />
+                <Icon name="check" className="ml-auto h-3 w-3 text-[var(--color-primary-600)]" />
               ) : null}
             </button>
           ))}
@@ -102,7 +99,7 @@ export function Header({ onMenuToggle, title, unreadComunicados = 0 }: HeaderPro
       <div className="flex h-16 items-center gap-2 px-4 sm:gap-3 sm:px-5 md:px-6">
         <button
           onClick={onMenuToggle}
-          className="rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] p-2 text-[var(--color-text-secondary)] shadow-xs transition-colors hover:bg-[var(--color-gray-50)] md:hidden"
+          className="rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] p-2 text-[var(--color-text-secondary)] shadow-xs transition-colors hover:bg-[var(--color-bg-secondary)] md:hidden"
           aria-label="Abrir menu"
         >
           <Icon name="menu" className="h-6 w-6" />

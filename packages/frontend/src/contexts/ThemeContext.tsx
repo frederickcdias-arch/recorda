@@ -34,6 +34,9 @@ function resolveEffective(t: Theme): EffectiveTheme {
 
 function applyTheme(effective: EffectiveTheme): void {
   document.documentElement.setAttribute('data-theme', effective);
+  document.documentElement.classList.toggle('dark', effective === 'dark');
+  document.documentElement.classList.toggle('light', effective === 'light');
+  document.documentElement.style.colorScheme = effective;
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }): JSX.Element {

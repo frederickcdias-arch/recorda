@@ -72,7 +72,7 @@ export function ActionMenu({ items, disabled = false }: ActionMenuProps): JSX.El
       <button
         ref={btnRef}
         type="button"
-        className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-[var(--color-text-tertiary)] hover:bg-[var(--color-gray-100)] hover:text-[var(--color-text-primary)] transition-colors disabled:opacity-40"
+        className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-[var(--color-text-tertiary)] transition-colors hover:bg-[var(--color-fill-hover-strong)] hover:text-[var(--color-text-primary)] disabled:opacity-40"
         onClick={() => setOpen((p) => !p)}
         disabled={disabled}
         aria-label="Ações"
@@ -97,8 +97,8 @@ export function ActionMenu({ items, disabled = false }: ActionMenuProps): JSX.El
                   type="button"
                   className={`w-full text-left px-3 py-2 text-sm transition-colors ${
                     item.variant === 'danger'
-                      ? 'text-[var(--color-text-primary)] hover:bg-[var(--color-gray-50)] hover:text-error-600'
-                      : 'text-[var(--color-text-primary)] hover:bg-primary-50 hover:text-primary-700'
+                      ? 'text-[var(--color-text-primary)] hover:bg-[var(--color-error-50)] hover:text-[var(--color-error-700)]'
+                      : 'text-[var(--color-text-primary)] hover:bg-[var(--color-primary-50)] hover:text-[var(--color-primary-700)]'
                   } disabled:opacity-40 disabled:cursor-not-allowed`}
                   onClick={() => {
                     closeMenu();

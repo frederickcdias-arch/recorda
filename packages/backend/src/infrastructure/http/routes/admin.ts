@@ -26,8 +26,14 @@ const listarAusenciasAdminQuerySchema = z.object({
   status: z.enum(ausenciaStatuses).default('TODOS'),
   tipoAusenciaId: z.string().uuid().optional(),
   usuarioId: z.string().uuid().optional(),
-  dataInicio: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  dataFim: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  dataInicio: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  dataFim: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
   ordenacao: z.enum(ausenciaOrdenacoes).default('mais-recentes'),
 });
 
@@ -78,7 +84,11 @@ function mapAusenciaAdmin(row: AusenciaAdminRow): AusenciaAdminItem {
     dataFim: (dataFimValue instanceof Date
       ? dataFimValue.toISOString().split('T')[0]
       : String(dataFimValue)) as string,
-    periodo: row.periodo as unknown as 'dia_completo' | 'meio_periodo_manha' | 'meio_periodo_tarde' | 'horas',
+    periodo: row.periodo as unknown as
+      | 'dia_completo'
+      | 'meio_periodo_manha'
+      | 'meio_periodo_tarde'
+      | 'horas',
     horasAusencia: row.horas_ausencia ?? null,
     justificativa: row.justificativa ?? null,
     observacoes: row.observacoes ?? null,
@@ -782,8 +792,7 @@ export function createAdminRoutes(): FastifyPluginAsync {
             totalPaginas: total === 0 ? 0 : Math.ceil(total / limite),
           } as ListarAusenciasAdminResponse);
         } catch (error) {
-          const message =
-            error instanceof Error ? error.message : 'Erro ao listar ausências';
+          const message = error instanceof Error ? error.message : 'Erro ao listar ausências';
           return reply.status(500).send({ error: message });
         }
       }
@@ -831,7 +840,9 @@ export function createAdminRoutes(): FastifyPluginAsync {
 
           if (updateResult.rows.length === 0) {
             await client.query('ROLLBACK');
-            return reply.status(404).send({ error: 'Ausência não encontrada ou não está em estado pendente' });
+            return reply
+              .status(404)
+              .send({ error: 'Ausência não encontrada ou não está em estado pendente' });
           }
 
           const result = await client.query<AusenciaAdminRow>(
@@ -888,8 +899,7 @@ export function createAdminRoutes(): FastifyPluginAsync {
           return reply.send({ ausencia: mapAusenciaAdmin(updatedAusencia) });
         } catch (error) {
           await client.query('ROLLBACK');
-          const message =
-            error instanceof Error ? error.message : 'Erro ao aprovar ausência';
+          const message = error instanceof Error ? error.message : 'Erro ao aprovar ausência';
           return reply.status(500).send({ error: message });
         } finally {
           client.release();
@@ -938,7 +948,9 @@ export function createAdminRoutes(): FastifyPluginAsync {
 
           if (updateResult.rows.length === 0) {
             await client.query('ROLLBACK');
-            return reply.status(404).send({ error: 'Ausência não encontrada ou não está em estado pendente' });
+            return reply
+              .status(404)
+              .send({ error: 'Ausência não encontrada ou não está em estado pendente' });
           }
 
           const result = await client.query<AusenciaAdminRow>(
@@ -995,8 +1007,7 @@ export function createAdminRoutes(): FastifyPluginAsync {
           return reply.send({ ausencia: mapAusenciaAdmin(updatedAusencia) });
         } catch (error) {
           await client.query('ROLLBACK');
-          const message =
-            error instanceof Error ? error.message : 'Erro ao rejeitar ausência';
+          const message = error instanceof Error ? error.message : 'Erro ao rejeitar ausência';
           return reply.status(500).send({ error: message });
         } finally {
           client.release();
@@ -1013,10 +1024,7 @@ export function createAdminRoutes(): FastifyPluginAsync {
           summary: 'Criar ausência para um colaborador (administrador)',
           security: [{ bearerAuth: [] }],
         },
-        preHandler: [
-          server.authenticate,
-          authorize('administrador'),
-        ],
+        preHandler: [server.authenticate, authorize('administrador')],
       },
       async (request, reply) => {
         const adminUser = getCurrentUser(request);
@@ -1131,9 +1139,7 @@ export function createAdminRoutes(): FastifyPluginAsync {
           }
           if (tipo.requer_justificativa && !body.justificativa?.trim()) {
             await client.query('ROLLBACK');
-            return reply
-              .status(400)
-              .send({ error: `O tipo "${tipo.nome}" exige justificativa` });
+            return reply.status(400).send({ error: `O tipo "${tipo.nome}" exige justificativa` });
           }
           // Admin exception: requer_documento waived only when observacoes is provided
           if (tipo.requer_documento && !uploadedFile && !body.observacoes?.trim()) {
@@ -1224,8 +1230,7 @@ export function createAdminRoutes(): FastifyPluginAsync {
           return reply.status(201).send({ ausencia: mapAusenciaAdmin(ausencia) });
         } catch (error) {
           await client.query('ROLLBACK');
-          const message =
-            error instanceof Error ? error.message : 'Erro ao criar ausência';
+          const message = error instanceof Error ? error.message : 'Erro ao criar ausência';
           return reply.status(500).send({ error: message });
         } finally {
           client.release();
@@ -1327,8 +1332,7 @@ export function createAdminRoutes(): FastifyPluginAsync {
           return reply.send({ ausencia: mapAusenciaAdmin(ausencia) });
         } catch (error) {
           await client.query('ROLLBACK');
-          const message =
-            error instanceof Error ? error.message : 'Erro ao cancelar ausência';
+          const message = error instanceof Error ? error.message : 'Erro ao cancelar ausência';
           return reply.status(500).send({ error: message });
         } finally {
           client.release();

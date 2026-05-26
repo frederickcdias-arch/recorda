@@ -89,7 +89,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             disabled={disabled}
             className={`
               min-w-0 max-w-full w-full rounded-lg border bg-[var(--color-bg-primary)]
-              transition-all duration-150 ease-in-out
+              transition-all duration-200 ease-in-out
               placeholder:text-[var(--color-text-placeholder)]
               focus:outline-none
               ${sizeClasses[inputSize]}
@@ -102,12 +102,12 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
               }
               ${
                 error
-                  ? 'border-[var(--color-error-300)] focus:border-[var(--color-error-500)] focus:ring-[3px] focus:ring-[var(--color-error-100)]'
-                  : 'border-[var(--color-gray-300)] focus:border-[var(--color-primary-500)] focus:ring-[3px] focus:ring-[var(--color-primary-100)]'
+                  ? 'border-[var(--color-error-300)] focus:border-[var(--color-error-500)] focus:ring-2 focus:ring-[var(--color-error-100)]'
+                  : 'border-[var(--color-gray-300)] focus:border-[var(--color-primary-500)] focus:ring-2 focus:ring-[var(--color-primary-100)]'
               }
               ${
                 disabled
-                  ? 'bg-[var(--color-gray-50)] text-[var(--color-gray-500)] cursor-not-allowed'
+                  ? 'bg-[var(--color-bg-tertiary)] text-[var(--color-gray-500)] cursor-not-allowed'
                   : 'text-[var(--color-text-primary)]'
               }
               ${className}

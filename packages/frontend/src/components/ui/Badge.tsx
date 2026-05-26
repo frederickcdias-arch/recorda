@@ -20,14 +20,11 @@ interface BadgeProps {
 
 const variantClasses: Record<BadgeVariant, string> = {
   default: 'bg-[var(--color-gray-100)] text-[var(--color-gray-700)] border-[var(--color-gray-200)]',
-  primary:
-    'bg-[var(--color-primary-50)] text-[var(--color-primary-700)] border-[var(--color-primary-200)]',
-  success:
-    'bg-[var(--color-success-50)] text-[var(--color-success-700)] border-[var(--color-success-200)]',
-  warning:
-    'bg-[var(--color-warning-50)] text-[var(--color-warning-700)] border-[var(--color-warning-200)]',
+  primary: 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)] border-transparent',
+  success: 'bg-[var(--color-success-50)] text-[var(--color-success-700)] border-transparent',
+  warning: 'bg-[var(--color-warning-50)] text-[var(--color-warning-700)] border-transparent',
   error: 'bg-[var(--color-error-50)] text-[var(--color-error-700)] border-[var(--color-error-200)]',
-  info: 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)] border-[var(--color-primary-200)]',
+  info: 'bg-[var(--color-info-50)] text-[var(--color-info-700)] border-transparent',
 };
 
 const dotColors: Record<BadgeVariant, string> = {
@@ -36,7 +33,7 @@ const dotColors: Record<BadgeVariant, string> = {
   success: 'bg-[var(--color-success-500)]',
   warning: 'bg-[var(--color-warning-500)]',
   error: 'bg-[var(--color-error-500)]',
-  info: 'bg-[var(--color-primary-500)]',
+  info: 'bg-[var(--color-info-500)]',
 };
 
 const sizeClasses: Record<BadgeSize, string> = {
@@ -82,7 +79,7 @@ export function Badge({
       {removable && onRemove && (
         <button
           onClick={onRemove}
-          className="ml-0.5 -mr-0.5 p-0.5 rounded hover:bg-black/10 transition-colors"
+          className="ml-0.5 -mr-0.5 rounded p-0.5 transition-colors hover:bg-[var(--color-fill-hover-strong)]"
           aria-label="Remover"
         >
           <Icon name="x" className={iconSizes[size]} />

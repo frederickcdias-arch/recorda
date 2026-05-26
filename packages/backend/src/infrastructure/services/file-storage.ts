@@ -82,11 +82,7 @@ export class FileStorageService {
 
 // ─── Ausências attachment helpers ─────────────────────────────────────────────
 
-export const AUSENCIA_ALLOWED_MIME_TYPES = new Set([
-  'application/pdf',
-  'image/jpeg',
-  'image/png',
-]);
+export const AUSENCIA_ALLOWED_MIME_TYPES = new Set(['application/pdf', 'image/jpeg', 'image/png']);
 
 export const AUSENCIA_MAX_SIZE = 5 * 1024 * 1024; // 5 MB
 
@@ -148,10 +144,13 @@ export async function serveAusenciaAnexo(relativePath: string): Promise<{
 
   const ext = path.extname(fullPath).toLowerCase();
   const mimeType =
-    ext === '.pdf' ? 'application/pdf'
-    : ext === '.png' ? 'image/png'
-    : ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg'
-    : null;
+    ext === '.pdf'
+      ? 'application/pdf'
+      : ext === '.png'
+        ? 'image/png'
+        : ext === '.jpg' || ext === '.jpeg'
+          ? 'image/jpeg'
+          : null;
 
   if (!mimeType) {
     throw Object.assign(new Error('Tipo de arquivo não suportado.'), { code: 'INVALID_TYPE' });

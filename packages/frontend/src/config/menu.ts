@@ -46,7 +46,7 @@ export const menuSections: MenuSection[] = [
       },
       {
         id: 'minhas-ausencias',
-        label: 'Justificativas de Ausência',
+        label: 'Minhas Ausências',
         icon: 'calendar',
         path: '/minha-producao/ausencias',
       },
@@ -99,7 +99,12 @@ export const menuSections: MenuSection[] = [
     basePath: '/operacao/conhecimento',
     allowedProfiles: ['operador', 'administrador'],
     items: [
-      { id: 'operacao-kb', label: 'Base de Conhecimento', icon: 'book', path: '/operacao/conhecimento' },
+      {
+        id: 'operacao-kb',
+        label: 'Base de Conhecimento',
+        icon: 'book',
+        path: '/operacao/conhecimento',
+      },
     ],
   },
   {
@@ -154,7 +159,7 @@ export const menuSections: MenuSection[] = [
       },
       {
         id: 'ausencias',
-        label: 'Justificativas de Ausência',
+        label: 'Ausências',
         icon: 'calendar',
         path: '/configuracoes/ausencias',
       },
@@ -163,11 +168,11 @@ export const menuSections: MenuSection[] = [
   {
     id: 'sistema',
     label: 'Sistema',
-    icon: 'alert-triangle',
+    icon: 'settings',
     basePath: '/configuracoes/admin',
     allowedProfiles: ['administrador'],
     items: [
-      { id: 'admin', label: 'Administração', icon: 'alert-triangle', path: '/configuracoes/admin' },
+      { id: 'admin', label: 'Administração', icon: 'settings', path: '/configuracoes/admin' },
     ],
   },
   {
@@ -185,7 +190,13 @@ export const menuSections: MenuSection[] = [
       },
       { id: 'ocr', label: 'OCR', icon: 'scan', path: '/auditoria/ocr' },
       { id: 'correcoes', label: 'Correções', icon: 'edit', path: '/auditoria/correcoes' },
-      { id: 'acoes', label: 'Ações de Usuários', icon: 'user-check', path: '/auditoria/acoes', allowedProfiles: ['administrador'] },
+      {
+        id: 'acoes',
+        label: 'Ações de Usuários',
+        icon: 'user-check',
+        path: '/auditoria/acoes',
+        allowedProfiles: ['administrador'],
+      },
     ],
   },
 ];

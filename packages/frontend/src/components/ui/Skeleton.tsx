@@ -37,10 +37,10 @@ export function SkeletonCards({ count = 4 }: { count?: number }): JSX.Element {
       {Array.from({ length: count }).map((_, i) => (
         <div
           key={i}
-          className="bg-[var(--color-bg-primary)] rounded-xl p-6 border border-[var(--color-border-secondary)]"
+          className="bg-[var(--color-bg-primary)] rounded-xl p-5 border border-[var(--color-border-secondary)]"
         >
           <Skeleton className="h-3 w-24 mb-3" />
-          <Skeleton className="h-7 w-16 mb-2" />
+          <Skeleton className="h-6 w-14 mb-2" />
           <Skeleton className="h-3 w-20" />
         </div>
       ))}

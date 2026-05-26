@@ -14,53 +14,56 @@ export default defineConfig(({ mode }) => {
     envDir: repoRoot,
     plugins: [
       react(),
-      !isDev &&
-        VitePWA({
-          strategies: 'injectManifest',
-          srcDir: 'src',
-          filename: 'sw.ts',
-          registerType: 'prompt',
-          includeAssets: [
-            'favicon.ico',
-            'apple-touch-icon.png',
-            'favicon.svg',
-            'pwa-192x192.png',
-            'pwa-512x512.png',
-            'pwa-maskable-512x512.png',
+      VitePWA({
+        strategies: 'injectManifest',
+        srcDir: 'src',
+        filename: 'sw.ts',
+        registerType: 'prompt',
+        devOptions: {
+          enabled: true,
+          type: 'module',
+        },
+        includeAssets: [
+          'favicon.ico',
+          'apple-touch-icon.png',
+          'favicon.svg',
+          'pwa-192x192.png',
+          'pwa-512x512.png',
+          'pwa-maskable-512x512.png',
+        ],
+        manifest: {
+          name: 'Recorda',
+          short_name: 'Recorda',
+          description: 'Recorda - Sistema de Gestão Documental e Produção',
+          theme_color: '#3b82f6',
+          background_color: '#ffffff',
+          display: 'standalone',
+          orientation: 'portrait',
+          scope: '/',
+          start_url: '/',
+          icons: [
+            {
+              src: 'pwa-192x192.png',
+              sizes: '192x192',
+              type: 'image/png',
+            },
+            {
+              src: 'pwa-512x512.png',
+              sizes: '512x512',
+              type: 'image/png',
+            },
+            {
+              src: 'pwa-maskable-512x512.png',
+              sizes: '512x512',
+              type: 'image/png',
+              purpose: 'maskable',
+            },
           ],
-          manifest: {
-            name: 'Recorda',
-            short_name: 'Recorda',
-            description: 'Recorda - Sistema de Gestão Documental e Produção',
-            theme_color: '#3b82f6',
-            background_color: '#ffffff',
-            display: 'standalone',
-            orientation: 'portrait',
-            scope: '/',
-            start_url: '/',
-            icons: [
-              {
-                src: 'pwa-192x192.png',
-                sizes: '192x192',
-                type: 'image/png',
-              },
-              {
-                src: 'pwa-512x512.png',
-                sizes: '512x512',
-                type: 'image/png',
-              },
-              {
-                src: 'pwa-maskable-512x512.png',
-                sizes: '512x512',
-                type: 'image/png',
-                purpose: 'maskable',
-              },
-            ],
-          },
-          injectManifest: {
-            globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff2}'],
-          },
-        }),
+        },
+        injectManifest: {
+          globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff2}'],
+        },
+      }),
     ].filter(Boolean),
     server: {
       port: 5173,

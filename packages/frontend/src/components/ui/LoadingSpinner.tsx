@@ -34,8 +34,8 @@ interface LoadingOverlayProps {
 export function LoadingOverlay({ message = 'Carregando...' }: LoadingOverlayProps): JSX.Element {
   return (
     <div className="flex flex-col items-center justify-center py-12">
-      <LoadingSpinner size="lg" className="text-blue-600 mb-4" />
-      <p className="text-gray-500">{message}</p>
+      <LoadingSpinner size="lg" className="mb-4 text-[var(--color-primary-600)]" />
+      <p className="text-[var(--color-text-secondary)]">{message}</p>
     </div>
   );
 }

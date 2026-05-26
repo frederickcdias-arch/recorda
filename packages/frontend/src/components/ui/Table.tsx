@@ -25,7 +25,7 @@ interface TableHeadProps {
 }
 
 export function TableHead({ children, className }: TableHeadProps): JSX.Element {
-  return <thead className={cn('bg-[var(--color-gray-50)]', className)}>{children}</thead>;
+  return <thead className={cn('bg-[var(--color-bg-secondary)]', className)}>{children}</thead>;
 }
 
 interface TableBodyProps {
@@ -58,8 +58,8 @@ export function TableRow({ children, className, onClick, ...rest }: TableRowProp
       className={cn(
         'transition-colors',
         onClick
-          ? 'cursor-pointer hover:bg-[var(--color-gray-50)]'
-          : 'hover:bg-[var(--color-gray-50)]',
+          ? 'cursor-pointer hover:bg-[var(--color-bg-secondary)]'
+          : 'hover:bg-[var(--color-bg-secondary)]',
         className
       )}
       onClick={onClick}
@@ -104,7 +104,7 @@ export function TableHeader({
   ...rest
 }: TableHeaderProps): JSX.Element {
   const base =
-    'border-b border-[var(--color-border-primary)] px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-[var(--color-text-secondary)] sm:text-xs';
+    'border-b border-[var(--color-border-primary)] px-4 py-3 text-xs font-medium text-[var(--color-text-secondary)]';
 
   const icon =
     sortDirection === 'asc'

@@ -84,7 +84,7 @@ export function MobileBottomNav({ unreadComunicados = 0 }: MobileBottomNavProps)
                 <span className="relative">
                   <Icon name="more-horizontal" className="h-5 w-5" />
                   {sheetHasComunicados && unreadComunicados > 0 ? (
-                    <span className="absolute -right-1 -top-1 inline-flex min-w-[1rem] items-center justify-center rounded-full bg-[var(--color-error-600)] px-1 text-[9px] font-semibold text-white">
+                    <span className="absolute -right-1 -top-1 inline-flex min-w-[1rem] items-center justify-center rounded-full bg-[var(--color-primary-100)] px-1 text-[9px] font-semibold text-[var(--color-primary-700)]">
                       {unreadComunicados > 99 ? '99+' : String(unreadComunicados)}
                     </span>
                   ) : null}
@@ -99,7 +99,7 @@ export function MobileBottomNav({ unreadComunicados = 0 }: MobileBottomNavProps)
       {sheetOpen ? (
         <>
           <div
-            className="fixed inset-0 z-50 bg-black/40"
+            className="fixed inset-0 z-50 bg-[var(--color-overlay-backdrop)]"
             onClick={(): void => setSheetOpen(false)}
             aria-hidden="true"
           />
@@ -114,14 +114,11 @@ export function MobileBottomNav({ unreadComunicados = 0 }: MobileBottomNavProps)
                 <h2 className="text-sm font-semibold text-[var(--color-text-primary)]">
                   Mais opcoes
                 </h2>
-                <p className="text-xs text-[var(--color-text-tertiary)]">
-                  Navegacao complementar do app
-                </p>
               </div>
               <button
                 onClick={(): void => setSheetOpen(false)}
                 aria-label="Fechar menu"
-                className="rounded-xl border border-[var(--color-border-primary)] p-2 text-[var(--color-text-secondary)] hover:bg-[var(--color-gray-50)]"
+                className="rounded-xl border border-[var(--color-border-primary)] p-2 text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)]"
               >
                 <Icon name="x" className="h-5 w-5" />
               </button>
@@ -136,14 +133,14 @@ export function MobileBottomNav({ unreadComunicados = 0 }: MobileBottomNavProps)
                       `flex items-center gap-3 rounded-2xl px-4 py-3 text-sm transition-colors ${
                         isActive
                           ? 'bg-[var(--color-primary-50)] font-medium text-[var(--color-primary-700)]'
-                          : 'text-[var(--color-text-primary)] hover:bg-[var(--color-gray-50)]'
+                          : 'text-[var(--color-text-primary)] hover:bg-[var(--color-bg-secondary)]'
                       }`
                     }
                   >
                     <Icon name={item.icon} className="h-5 w-5 shrink-0" />
                     {item.label}
                     {item.id === 'comunicados' && unreadComunicados > 0 ? (
-                      <span className="ml-auto inline-flex min-w-[1.2rem] items-center justify-center rounded-full bg-[var(--color-error-600)] px-1.5 text-[10px] font-semibold text-white">
+                      <span className="ml-auto inline-flex min-w-[1.2rem] items-center justify-center rounded-full bg-[var(--color-primary-100)] px-1.5 text-[10px] font-semibold text-[var(--color-primary-700)]">
                         {unreadComunicados > 99 ? '99+' : unreadComunicados}
                       </span>
                     ) : null}

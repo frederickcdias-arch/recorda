@@ -1,5 +1,6 @@
 import { Component } from 'react';
 import type { ErrorInfo, ReactNode } from 'react';
+import { Button } from './Button';
 import { Icon } from './Icon';
 
 interface ErrorBoundaryProps {
@@ -44,33 +45,29 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     }
 
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
-        <div className="bg-[var(--color-bg-primary)] rounded-xl shadow-lg border border-[var(--color-border-primary)] max-w-lg w-full p-8 text-center">
-          <div className="mx-auto w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-            <Icon name="x" className="w-7 h-7 text-gray-500" />
+      <div className="flex min-h-screen items-center justify-center bg-[var(--color-bg-secondary)] p-6">
+        <div className="w-full max-w-lg rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] p-8 text-center shadow-xl">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--color-bg-tertiary)]">
+            <Icon name="x" className="h-7 w-7 text-[var(--color-text-tertiary)]" />
           </div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Erro inesperado</h2>
-          <p className="text-sm text-gray-500 mb-4">
+          <h2 className="mb-2 text-xl font-semibold text-[var(--color-text-primary)]">
+            Erro inesperado
+          </h2>
+          <p className="mb-4 text-sm text-[var(--color-text-secondary)]">
             Ocorreu uma falha inesperada. Recarregue a página e tente novamente.
           </p>
           {this.state.error && process.env.NODE_ENV !== 'production' && (
-            <pre className="text-xs text-left bg-gray-50 border rounded-lg p-3 mb-4 overflow-auto max-h-40 text-gray-700">
+            <pre className="mb-4 max-h-40 overflow-auto rounded-lg border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-3 text-left text-xs text-[var(--color-text-secondary)]">
               {this.state.error.message}
             </pre>
           )}
-          <div className="flex gap-3 justify-center">
-            <button
-              onClick={this.handleReset}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition"
-            >
+          <div className="flex flex-col justify-center gap-3 sm:flex-row">
+            <Button variant="ghost" onClick={this.handleReset}>
               Tentar novamente
-            </button>
-            <button
-              onClick={this.handleReload}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition"
-            >
+            </Button>
+            <Button variant="primary" onClick={this.handleReload}>
               Recarregar página
-            </button>
+            </Button>
           </div>
         </div>
       </div>

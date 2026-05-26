@@ -71,14 +71,14 @@ function ItemBadge({
 
   if (collapsed) {
     return (
-      <span className="absolute right-2 top-2 inline-flex min-w-[1rem] items-center justify-center rounded-full bg-[var(--color-error-600)] px-1 text-[9px] font-semibold text-white">
+      <span className="absolute right-2 top-2 inline-flex min-w-[1rem] items-center justify-center rounded-full bg-[var(--color-primary-100)] px-1 text-[9px] font-semibold text-[var(--color-primary-700)]">
         {label}
       </span>
     );
   }
 
   return (
-    <span className="ml-auto inline-flex min-w-[1.2rem] items-center justify-center rounded-full bg-[var(--color-error-600)] px-1.5 text-[10px] font-semibold text-white">
+    <span className="ml-auto inline-flex min-w-[1.2rem] items-center justify-center rounded-full bg-[var(--color-primary-100)] px-1.5 text-[10px] font-semibold text-[var(--color-primary-700)]">
       {label}
     </span>
   );
@@ -109,7 +109,7 @@ function MenuItemComponent({
     const btnClass = `flex w-full items-center gap-3 rounded-xl ${indentClass} py-3 text-sm transition-colors sm:py-2.5 ${
       isChildActive
         ? 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)]'
-        : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-gray-50)] hover:text-[var(--color-text-primary)]'
+        : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-primary)]'
     }`;
     const btnContent = (
       <>
@@ -168,8 +168,8 @@ function MenuItemComponent({
       className={({ isActive: navActive }) =>
         `flex items-center gap-3 rounded-xl ${indentClass} py-3 text-sm transition-all sm:py-2.5 ${
           navActive || isActive
-            ? 'bg-[var(--color-primary-600)] text-white shadow-sm'
-            : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-gray-50)] hover:text-[var(--color-text-primary)]'
+            ? 'border-l-2 border-[var(--color-primary-600)] bg-[var(--color-primary-50)] text-[var(--color-primary-700)]'
+            : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-primary)]'
         }`
       }
     >
@@ -210,8 +210,8 @@ function MenuSectionComponent({
         className={({ isActive: navActive }) =>
           `relative flex items-center gap-3 rounded-xl px-3 py-3 transition-all sm:py-2.5 ${
             navActive || isActive
-              ? 'bg-[var(--color-primary-600)] text-white shadow-sm'
-              : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-gray-50)] hover:text-[var(--color-text-primary)]'
+              ? 'border-l-2 border-[var(--color-primary-600)] bg-[var(--color-primary-50)] text-[var(--color-primary-700)]'
+              : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-primary)]'
           }`
         }
       >
@@ -225,7 +225,7 @@ function MenuSectionComponent({
   const sectionBtnClass = `flex w-full items-center gap-3 rounded-xl px-3 py-3 transition-colors sm:py-2.5 ${
     isActive
       ? 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)]'
-      : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-gray-50)] hover:text-[var(--color-text-primary)]'
+      : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-primary)]'
   }`;
   const sectionBtnContent = (
     <>
@@ -365,16 +365,13 @@ export function Sidebar({
                 <p className="truncate text-sm font-semibold text-[var(--color-text-primary)]">
                   Recorda
                 </p>
-                <p className="truncate text-xs text-[var(--color-text-tertiary)]">
-                  Gestão documental e operação
-                </p>
               </div>
             ) : null}
           </div>
 
           <button
             onClick={onToggle}
-            className="hidden rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] p-2 text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-gray-50)] md:inline-flex"
+            className="hidden rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] p-2 text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-bg-secondary)] md:inline-flex"
             title={collapsed ? 'Expandir menu' : 'Recolher menu'}
             aria-label={collapsed ? 'Expandir menu' : 'Recolher menu'}
           >
@@ -384,7 +381,7 @@ export function Sidebar({
           {onMobileClose ? (
             <button
               onClick={onMobileClose}
-              className="rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] p-2 text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-gray-50)] md:hidden"
+              className="rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] p-2 text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-bg-secondary)] md:hidden"
               aria-label="Fechar menu"
             >
               <Icon name="x" className="h-5 w-5" />

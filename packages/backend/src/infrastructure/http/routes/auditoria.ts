@@ -39,7 +39,10 @@ export function createAuditoriaRoutes(): FastifyPluginAsync {
             },
           },
           response: {
-            403: { type: 'object', properties: { error: { type: 'string' }, code: { type: 'string' } } },
+            403: {
+              type: 'object',
+              properties: { error: { type: 'string' }, code: { type: 'string' } },
+            },
             500: { type: 'object', properties: { error: { type: 'string' } } },
           },
         },

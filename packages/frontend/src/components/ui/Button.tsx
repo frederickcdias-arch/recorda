@@ -20,15 +20,15 @@ const variantClasses: Record<ButtonVariant, string> = {
     bg-[var(--color-primary-600)] text-white 
     hover:bg-[var(--color-primary-700)] 
     active:bg-[var(--color-primary-800)]
-    focus-visible:ring-[3px] focus-visible:ring-[var(--color-primary-100)]
+    focus-visible:ring-2 focus-visible:ring-[var(--color-primary-100)]
     shadow-sm hover:shadow
   `,
   secondary: `
     bg-[var(--color-bg-primary)] text-[var(--color-gray-700)] 
     border border-[var(--color-border-primary)]
-    hover:bg-[var(--color-gray-50)] hover:border-[var(--color-gray-400)]
-    active:bg-[var(--color-gray-100)]
-    focus-visible:ring-[3px] focus-visible:ring-[var(--color-gray-100)]
+    hover:bg-[var(--color-fill-hover)] hover:border-[var(--color-gray-300)]
+    active:bg-[var(--color-fill-hover-strong)]
+    focus-visible:ring-2 focus-visible:ring-[var(--color-fill-hover-strong)]
     shadow-sm
   `,
   outline: `
@@ -36,26 +36,26 @@ const variantClasses: Record<ButtonVariant, string> = {
     border border-[var(--color-primary-300)]
     hover:bg-[var(--color-primary-50)] hover:border-[var(--color-primary-400)]
     active:bg-[var(--color-primary-100)]
-    focus-visible:ring-[3px] focus-visible:ring-[var(--color-primary-100)]
+    focus-visible:ring-2 focus-visible:ring-[var(--color-primary-100)]
   `,
   ghost: `
     bg-transparent text-[var(--color-gray-600)] 
-    hover:bg-[var(--color-gray-100)] hover:text-[var(--color-gray-700)]
-    active:bg-[var(--color-gray-200)]
-    focus-visible:ring-[3px] focus-visible:ring-[var(--color-gray-100)]
+    hover:bg-[var(--color-fill-hover)] hover:text-[var(--color-gray-700)]
+    active:bg-[var(--color-fill-hover-strong)]
+    focus-visible:ring-2 focus-visible:ring-[var(--color-fill-hover-strong)]
   `,
   danger: `
     bg-[var(--color-error-600)] text-white 
     hover:bg-[var(--color-error-700)]
     active:bg-[var(--color-error-800)]
-    focus-visible:ring-[3px] focus-visible:ring-[var(--color-error-100)]
+    focus-visible:ring-2 focus-visible:ring-[var(--color-error-100)]
     shadow-sm hover:shadow
   `,
   success: `
     bg-[var(--color-success-600)] text-white 
     hover:bg-[var(--color-success-700)]
     active:bg-[var(--color-success-800)]
-    focus-visible:ring-[3px] focus-visible:ring-[var(--color-success-100)]
+    focus-visible:ring-2 focus-visible:ring-[var(--color-success-100)]
     shadow-sm hover:shadow
   `,
 };
@@ -100,7 +100,7 @@ export function Button({
     <button
       className={`
         inline-flex items-center justify-center font-medium
-        rounded-xl border border-transparent transition-all duration-150 ease-in-out
+        rounded-xl border border-transparent transition-all duration-200 ease-in-out
         touch-manipulation
         focus:outline-none
         active:scale-[0.97]

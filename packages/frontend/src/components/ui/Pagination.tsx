@@ -17,7 +17,7 @@ export function Pagination({
 
   return (
     <div className="flex items-center justify-between pt-4">
-      <p className="text-sm text-gray-500">
+      <p className="text-sm text-[var(--color-text-secondary)]">
         Página {pagina} de {totalPaginas}
       </p>
       <div className="flex gap-2">

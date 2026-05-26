@@ -15,7 +15,7 @@ const variantClasses: Record<CardVariant, string> = {
     'bg-[var(--color-bg-primary)] border border-[var(--color-border-primary)] shadow-xs ring-1 ring-black/[0.02]',
   elevated: 'bg-[var(--color-bg-primary)] shadow-md border-0',
   outlined: 'bg-transparent border border-[var(--color-border-primary)]',
-  ghost: 'bg-[var(--color-gray-50)] border-0',
+  ghost: 'bg-[var(--color-bg-secondary)] border-0',
 };
 
 const paddingClasses: Record<CardPadding, string> = {
@@ -38,10 +38,10 @@ export function Card({
   const isClickable = !!onClick;
 
   const tagClasses = `
-        min-w-0 max-w-full rounded-2xl transition-all duration-150
+        min-w-0 max-w-full rounded-2xl transition-all duration-200
         ${variantClasses[variant]}
         ${paddingClasses[padding]}
-        ${hover || isClickable ? 'hover:shadow-md hover:border-[var(--color-gray-300)] hover:-translate-y-0.5' : ''}
+        ${hover || isClickable ? 'hover:shadow-sm hover:border-[var(--color-gray-300)] hover:-translate-y-0.5' : ''}
         ${isClickable ? 'cursor-pointer active:scale-[0.99]' : ''}
         ${className}
       `;

@@ -581,7 +581,11 @@ export function createCapturasMapaRoutes(): FastifyPluginAsync {
             required: ['id'],
           },
         },
-        preHandler: [server.authenticate, authorize('colaborador'), validateParams(capturaIdParamsSchema)],
+        preHandler: [
+          server.authenticate,
+          authorize('colaborador'),
+          validateParams(capturaIdParamsSchema),
+        ],
       },
       async (request, reply) => {
         const user = getCurrentUser(request);

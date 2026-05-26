@@ -37,7 +37,7 @@ export function ConfirmDialog({
 
   return (
     <div
-      className={`fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 ${
+      className={`fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-overlay-backdrop)] p-4 ${
         isClosing ? 'animate-fade-out' : 'animate-fade-in'
       }`}
     >

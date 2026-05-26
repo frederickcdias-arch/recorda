@@ -122,12 +122,12 @@ export function Modal({
   if (!open) return null;
 
   const overlayClass = scrollable
-    ? 'fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/55 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] backdrop-blur-sm'
-    : 'fixed inset-0 z-50 flex items-end justify-center bg-black/55 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] backdrop-blur-sm sm:items-center';
+    ? 'fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[var(--color-overlay-backdrop)] px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] backdrop-blur-sm'
+    : 'fixed inset-0 z-50 flex items-end justify-center bg-[var(--color-overlay-backdrop)] px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] backdrop-blur-sm sm:items-center';
 
   const panelClass = scrollable
-    ? `w-full max-w-[calc(100vw-2rem)] ${sizeClasses[size]} rounded-2xl bg-[var(--color-bg-primary)] shadow-2xl`
-    : `flex w-full max-w-[calc(100vw-2rem)] ${sizeClasses[size]} max-h-[min(90vh,calc(100dvh-2rem-env(safe-area-inset-top)-env(safe-area-inset-bottom)))] flex-col rounded-2xl bg-[var(--color-bg-primary)] shadow-2xl`;
+    ? `w-full max-w-[calc(100vw-2rem)] ${sizeClasses[size]} rounded-2xl bg-[var(--color-bg-primary)] shadow-xl`
+    : `flex w-full max-w-[calc(100vw-2rem)] ${sizeClasses[size]} max-h-[min(90vh,calc(100dvh-2rem-env(safe-area-inset-top)-env(safe-area-inset-bottom)))] flex-col rounded-2xl bg-[var(--color-bg-primary)] shadow-xl`;
 
   return (
     <div
@@ -156,7 +156,7 @@ export function Modal({
             type="button"
             onClick={onClose}
             aria-label="Fechar"
-            className="ml-4 -m-1 flex-shrink-0 rounded p-1 text-[var(--color-gray-400)] transition-colors hover:text-[var(--color-gray-600)]"
+            className="ml-4 -m-1 flex-shrink-0 rounded p-1 text-[var(--color-gray-400)] transition-colors hover:bg-[var(--color-fill-hover)] hover:text-[var(--color-gray-600)]"
           >
             <Icon name="x" className="h-5 w-5" />
           </button>

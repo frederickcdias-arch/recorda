@@ -116,7 +116,7 @@ export function AppLayout(): JSX.Element {
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-50 md:hidden">
           <div
-            className="absolute inset-0 bg-black/50 animate-fade-in"
+            className="absolute inset-0 animate-fade-in bg-[var(--color-overlay-backdrop)]"
             onClick={() => setMobileMenuOpen(false)}
           />
           <div className="absolute left-0 top-0 h-full animate-slide-in-left">
@@ -139,7 +139,7 @@ export function AppLayout(): JSX.Element {
         <main className="flex-1 overflow-y-auto overflow-x-hidden px-4 pb-24 pt-4 sm:px-5 md:px-6 md:pb-8 md:pt-6">
           <div
             key={location.pathname}
-            className="mx-auto min-w-0 max-w-[1600px] animate-fade-in-up"
+            className="mx-auto min-w-0 max-w-[1280px] animate-fade-in-up"
           >
             {usuario ? (
               <>

@@ -533,8 +533,7 @@ export function createComunicadosRoutes(): FastifyPluginAsync {
         } catch (error) {
           await client.query('ROLLBACK');
           request.log.error(error);
-          const message =
-            error instanceof Error ? error.message : 'Erro ao atualizar comunicado';
+          const message = error instanceof Error ? error.message : 'Erro ao atualizar comunicado';
           return reply.status(500).send({ error: message });
         } finally {
           client.release();
@@ -951,7 +950,10 @@ export function createComunicadosRoutes(): FastifyPluginAsync {
           });
 
           if (server.webPushService.enabled) {
-            request.log.info({ msg: 'Calling webPushService.sendComunicadoPublicado', comunicadoId: id });
+            request.log.info({
+              msg: 'Calling webPushService.sendComunicadoPublicado',
+              comunicadoId: id,
+            });
             void server.webPushService
               .sendComunicadoPublicado({
                 comunicadoId: id,

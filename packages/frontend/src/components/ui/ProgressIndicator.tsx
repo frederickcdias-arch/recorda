@@ -1,4 +1,4 @@
-/** Visual progress dots showing checklist/produção/relatório completion state. */
+/** Visual progress dots showing checklist/producao/relatorio completion state. */
 
 interface ProgressStep {
   label: string;
@@ -17,16 +17,18 @@ export function ProgressIndicator({ steps, className = '' }: ProgressIndicatorPr
       {steps.map((step, i) => (
         <div key={i} className="flex items-center gap-1" title={step.label}>
           <span
-            className={`w-2 h-2 rounded-full ${
+            className={`h-2 w-2 rounded-full ${
               step.done
                 ? 'bg-primary-600'
                 : step.active
                   ? 'bg-primary-300 animate-pulse'
-                  : 'bg-gray-200'
+                  : 'bg-[var(--color-border-primary)]'
             }`}
           />
           <span
-            className={`text-[10px] leading-none ${step.done ? 'text-primary-700 font-medium' : 'text-gray-400'}`}
+            className={`text-[10px] leading-none ${
+              step.done ? 'font-medium text-primary-700' : 'text-[var(--color-text-tertiary)]'
+            }`}
           >
             {step.label}
           </span>

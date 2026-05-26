@@ -826,10 +826,7 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
 
           const today = new Date().toISOString().slice(0, 10);
           reply.header('Content-Type', 'text/csv; charset=utf-8');
-          reply.header(
-            'Content-Disposition',
-            `attachment; filename="ausencias-${today}.csv"`
-          );
+          reply.header('Content-Disposition', `attachment; filename="ausencias-${today}.csv"`);
 
           return reply.send(lines.join('\n'));
         } catch (error) {
@@ -936,25 +933,29 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
             tipoAusenciaId: r.tipo_ausencia_id as string,
             tipoAusenciaNome: r.tipo_ausencia_nome as string,
             tipoAusenciaCor: r.tipo_ausencia_cor as string,
-            dataInicio: r.data_inicio instanceof Date
-              ? (r.data_inicio as Date).toISOString().split('T')[0]!
-              : String(r.data_inicio ?? ''),
-            dataFim: r.data_fim instanceof Date
-              ? (r.data_fim as Date).toISOString().split('T')[0]!
-              : String(r.data_fim ?? ''),
+            dataInicio:
+              r.data_inicio instanceof Date
+                ? (r.data_inicio as Date).toISOString().split('T')[0]!
+                : String(r.data_inicio ?? ''),
+            dataFim:
+              r.data_fim instanceof Date
+                ? (r.data_fim as Date).toISOString().split('T')[0]!
+                : String(r.data_fim ?? ''),
             periodo: r.periodo as string,
             horasAusencia: r.horas_ausencia != null ? String(r.horas_ausencia) : null,
             status: r.status as string,
             justificativa: r.justificativa as string | null,
             observacoes: r.observacoes as string | null,
             documentoAnexo: r.documento_anexo as string | null,
-            aprovadoEm: r.aprovado_em instanceof Date
-              ? (r.aprovado_em as Date).toISOString()
-              : (r.aprovado_em as string | null),
+            aprovadoEm:
+              r.aprovado_em instanceof Date
+                ? (r.aprovado_em as Date).toISOString()
+                : (r.aprovado_em as string | null),
             motivoRejeicao: r.motivo_rejeicao as string | null,
-            criadoEm: r.criado_em instanceof Date
-              ? (r.criado_em as Date).toISOString()
-              : String(r.criado_em ?? ''),
+            criadoEm:
+              r.criado_em instanceof Date
+                ? (r.criado_em as Date).toISOString()
+                : String(r.criado_em ?? ''),
             diasAusencia: Number(r.dias_ausencia ?? 0),
           }));
 

@@ -164,7 +164,7 @@ function ToastContainer({ toasts, onRemove }: ToastContainerProps): JSX.Element 
 
   return (
     <div
-      className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] left-4 right-4 z-[var(--z-toast)] flex flex-col gap-2 sm:left-auto sm:w-[420px] md:bottom-4"
+      className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] left-4 right-4 z-[var(--z-toast)] flex flex-col gap-2 sm:left-auto sm:w-[380px] md:bottom-4"
       aria-live="assertive"
       aria-atomic="true"
     >

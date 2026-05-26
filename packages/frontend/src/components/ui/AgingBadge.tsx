@@ -1,4 +1,4 @@
-/** Aging badge showing time in current stage with blue/gray color coding. */
+/** Aging badge showing time in current stage with neutral/primary progression. */
 
 function formatDuration(seconds: number): string {
   if (seconds < 3600) return `${Math.floor(seconds / 60)}min`;
@@ -9,7 +9,6 @@ function formatDuration(seconds: number): string {
 
 interface AgingBadgeProps {
   segundos: number;
-  /** Thresholds in seconds: [warning, critical]. Default: [2 days, 5 days] */
   thresholds?: [number, number];
   className?: string;
 }
@@ -21,21 +20,23 @@ export function AgingBadge({
 }: AgingBadgeProps): JSX.Element {
   const [warn, crit] = thresholds;
   let style: string;
+
   if (segundos >= crit) {
-    style = 'bg-gray-300 text-gray-900 font-semibold';
+    style =
+      'bg-[var(--color-bg-tertiary)] text-[var(--color-text-primary)] border border-[var(--color-border-primary)]';
   } else if (segundos >= warn) {
-    style = 'bg-blue-100 text-blue-800';
+    style = 'bg-[var(--color-primary-100)] text-[var(--color-primary-700)]';
   } else {
-    style = 'bg-gray-50 text-gray-500';
+    style = 'bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)]';
   }
 
   return (
     <span
-      className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] ${style} ${className}`}
+      className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium ${style} ${className}`}
       title={`${Math.floor(segundos / 3600)}h na etapa`}
     >
       <svg
-        className="w-3 h-3"
+        className="h-3 w-3"
         fill="none"
         viewBox="0 0 24 24"
         stroke="currentColor"

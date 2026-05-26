@@ -48,13 +48,12 @@ export function PageState({
   if (error) {
     return (
       <div className="mx-auto my-6 max-w-lg rounded-2xl border border-[var(--color-error-200)] bg-[var(--color-bg-primary)] p-6 text-center shadow-xs sm:my-8 sm:p-8">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--color-error-50)]">
-          <Icon name="alert-circle" className="h-8 w-8 text-[var(--color-error-500)]" />
+        <div className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-[var(--color-error-50)]">
+          <Icon name="alert-circle" className="h-5 w-5 text-[var(--color-error-500)]" />
         </div>
-        <h3 className="mb-2 text-lg font-semibold text-[var(--color-text-primary)]">
-          Algo deu errado
+        <h3 className="mb-2 text-base font-semibold text-[var(--color-text-primary)]">
+          {error.message}
         </h3>
-        <p className="mb-2 text-[var(--color-text-secondary)]">{error.message}</p>
         {error.details ? (
           <p className="mb-4 text-sm text-[var(--color-text-tertiary)]">{error.details}</p>
         ) : null}
@@ -69,14 +68,14 @@ export function PageState({
 
   if (empty) {
     return (
-      <div className="rounded-2xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] p-6 text-center shadow-xs sm:p-12">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--color-gray-100)]">
-          <Icon name={empty.icon} className="h-8 w-8 text-[var(--color-gray-400)]" />
+      <div className="rounded-2xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] p-6 text-center shadow-xs sm:p-10">
+        <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[var(--color-gray-100)]">
+          <Icon name={empty.icon} className="h-5 w-5 text-[var(--color-gray-400)]" />
         </div>
-        <h3 className="mb-2 text-lg font-semibold text-[var(--color-text-primary)]">
+        <h3 className="mb-1 text-sm font-semibold text-[var(--color-text-primary)]">
           {empty.title}
         </h3>
-        <p className="mx-auto mb-6 max-w-md text-[var(--color-text-tertiary)]">
+        <p className="mx-auto mb-5 max-w-md text-sm text-[var(--color-text-tertiary)]">
           {empty.description}
         </p>
         {empty.action ? (
