@@ -58,5 +58,5 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 # Expose port
 EXPOSE 3001
 
-# Start the application
-CMD ["node", "packages/backend/dist/main.js"]
+# Run migrations then start the application
+CMD ["sh", "-c", "node packages/backend/dist/infrastructure/database/migrate.js && node packages/backend/dist/main.js"]

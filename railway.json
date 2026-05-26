@@ -1,10 +1,10 @@
 {
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
-    "builder": "NIXPACKS"
+    "builder": "DOCKERFILE",
+    "dockerfilePath": "Dockerfile.backend"
   },
   "deploy": {
-    "startCommand": "npm run migrate --workspace=@recorda/backend && npm run start --workspace=@recorda/backend",
     "healthcheckPath": "/health",
     "healthcheckTimeout": 120
   }
