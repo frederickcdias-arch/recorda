@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useDebounce } from '../../hooks/useDebounce';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { api } from '../../services/api';
@@ -82,6 +83,8 @@ export function ControleQualidadePanel({
   const [confirmConcluir, setConfirmConcluir] = useState(false);
   const [filtroRepo, setFiltroRepo] = useState<string>('TODOS');
   const [buscaRepo, setBuscaRepo] = useState('');
+  const debouncedBusca = useDebounce(busca, 400);
+  const debouncedBuscaRepo = useDebounce(buscaRepo, 400);
   const obsInputRef = useRef<HTMLInputElement>(null);
 
   const avaliarMut = useAvaliarDocumentoCQ();
@@ -302,9 +305,9 @@ export function ControleQualidadePanel({
   const docsFiltrados = docs.filter((doc) => {
     const matchStatus = filtroStatus === 'TODOS' || doc.resultado === filtroStatus;
     const matchBusca =
-      busca === '' ||
-      doc.protocolo.toLowerCase().includes(busca.toLowerCase()) ||
-      (doc.interessado ?? '').toLowerCase().includes(busca.toLowerCase());
+      debouncedBusca === '' ||
+      doc.protocolo.toLowerCase().includes(debouncedBusca.toLowerCase()) ||
+      (doc.interessado ?? '').toLowerCase().includes(debouncedBusca.toLowerCase());
     return matchStatus && matchBusca;
   });
 
@@ -318,9 +321,9 @@ export function ControleQualidadePanel({
   const reposFiltrados = todosRepositoriosCQ.filter((repo) => {
     const matchStatus = filtroRepo === 'TODOS' || repo.status_atual === filtroRepo;
     const matchBusca =
-      buscaRepo === '' ||
-      repo.id_repositorio_ged.toLowerCase().includes(buscaRepo.toLowerCase()) ||
-      repo.orgao.toLowerCase().includes(buscaRepo.toLowerCase());
+      debouncedBuscaRepo === '' ||
+      repo.id_repositorio_ged.toLowerCase().includes(debouncedBuscaRepo.toLowerCase()) ||
+      repo.orgao.toLowerCase().includes(debouncedBuscaRepo.toLowerCase());
     return matchStatus && matchBusca;
   });
 

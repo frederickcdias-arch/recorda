@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useDebounce } from '../../hooks/useDebounce';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Card, CardHeader } from '../../components/ui/Card';
@@ -40,6 +41,7 @@ export function ProjetosPage(): JSX.Element {
   const [formulario, setFormulario] = useState<ProjetoForm>(initialForm);
   const [mostrarForm, setMostrarForm] = useState(false);
   const [busca, setBusca] = useState('');
+  const debouncedBusca = useDebounce(busca, 400);
   const [mensagem, setMensagem] = useState<{ tipo: 'success' | 'error'; texto: string } | null>(
     null
   );
@@ -48,11 +50,11 @@ export function ProjetosPage(): JSX.Element {
   const carregando = projetosQuery.isLoading;
 
   const projetosFiltrados = useMemo(() => {
-    const termo = busca.trim().toLowerCase();
+    const termo = debouncedBusca.trim().toLowerCase();
     if (!termo) return projetos;
 
     return projetos.filter((projeto) => projeto.nome.toLowerCase().includes(termo));
-  }, [busca, projetos]);
+  }, [debouncedBusca, projetos]);
 
   const resetForm = (): void => {
     setFormulario(initialForm);

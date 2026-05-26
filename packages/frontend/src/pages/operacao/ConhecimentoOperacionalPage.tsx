@@ -1,5 +1,6 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useDebounce } from '../../hooks/useDebounce';
 import type { EtapaFluxo } from '@recorda/shared';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -117,6 +118,9 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
   const [selectedId, setSelectedId] = useState('');
   const [buscaGlossario, setBuscaGlossario] = useState('');
   const [buscaLeis, setBuscaLeis] = useState('');
+  const debouncedBusca = useDebounce(busca, 400);
+  const debouncedBuscaGlossario = useDebounce(buscaGlossario, 400);
+  const debouncedBuscaLeis = useDebounce(buscaLeis, 400);
   const [editandoMeta, setEditandoMeta] = useState(false);
   const [editMeta, setEditMeta] = useState({
     titulo: '',
@@ -201,7 +205,7 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
   });
 
   // React Query — Documentos
-  const docsQuery = useConhecimentoDocs({ busca, categoria, etapa: etapaFiltro });
+  const docsQuery = useConhecimentoDocs({ busca: debouncedBusca, categoria, etapa: etapaFiltro });
   const itens = useMemo(() => docsQuery.data?.itens ?? [], [docsQuery.data]);
   const loading = docsQuery.isLoading;
   const error = docsQuery.error
@@ -229,23 +233,23 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
   const leisItens = useMemo(() => leisQuery.data?.itens ?? [], [leisQuery.data]);
 
   const glossarioFiltrado = useMemo(() => {
-    if (!buscaGlossario.trim()) return glossarioItens;
-    const q = buscaGlossario.toLowerCase();
+    if (!debouncedBuscaGlossario.trim()) return glossarioItens;
+    const q = debouncedBuscaGlossario.toLowerCase();
     return glossarioItens.filter(
       (item) => item.termo.toLowerCase().includes(q) || item.definicao.toLowerCase().includes(q)
     );
-  }, [glossarioItens, buscaGlossario]);
+  }, [glossarioItens, debouncedBuscaGlossario]);
 
   const leisFiltradas = useMemo(() => {
-    if (!buscaLeis.trim()) return leisItens;
-    const q = buscaLeis.toLowerCase();
+    if (!debouncedBuscaLeis.trim()) return leisItens;
+    const q = debouncedBuscaLeis.toLowerCase();
     return leisItens.filter(
       (item) =>
         item.nome.toLowerCase().includes(q) ||
         item.descricao.toLowerCase().includes(q) ||
         item.referencia.toLowerCase().includes(q)
     );
-  }, [leisItens, buscaLeis]);
+  }, [leisItens, debouncedBuscaLeis]);
 
   const criarLei = useCriarLeiNorma();
   const atualizarLei = useAtualizarLeiNorma();

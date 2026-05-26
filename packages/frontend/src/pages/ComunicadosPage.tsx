@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useDebounce } from '../hooks/useDebounce';
 import type { ComunicadoPrioridade, ComunicadoUsuarioItem } from '@recorda/shared';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
@@ -39,6 +40,7 @@ export function ComunicadosPage(): JSX.Element {
   const [visao, setVisao] = useState<FiltroVisao>('ativos');
   const [filtro, setFiltro] = useState<FiltroLeitura>('todos');
   const [busca, setBusca] = useState('');
+  const debouncedBusca = useDebounce(busca, 400);
   const [prioridade, setPrioridade] = useState<FiltroPrioridade>('todas');
   const [ordenacao, setOrdenacao] = useState<FiltroOrdenacao>('mais-recentes');
 
@@ -51,7 +53,7 @@ export function ComunicadosPage(): JSX.Element {
 
   const itensFiltrados = useMemo(() => {
     const base = visao === 'historico' ? historico : ativos;
-    const termo = busca.trim().toLowerCase();
+    const termo = debouncedBusca.trim().toLowerCase();
     const filtrados = base.filter((item) => {
       if (filtro === 'nao-lidos' && !isNaoLido(item)) return false;
       if (filtro === 'lidos' && isNaoLido(item)) return false;
@@ -78,7 +80,7 @@ export function ComunicadosPage(): JSX.Element {
         new Date(a.publicadoEm ?? a.criadoEm).getTime()
       );
     });
-  }, [ativos, busca, filtro, historico, ordenacao, prioridade, visao]);
+  }, [ativos, debouncedBusca, filtro, historico, ordenacao, prioridade, visao]);
 
   const handleMarcarComoLido = async (comunicadoId: string): Promise<void> => {
     try {
