@@ -13,3 +13,12 @@ tools/
 
 .vercel
 .claude/
+
+# Playwright MCP artifacts
+.playwright-mcp/
+
+# Screenshots de testes/sessões de debug
+phase6-*.png
+phase7-*.png
+phase8-*.png
+phase*.png
