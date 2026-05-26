@@ -45,6 +45,12 @@ export const menuSections: MenuSection[] = [
         path: '/minha-producao/historico',
       },
       {
+        id: 'minhas-ausencias',
+        label: 'Justificativas de Ausência',
+        icon: 'calendar',
+        path: '/minha-producao/ausencias',
+      },
+      {
         id: 'captura-mapa',
         label: 'Captura de Mapas',
         icon: 'camera',
@@ -114,6 +120,13 @@ export const menuSections: MenuSection[] = [
         label: 'Exportações',
         icon: 'download',
         path: '/relatorios/exportacoes',
+      },
+      {
+        id: 'relatorios-ausencias',
+        label: 'Ausências',
+        icon: 'calendar',
+        path: '/relatorios/ausencias',
+        allowedProfiles: ['administrador'],
       },
     ],
   },

@@ -175,6 +175,45 @@ class ApiService {
     window.URL.revokeObjectURL(url);
   }
 
+  /**
+   * Fetches a file attachment with authentication and opens it in a new tab.
+   * Preserves the server-returned Content-Type so the browser can render it inline.
+   * Falls back to a download link if the browser blocks the pop-up.
+   */
+  async openAnexo(endpoint: string): Promise<void> {
+    const response = await this.fetchWithAuth(endpoint);
+
+    if (response.status === 401) {
+      clearTokens();
+      window.location.href = '/login';
+      throw new Error('Sessão expirada. Faça login novamente.');
+    }
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({})) as { error?: string };
+      throw new Error(errorData.error ?? `Erro ${response.status}`);
+    }
+
+    const contentType = response.headers.get('Content-Type') ?? 'application/octet-stream';
+    const arrayBuffer = await response.arrayBuffer();
+    const blob = new Blob([arrayBuffer], { type: contentType });
+    const url = URL.createObjectURL(blob);
+
+    const tab = window.open(url, '_blank');
+    if (!tab) {
+      // Pop-up blocked — fall back to an anchor download
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = '';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    // Defer cleanup to give the new tab time to load the blob URL
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  }
+
   async get<T>(endpoint: string, options?: ApiOptions): Promise<T> {
     return this.request<T>(endpoint, { ...options, method: 'GET' });
   }

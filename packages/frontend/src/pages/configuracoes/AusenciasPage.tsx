@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '../../components/ui/Button';
 import { Card, CardHeader } from '../../components/ui/Card';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
@@ -7,6 +7,7 @@ import { Modal } from '../../components/ui/Modal';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { Select } from '../../components/ui/Select';
 import { FilterBar } from '../../components/ui/FilterBar';
+import { api } from '../../services/api';
 import {
   Table,
   TableBody,
@@ -27,8 +28,11 @@ import {
   useQueryClient,
   useRejeitarAusencia,
   useUsuariosColaboradores,
+  useTiposAusencia,
+  useCriarAusenciaAdmin,
+  useCancelarAusenciaAdmin,
 } from '../../hooks/useQueries';
-import type { AusenciaAdminItem, ListarAusenciasAdminParams } from '@recorda/shared';
+import type { AusenciaAdminItem, ListarAusenciasAdminParams, TipoAusencia } from '@recorda/shared';
 
 const STATUS_OPTIONS = [
   { value: 'TODOS', label: 'Todos' },
@@ -37,6 +41,22 @@ const STATUS_OPTIONS = [
   { value: 'rejeitado', label: 'Rejeitado' },
   { value: 'cancelado', label: 'Cancelado' },
 ] as const;
+
+const STATUS_LANCAMENTO_OPTIONS = [
+  { value: 'pendente', label: 'Pendente (aguarda aprovação)' },
+  { value: 'aprovado', label: 'Aprovado (lançamento direto)' },
+] as const;
+
+const PERIODO_OPTIONS = [
+  { value: 'dia_completo', label: 'Dia completo' },
+  { value: 'meio_periodo_manha', label: 'Meio período (manhã)' },
+  { value: 'meio_periodo_tarde', label: 'Meio período (tarde)' },
+  { value: 'horas', label: 'Por horas' },
+] as const;
+
+const ALLOWED_MIME = ['application/pdf', 'image/jpeg', 'image/png'];
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const ALLOWED_EXT_LABEL = 'PDF, JPG ou PNG — máx. 5 MB';
 
 const STATUS_LABELS: Record<string, string> = {
   pendente: 'Pendente',
@@ -103,6 +123,354 @@ function getPeriodoLabel(periodo: string): string {
   }
 }
 
+// ─── Lançar Ausência Modal ────────────────────────────────────────────────────
+
+interface LancarAusenciaModalProps {
+  open: boolean;
+  onClose: () => void;
+  colaboradores: { id: string; nome: string; email: string }[];
+  tipos: TipoAusencia[];
+  onSuccess: (msg: string) => void;
+  onError: (msg: string) => void;
+}
+
+function LancarAusenciaModal({
+  open,
+  onClose,
+  colaboradores,
+  tipos,
+  onSuccess,
+  onError,
+}: LancarAusenciaModalProps): JSX.Element {
+  const criarMutation = useCriarAusenciaAdmin();
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const [usuarioId, setUsuarioId] = useState('');
+  const [tipoAusenciaId, setTipoAusenciaId] = useState('');
+  const [dataInicio, setDataInicio] = useState('');
+  const [dataFim, setDataFim] = useState('');
+  const [periodo, setPeriodo] = useState<'dia_completo' | 'meio_periodo_manha' | 'meio_periodo_tarde' | 'horas'>('dia_completo');
+  const [horasAusencia, setHorasAusencia] = useState('');
+  const [statusInicial, setStatusInicial] = useState<'pendente' | 'aprovado'>('pendente');
+  const [justificativa, setJustificativa] = useState('');
+  const [observacoes, setObservacoes] = useState('');
+  const [arquivo, setArquivo] = useState<File | null>(null);
+  const [arquivoErro, setArquivoErro] = useState('');
+  const [erros, setErros] = useState<Record<string, string>>({});
+
+  const tipoSelecionado = tipos.find((t) => t.id === tipoAusenciaId) ?? null;
+
+  function resetForm(): void {
+    setUsuarioId('');
+    setTipoAusenciaId('');
+    setDataInicio('');
+    setDataFim('');
+    setPeriodo('dia_completo');
+    setHorasAusencia('');
+    setStatusInicial('pendente');
+    setJustificativa('');
+    setObservacoes('');
+    setArquivo(null);
+    setArquivoErro('');
+    setErros({});
+    if (fileRef.current) fileRef.current.value = '';
+  }
+
+  function handleClose(): void {
+    resetForm();
+    onClose();
+  }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>): void {
+    const file = e.target.files?.[0] ?? null;
+    if (!file) {
+      setArquivo(null);
+      setArquivoErro('');
+      return;
+    }
+    if (!ALLOWED_MIME.includes(file.type)) {
+      setArquivo(null);
+      setArquivoErro(`Formato inválido. Aceito: ${ALLOWED_EXT_LABEL}`);
+      if (fileRef.current) fileRef.current.value = '';
+      return;
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      setArquivo(null);
+      setArquivoErro('Arquivo muito grande. Máximo permitido: 5 MB.');
+      if (fileRef.current) fileRef.current.value = '';
+      return;
+    }
+    setArquivo(file);
+    setArquivoErro('');
+  }
+
+  function validate(): boolean {
+    const e: Record<string, string> = {};
+    if (!usuarioId) e.usuarioId = 'Selecione um colaborador.';
+    if (!tipoAusenciaId) e.tipoAusenciaId = 'Selecione o tipo de ausência.';
+    if (!dataInicio) e.dataInicio = 'Informe a data de início.';
+    if (!dataFim) e.dataFim = 'Informe a data de fim.';
+    if (dataInicio && dataFim && dataFim < dataInicio) e.dataFim = 'Data fim não pode ser anterior à data início.';
+    if (periodo === 'horas') {
+      const h = Number(horasAusencia);
+      if (!horasAusencia || isNaN(h) || h <= 0 || h > 24) e.horasAusencia = 'Informe um valor entre 0.5 e 24.';
+    }
+    if (tipoSelecionado?.requerJustificativa && !justificativa.trim()) {
+      e.justificativa = 'Este tipo exige justificativa.';
+    }
+    if (tipoSelecionado?.requerDocumento && !arquivo) {
+      if (!observacoes.trim()) {
+        e.observacoes = 'Este tipo exige documento. Sem anexo, forneça observação explicando o motivo.';
+      }
+    }
+    setErros(e);
+    return Object.keys(e).length === 0;
+  }
+
+  async function handleSubmit(e: React.FormEvent): Promise<void> {
+    e.preventDefault();
+    if (!validate()) return;
+
+    const payload = new FormData();
+    payload.set('usuarioId', usuarioId);
+    payload.set('tipoAusenciaId', tipoAusenciaId);
+    payload.set('dataInicio', dataInicio);
+    payload.set('dataFim', dataFim);
+    payload.set('periodo', periodo);
+    if (periodo === 'horas' && horasAusencia) payload.set('horasAusencia', horasAusencia);
+    payload.set('status', statusInicial);
+    if (justificativa.trim()) payload.set('justificativa', justificativa.trim());
+    if (observacoes.trim()) payload.set('observacoes', observacoes.trim());
+    if (arquivo) payload.set('documento', arquivo, arquivo.name);
+
+    try {
+      await criarMutation.mutateAsync(payload);
+      const label = statusInicial === 'aprovado' ? 'aprovada' : 'registrada como pendente';
+      onSuccess(`Ausência ${label} com sucesso.`);
+      handleClose();
+    } catch (err: unknown) {
+      const msg =
+        err && typeof err === 'object' && 'error' in err
+          ? String((err as { error: string }).error)
+          : 'Erro ao registrar ausência.';
+      onError(msg);
+    }
+  }
+
+  const isSaving = criarMutation.status === 'pending';
+
+  return (
+    <Modal
+      open={open}
+      onClose={handleClose}
+      title="Lançar ausência"
+      subtitle="Registre uma ausência diretamente para um colaborador."
+      size="lg"
+      scrollable
+    >
+      <form onSubmit={(e) => void handleSubmit(e)} noValidate>
+        <div className="space-y-4 p-5">
+
+          {/* Colaborador */}
+          <div>
+            <Select
+              label="Colaborador *"
+              value={usuarioId}
+              onChange={(e) => setUsuarioId(e.target.value)}
+              options={[
+                { value: '', label: 'Selecione um colaborador' },
+                ...colaboradores.map((u) => ({
+                  value: u.id,
+                  label: `${u.nome} (${u.email})`,
+                })),
+              ]}
+            />
+            {erros.usuarioId ? (
+              <p className="mt-1 text-xs text-[var(--color-error-600)]">{erros.usuarioId}</p>
+            ) : null}
+          </div>
+
+          {/* Tipo de ausência */}
+          <div>
+            <Select
+              label="Tipo de ausência *"
+              value={tipoAusenciaId}
+              onChange={(e) => setTipoAusenciaId(e.target.value)}
+              options={[
+                { value: '', label: 'Selecione o tipo' },
+                ...tipos.map((t) => ({ value: t.id, label: t.nome })),
+              ]}
+            />
+            {erros.tipoAusenciaId ? (
+              <p className="mt-1 text-xs text-[var(--color-error-600)]">{erros.tipoAusenciaId}</p>
+            ) : null}
+            {tipoSelecionado ? (
+              <p className="mt-1 text-xs text-[var(--color-text-tertiary)]">
+                {tipoSelecionado.requerJustificativa ? '⚠ Exige justificativa. ' : ''}
+                {tipoSelecionado.requerDocumento ? '⚠ Exige documento. ' : ''}
+                {tipoSelecionado.descontaSalario ? '⚠ Desconta salário.' : ''}
+              </p>
+            ) : null}
+          </div>
+
+          {/* Datas */}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <Input
+                label="Data de início *"
+                type="date"
+                value={dataInicio}
+                onChange={(e) => setDataInicio(e.target.value)}
+              />
+              {erros.dataInicio ? (
+                <p className="mt-1 text-xs text-[var(--color-error-600)]">{erros.dataInicio}</p>
+              ) : null}
+            </div>
+            <div>
+              <Input
+                label="Data de fim *"
+                type="date"
+                value={dataFim}
+                onChange={(e) => setDataFim(e.target.value)}
+              />
+              {erros.dataFim ? (
+                <p className="mt-1 text-xs text-[var(--color-error-600)]">{erros.dataFim}</p>
+              ) : null}
+            </div>
+          </div>
+
+          {/* Período + Horas */}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <Select
+                label="Período *"
+                value={periodo}
+                onChange={(e) =>
+                  setPeriodo(
+                    e.target.value as 'dia_completo' | 'meio_periodo_manha' | 'meio_periodo_tarde' | 'horas'
+                  )
+                }
+                options={PERIODO_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
+              />
+            </div>
+            {periodo === 'horas' ? (
+              <div>
+                <Input
+                  label="Horas de ausência *"
+                  type="number"
+                  min={0.5}
+                  max={24}
+                  step={0.5}
+                  value={horasAusencia}
+                  onChange={(e) => setHorasAusencia(e.target.value)}
+                  placeholder="Ex: 4"
+                />
+                {erros.horasAusencia ? (
+                  <p className="mt-1 text-xs text-[var(--color-error-600)]">{erros.horasAusencia}</p>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+
+          {/* Status inicial */}
+          <div>
+            <Select
+              label="Status inicial *"
+              value={statusInicial}
+              onChange={(e) => setStatusInicial(e.target.value as 'pendente' | 'aprovado')}
+              options={STATUS_LANCAMENTO_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
+            />
+            {statusInicial === 'aprovado' ? (
+              <p className="mt-1 text-xs font-medium text-[var(--color-success-700)]">
+                A ausência será registrada como já aprovada.
+              </p>
+            ) : null}
+          </div>
+
+          {/* Justificativa */}
+          <div>
+            <label
+              htmlFor="justificativa-ausencia"
+              className="mb-1.5 block text-sm font-medium text-[var(--color-text-primary)]"
+            >
+              Justificativa{tipoSelecionado?.requerJustificativa ? ' *' : ''}
+            </label>
+            <textarea
+              id="justificativa-ausencia"
+              value={justificativa}
+              onChange={(e) => setJustificativa(e.target.value)}
+              rows={3}
+              className="w-full rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-3 text-sm text-[var(--color-text-primary)] outline-none transition focus:border-[var(--color-primary-600)] focus:ring-2 focus:ring-[var(--color-primary-200)]"
+              placeholder="Justificativa da ausência"
+            />
+            {erros.justificativa ? (
+              <p className="mt-1 text-xs text-[var(--color-error-600)]">{erros.justificativa}</p>
+            ) : null}
+          </div>
+
+          {/* Documento anexo */}
+          <div>
+            <label
+              htmlFor="documento-anexo-ausencia"
+              className="mb-1.5 block text-sm font-medium text-[var(--color-text-primary)]"
+            >
+              Documento anexo{tipoSelecionado?.requerDocumento ? ' (exigido pelo tipo)' : ' (opcional)'}
+            </label>
+            <input
+              id="documento-anexo-ausencia"
+              ref={fileRef}
+              type="file"
+              accept=".pdf,.jpg,.jpeg,.png"
+              onChange={handleFileChange}
+              className="block w-full text-sm text-[var(--color-text-secondary)] file:mr-3 file:rounded-lg file:border-0 file:bg-[var(--color-primary-50)] file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-[var(--color-primary-700)] hover:file:bg-[var(--color-primary-100)]"
+            />
+            <p className="mt-1 text-xs text-[var(--color-text-tertiary)]">{ALLOWED_EXT_LABEL}</p>
+            {arquivo ? (
+              <p className="mt-1 text-xs text-[var(--color-success-700)]">
+                Arquivo selecionado: {arquivo.name}
+              </p>
+            ) : null}
+            {arquivoErro ? (
+              <p className="mt-1 text-xs text-[var(--color-error-600)]">{arquivoErro}</p>
+            ) : null}
+          </div>
+
+          {/* Observações */}
+          <div>
+            <label
+              htmlFor="observacoes-ausencia"
+              className="mb-1.5 block text-sm font-medium text-[var(--color-text-primary)]"
+            >
+              Observações{tipoSelecionado?.requerDocumento && !arquivo ? ' * (obrigatória sem anexo)' : ' (opcional)'}
+            </label>
+            <textarea
+              id="observacoes-ausencia"
+              value={observacoes}
+              onChange={(e) => setObservacoes(e.target.value)}
+              rows={2}
+              className="w-full rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-3 text-sm text-[var(--color-text-primary)] outline-none transition focus:border-[var(--color-primary-600)] focus:ring-2 focus:ring-[var(--color-primary-200)]"
+              placeholder="Observações administrativas"
+            />
+            {erros.observacoes ? (
+              <p className="mt-1 text-xs text-[var(--color-error-600)]">{erros.observacoes}</p>
+            ) : null}
+          </div>
+
+        </div>
+
+        <div className="flex justify-end gap-2 border-t border-[var(--color-border-primary)] px-5 py-4">
+          <Button variant="secondary" type="button" onClick={handleClose} disabled={isSaving}>
+            Cancelar
+          </Button>
+          <Button variant="primary" type="submit" loading={isSaving}>
+            Registrar ausência
+          </Button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
 export function AusenciasPage(): JSX.Element {
   const [filters, setFilters] = useState<ListarAusenciasAdminParams>({
     pagina: 1,
@@ -115,6 +483,9 @@ export function AusenciasPage(): JSX.Element {
   const debouncedBusca = useDebounce(buscaInput, 400);
   const [motivoRejeicao, setMotivoRejeicao] = useState('');
   const [rejeicaoAberta, setRejeicaoAberta] = useState(false);
+  const [lancamentoAberto, setLancamentoAberto] = useState(false);
+  const [cancelamentoAberto, setCancelamentoAberto] = useState(false);
+  const [motivoCancelamento, setMotivoCancelamento] = useState('');
   const [selecionada, setSelecionada] = useState<AusenciaAdminItem | null>(null);
   const [mensagemAcao, setMensagemAcao] = useState<{
     tipo: 'success' | 'error';
@@ -125,9 +496,11 @@ export function AusenciasPage(): JSX.Element {
   const toast = useToastHelpers();
   const confirmDialog = useConfirmDialog();
   const usuariosQuery = useUsuariosColaboradores();
+  const tiposQuery = useTiposAusencia();
   const ausenciasQuery = useAusenciasAdmin(filters);
   const aprovarAusencia = useAprovarAusencia();
   const rejeitarAusencia = useRejeitarAusencia();
+  const cancelarAusencia = useCancelarAusenciaAdmin();
 
   const ausencias = useMemo<AusenciaAdminItem[]>(
     () => ausenciasQuery.data?.itens ?? [],
@@ -232,12 +605,49 @@ export function AusenciasPage(): JSX.Element {
     setMotivoRejeicao('');
   };
 
+  const handleAbrirCancelamento = (ausencia: AusenciaAdminItem): void => {
+    setSelecionada(ausencia);
+    setMotivoCancelamento('');
+    setCancelamentoAberto(true);
+  };
+
+  const handleFecharCancelamento = (): void => {
+    setCancelamentoAberto(false);
+    setSelecionada(null);
+    setMotivoCancelamento('');
+  };
+
+  const handleConfirmarCancelamento = async (): Promise<void> => {
+    if (!selecionada) return;
+    if (!motivoCancelamento.trim()) {
+      toast.error('Informe o motivo do cancelamento.');
+      return;
+    }
+    try {
+      await cancelarAusencia.mutateAsync({
+        id: selecionada.id,
+        body: { observacoes: motivoCancelamento.trim() },
+      });
+      setMensagemAcao({ tipo: 'success', texto: 'Ausência cancelada com sucesso.' });
+      handleFecharCancelamento();
+      await invalidarAusencias();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Erro ao cancelar ausência';
+      setMensagemAcao({ tipo: 'error', texto: message });
+    }
+  };
+
   return (
     <PageState loading={carregando} loadingMessage="Carregando ausências..." error={erro}>
       <div className="space-y-6">
         <PageHeader
           title="Justificativas de Ausência"
-          subtitle="Acompanhe, aprove e rejeite solicitações de ausência dos colaboradores."
+          subtitle="Acompanhe, aprove, rejeite e lance ausências dos colaboradores."
+          actions={
+            <Button variant="primary" onClick={() => setLancamentoAberto(true)}>
+              Lançar ausência
+            </Button>
+          }
         />
 
         {mensagemAcao ? (
@@ -405,6 +815,15 @@ export function AusenciasPage(): JSX.Element {
                         {(ausencia.status === 'aprovado' || ausencia.status === 'rejeitado') && ausencia.aprovadoEm ? (
                           <p className="text-xs text-[var(--color-text-tertiary)]">{formatDate(ausencia.aprovadoEm)}</p>
                         ) : null}
+                        {ausencia.documentoAnexo ? (
+                          <button
+                            type="button"
+                            onClick={() => void api.openAnexo(`/admin/ausencias/${ausencia.id}/anexo`)}
+                            className="text-xs font-medium text-[var(--color-primary-700)] underline underline-offset-2 hover:text-[var(--color-primary-900)] transition-colors"
+                          >
+                            📎 Ver anexo
+                          </button>
+                        ) : null}
                       </div>
                     </TableCell>
                     <TableCell hideOnMobile>
@@ -442,7 +861,22 @@ export function AusenciasPage(): JSX.Element {
                             >
                               Rejeitar
                             </Button>
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => handleAbrirCancelamento(ausencia)}
+                            >
+                              Cancelar
+                            </Button>
                           </>
+                        ) : ausencia.status === 'aprovado' ? (
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => handleAbrirCancelamento(ausencia)}
+                          >
+                            Cancelar
+                          </Button>
                         ) : (
                           <span className="text-xs text-[var(--color-text-secondary)]">
                             Sem ações disponíveis
@@ -499,6 +933,49 @@ export function AusenciasPage(): JSX.Element {
             </div>
           </div>
         </Modal>
+
+        <Modal
+          open={cancelamentoAberto}
+          onClose={handleFecharCancelamento}
+          title="Cancelar ausência"
+          subtitle={selecionada ? `${selecionada.usuarioNome} • ${formatDate(selecionada.dataInicio)} até ${formatDate(selecionada.dataFim)}` : undefined}
+          size="md"
+        >
+          <div className="space-y-4 p-5">
+            <p className="text-sm text-[var(--color-text-secondary)]">
+              Informe o motivo administrativo para cancelar esta ausência.
+              Esta ação não pode ser desfeita.
+            </p>
+            <textarea
+              value={motivoCancelamento}
+              onChange={(e) => setMotivoCancelamento(e.target.value)}
+              rows={4}
+              className="w-full rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-3 text-sm text-[var(--color-text-primary)] outline-none transition focus:border-[var(--color-primary-600)] focus:ring-2 focus:ring-[var(--color-primary-200)]"
+              placeholder="Motivo do cancelamento"
+            />
+            <div className="flex justify-end gap-2">
+              <Button variant="secondary" onClick={handleFecharCancelamento}>
+                Voltar
+              </Button>
+              <Button
+                variant="danger"
+                onClick={() => void handleConfirmarCancelamento()}
+                loading={cancelarAusencia.status === 'pending'}
+              >
+                Confirmar cancelamento
+              </Button>
+            </div>
+          </div>
+        </Modal>
+
+        <LancarAusenciaModal
+          open={lancamentoAberto}
+          onClose={() => setLancamentoAberto(false)}
+          colaboradores={usuariosQuery.data ?? []}
+          tipos={(tiposQuery.data?.tipos ?? []).filter((t) => t.ativo)}
+          onSuccess={(msg) => setMensagemAcao({ tipo: 'success', texto: msg })}
+          onError={(msg) => setMensagemAcao({ tipo: 'error', texto: msg })}
+        />
 
         <ConfirmDialog
           state={confirmDialog.state}

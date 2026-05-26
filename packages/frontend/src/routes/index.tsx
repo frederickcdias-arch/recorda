@@ -47,6 +47,11 @@ const RelatoriosGerenciaisPage = lazy(() =>
 const ExportacoesPage = lazy(() =>
   import('../pages/relatorios/ExportacoesPage').then((m) => ({ default: m.ExportacoesPage }))
 );
+const RelatorioAusenciasPage = lazy(() =>
+  import('../pages/relatorios/RelatorioAusenciasPage').then((m) => ({
+    default: m.RelatorioAusenciasPage,
+  }))
+);
 const EmpresaPage = lazy(() =>
   import('../pages/configuracoes/EmpresaPage').then((m) => ({ default: m.EmpresaPage }))
 );
@@ -87,6 +92,11 @@ const ComunicadosAdminPage = lazy(() =>
 const AusenciasPage = lazy(() =>
   import('../pages/configuracoes/AusenciasPage').then((m) => ({
     default: m.AusenciasPage,
+  }))
+);
+const MinhasAusenciasPage = lazy(() =>
+  import('../pages/colaborador/MinhasAusenciasPage').then((m) => ({
+    default: m.MinhasAusenciasPage,
   }))
 );
 const DevolucoesPage = lazy(() =>
@@ -214,6 +224,16 @@ export const router = createBrowserRouter([
         ),
       },
       {
+        path: 'minha-producao/ausencias',
+        element: (
+          <RoleRoute allowedProfiles={['colaborador']}>
+            <PageSuspense>
+              <MinhasAusenciasPage />
+            </PageSuspense>
+          </RoleRoute>
+        ),
+      },
+      {
         path: 'operacao',
         element: <Navigate to="/operacao/recebimento" replace />,
       },
@@ -267,6 +287,16 @@ export const router = createBrowserRouter([
           <RoleRoute allowedProfiles={['operador', 'administrador']}>
             <PageSuspense>
               <ExportacoesPage />
+            </PageSuspense>
+          </RoleRoute>
+        ),
+      },
+      {
+        path: 'relatorios/ausencias',
+        element: (
+          <RoleRoute allowedProfiles={['administrador']}>
+            <PageSuspense>
+              <RelatorioAusenciasPage />
             </PageSuspense>
           </RoleRoute>
         ),

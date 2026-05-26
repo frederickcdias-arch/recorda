@@ -1,10 +1,14 @@
+import { randomUUID } from 'node:crypto';
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
+import '@fastify/multipart';
+import { saveAusenciaAnexo, serveAusenciaAnexo } from '../../services/file-storage.js';
 import type {
   ListarAusenciasAdminParams,
   ListarAusenciasAdminResponse,
   AusenciaAdminItem,
   AprovarAusenciaDTO,
   RejeitarAusenciaDTO,
+  CancelarAusenciaAdminDTO,
 } from '@recorda/shared';
 import { authorize } from '../middleware/auth.js';
 import { validateBody, validateParams, validateQuery } from '../middleware/validate.js';
@@ -33,6 +37,22 @@ const aprovarAusenciaSchema = z.object({
 
 const rejeitarAusenciaSchema = z.object({
   motivoRejeicao: z.string().trim().min(3).max(1000),
+});
+
+const criarAusenciaAdminSchema = z.object({
+  usuarioId: z.string().uuid('usuarioId inválido'),
+  tipoAusenciaId: z.string().uuid('tipoAusenciaId inválido'),
+  dataInicio: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'dataInicio inválida (YYYY-MM-DD)'),
+  dataFim: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'dataFim inválida (YYYY-MM-DD)'),
+  periodo: z.enum(['dia_completo', 'meio_periodo_manha', 'meio_periodo_tarde', 'horas']),
+  horasAusencia: z.number().positive().max(24).optional(),
+  justificativa: z.string().trim().min(1).max(2000).optional(),
+  observacoes: z.string().trim().max(2000).optional(),
+  status: z.enum(['pendente', 'aprovado']).default('pendente'),
+});
+
+const cancelarAusenciaAdminSchema = z.object({
+  observacoes: z.string().trim().min(3, 'Observações deve ter pelo menos 3 caracteres').max(1000),
 });
 
 function toIsoString(value: string | Date | null | undefined): string | null {
@@ -165,6 +185,29 @@ async function setAuditUser(
   userId: string
 ): Promise<void> {
   await client.query(`SELECT set_config('app.current_user_id', $1, true)`, [userId]);
+}
+
+async function enviarNotificacaoAusencia(
+  server: FastifyInstance,
+  adminId: string,
+  usuarioId: string,
+  titulo: string,
+  conteudo: string
+): Promise<void> {
+  try {
+    await server.database.query(
+      `WITH ins AS (
+         INSERT INTO comunicados (titulo, conteudo, prioridade, escopo_destino, status, criado_por_usuario_id, publicado_em)
+         VALUES ($1, $2, 'MEDIA', 'USUARIOS_ESPECIFICOS', 'PUBLICADO', $3, CURRENT_TIMESTAMP)
+         RETURNING id
+       )
+       INSERT INTO comunicado_destinatarios (comunicado_id, usuario_id)
+       SELECT ins.id, $4 FROM ins`,
+      [titulo, conteudo, adminId, usuarioId]
+    );
+  } catch {
+    // best-effort — do not fail the main action if notification fails
+  }
 }
 
 interface VincularProducoesBody {
@@ -834,6 +877,14 @@ export function createAdminRoutes(): FastifyPluginAsync {
 
           await client.query('COMMIT');
 
+          void enviarNotificacaoAusencia(
+            server,
+            user.id,
+            updatedAusencia.usuario_id,
+            'Ausência aprovada',
+            `Sua solicitação de ausência (${updatedAusencia.tipo_ausencia_nome}) foi aprovada.`
+          );
+
           return reply.send({ ausencia: mapAusenciaAdmin(updatedAusencia) });
         } catch (error) {
           await client.query('ROLLBACK');
@@ -933,6 +984,14 @@ export function createAdminRoutes(): FastifyPluginAsync {
 
           await client.query('COMMIT');
 
+          void enviarNotificacaoAusencia(
+            server,
+            user.id,
+            updatedAusencia.usuario_id,
+            'Ausência rejeitada',
+            `Sua solicitação de ausência (${updatedAusencia.tipo_ausencia_nome}) foi rejeitada. Motivo: ${motivoRejeicao}`
+          );
+
           return reply.send({ ausencia: mapAusenciaAdmin(updatedAusencia) });
         } catch (error) {
           await client.query('ROLLBACK');
@@ -941,6 +1000,386 @@ export function createAdminRoutes(): FastifyPluginAsync {
           return reply.status(500).send({ error: message });
         } finally {
           client.release();
+        }
+      }
+    );
+
+    // POST /admin/ausencias — admin creates an absence for a collaborator
+    server.post(
+      '/admin/ausencias',
+      {
+        schema: {
+          tags: ['admin'],
+          summary: 'Criar ausência para um colaborador (administrador)',
+          security: [{ bearerAuth: [] }],
+        },
+        preHandler: [
+          server.authenticate,
+          authorize('administrador'),
+        ],
+      },
+      async (request, reply) => {
+        const adminUser = getCurrentUser(request);
+
+        // ─── Parse body: multipart/form-data or JSON ───────────────────────
+        let body: z.infer<typeof criarAusenciaAdminSchema>;
+        let uploadedFile: { filename: string; mimetype: string; buffer: Buffer } | null = null;
+
+        const contentType = request.headers['content-type'] ?? '';
+        if (contentType.includes('multipart/form-data')) {
+          const rawFields: Record<string, unknown> = {};
+          try {
+            for await (const part of request.parts()) {
+              if (part.type === 'file') {
+                if (uploadedFile !== null) {
+                  await part.toBuffer().catch(() => {});
+                  continue;
+                }
+                const buffer = await part.toBuffer();
+                uploadedFile = { filename: part.filename, mimetype: part.mimetype, buffer };
+              } else {
+                rawFields[part.fieldname] = part.value;
+              }
+            }
+          } catch (err) {
+            if ((err as Error & { code?: string }).code === 'FST_REQ_FILE_TOO_LARGE') {
+              return reply
+                .status(400)
+                .send({ error: 'Arquivo muito grande. Máximo permitido: 5 MB.' });
+            }
+            throw err;
+          }
+          if (typeof rawFields.horasAusencia === 'string' && rawFields.horasAusencia !== '') {
+            rawFields.horasAusencia = Number(rawFields.horasAusencia);
+          }
+          const pr = criarAusenciaAdminSchema.safeParse(rawFields);
+          if (!pr.success) {
+            const messages = pr.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`);
+            return reply.status(400).send({ error: 'Dados inválidos', details: messages });
+          }
+          body = pr.data;
+        } else {
+          const pr = criarAusenciaAdminSchema.safeParse(request.body);
+          if (!pr.success) {
+            const messages = pr.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`);
+            return reply.status(400).send({ error: 'Dados inválidos', details: messages });
+          }
+          body = pr.data;
+        }
+
+        // ─── DB transaction ────────────────────────────────────────────────
+        const client = await server.database.pool.connect();
+
+        try {
+          await client.query('BEGIN');
+          await setAuditUser(client, adminUser.id);
+
+          // Validate date range
+          if (body.dataFim < body.dataInicio) {
+            await client.query('ROLLBACK');
+            return reply
+              .status(400)
+              .send({ error: 'A data de fim não pode ser anterior à data de início' });
+          }
+
+          // Validate horas when periodo=horas
+          if (body.periodo === 'horas' && !body.horasAusencia) {
+            await client.query('ROLLBACK');
+            return reply
+              .status(400)
+              .send({ error: 'horasAusencia é obrigatório quando período é "horas"' });
+          }
+
+          // Verify target user exists and is colaborador
+          const userCheck = await client.query<{ id: string; perfil: string; nome: string }>(
+            `SELECT id, perfil, nome FROM usuarios WHERE id = $1`,
+            [body.usuarioId]
+          );
+          if (userCheck.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return reply.status(404).send({ error: 'Usuário não encontrado' });
+          }
+          const targetUser = userCheck.rows[0]!;
+          if (targetUser.perfil !== 'colaborador') {
+            await client.query('ROLLBACK');
+            return reply
+              .status(400)
+              .send({ error: 'O usuário selecionado não possui perfil de colaborador' });
+          }
+
+          // Fetch and validate tipo_ausencia
+          const tipoResult = await client.query<{
+            id: string;
+            nome: string;
+            requer_justificativa: boolean;
+            requer_documento: boolean;
+            ativo: boolean;
+          }>(
+            `SELECT id, nome, requer_justificativa, requer_documento, ativo
+             FROM tipos_ausencia
+             WHERE id = $1`,
+            [body.tipoAusenciaId]
+          );
+          if (tipoResult.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return reply.status(404).send({ error: 'Tipo de ausência não encontrado' });
+          }
+          const tipo = tipoResult.rows[0]!;
+          if (!tipo.ativo) {
+            await client.query('ROLLBACK');
+            return reply.status(400).send({ error: 'Tipo de ausência inativo' });
+          }
+          if (tipo.requer_justificativa && !body.justificativa?.trim()) {
+            await client.query('ROLLBACK');
+            return reply
+              .status(400)
+              .send({ error: `O tipo "${tipo.nome}" exige justificativa` });
+          }
+          // Admin exception: requer_documento waived only when observacoes is provided
+          if (tipo.requer_documento && !uploadedFile && !body.observacoes?.trim()) {
+            await client.query('ROLLBACK');
+            return reply.status(400).send({
+              error: `O tipo "${tipo.nome}" exige documento comprobatório ou observação justificando a ausência do anexo`,
+            });
+          }
+
+          // Validate and persist attachment
+          let documentoAnexo: string | null = null;
+          if (uploadedFile) {
+            try {
+              documentoAnexo = await saveAusenciaAnexo(uploadedFile);
+            } catch (fileErr) {
+              await client.query('ROLLBACK');
+              return reply.status(400).send({
+                error: fileErr instanceof Error ? fileErr.message : 'Erro ao salvar anexo',
+              });
+            }
+          }
+
+          const status = body.status ?? 'pendente';
+          const id = randomUUID();
+
+          await client.query(
+            `INSERT INTO ausencias
+               (id, usuario_id, tipo_ausencia_id, data_inicio, data_fim, periodo,
+                horas_ausencia, justificativa, observacoes, documento_anexo, status,
+                aprovado_por, aprovado_em, criado_por)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
+               $12, $13, $14)`,
+            [
+              id,
+              body.usuarioId,
+              body.tipoAusenciaId,
+              body.dataInicio,
+              body.dataFim,
+              body.periodo,
+              body.horasAusencia ?? null,
+              body.justificativa ?? null,
+              body.observacoes ?? null,
+              documentoAnexo,
+              status,
+              status === 'aprovado' ? adminUser.id : null,
+              status === 'aprovado' ? new Date() : null,
+              adminUser.id,
+            ]
+          );
+
+          const ausenciaResult = await client.query<AusenciaAdminRow>(
+            `SELECT
+               a.id,
+               a.usuario_id,
+               u.nome  AS usuario_nome,
+               u.email AS usuario_email,
+               ta.id   AS tipo_ausencia_id,
+               ta.nome AS tipo_ausencia_nome,
+               ta.cor  AS tipo_ausencia_cor,
+               a.data_inicio,
+               a.data_fim,
+               a.periodo,
+               a.horas_ausencia,
+               a.justificativa,
+               a.observacoes,
+               a.status,
+               a.aprovado_por,
+               a.aprovado_em,
+               a.motivo_rejeicao,
+               a.documento_anexo,
+               a.criado_por,
+               a.criado_em,
+               a.atualizado_em
+             FROM ausencias a
+             JOIN usuarios u        ON u.id  = a.usuario_id
+             JOIN tipos_ausencia ta ON ta.id = a.tipo_ausencia_id
+             WHERE a.id = $1`,
+            [id]
+          );
+
+          await client.query('COMMIT');
+
+          const ausencia = ausenciaResult.rows[0];
+          if (!ausencia) {
+            return reply.status(500).send({ error: 'Erro ao recuperar ausência criada' });
+          }
+
+          return reply.status(201).send({ ausencia: mapAusenciaAdmin(ausencia) });
+        } catch (error) {
+          await client.query('ROLLBACK');
+          const message =
+            error instanceof Error ? error.message : 'Erro ao criar ausência';
+          return reply.status(500).send({ error: message });
+        } finally {
+          client.release();
+        }
+      }
+    );
+
+    // POST /admin/ausencias/:id/cancelar — admin cancels an absence (pendente or aprovado)
+    server.post<{ Params: { id: string }; Body: CancelarAusenciaAdminDTO }>(
+      '/admin/ausencias/:id/cancelar',
+      {
+        schema: {
+          tags: ['admin'],
+          summary: 'Cancelar ausência (administrador)',
+          security: [{ bearerAuth: [] }],
+        },
+        preHandler: [
+          server.authenticate,
+          authorize('administrador'),
+          validateParams(z.object({ id: z.string().uuid() })),
+          validateBody(cancelarAusenciaAdminSchema),
+        ],
+      },
+      async (request, reply) => {
+        const adminUser = getCurrentUser(request);
+        const { id } = request.params;
+        const { observacoes } = request.body as CancelarAusenciaAdminDTO;
+        const client = await server.database.pool.connect();
+
+        try {
+          await client.query('BEGIN');
+          await setAuditUser(client, adminUser.id);
+
+          const updateResult = await client.query(
+            `UPDATE ausencias
+             SET
+               status        = 'cancelado',
+               observacoes   = COALESCE(NULLIF($1, ''), observacoes),
+               atualizado_em = CURRENT_TIMESTAMP
+             WHERE id     = $2
+               AND status IN ('pendente', 'aprovado')
+             RETURNING id`,
+            [observacoes, id]
+          );
+
+          if (updateResult.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return reply.status(404).send({
+              error:
+                'Ausência não encontrada ou não pode ser cancelada neste estado (apenas pendente ou aprovada)',
+            });
+          }
+
+          const ausenciaResult = await client.query<AusenciaAdminRow>(
+            `SELECT
+               a.id,
+               a.usuario_id,
+               u.nome  AS usuario_nome,
+               u.email AS usuario_email,
+               ta.id   AS tipo_ausencia_id,
+               ta.nome AS tipo_ausencia_nome,
+               ta.cor  AS tipo_ausencia_cor,
+               a.data_inicio,
+               a.data_fim,
+               a.periodo,
+               a.horas_ausencia,
+               a.justificativa,
+               a.observacoes,
+               a.status,
+               a.aprovado_por,
+               a.aprovado_em,
+               a.motivo_rejeicao,
+               a.documento_anexo,
+               a.criado_por,
+               a.criado_em,
+               a.atualizado_em
+             FROM ausencias a
+             JOIN usuarios u        ON u.id  = a.usuario_id
+             JOIN tipos_ausencia ta ON ta.id = a.tipo_ausencia_id
+             WHERE a.id = $1`,
+            [id]
+          );
+
+          await client.query('COMMIT');
+
+          const ausencia = ausenciaResult.rows[0];
+          if (!ausencia) {
+            return reply.status(500).send({ error: 'Erro ao recuperar ausência atualizada' });
+          }
+
+          void enviarNotificacaoAusencia(
+            server,
+            adminUser.id,
+            ausencia.usuario_id,
+            'Ausência cancelada',
+            `Sua solicitação de ausência (${ausencia.tipo_ausencia_nome}) foi cancelada pela administração.`
+          );
+
+          return reply.send({ ausencia: mapAusenciaAdmin(ausencia) });
+        } catch (error) {
+          await client.query('ROLLBACK');
+          const message =
+            error instanceof Error ? error.message : 'Erro ao cancelar ausência';
+          return reply.status(500).send({ error: message });
+        } finally {
+          client.release();
+        }
+      }
+    );
+
+    // GET /admin/ausencias/:id/anexo — admin views/downloads any absence attachment
+    server.get<{ Params: { id: string } }>(
+      '/admin/ausencias/:id/anexo',
+      {
+        schema: {
+          tags: ['admin'],
+          summary: 'Visualizar ou baixar anexo de ausência (administrador)',
+          security: [{ bearerAuth: [] }],
+        },
+        preHandler: [
+          server.authenticate,
+          authorize('administrador'),
+          validateParams(z.object({ id: z.string().uuid() })),
+        ],
+      },
+      async (request, reply) => {
+        const { id } = request.params;
+        try {
+          const result = await server.database.query<{ documento_anexo: string | null }>(
+            `SELECT documento_anexo FROM ausencias WHERE id = $1`,
+            [id]
+          );
+          if (result.rows.length === 0) {
+            return reply.status(404).send({ error: 'Ausência não encontrada' });
+          }
+          const { documento_anexo } = result.rows[0]!;
+          if (!documento_anexo) {
+            return reply.status(404).send({ error: 'Esta ausência não possui documento anexado' });
+          }
+          const { buffer, mimeType, filename } = await serveAusenciaAnexo(documento_anexo);
+          return reply
+            .header('Content-Type', mimeType)
+            .header('Content-Disposition', `inline; filename="${filename}"`)
+            .header('Cache-Control', 'private, max-age=3600')
+            .send(buffer);
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+            return reply.status(404).send({ error: 'Arquivo não encontrado no servidor' });
+          }
+          if ((error as { code?: string }).code === 'INVALID_PATH') {
+            return reply.status(400).send({ error: 'Caminho de arquivo inválido' });
+          }
+          const message = error instanceof Error ? error.message : 'Erro ao servir anexo';
+          return reply.status(500).send({ error: message });
         }
       }
     );

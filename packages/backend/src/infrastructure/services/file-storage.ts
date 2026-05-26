@@ -79,3 +79,85 @@ export class FileStorageService {
     return storage.saveFile(data, category);
   }
 }
+
+// ─── Ausências attachment helpers ─────────────────────────────────────────────
+
+export const AUSENCIA_ALLOWED_MIME_TYPES = new Set([
+  'application/pdf',
+  'image/jpeg',
+  'image/png',
+]);
+
+export const AUSENCIA_MAX_SIZE = 5 * 1024 * 1024; // 5 MB
+
+/**
+ * Validates and persists a file attachment for an ausência.
+ * Returns a forward-slash relative path (e.g. uploads/ausencias/<filename>)
+ * suitable for storage in the `documento_anexo` column.
+ */
+export async function saveAusenciaAnexo(file: {
+  filename: string;
+  mimetype: string;
+  buffer: Buffer;
+}): Promise<string> {
+  if (!AUSENCIA_ALLOWED_MIME_TYPES.has(file.mimetype)) {
+    throw new Error('Tipo de arquivo não permitido. Formatos aceitos: PDF, JPG, PNG.');
+  }
+  if (file.buffer.length > AUSENCIA_MAX_SIZE) {
+    throw new Error('Arquivo muito grande. Máximo permitido: 5 MB.');
+  }
+
+  const timestamp = Date.now();
+  const safeFilename = `${timestamp}_${file.filename.replace(/[^a-zA-Z0-9.\-]/g, '_')}`;
+  const absDir = path.resolve(process.cwd(), 'uploads', 'ausencias');
+
+  // Path traversal guard
+  const destPath = path.resolve(absDir, safeFilename);
+  if (!destPath.startsWith(absDir + path.sep)) {
+    throw new Error('Nome de arquivo inválido.');
+  }
+
+  await fs.mkdir(absDir, { recursive: true });
+  await fs.writeFile(destPath, file.buffer);
+
+  // Return portable relative path using forward slashes
+  return `uploads/ausencias/${safeFilename}`;
+}
+
+/**
+ * Resolves a stored relative path (e.g. "uploads/ausencias/<filename>")
+ * to an absolute path applying path-traversal protection, then reads the file.
+ *
+ * Returns the file buffer, the correct MIME type and the basename.
+ * Throws with code 'INVALID_PATH' on traversal attempts,
+ *        with code 'INVALID_TYPE' on unsupported extensions,
+ *        with code 'ENOENT'       when the file is not found on disk.
+ */
+export async function serveAusenciaAnexo(relativePath: string): Promise<{
+  buffer: Buffer;
+  mimeType: string;
+  filename: string;
+}> {
+  // Canonicalise to an absolute path and verify it stays inside uploads/ausencias/
+  const allowedBase = path.resolve(process.cwd(), 'uploads', 'ausencias');
+  const fullPath = path.resolve(process.cwd(), relativePath);
+
+  if (!fullPath.startsWith(allowedBase + path.sep)) {
+    throw Object.assign(new Error('Caminho de arquivo inválido.'), { code: 'INVALID_PATH' });
+  }
+
+  const ext = path.extname(fullPath).toLowerCase();
+  const mimeType =
+    ext === '.pdf' ? 'application/pdf'
+    : ext === '.png' ? 'image/png'
+    : ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg'
+    : null;
+
+  if (!mimeType) {
+    throw Object.assign(new Error('Tipo de arquivo não suportado.'), { code: 'INVALID_TYPE' });
+  }
+
+  const buffer = await fs.readFile(fullPath);
+  const filename = path.basename(fullPath);
+  return { buffer, mimeType, filename };
+}

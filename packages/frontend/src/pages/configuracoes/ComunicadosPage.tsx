@@ -136,8 +136,9 @@ export function ComunicadosPage(): JSX.Element {
   const debouncedBusca = useDebounce(buscaInput, 400);
   const [filtroStatus, setFiltroStatus] = useState<FiltroStatus>('TODOS');
   const [filtroEscopo, setFiltroEscopo] = useState<FiltroEscopo>('QUALQUER');
-  const [filtroTipo] = useState<FiltroTipo>('TODAS');
-  const [filtroCategoria] = useState<FiltroCategoria>('TODAS');
+  const [filtroTipo, setFiltroTipo] = useState<FiltroTipo>('TODAS');
+  const [filtroCategoria, setFiltroCategoria] = useState<FiltroCategoria>('TODAS');
+  const [filtroFixado, setFiltroFixado] = useState<'TODAS' | 'SIM' | 'NAO'>('TODAS');
   const [filtroPrioridade, setFiltroPrioridade] = useState<FiltroPrioridade>('TODAS');
   const [ordenacao, setOrdenacao] = useState<FiltroOrdenacao>('mais-recentes');
   const [dataInicio, setDataInicio] = useState('');
@@ -159,6 +160,7 @@ export function ComunicadosPage(): JSX.Element {
     escopo: filtroEscopo,
     tipo: filtroTipo,
     categoria: filtroCategoria,
+    fixado: filtroFixado,
     prioridade: filtroPrioridade,
     dataInicio: dataInicio || undefined,
     dataFim: dataFim || undefined,
@@ -688,6 +690,56 @@ export function ComunicadosPage(): JSX.Element {
                 { value: 'QUALQUER', label: 'Todos' },
                 { value: 'TODOS', label: 'Todos os usuários ativos' },
                 { value: 'USUARIOS_ESPECIFICOS', label: 'Usuários específicos' },
+              ]}
+            />
+            <Select
+              label="Tipo"
+              value={filtroTipo}
+              onChange={(event) => {
+                setFiltroTipo(event.target.value as FiltroTipo);
+                setPaginaHistorico(1);
+              }}
+              options={[
+                { value: 'TODAS', label: 'Todos' },
+                { value: 'COMUNICADO_GERAL', label: 'Comunicado geral' },
+                { value: 'COMUNICADO_IMPORTANTE', label: 'Importante' },
+                { value: 'DECISAO_OPERACIONAL', label: 'Decisão operacional' },
+                { value: 'PADRONIZACAO', label: 'Padronização' },
+                { value: 'SISTEMA', label: 'Sistema' },
+                { value: 'TREINAMENTO', label: 'Treinamento' },
+                { value: 'BLOG_INTERNO', label: 'Blog interno' },
+              ]}
+            />
+            <Select
+              label="Categoria"
+              value={filtroCategoria}
+              onChange={(event) => {
+                setFiltroCategoria(event.target.value as FiltroCategoria);
+                setPaginaHistorico(1);
+              }}
+              options={[
+                { value: 'TODAS', label: 'Todas' },
+                { value: 'PRODUCAO', label: 'Produção' },
+                { value: 'DIGITALIZACAO', label: 'Digitalização' },
+                { value: 'CONFERENCIA', label: 'Conferência' },
+                { value: 'RECONFERENCIA', label: 'Reconf.' },
+                { value: 'QUALIDADE', label: 'Qualidade' },
+                { value: 'ADMINISTRATIVO', label: 'Administrativo' },
+                { value: 'SISTEMA', label: 'Sistema' },
+                { value: 'GERAL', label: 'Geral' },
+              ]}
+            />
+            <Select
+              label="Fixado"
+              value={filtroFixado}
+              onChange={(event) => {
+                setFiltroFixado(event.target.value as 'TODAS' | 'SIM' | 'NAO');
+                setPaginaHistorico(1);
+              }}
+              options={[
+                { value: 'TODAS', label: 'Todos' },
+                { value: 'SIM', label: 'Fixados' },
+                { value: 'NAO', label: 'Não fixados' },
               ]}
             />
             <Select

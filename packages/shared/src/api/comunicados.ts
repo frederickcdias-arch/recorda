@@ -4,9 +4,11 @@
 
 import type {
   Comunicado,
+  ComunicadoCategoria,
   ComunicadoDestinatario,
   ComunicadoEscopoDestino,
   ComunicadoPrioridade,
+  ComunicadoTipo,
 } from '../entities/comunicado.js';
 
 export interface CriarComunicadoDTO {
@@ -14,6 +16,23 @@ export interface CriarComunicadoDTO {
   conteudo: string;
   prioridade: ComunicadoPrioridade;
   escopoDestino: ComunicadoEscopoDestino;
+  tipo?: ComunicadoTipo;
+  categoria?: ComunicadoCategoria;
+  resumo?: string | null;
+  fixado?: boolean;
+  leituraObrigatoria?: boolean;
+}
+
+export interface AtualizarComunicadoDTO {
+  titulo?: string;
+  conteudo?: string;
+  prioridade?: ComunicadoPrioridade;
+  escopoDestino?: ComunicadoEscopoDestino;
+  tipo?: ComunicadoTipo;
+  categoria?: ComunicadoCategoria;
+  resumo?: string | null;
+  fixado?: boolean;
+  leituraObrigatoria?: boolean;
 }
 
 export interface PublicarComunicadoDTO {
@@ -27,6 +46,9 @@ export interface ListarComunicadosAdminParams {
   status?: 'TODOS' | 'RASCUNHO' | 'PUBLICADO' | 'ENCERRADO';
   escopo?: 'QUALQUER' | ComunicadoEscopoDestino;
   prioridade?: 'TODAS' | ComunicadoPrioridade;
+  tipo?: 'TODAS' | ComunicadoTipo;
+  categoria?: 'TODAS' | ComunicadoCategoria;
+  fixado?: 'TODAS' | 'SIM' | 'NAO';
   dataInicio?: string;
   dataFim?: string;
   publicadoEm?: string;

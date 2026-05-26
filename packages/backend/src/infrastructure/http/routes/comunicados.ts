@@ -8,6 +8,7 @@ import type {
   ComunicadoDestinatario,
   ComunicadoUsuarioItem,
   CriarComunicadoDTO,
+  AtualizarComunicadoDTO,
   ExcluirComunicadoResponse,
   ListarComunicadosAdminParams,
   ListarComunicadosAdminResponse,
@@ -22,6 +23,25 @@ import { getCurrentUser } from './operacional-helpers.js';
 
 const prioridades = ['BAIXA', 'MEDIA', 'ALTA'] as const;
 const escoposDestino = ['TODOS', 'USUARIOS_ESPECIFICOS'] as const;
+const tiposComunicado = [
+  'COMUNICADO_GERAL',
+  'COMUNICADO_IMPORTANTE',
+  'DECISAO_OPERACIONAL',
+  'PADRONIZACAO',
+  'SISTEMA',
+  'TREINAMENTO',
+  'BLOG_INTERNO',
+] as const;
+const categoriasComunicado = [
+  'PRODUCAO',
+  'DIGITALIZACAO',
+  'CONFERENCIA',
+  'RECONFERENCIA',
+  'QUALIDADE',
+  'ADMINISTRATIVO',
+  'SISTEMA',
+  'GERAL',
+] as const;
 const statusComunicado = ['RASCUNHO', 'PUBLICADO', 'ENCERRADO'] as const;
 const ordenacoesAdmin = ['mais-recentes', 'mais-antigos', 'mais-pendentes', 'mais-lidos'] as const;
 
@@ -30,6 +50,23 @@ const criarComunicadoSchema = z.object({
   conteudo: z.string().trim().min(1),
   prioridade: z.enum(prioridades),
   escopoDestino: z.enum(escoposDestino),
+  tipo: z.enum(tiposComunicado).optional(),
+  categoria: z.enum(categoriasComunicado).optional(),
+  resumo: z.string().trim().max(400).optional(),
+  fixado: z.boolean().optional(),
+  leituraObrigatoria: z.boolean().optional(),
+});
+
+const atualizarComunicadoSchema = z.object({
+  titulo: z.string().trim().min(3).max(200).optional(),
+  conteudo: z.string().trim().min(1).optional(),
+  prioridade: z.enum(prioridades).optional(),
+  escopoDestino: z.enum(escoposDestino).optional(),
+  tipo: z.enum(tiposComunicado).optional(),
+  categoria: z.enum(categoriasComunicado).optional(),
+  resumo: z.string().trim().max(400).optional(),
+  fixado: z.boolean().optional(),
+  leituraObrigatoria: z.boolean().optional(),
 });
 
 const publicarComunicadoSchema = z.object({
@@ -47,6 +84,9 @@ const listarComunicadosAdminQuerySchema = z.object({
   status: z.enum(['TODOS', ...statusComunicado]).default('TODOS'),
   escopo: z.enum(['QUALQUER', ...escoposDestino]).default('QUALQUER'),
   prioridade: z.enum(['TODAS', ...prioridades]).default('TODAS'),
+  tipo: z.enum(['TODAS', ...tiposComunicado]).default('TODAS'),
+  categoria: z.enum(['TODAS', ...categoriasComunicado]).default('TODAS'),
+  fixado: z.enum(['TODAS', 'SIM', 'NAO']).default('TODAS'),
   dataInicio: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
@@ -68,6 +108,26 @@ interface ComunicadoRow {
   conteudo: string;
   prioridade: 'BAIXA' | 'MEDIA' | 'ALTA';
   escopo_destino: 'TODOS' | 'USUARIOS_ESPECIFICOS';
+  tipo:
+    | 'COMUNICADO_GERAL'
+    | 'COMUNICADO_IMPORTANTE'
+    | 'DECISAO_OPERACIONAL'
+    | 'PADRONIZACAO'
+    | 'SISTEMA'
+    | 'TREINAMENTO'
+    | 'BLOG_INTERNO';
+  categoria:
+    | 'PRODUCAO'
+    | 'DIGITALIZACAO'
+    | 'CONFERENCIA'
+    | 'RECONFERENCIA'
+    | 'QUALIDADE'
+    | 'ADMINISTRATIVO'
+    | 'SISTEMA'
+    | 'GERAL';
+  resumo: string | null;
+  fixado: boolean;
+  leitura_obrigatoria: boolean;
   status: 'RASCUNHO' | 'PUBLICADO' | 'ENCERRADO';
   criado_por_usuario_id: string;
   criado_em: string | Date;
@@ -129,6 +189,11 @@ function mapComunicado(row: ComunicadoRow): Comunicado {
     conteudo: row.conteudo,
     prioridade: row.prioridade,
     escopoDestino: row.escopo_destino,
+    tipo: row.tipo,
+    categoria: row.categoria,
+    resumo: row.resumo,
+    fixado: row.fixado,
+    leituraObrigatoria: row.leitura_obrigatoria,
     status: row.status,
     criadoPorUsuarioId: row.criado_por_usuario_id,
     criadoEm: toIsoString(row.criado_em) ?? new Date().toISOString(),
@@ -189,6 +254,9 @@ function buildAdminListFilters(query: z.infer<typeof listarComunicadosAdminQuery
     status = 'TODOS',
     escopo = 'QUALQUER',
     prioridade = 'TODAS',
+    tipo = 'TODAS',
+    categoria = 'TODAS',
+    fixado = 'TODAS',
     dataInicio,
     dataFim,
     publicadoEm,
@@ -219,6 +287,24 @@ function buildAdminListFilters(query: z.infer<typeof listarComunicadosAdminQuery
   if (prioridade !== 'TODAS') {
     whereClauses.push(`c.prioridade = $${paramIndex}`);
     params.push(prioridade);
+    paramIndex += 1;
+  }
+
+  if (tipo !== 'TODAS') {
+    whereClauses.push(`c.tipo = $${paramIndex}`);
+    params.push(tipo);
+    paramIndex += 1;
+  }
+
+  if (categoria !== 'TODAS') {
+    whereClauses.push(`c.categoria = $${paramIndex}`);
+    params.push(categoria);
+    paramIndex += 1;
+  }
+
+  if (fixado !== 'TODAS') {
+    whereClauses.push(`c.fixado = $${paramIndex}`);
+    params.push(fixado === 'SIM');
     paramIndex += 1;
   }
 
@@ -304,23 +390,44 @@ export function createComunicadosRoutes(): FastifyPluginAsync {
                conteudo,
                prioridade,
                escopo_destino,
+               tipo,
+               categoria,
+               resumo,
+               fixado,
+               leitura_obrigatoria,
                status,
                criado_por_usuario_id
              )
-             VALUES ($1, $2, $3, $4, 'RASCUNHO', $5)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'RASCUNHO', $10)
              RETURNING
                id,
                titulo,
                conteudo,
                prioridade,
                escopo_destino,
+               tipo,
+               categoria,
+               resumo,
+               fixado,
+               leitura_obrigatoria,
                status,
                criado_por_usuario_id,
                criado_em,
                publicado_em,
                encerrado_em,
                atualizado_em`,
-            [body.titulo, body.conteudo, body.prioridade, body.escopoDestino, user.id]
+            [
+              body.titulo,
+              body.conteudo,
+              body.prioridade,
+              body.escopoDestino,
+              body.tipo ?? 'COMUNICADO_GERAL',
+              body.categoria ?? 'GERAL',
+              body.resumo ?? null,
+              body.fixado ?? false,
+              body.leituraObrigatoria ?? false,
+              user.id,
+            ]
           );
 
           await client.query('COMMIT');
@@ -335,6 +442,99 @@ export function createComunicadosRoutes(): FastifyPluginAsync {
           await client.query('ROLLBACK');
           request.log.error(error);
           const message = error instanceof Error ? error.message : 'Erro ao criar comunicado';
+          return reply.status(500).send({ error: message });
+        } finally {
+          client.release();
+        }
+      }
+    );
+
+    server.patch<{ Params: { id: string }; Body: AtualizarComunicadoDTO }>(
+      '/admin/comunicados/:id',
+      {
+        schema: {
+          tags: ['comunicados'],
+          summary: 'Atualizar comunicado em rascunho',
+          security: [{ bearerAuth: [] }],
+        },
+        preHandler: [
+          server.authenticate,
+          authorize('administrador'),
+          validateParams(comunicadoParamsSchema),
+          validateBody(atualizarComunicadoSchema),
+        ],
+      },
+      async (request, reply) => {
+        const user = getCurrentUser(request);
+        const { id } = request.params;
+        const body = request.body as AtualizarComunicadoDTO;
+        const client = await server.database.pool.connect();
+
+        try {
+          await client.query('BEGIN');
+          await setAuditUser(client, user.id);
+
+          const result = await client.query<ComunicadoRow>(
+            `UPDATE comunicados
+             SET titulo = COALESCE($1, titulo),
+                 conteudo = COALESCE($2, conteudo),
+                 prioridade = COALESCE($3, prioridade),
+                 escopo_destino = COALESCE($4, escopo_destino),
+                 tipo = COALESCE($5, tipo),
+                 categoria = COALESCE($6, categoria),
+                 resumo = COALESCE($7, resumo),
+                 fixado = COALESCE($8, fixado),
+                 leitura_obrigatoria = COALESCE($9, leitura_obrigatoria),
+                 atualizado_em = CURRENT_TIMESTAMP
+             WHERE id = $10
+               AND status = 'RASCUNHO'
+             RETURNING
+               id,
+               titulo,
+               conteudo,
+               prioridade,
+               escopo_destino,
+               tipo,
+               categoria,
+               resumo,
+               fixado,
+               leitura_obrigatoria,
+               status,
+               criado_por_usuario_id,
+               criado_em,
+               publicado_em,
+               encerrado_em,
+               atualizado_em`,
+            [
+              body.titulo,
+              body.conteudo,
+              body.prioridade,
+              body.escopoDestino,
+              body.tipo,
+              body.categoria,
+              body.resumo,
+              body.fixado,
+              body.leituraObrigatoria,
+              id,
+            ]
+          );
+
+          const comunicado = result.rows[0];
+          if (!comunicado) {
+            await client.query('ROLLBACK');
+            return reply.status(404).send({
+              error: 'Comunicado nao encontrado ou nao esta em rascunho',
+            });
+          }
+
+          await client.query('COMMIT');
+
+          return reply.send({ comunicado: mapComunicado(comunicado) });
+        } catch (error) {
+          await client.query('ROLLBACK');
+          request.log.error(error);
+          const message =
+            error instanceof Error ? error.message : 'Erro ao atualizar comunicado';
           return reply.status(500).send({ error: message });
         } finally {
           client.release();
@@ -365,6 +565,9 @@ export function createComunicadosRoutes(): FastifyPluginAsync {
             status = 'TODOS',
             escopo = 'QUALQUER',
             prioridade = 'TODAS',
+            tipo = 'TODAS',
+            categoria = 'TODAS',
+            fixado = 'TODAS',
             dataInicio,
             dataFim,
             publicadoEm,
@@ -377,6 +580,9 @@ export function createComunicadosRoutes(): FastifyPluginAsync {
             status,
             escopo,
             prioridade,
+            tipo,
+            categoria,
+            fixado,
             dataInicio,
             dataFim,
             publicadoEm,
@@ -394,6 +600,11 @@ export function createComunicadosRoutes(): FastifyPluginAsync {
                  c.conteudo,
                  c.prioridade,
                  c.escopo_destino,
+                 c.tipo,
+                 c.categoria,
+                 c.resumo,
+                 c.fixado,
+                 c.leitura_obrigatoria,
                  c.status,
                  c.criado_por_usuario_id,
                  c.criado_em,
@@ -413,6 +624,11 @@ export function createComunicadosRoutes(): FastifyPluginAsync {
                base.conteudo,
                base.prioridade,
                base.escopo_destino,
+               base.tipo,
+               base.categoria,
+               base.resumo,
+               base.fixado,
+               base.leitura_obrigatoria,
                base.status,
                base.criado_por_usuario_id,
                base.criado_em,
@@ -510,6 +726,11 @@ export function createComunicadosRoutes(): FastifyPluginAsync {
                  c.conteudo,
                  c.prioridade,
                  c.escopo_destino,
+                 c.tipo,
+                 c.categoria,
+                 c.resumo,
+                 c.fixado,
+                 c.leitura_obrigatoria,
                  c.status,
                  c.criado_por_usuario_id,
                  c.criado_em,
@@ -529,6 +750,11 @@ export function createComunicadosRoutes(): FastifyPluginAsync {
                base.conteudo,
                base.prioridade,
                base.escopo_destino,
+               base.tipo,
+               base.categoria,
+               base.resumo,
+               base.fixado,
+               base.leitura_obrigatoria,
                base.status,
                base.criado_por_usuario_id,
                base.criado_em,
@@ -929,6 +1155,11 @@ export function createComunicadosRoutes(): FastifyPluginAsync {
                c.conteudo,
                c.prioridade,
                c.escopo_destino,
+               c.tipo,
+               c.categoria,
+               c.resumo,
+               c.fixado,
+               c.leitura_obrigatoria,
                c.status,
                c.criado_por_usuario_id,
                c.criado_em,
@@ -1006,6 +1237,11 @@ export function createComunicadosRoutes(): FastifyPluginAsync {
                c.conteudo,
                c.prioridade,
                c.escopo_destino,
+               c.tipo,
+               c.categoria,
+               c.resumo,
+               c.fixado,
+               c.leitura_obrigatoria,
                c.status,
                c.criado_por_usuario_id,
                c.criado_em,
@@ -1022,7 +1258,15 @@ export function createComunicadosRoutes(): FastifyPluginAsync {
              INNER JOIN comunicados c ON c.id = cd.comunicado_id
              WHERE cd.usuario_id = $1
                AND c.status IN ('PUBLICADO', 'ENCERRADO')
-             ORDER BY c.publicado_em DESC NULLS LAST, c.criado_em DESC`,
+             ORDER BY c.fixado DESC,
+               cd.lido_em IS NOT NULL ASC,
+               CASE
+                 WHEN c.prioridade = 'ALTA' THEN 1
+                 WHEN c.prioridade = 'MEDIA' THEN 2
+                 ELSE 3
+               END ASC,
+               c.publicado_em DESC NULLS LAST,
+               c.criado_em DESC`,
             [user.id]
           );
 
@@ -1060,6 +1304,11 @@ export function createComunicadosRoutes(): FastifyPluginAsync {
                c.conteudo,
                c.prioridade,
                c.escopo_destino,
+               c.tipo,
+               c.categoria,
+               c.resumo,
+               c.fixado,
+               c.leitura_obrigatoria,
                c.status,
                c.criado_por_usuario_id,
                c.criado_em,
@@ -1077,7 +1326,14 @@ export function createComunicadosRoutes(): FastifyPluginAsync {
              WHERE cd.usuario_id = $1
                AND cd.lido_em IS NULL
                AND c.status = 'PUBLICADO'
-             ORDER BY c.publicado_em DESC NULLS LAST, c.criado_em DESC`,
+             ORDER BY c.fixado DESC,
+               CASE
+                 WHEN c.prioridade = 'ALTA' THEN 1
+                 WHEN c.prioridade = 'MEDIA' THEN 2
+                 ELSE 3
+               END ASC,
+               c.publicado_em DESC NULLS LAST,
+               c.criado_em DESC`,
             [user.id]
           );
 

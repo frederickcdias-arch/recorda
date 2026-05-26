@@ -23,6 +23,7 @@ import { createMetasRoutes } from './routes/metas.js';
 import { createOperacionalRoutes } from './routes/operacional.js';
 import { createConhecimentoOperacionalRoutes } from './routes/conhecimento-operacional.js';
 import { createAdminRoutes } from './routes/admin.js';
+import { createAusenciasRoutes } from './routes/ausencias.js';
 import { createCapturasMapaRoutes } from './routes/capturas-mapa.js';
 import { createComunicadosRoutes } from './routes/comunicados.js';
 import { createPushRoutes } from './routes/push.js';
@@ -207,6 +208,7 @@ export async function createServer(dependencies: ServerDependencies): Promise<Fa
   await server.register(createOperacionalRoutes());
   await server.register(createConhecimentoOperacionalRoutes());
   await server.register(createAdminRoutes());
+  await server.register(createAusenciasRoutes());
   await server.register(createCapturasMapaRoutes());
   await server.register(createComunicadosRoutes());
   await server.register(createPushRoutes());
