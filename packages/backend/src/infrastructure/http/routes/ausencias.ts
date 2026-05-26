@@ -1,8 +1,7 @@
-import { randomUUID } from 'node:crypto';
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import '@fastify/multipart';
 import { z } from 'zod';
-import { saveAusenciaAnexo, serveAusenciaAnexo } from '../../services/file-storage.js';
+import { serveAusenciaAnexo } from '../../services/file-storage.js';
 import { authorize } from '../middleware/auth.js';
 import { validateBody, validateParams, validateQuery } from '../middleware/validate.js';
 import { getCurrentUser } from './operacional-helpers.js';
@@ -21,16 +20,6 @@ const listarMinhasQuerySchema = z.object({
   dataInicio: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   dataFim: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   ordenacao: z.enum(['mais-recentes', 'mais-antigos']).default('mais-recentes'),
-});
-
-const criarAusenciaSchema = z.object({
-  tipoAusenciaId: z.string().uuid('tipoAusenciaId inválido'),
-  dataInicio: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'dataInicio inválida (YYYY-MM-DD)'),
-  dataFim: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'dataFim inválida (YYYY-MM-DD)'),
-  periodo: z.enum(['dia_completo', 'meio_periodo_manha', 'meio_periodo_tarde', 'horas']),
-  horasAusencia: z.number().positive().max(24).optional(),
-  justificativa: z.string().trim().min(1).max(2000).optional(),
-  observacoes: z.string().trim().max(2000).optional(),
 });
 
 const ausenciaIdParamsSchema = z.object({
@@ -244,182 +233,22 @@ export function createAusenciasRoutes(): FastifyPluginAsync {
       }
     );
 
-    // POST /ausencias — colaborador submits own absence
+    // POST /ausencias - blocked for collaborator, creation is admin-only
     server.post(
       '/ausencias',
       {
         schema: {
           tags: ['ausencias'],
-          summary: 'Registrar ausência (colaborador)',
+          summary: 'Bloqueado para colaborador; cadastro feito apenas pelo admin',
           security: [{ bearerAuth: [] }],
         },
-        preHandler: [
-          server.authenticate,
-          authorize('colaborador'),
-        ],
+        preHandler: [server.authenticate, authorize('colaborador')],
       },
-      async (request, reply) => {
-        const user = getCurrentUser(request);
-
-        // ─── Parse body: multipart/form-data or JSON ───────────────────────
-        let body: z.infer<typeof criarAusenciaSchema>;
-        let uploadedFile: { filename: string; mimetype: string; buffer: Buffer } | null = null;
-
-        const contentType = request.headers['content-type'] ?? '';
-        if (contentType.includes('multipart/form-data')) {
-          const rawFields: Record<string, unknown> = {};
-          try {
-            for await (const part of request.parts()) {
-              if (part.type === 'file') {
-                if (uploadedFile !== null) {
-                  await part.toBuffer().catch(() => {});
-                  continue;
-                }
-                const buffer = await part.toBuffer();
-                uploadedFile = { filename: part.filename, mimetype: part.mimetype, buffer };
-              } else {
-                rawFields[part.fieldname] = part.value;
-              }
-            }
-          } catch (err) {
-            if ((err as Error & { code?: string }).code === 'FST_REQ_FILE_TOO_LARGE') {
-              return reply
-                .status(400)
-                .send({ error: 'Arquivo muito grande. Máximo permitido: 5 MB.' });
-            }
-            throw err;
-          }
-          if (typeof rawFields.horasAusencia === 'string' && rawFields.horasAusencia !== '') {
-            rawFields.horasAusencia = Number(rawFields.horasAusencia);
-          }
-          const pr = criarAusenciaSchema.safeParse(rawFields);
-          if (!pr.success) {
-            const messages = pr.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`);
-            return reply.status(400).send({ error: 'Dados inválidos', details: messages });
-          }
-          body = pr.data;
-        } else {
-          const pr = criarAusenciaSchema.safeParse(request.body);
-          if (!pr.success) {
-            const messages = pr.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`);
-            return reply.status(400).send({ error: 'Dados inválidos', details: messages });
-          }
-          body = pr.data;
-        }
-
-        // ─── DB transaction ────────────────────────────────────────────────
-        const client = await server.database.pool.connect();
-
-        try {
-          await client.query('BEGIN');
-          await client.query(`SELECT set_config('app.current_user_id', $1, true)`, [user.id]);
-
-          // Validate date range
-          if (body.dataFim < body.dataInicio) {
-            await client.query('ROLLBACK');
-            return reply
-              .status(400)
-              .send({ error: 'A data de fim não pode ser anterior à data de início' });
-          }
-
-          // Validate horas when periodo=horas
-          if (body.periodo === 'horas' && !body.horasAusencia) {
-            await client.query('ROLLBACK');
-            return reply
-              .status(400)
-              .send({ error: 'horasAusencia é obrigatório quando período é "horas"' });
-          }
-
-          // Fetch and validate tipo_ausencia
-          const tipoResult = await client.query<{
-            id: string;
-            nome: string;
-            requer_justificativa: boolean;
-            requer_documento: boolean;
-            ativo: boolean;
-          }>(
-            `SELECT id, nome, requer_justificativa, requer_documento, ativo
-             FROM tipos_ausencia
-             WHERE id = $1`,
-            [body.tipoAusenciaId]
-          );
-
-          if (tipoResult.rows.length === 0) {
-            await client.query('ROLLBACK');
-            return reply.status(404).send({ error: 'Tipo de ausência não encontrado' });
-          }
-
-          const tipo = tipoResult.rows[0]!;
-          if (!tipo.ativo) {
-            await client.query('ROLLBACK');
-            return reply.status(400).send({ error: 'Tipo de ausência inativo' });
-          }
-          if (tipo.requer_justificativa && !body.justificativa?.trim()) {
-            await client.query('ROLLBACK');
-            return reply
-              .status(400)
-              .send({ error: `O tipo "${tipo.nome}" exige justificativa` });
-          }
-          if (tipo.requer_documento && !uploadedFile) {
-            await client.query('ROLLBACK');
-            return reply
-              .status(400)
-              .send({ error: `O tipo "${tipo.nome}" exige documento comprobatório` });
-          }
-
-          // Validate and persist attachment
-          let documentoAnexo: string | null = null;
-          if (uploadedFile) {
-            try {
-              documentoAnexo = await saveAusenciaAnexo(uploadedFile);
-            } catch (fileErr) {
-              await client.query('ROLLBACK');
-              return reply.status(400).send({
-                error: fileErr instanceof Error ? fileErr.message : 'Erro ao salvar anexo',
-              });
-            }
-          }
-
-          const id = randomUUID();
-          await client.query(
-            `INSERT INTO ausencias
-               (id, usuario_id, tipo_ausencia_id, data_inicio, data_fim, periodo,
-                horas_ausencia, justificativa, observacoes, documento_anexo, status, criado_por)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'pendente', $2)`,
-            [
-              id,
-              user.id,
-              body.tipoAusenciaId,
-              body.dataInicio,
-              body.dataFim,
-              body.periodo,
-              body.horasAusencia ?? null,
-              body.justificativa ?? null,
-              body.observacoes ?? null,
-              documentoAnexo,
-            ]
-          );
-
-          const ausenciaResult = await client.query<MinhaAusenciaRow>(
-            `${SELECT_MINHA_AUSENCIA} WHERE a.id = $1`,
-            [id]
-          );
-
-          await client.query('COMMIT');
-
-          const ausencia = ausenciaResult.rows[0];
-          if (!ausencia) {
-            return reply.status(500).send({ error: 'Erro ao recuperar ausência criada' });
-          }
-
-          return reply.status(201).send({ ausencia: mapMinhaAusencia(ausencia) });
-        } catch (error) {
-          await client.query('ROLLBACK');
-          const message = error instanceof Error ? error.message : 'Erro ao criar ausência';
-          return reply.status(500).send({ error: message });
-        } finally {
-          client.release();
-        }
+      async (_request, reply) => {
+        return reply.status(403).send({
+          error:
+            'O colaborador nao pode registrar nova justificativa de ausencia. Esse cadastro e permitido apenas para administradores.',
+        });
       }
     );
 

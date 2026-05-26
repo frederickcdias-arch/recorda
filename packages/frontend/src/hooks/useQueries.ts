@@ -1895,17 +1895,6 @@ export function useMinhasAusencias(params: ListarMinhasAusenciasParams) {
   });
 }
 
-export function useCriarMinhaAusencia() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (formData: FormData) =>
-      api.post<{ ausencia: { id: string; status: string } }>('/ausencias', formData),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: queryKeys.minhasAusenciasAll });
-    },
-  });
-}
-
 export function useCancelarMinhaAusencia() {
   const qc = useQueryClient();
   return useMutation({
