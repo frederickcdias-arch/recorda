@@ -24,8 +24,8 @@ COPY . .
 # Install all dependencies (including dev)
 RUN npm ci
 
-# Build the application
-RUN npm run build --workspace=@recorda/backend
+# Build shared first so backend runtime artifacts and type declarations exist in clean CI builds
+RUN npm run build --workspace=@recorda/shared && npm run build --workspace=@recorda/backend
 
 # Production stage
 FROM node:20-alpine AS runner

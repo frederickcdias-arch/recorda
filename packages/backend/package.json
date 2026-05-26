@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/main.ts",
-    "build": "tsc",
+    "build": "npm --prefix ../shared run build && tsc",
     "start": "node dist/main.js",
     "typecheck": "tsc --noEmit",
     "migrate": "tsx src/infrastructure/database/migrate.ts",
