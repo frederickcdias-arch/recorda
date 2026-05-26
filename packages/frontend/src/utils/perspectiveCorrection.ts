@@ -1,4 +1,4 @@
-﻿// @ts-nocheck â€” noUncheckedIndexedAccess gera falsos positivos em arrays tipados numÃ©ricos
+// @ts-nocheck â€” noUncheckedIndexedAccess gera falsos positivos em arrays tipados numÃ©ricos
 /**
  * CorreÃ§Ã£o automÃ¡tica de perspectiva para fotos de documentos.
  *

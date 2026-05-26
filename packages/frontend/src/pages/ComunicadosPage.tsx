@@ -1,4 +1,4 @@
-﻿import { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { ComunicadoPrioridade, ComunicadoUsuarioItem } from '@recorda/shared';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';

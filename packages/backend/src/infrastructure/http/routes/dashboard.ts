@@ -1,4 +1,4 @@
-﻿import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
+import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { authorize } from '../middleware/auth.js';
 import {
   buildProducaoContabilizadaWhere,
