@@ -76,7 +76,7 @@ function getPrioridadeLabel(prioridade: ComunicadoPrioridade): string {
     case 'ALTA':
       return 'Alta';
     case 'MEDIA':
-      return 'M�dia';
+      return 'Média';
     case 'BAIXA':
       return 'Baixa';
   }
@@ -105,7 +105,7 @@ function getStatusBadge(status: ComunicadoAdminResumo['status']): string {
 }
 
 function getEscopoLabel(escopo: ComunicadoEscopoDestino): string {
-  return escopo === 'TODOS' ? 'Todos os usu�rios ativos' : 'Usu�rios espec�ficos';
+  return escopo === 'TODOS' ? 'Todos os usuários ativos' : 'Usuários específicos';
 }
 
 function getStatusLabel(status: ComunicadoAdminResumo['status']): string {
@@ -212,11 +212,11 @@ export function ComunicadosPage(): JSX.Element {
   };
 
   const validarFormulario = (state: FormState): string | null => {
-    if (!state.titulo.trim()) return 'Informe o t�tulo do comunicado.';
-    if (state.titulo.trim().length < 3) return 'O t�tulo deve ter ao menos 3 caracteres.';
-    if (!state.conteudo.trim()) return 'Informe o conte�do do comunicado.';
+    if (!state.titulo.trim()) return 'Informe o título do comunicado.';
+    if (state.titulo.trim().length < 3) return 'O título deve ter ao menos 3 caracteres.';
+    if (!state.conteudo.trim()) return 'Informe o conteúdo do comunicado.';
     if (state.escopoDestino === 'USUARIOS_ESPECIFICOS' && state.usuarioIds.length === 0) {
-      return 'Selecione ao menos um usu�rio para o envio direcionado.';
+      return 'Selecione ao menos um usuário para o envio direcionado.';
     }
     return null;
   };
@@ -241,7 +241,7 @@ export function ComunicadosPage(): JSX.Element {
   const handleCriar = async (publicarAgora: boolean): Promise<void> => {
     const erroValidacao = validarFormulario(formData);
     if (erroValidacao) {
-      toast.warning('Formul�rio incompleto', erroValidacao);
+      toast.warning('Formulário incompleto', erroValidacao);
       return;
     }
 
@@ -276,12 +276,12 @@ export function ComunicadosPage(): JSX.Element {
             });
             toast.success(
               'Comunicado publicado',
-              `${publishResult.totalDestinatarios} destinat�rio(s) receberam o comunicado.`
+              `${publishResult.totalDestinatarios} destinatário(s) receberam o comunicado.`
             );
           } catch (error) {
             toast.error(
-              'Rascunho atualizado, mas a publica��o falhou',
-              extractErrorMessage(error, 'N�o foi poss�vel publicar o comunicado agora.')
+              'Rascunho atualizado, mas a publicação falhou',
+              extractErrorMessage(error, 'Não foi possível publicar o comunicado agora.')
             );
           }
         }
@@ -300,12 +300,12 @@ export function ComunicadosPage(): JSX.Element {
             });
             toast.success(
               'Comunicado publicado',
-              `${publishResult.totalDestinatarios} destinat�rio(s) receberam o comunicado.`
+              `${publishResult.totalDestinatarios} destinatário(s) receberam o comunicado.`
             );
           } catch (error) {
             toast.error(
-              'Rascunho criado, mas a publica��o falhou',
-              extractErrorMessage(error, 'N�o foi poss�vel publicar o comunicado agora.')
+              'Rascunho criado, mas a publicação falhou',
+              extractErrorMessage(error, 'Não foi possível publicar o comunicado agora.')
             );
           }
         } else {
@@ -329,7 +329,7 @@ export function ComunicadosPage(): JSX.Element {
   const confirmarPublicacaoDraft = async (): Promise<void> => {
     if (!publicandoDraft) return;
     if (publicandoDraft.escopoDestino === 'USUARIOS_ESPECIFICOS' && draftUsuarioIds.length === 0) {
-      toast.warning('Selecione destinat�rios', 'Escolha ao menos um usu�rio para publicar.');
+      toast.warning('Selecione destinatários', 'Escolha ao menos um usuário para publicar.');
       return;
     }
 
@@ -343,7 +343,7 @@ export function ComunicadosPage(): JSX.Element {
       });
       toast.success(
         'Comunicado publicado',
-        `${result.totalDestinatarios} destinat�rio(s) receberam o comunicado.`
+        `${result.totalDestinatarios} destinatário(s) receberam o comunicado.`
       );
       setPublicandoDraft(null);
       setDraftUsuarioIds([]);
@@ -355,7 +355,7 @@ export function ComunicadosPage(): JSX.Element {
   const handleEncerrar = (comunicado: ComunicadoAdminResumo): void => {
     confirmDialog.confirm({
       title: 'Encerrar comunicado',
-      message: `Deseja encerrar "${comunicado.titulo}"? Ele deixar� de aparecer como ativo para os usu�rios.`,
+      message: `Deseja encerrar "${comunicado.titulo}"? Ele deixará de aparecer como ativo para os usuários.`,
       confirmLabel: 'Encerrar',
       variant: 'warning',
       onConfirm: async () => {
@@ -372,7 +372,7 @@ export function ComunicadosPage(): JSX.Element {
   const handleExcluir = (comunicado: ComunicadoAdminResumo): void => {
     confirmDialog.confirm({
       title: 'Excluir comunicado',
-      message: `Deseja excluir "${comunicado.titulo}"? Esta a��o remover� o comunicado e os destinat�rios vinculados e n�o poder� ser desfeita.`,
+      message: `Deseja excluir "${comunicado.titulo}"? Esta ação removerá o comunicado e os destinatários vinculados e não poderá ser desfeita.`,
       confirmLabel: 'Excluir',
       variant: 'danger',
       onConfirm: async () => {
@@ -382,8 +382,8 @@ export function ComunicadosPage(): JSX.Element {
             setDetalheAbertoId(null);
           }
           toast.success(
-            'Comunicado exclu�do',
-            `${result.destinatariosRemovidos} destinat�rio(s) removidos.`
+            'Comunicado excluído',
+            `${result.destinatariosRemovidos} destinatário(s) removidos.`
           );
         } catch (error) {
           toast.error('Erro ao excluir', extractErrorMessage(error, 'Tente novamente.'));
@@ -400,7 +400,7 @@ export function ComunicadosPage(): JSX.Element {
 
   const duplicarComunicado = (comunicado: ComunicadoAdminResumo): void => {
     setFormData({
-      titulo: `${comunicado.titulo} (c�pia)`,
+      titulo: `${comunicado.titulo} (cópia)`,
       conteudo: comunicado.conteudo,
       prioridade: comunicado.prioridade,
       escopoDestino: comunicado.escopoDestino,
@@ -453,7 +453,7 @@ export function ComunicadosPage(): JSX.Element {
     const emails = base.map((item) => item.usuarioEmail).filter(Boolean);
 
     if (emails.length === 0) {
-      toast.warning('Nenhum e-mail encontrado', 'N�o existem destinat�rios neste filtro.');
+      toast.warning('Nenhum e-mail encontrado', 'Não existem destinatários neste filtro.');
       return;
     }
 
@@ -461,16 +461,16 @@ export function ComunicadosPage(): JSX.Element {
       await navigator.clipboard.writeText(emails.join('; '));
       toast.success(
         apenasPendentes ? 'Emails pendentes copiados' : 'Emails copiados',
-        `${emails.length} e-mail(s) copiados para a �rea de transfer�ncia.`
+        `${emails.length} e-mail(s) copiados para a área de transferência.`
       );
     } catch {
-      toast.error('Falha ao copiar e-mails', 'N�o foi poss�vel acessar a �rea de transfer�ncia.');
+      toast.error('Falha ao copiar e-mails', 'Não foi possível acessar a área de transferência.');
     }
   };
 
   const handleExportarCsv = (): void => {
     if (!detalheQuery.data?.comunicado || destinatariosFiltrados.length === 0) {
-      toast.warning('Nada para exportar', 'N�o existem destinat�rios neste filtro.');
+      toast.warning('Nada para exportar', 'Não existem destinatários neste filtro.');
       return;
     }
 
@@ -504,12 +504,12 @@ export function ComunicadosPage(): JSX.Element {
     document.body.removeChild(anchor);
     URL.revokeObjectURL(url);
 
-    toast.success('CSV exportado', `${destinatariosFiltrados.length} destinat�rio(s) exportados.`);
+    toast.success('CSV exportado', `${destinatariosFiltrados.length} destinatário(s) exportados.`);
   };
 
   const handleExportarHistoricoCsv = async (): Promise<void> => {
     if ((resumo?.totalFiltrados ?? 0) === 0) {
-      toast.warning('Nada para exportar', 'N�o existem comunicados neste filtro.');
+      toast.warning('Nada para exportar', 'Não existem comunicados neste filtro.');
       return;
     }
 
@@ -535,13 +535,13 @@ export function ComunicadosPage(): JSX.Element {
 
       await api.download(`/admin/comunicados/exportar?${qs.toString()}`);
       toast.success(
-        'Hist�rico exportado',
+        'Histórico exportado',
         `${resumo?.totalFiltrados ?? 0} comunicado(s) enviados para download.`
       );
     } catch (error) {
       toast.error(
-        'Falha ao exportar hist�rico',
-        extractErrorMessage(error, 'N�o foi poss�vel gerar o arquivo agora.')
+        'Falha ao exportar histórico',
+        extractErrorMessage(error, 'Não foi possível gerar o arquivo agora.')
       );
     }
   };
@@ -556,7 +556,7 @@ export function ComunicadosPage(): JSX.Element {
       error={
         erro
           ? {
-              message: 'N�o foi poss�vel carregar a gest�o de comunicados.',
+              message: 'Não foi possível carregar a gestão de comunicados.',
               details: extractErrorMessage(erro, 'Tente novamente em instantes.'),
               action: {
                 label: 'Atualizar',
@@ -571,12 +571,12 @@ export function ComunicadosPage(): JSX.Element {
     >
       <div className="space-y-6">
         <PageHeader
-          title="Gest�o de Comunicados"
+          title="Gestão de Comunicados"
           subtitle="Crie, publique e acompanhe comunicados internos."
           actions={
             <>
               <Button variant="ghost" icon="download" onClick={handleExportarHistoricoCsv}>
-                Exportar hist�rico
+                Exportar histórico
               </Button>
               <Button
                 variant="secondary"
@@ -638,7 +638,7 @@ export function ComunicadosPage(): JSX.Element {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">
-                Hist�rico operacional
+                Histórico operacional
               </h2>
               <p className="text-sm text-[var(--color-text-secondary)]">
                 Consulte envios, datas e prioridade.
@@ -649,7 +649,7 @@ export function ComunicadosPage(): JSX.Element {
                 Alta: {comunicadosAlta}
               </span>
               <span className="rounded-full border border-[var(--color-warning-200)] bg-[var(--color-warning-50)] px-3 py-1 text-sm font-medium text-[var(--color-warning-700)]">
-                M�dia: {comunicadosMedia}
+                Média: {comunicadosMedia}
               </span>
               <span className="rounded-full border border-[var(--color-primary-200)] bg-[var(--color-primary-50)] px-3 py-1 text-sm font-medium text-[var(--color-primary-700)]">
                 Baixa: {comunicadosBaixa}
@@ -667,7 +667,7 @@ export function ComunicadosPage(): JSX.Element {
               label="Buscar"
               value={buscaInput}
               onChange={(event) => setBuscaInput(event.target.value)}
-              placeholder="T�tulo ou conte�do"
+              placeholder="Título ou conteúdo"
             />
             <Select
               label="Status"
@@ -692,8 +692,8 @@ export function ComunicadosPage(): JSX.Element {
               }}
               options={[
                 { value: 'QUALQUER', label: 'Todos' },
-                { value: 'TODOS', label: 'Todos os usu�rios ativos' },
-                { value: 'USUARIOS_ESPECIFICOS', label: 'Usu�rios espec�ficos' },
+                { value: 'TODOS', label: 'Todos os usuários ativos' },
+                { value: 'USUARIOS_ESPECIFICOS', label: 'Usuários específicos' },
               ]}
             />
             <Select
@@ -707,8 +707,8 @@ export function ComunicadosPage(): JSX.Element {
                 { value: 'TODAS', label: 'Todos' },
                 { value: 'COMUNICADO_GERAL', label: 'Comunicado geral' },
                 { value: 'COMUNICADO_IMPORTANTE', label: 'Importante' },
-                { value: 'DECISAO_OPERACIONAL', label: 'Decis�o operacional' },
-                { value: 'PADRONIZACAO', label: 'Padroniza��o' },
+                { value: 'DECISAO_OPERACIONAL', label: 'Decisão operacional' },
+                { value: 'PADRONIZACAO', label: 'Padronização' },
                 { value: 'SISTEMA', label: 'Sistema' },
                 { value: 'TREINAMENTO', label: 'Treinamento' },
                 { value: 'BLOG_INTERNO', label: 'Blog interno' },
@@ -723,9 +723,9 @@ export function ComunicadosPage(): JSX.Element {
               }}
               options={[
                 { value: 'TODAS', label: 'Todas' },
-                { value: 'PRODUCAO', label: 'Produ��o' },
-                { value: 'DIGITALIZACAO', label: 'Digitaliza��o' },
-                { value: 'CONFERENCIA', label: 'Confer�ncia' },
+                { value: 'PRODUCAO', label: 'Produção' },
+                { value: 'DIGITALIZACAO', label: 'Digitalização' },
+                { value: 'CONFERENCIA', label: 'Conferência' },
                 { value: 'RECONFERENCIA', label: 'Reconf.' },
                 { value: 'QUALIDADE', label: 'Qualidade' },
                 { value: 'ADMINISTRATIVO', label: 'Administrativo' },
@@ -743,7 +743,7 @@ export function ComunicadosPage(): JSX.Element {
               options={[
                 { value: 'TODAS', label: 'Todos' },
                 { value: 'SIM', label: 'Fixados' },
-                { value: 'NAO', label: 'N�o fixados' },
+                { value: 'NAO', label: 'Não fixados' },
               ]}
             />
             <Select
@@ -756,12 +756,12 @@ export function ComunicadosPage(): JSX.Element {
               options={[
                 { value: 'TODAS', label: 'Todas' },
                 { value: 'ALTA', label: 'Alta' },
-                { value: 'MEDIA', label: 'M�dia' },
+                { value: 'MEDIA', label: 'Média' },
                 { value: 'BAIXA', label: 'Baixa' },
               ]}
             />
             <Select
-              label="Ordena��o"
+              label="Ordenação"
               value={ordenacao}
               onChange={(event) => {
                 setOrdenacao(event.target.value as FiltroOrdenacao);
@@ -775,7 +775,7 @@ export function ComunicadosPage(): JSX.Element {
               ]}
             />
             <Input
-              label="Data In�cio"
+              label="Data Início"
               type="date"
               value={dataInicio}
               onChange={(event) => {
@@ -830,7 +830,7 @@ export function ComunicadosPage(): JSX.Element {
               Nenhum comunicado encontrado
             </h2>
             <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
-              Ajuste os filtros ou crie o primeiro comunicado para publicar orienta��es no sistema.
+              Ajuste os filtros ou crie o primeiro comunicado para publicar orientações no sistema.
             </p>
           </Card>
         ) : (
@@ -930,7 +930,7 @@ export function ComunicadosPage(): JSX.Element {
                       </div>
                       <div className="rounded-lg bg-[var(--color-gray-50)] p-3">
                         <p className="text-xs font-medium text-[var(--color-text-tertiary)]">
-                          Destinat�rios
+                          Destinatários
                         </p>
                         <p className="mt-1 text-sm font-medium text-[var(--color-text-primary)]">
                           {comunicado.totalDestinatarios}
@@ -964,7 +964,7 @@ export function ComunicadosPage(): JSX.Element {
                       {comunicado.publicadoEm ? (
                         <span>Publicado em {formatDateTimeBR(comunicado.publicadoEm)}</span>
                       ) : (
-                        <span>Aguardando publica��o</span>
+                        <span>Aguardando publicação</span>
                       )}
                       {comunicado.encerradoEm ? (
                         <span>Encerrado em {formatDateTimeBR(comunicado.encerradoEm)}</span>
@@ -1013,7 +1013,7 @@ export function ComunicadosPage(): JSX.Element {
           <div className="space-y-5 p-5">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <Input
-                label="T�tulo"
+                label="Título"
                 value={formData.titulo}
                 onChange={(event) =>
                   setFormData((current) => ({ ...current, titulo: event.target.value }))
@@ -1031,7 +1031,7 @@ export function ComunicadosPage(): JSX.Element {
                 }
                 options={[
                   { value: 'BAIXA', label: 'Baixa' },
-                  { value: 'MEDIA', label: 'M�dia' },
+                  { value: 'MEDIA', label: 'Média' },
                   { value: 'ALTA', label: 'Alta' },
                 ]}
               />
@@ -1048,14 +1048,14 @@ export function ComunicadosPage(): JSX.Element {
                 }))
               }
               options={[
-                { value: 'TODOS', label: 'Todos os usu�rios ativos' },
-                { value: 'USUARIOS_ESPECIFICOS', label: 'Usu�rios espec�ficos' },
+                { value: 'TODOS', label: 'Todos os usuários ativos' },
+                { value: 'USUARIOS_ESPECIFICOS', label: 'Usuários específicos' },
               ]}
             />
 
             <div>
               <label className="mb-1.5 block text-sm font-medium text-[var(--color-text-primary)]">
-                Conte�do
+                Conteúdo
               </label>
               <textarea
                 value={formData.conteudo}
@@ -1063,7 +1063,7 @@ export function ComunicadosPage(): JSX.Element {
                   setFormData((current) => ({ ...current, conteudo: event.target.value }))
                 }
                 rows={8}
-                placeholder="Escreva o conte�do do comunicado."
+                placeholder="Escreva o conteúdo do comunicado."
                 className="w-full rounded-lg border border-[var(--color-gray-300)] bg-[var(--color-bg-primary)] px-3.5 py-3 text-sm text-[var(--color-text-primary)] transition-all duration-150 focus:border-[var(--color-primary-500)] focus:outline-none focus:ring-[3px] focus:ring-[var(--color-primary-100)]"
               />
             </div>
@@ -1073,10 +1073,10 @@ export function ComunicadosPage(): JSX.Element {
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-sm font-medium text-[var(--color-text-primary)]">
-                      Destinat�rios espec�ficos
+                      Destinatários específicos
                     </h3>
                     <p className="text-xs text-[var(--color-text-secondary)]">
-                      Selecione os usu�rios ativos que devem receber este comunicado.
+                      Selecione os usuários ativos que devem receber este comunicado.
                     </p>
                   </div>
                   <span className="rounded-full bg-[var(--color-primary-50)] px-2.5 py-1 text-xs font-medium text-[var(--color-primary-700)]">
@@ -1144,7 +1144,7 @@ export function ComunicadosPage(): JSX.Element {
                 loading={publicarComunicado.isPending}
                 onClick={() => void confirmarPublicacaoDraft()}
               >
-                Confirmar publica��o
+                Confirmar publicação
               </Button>
             </div>
           }
@@ -1160,7 +1160,7 @@ export function ComunicadosPage(): JSX.Element {
             {publicandoDraft?.escopoDestino === 'USUARIOS_ESPECIFICOS' ? (
               <div className="space-y-3">
                 <p className="text-sm text-[var(--color-text-secondary)]">
-                  Selecione os usu�rios ativos que devem receber este rascunho.
+                  Selecione os usuários ativos que devem receber este rascunho.
                 </p>
                 <div className="max-h-72 space-y-2 overflow-y-auto rounded-lg border border-[var(--color-border-primary)] p-3">
                   {usuariosAtivos.map((usuario) => {
@@ -1195,8 +1195,8 @@ export function ComunicadosPage(): JSX.Element {
               </div>
             ) : (
               <p className="text-sm text-[var(--color-text-secondary)]">
-                Este comunicado ser� expandido para todos os usu�rios ativos no momento da
-                publica��o.
+                Este comunicado será expandido para todos os usuários ativos no momento da
+                publicação.
               </p>
             )}
           </div>
@@ -1219,14 +1219,14 @@ export function ComunicadosPage(): JSX.Element {
           <div className="space-y-5 p-5">
             {detalheQuery.isLoading ? (
               <div className="py-10 text-center text-sm text-[var(--color-text-secondary)]">
-                Carregando destinat�rios...
+                Carregando destinatários...
               </div>
             ) : detalheQuery.error ? (
               <Card className="text-center">
                 <p className="text-sm text-[var(--color-text-secondary)]">
                   {extractErrorMessage(
                     detalheQuery.error,
-                    'N�o foi poss�vel carregar o acompanhamento deste comunicado.'
+                    'Não foi possível carregar o acompanhamento deste comunicado.'
                   )}
                 </p>
               </Card>
@@ -1235,7 +1235,7 @@ export function ComunicadosPage(): JSX.Element {
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-5">
                   <Card>
                     <p className="text-xs font-medium text-[var(--color-text-tertiary)]">
-                      Destinat�rios
+                      Destinatários
                     </p>
                     <p className="mt-2 text-xl font-semibold text-[var(--color-text-primary)]">
                       {detalheQuery.data.comunicado.totalDestinatarios}
@@ -1277,10 +1277,10 @@ export function ComunicadosPage(): JSX.Element {
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <h3 className="text-lg font-semibold text-[var(--color-text-primary)]">
-                        Destinat�rios
+                        Destinatários
                       </h3>
                       <p className="text-sm text-[var(--color-text-secondary)]">
-                        Consulte quem j� leu e quem ainda est� pendente.
+                        Consulte quem já leu e quem ainda está pendente.
                       </p>
                     </div>
                     <div className="flex flex-wrap gap-2">
@@ -1309,7 +1309,7 @@ export function ComunicadosPage(): JSX.Element {
                   </div>
                   <div className="mt-4">
                     <Input
-                      label="Buscar destinat�rio"
+                      label="Buscar destinatário"
                       value={buscaDestinatario}
                       onChange={(event) => setBuscaDestinatario(event.target.value)}
                       placeholder="Nome ou email"
@@ -1335,7 +1335,7 @@ export function ComunicadosPage(): JSX.Element {
                 {destinatariosFiltrados.length === 0 ? (
                   <Card className="text-center">
                     <p className="text-sm text-[var(--color-text-secondary)]">
-                      Nenhum destinat�rio encontrado para este filtro.
+                      Nenhum destinatário encontrado para este filtro.
                     </p>
                   </Card>
                 ) : (
@@ -1361,7 +1361,7 @@ export function ComunicadosPage(): JSX.Element {
                                 </span>
                                 {!item.usuarioAtivo ? (
                                   <span className="rounded-full bg-[var(--color-gray-100)] px-2.5 py-1 text-xs font-medium text-[var(--color-gray-700)]">
-                                    Usu�rio inativo
+                                    Usuário inativo
                                   </span>
                                 ) : null}
                               </div>

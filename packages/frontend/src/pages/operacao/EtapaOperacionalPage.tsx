@@ -299,10 +299,12 @@ export function EtapaOperacionalPage(): JSX.Element {
     setFiltroDataFim(filtrosUrl.dataFim);
   }, [filtrosUrl.busca, filtrosUrl.orgao, filtrosUrl.dataInicio, filtrosUrl.dataFim]);
 
+  const debouncedBusca = useDebounce(filtroBusca.trim(), 300);
+
   useEffect(() => {
     const params = new URLSearchParams();
     if (filtrosUrl.status) params.set('status', filtrosUrl.status);
-    if (filtroBusca.trim()) params.set('busca', filtroBusca.trim());
+    if (debouncedBusca) params.set('busca', debouncedBusca);
     if (filtroUnidade) params.set('orgao', filtroUnidade);
     if (filtroDataInicio) params.set('dataInicio', filtroDataInicio);
     if (filtroDataFim) params.set('dataFim', filtroDataFim);
@@ -322,7 +324,7 @@ export function EtapaOperacionalPage(): JSX.Element {
       );
     }
   }, [
-    filtroBusca,
+    debouncedBusca,
     filtroUnidade,
     filtroDataInicio,
     filtroDataFim,
@@ -331,8 +333,6 @@ export function EtapaOperacionalPage(): JSX.Element {
     location.search,
     navigate,
   ]);
-
-  const debouncedBusca = useDebounce(filtroBusca.trim(), 300);
 
   useEffect(() => {
     if (etapa !== 'recebimento' || !debouncedBusca) {

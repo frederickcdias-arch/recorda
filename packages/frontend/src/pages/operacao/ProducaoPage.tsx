@@ -121,7 +121,7 @@ export function ProducaoPage(): JSX.Element {
       return;
     }
     setPagina(1);
-  }, [etapa, colaborador, dataInicio, dataFim, busca]);
+  }, [etapa, colaborador, dataInicio, dataFim, buscaDebounced]);
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -130,7 +130,7 @@ export function ProducaoPage(): JSX.Element {
     if (colaborador) params.set('colaborador', colaborador);
     if (dataInicio) params.set('dataInicio', dataInicio);
     if (dataFim) params.set('dataFim', dataFim);
-    if (busca.trim()) params.set('busca', busca.trim());
+    if (buscaDebounced.trim()) params.set('busca', buscaDebounced.trim());
 
     const nextSearch = params.toString();
     const currentSearch = location.search.startsWith('?')
@@ -152,7 +152,7 @@ export function ProducaoPage(): JSX.Element {
     colaborador,
     dataInicio,
     dataFim,
-    busca,
+    buscaDebounced,
     location.pathname,
     location.search,
     navigate,

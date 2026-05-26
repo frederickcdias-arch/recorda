@@ -1021,14 +1021,53 @@ export function useUsuarios() {
 export function useComunicadosAdmin(params: ListarComunicadosAdminParams) {
   return useQuery({
     queryKey: [...queryKeys.comunicadosAdmin, params] as const,
-    queryFn: () => {
+    queryFn: async () => {
       const qs = new URLSearchParams();
       for (const [key, value] of Object.entries(params)) {
         if (value === undefined || value === null || value === '') continue;
+        if (key === 'status' && value === 'TODOS') continue;
+        if (key === 'escopo' && value === 'QUALQUER') continue;
+        if (key === 'prioridade' && value === 'TODAS') continue;
+        if (key === 'tipo' && value === 'TODAS') continue;
+        if (key === 'categoria' && value === 'TODAS') continue;
+        if (key === 'fixado' && value === 'TODAS') continue;
+        if (key === 'ordenacao' && value === 'mais-recentes') continue;
         qs.set(key, String(value));
       }
       const suffix = qs.toString() ? `?${qs.toString()}` : '';
-      return api.get<ListarComunicadosAdminResponse>(`/admin/comunicados${suffix}`);
+      try {
+        return await api.get<ListarComunicadosAdminResponse>(`/admin/comunicados${suffix}`);
+      } catch (error) {
+        const status =
+          error && typeof error === 'object' && 'status' in error
+            ? (error as { status?: number }).status
+            : undefined;
+
+        if (status !== 400) {
+          throw error;
+        }
+
+        const fallbackParams = new URLSearchParams();
+        const fallbackEntries = {
+          pagina: params.pagina,
+          limite: params.limite,
+          busca: params.busca,
+          status: params.status !== 'TODOS' ? params.status : undefined,
+          escopo: params.escopo !== 'QUALQUER' ? params.escopo : undefined,
+          prioridade: params.prioridade !== 'TODAS' ? params.prioridade : undefined,
+          dataInicio: params.dataInicio,
+          dataFim: params.dataFim,
+          publicadoEm: params.publicadoEm,
+        };
+
+        for (const [key, value] of Object.entries(fallbackEntries)) {
+          if (value === undefined || value === null || value === '') continue;
+          fallbackParams.set(key, String(value));
+        }
+
+        const fallbackSuffix = fallbackParams.toString() ? `?${fallbackParams.toString()}` : '';
+        return api.get<ListarComunicadosAdminResponse>(`/admin/comunicados${fallbackSuffix}`);
+      }
     },
   });
 }

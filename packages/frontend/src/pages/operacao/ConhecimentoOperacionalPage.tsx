@@ -158,7 +158,7 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
   useEffect(() => {
     const params = new URLSearchParams();
     if (activeTab !== 'documentos') params.set('tab', activeTab);
-    if (busca.trim()) params.set('busca', busca.trim());
+    if (debouncedBusca.trim()) params.set('busca', debouncedBusca.trim());
     if (categoria) params.set('categoria', categoria);
     if (etapaFiltro) params.set('etapa', etapaFiltro);
     if (selectedId) params.set('documento', selectedId);
@@ -179,7 +179,7 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
     }
   }, [
     activeTab,
-    busca,
+    debouncedBusca,
     categoria,
     etapaFiltro,
     location.pathname,

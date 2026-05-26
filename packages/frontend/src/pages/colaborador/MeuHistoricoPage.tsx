@@ -118,7 +118,7 @@ export function MeuHistoricoPage(): JSX.Element {
     if (etapaFiltro) params.set('etapa', etapaFiltro);
     if (dataInicio) params.set('dataInicio', dataInicio);
     if (dataFim) params.set('dataFim', dataFim);
-    if (buscaInput) params.set('busca', buscaInput);
+    if (busca) params.set('busca', busca);
 
     const nextSearch = params.toString();
     const currentSearch = location.search.startsWith('?')
@@ -139,7 +139,7 @@ export function MeuHistoricoPage(): JSX.Element {
     etapaFiltro,
     dataInicio,
     dataFim,
-    buscaInput,
+    busca,
     location.pathname,
     location.search,
     navigate,
