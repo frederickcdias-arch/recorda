@@ -285,7 +285,6 @@ export function EtapaOperacionalPage(): JSX.Element {
     const params = new URLSearchParams(location.search);
     return {
       status: params.get('status') ?? '',
-      busca: params.get('busca') ?? '',
       orgao: params.get('orgao') ?? '',
       dataInicio: params.get('dataInicio') ?? '',
       dataFim: params.get('dataFim') ?? '',
@@ -293,18 +292,16 @@ export function EtapaOperacionalPage(): JSX.Element {
   }, [location.search]);
 
   useEffect(() => {
-    setFiltroBusca(filtrosUrl.busca);
     setFiltroUnidade(filtrosUrl.orgao);
     setFiltroDataInicio(filtrosUrl.dataInicio);
     setFiltroDataFim(filtrosUrl.dataFim);
-  }, [filtrosUrl.busca, filtrosUrl.orgao, filtrosUrl.dataInicio, filtrosUrl.dataFim]);
+  }, [filtrosUrl.orgao, filtrosUrl.dataInicio, filtrosUrl.dataFim]);
 
   const debouncedBusca = useDebounce(filtroBusca.trim(), 600);
 
   useEffect(() => {
     const params = new URLSearchParams();
     if (filtrosUrl.status) params.set('status', filtrosUrl.status);
-    if (debouncedBusca) params.set('busca', debouncedBusca);
     if (filtroUnidade) params.set('orgao', filtroUnidade);
     if (filtroDataInicio) params.set('dataInicio', filtroDataInicio);
     if (filtroDataFim) params.set('dataFim', filtroDataFim);
@@ -324,7 +321,6 @@ export function EtapaOperacionalPage(): JSX.Element {
       );
     }
   }, [
-    debouncedBusca,
     filtroUnidade,
     filtroDataInicio,
     filtroDataFim,

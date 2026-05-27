@@ -88,7 +88,6 @@ export function ProducaoPage(): JSX.Element {
       colaborador: params.get('colaborador') ?? '',
       dataInicio: params.get('dataInicio') ?? '',
       dataFim: params.get('dataFim') ?? '',
-      busca: params.get('busca') ?? '',
     };
   }, [location.search]);
 
@@ -98,14 +97,12 @@ export function ProducaoPage(): JSX.Element {
     setColaborador(filtrosUrl.colaborador);
     setDataInicio(filtrosUrl.dataInicio);
     setDataFim(filtrosUrl.dataFim);
-    setBusca(filtrosUrl.busca);
   }, [
     filtrosUrl.pagina,
     filtrosUrl.etapa,
     filtrosUrl.colaborador,
     filtrosUrl.dataInicio,
     filtrosUrl.dataFim,
-    filtrosUrl.busca,
   ]);
 
   // Debounce busca
@@ -130,7 +127,6 @@ export function ProducaoPage(): JSX.Element {
     if (colaborador) params.set('colaborador', colaborador);
     if (dataInicio) params.set('dataInicio', dataInicio);
     if (dataFim) params.set('dataFim', dataFim);
-    if (buscaDebounced.trim()) params.set('busca', buscaDebounced.trim());
 
     const nextSearch = params.toString();
     const currentSearch = location.search.startsWith('?')
@@ -152,7 +148,6 @@ export function ProducaoPage(): JSX.Element {
     colaborador,
     dataInicio,
     dataFim,
-    buscaDebounced,
     location.pathname,
     location.search,
     navigate,

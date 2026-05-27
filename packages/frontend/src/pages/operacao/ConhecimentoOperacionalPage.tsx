@@ -134,7 +134,6 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
     const tab = params.get('tab');
     return {
       tab: isKBTab(tab) ? tab : 'documentos',
-      busca: params.get('busca') ?? '',
       categoria: params.get('categoria') ?? '',
       etapa: params.get('etapa') ?? '',
       documento: params.get('documento') ?? '',
@@ -143,22 +142,14 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
 
   useEffect(() => {
     setActiveTab(filtrosUrl.tab);
-    setBusca(filtrosUrl.busca);
     setCategoria(filtrosUrl.categoria);
     setEtapaFiltro(filtrosUrl.etapa);
     setSelectedId(filtrosUrl.documento);
-  }, [
-    filtrosUrl.busca,
-    filtrosUrl.categoria,
-    filtrosUrl.documento,
-    filtrosUrl.etapa,
-    filtrosUrl.tab,
-  ]);
+  }, [filtrosUrl.categoria, filtrosUrl.documento, filtrosUrl.etapa, filtrosUrl.tab]);
 
   useEffect(() => {
     const params = new URLSearchParams();
     if (activeTab !== 'documentos') params.set('tab', activeTab);
-    if (debouncedBusca.trim()) params.set('busca', debouncedBusca.trim());
     if (categoria) params.set('categoria', categoria);
     if (etapaFiltro) params.set('etapa', etapaFiltro);
     if (selectedId) params.set('documento', selectedId);
@@ -177,16 +168,7 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
         { replace: true }
       );
     }
-  }, [
-    activeTab,
-    debouncedBusca,
-    categoria,
-    etapaFiltro,
-    location.pathname,
-    location.search,
-    navigate,
-    selectedId,
-  ]);
+  }, [activeTab, categoria, etapaFiltro, location.pathname, location.search, navigate, selectedId]);
 
   const [novoDoc, setNovoDoc] = useState({
     codigo: '',

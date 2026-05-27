@@ -94,7 +94,6 @@ export function MeuHistoricoPage(): JSX.Element {
       etapa: params.get('etapa') ?? '',
       dataInicio: params.get('dataInicio') ?? '',
       dataFim: params.get('dataFim') ?? '',
-      busca: params.get('busca') ?? '',
     };
   }, [location.search]);
 
@@ -103,14 +102,7 @@ export function MeuHistoricoPage(): JSX.Element {
     setEtapaFiltro(filtrosUrl.etapa);
     setDataInicio(filtrosUrl.dataInicio);
     setDataFim(filtrosUrl.dataFim);
-    setBuscaInput(filtrosUrl.busca);
-  }, [
-    filtrosUrl.pagina,
-    filtrosUrl.etapa,
-    filtrosUrl.dataInicio,
-    filtrosUrl.dataFim,
-    filtrosUrl.busca,
-  ]);
+  }, [filtrosUrl.pagina, filtrosUrl.etapa, filtrosUrl.dataInicio, filtrosUrl.dataFim]);
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -118,7 +110,6 @@ export function MeuHistoricoPage(): JSX.Element {
     if (etapaFiltro) params.set('etapa', etapaFiltro);
     if (dataInicio) params.set('dataInicio', dataInicio);
     if (dataFim) params.set('dataFim', dataFim);
-    if (busca) params.set('busca', busca);
 
     const nextSearch = params.toString();
     const currentSearch = location.search.startsWith('?')
@@ -134,16 +125,7 @@ export function MeuHistoricoPage(): JSX.Element {
         { replace: true }
       );
     }
-  }, [
-    pagina,
-    etapaFiltro,
-    dataInicio,
-    dataFim,
-    busca,
-    location.pathname,
-    location.search,
-    navigate,
-  ]);
+  }, [pagina, etapaFiltro, dataInicio, dataFim, location.pathname, location.search, navigate]);
 
   const queryParams = new URLSearchParams();
   queryParams.set('limite', String(limite));
