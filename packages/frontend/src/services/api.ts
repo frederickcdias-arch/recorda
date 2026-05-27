@@ -6,6 +6,7 @@ import { getToken, clearStoredTokens as clearTokens } from './tokenStorage.js';
 
 const rawApiBase = (import.meta.env.VITE_API_BASE as string | undefined)?.trim() || '/api';
 const API_BASE = rawApiBase.endsWith('/') ? rawApiBase.slice(0, -1) : rawApiBase;
+export const IS_EXTERNAL_API_BASE = API_BASE !== '/api';
 
 function resolveApiUrl(endpoint: string, baseUrl: string): string {
   if (endpoint.startsWith('http')) return endpoint;

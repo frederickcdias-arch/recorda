@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '../services/api';
+import { api, IS_EXTERNAL_API_BASE } from '../services/api';
 import type {
   StatusRepositorio,
   EtapaFluxo,
@@ -1019,12 +1019,25 @@ export function useUsuarios() {
 }
 
 export function useComunicadosAdmin(params: ListarComunicadosAdminParams) {
-  return useQuery({
-    queryKey: [...queryKeys.comunicadosAdmin, params] as const,
-    queryFn: async () => {
-      const qs = new URLSearchParams();
-      for (const [key, value] of Object.entries(params)) {
-        if (value === undefined || value === null || value === '') continue;
+  const buildQueryParams = (compatMode: boolean): URLSearchParams => {
+    const qs = new URLSearchParams();
+    const entries = compatMode
+      ? {
+          pagina: params.pagina,
+          limite: params.limite,
+          busca: params.busca,
+          status: params.status !== 'TODOS' ? params.status : undefined,
+          escopo: params.escopo !== 'QUALQUER' ? params.escopo : undefined,
+          prioridade: params.prioridade !== 'TODAS' ? params.prioridade : undefined,
+          dataInicio: params.dataInicio,
+          dataFim: params.dataFim,
+          publicadoEm: params.publicadoEm,
+        }
+      : params;
+
+    for (const [key, value] of Object.entries(entries)) {
+      if (value === undefined || value === null || value === '') continue;
+      if (!compatMode) {
         if (key === 'status' && value === 'TODOS') continue;
         if (key === 'escopo' && value === 'QUALQUER') continue;
         if (key === 'prioridade' && value === 'TODAS') continue;
@@ -1032,8 +1045,17 @@ export function useComunicadosAdmin(params: ListarComunicadosAdminParams) {
         if (key === 'categoria' && value === 'TODAS') continue;
         if (key === 'fixado' && value === 'TODAS') continue;
         if (key === 'ordenacao' && value === 'mais-recentes') continue;
-        qs.set(key, String(value));
       }
+      qs.set(key, String(value));
+    }
+
+    return qs;
+  };
+
+  return useQuery({
+    queryKey: [...queryKeys.comunicadosAdmin, params] as const,
+    queryFn: async () => {
+      const qs = buildQueryParams(IS_EXTERNAL_API_BASE);
       const suffix = qs.toString() ? `?${qs.toString()}` : '';
       try {
         return await api.get<ListarComunicadosAdminResponse>(`/admin/comunicados${suffix}`);
@@ -1047,24 +1069,7 @@ export function useComunicadosAdmin(params: ListarComunicadosAdminParams) {
           throw error;
         }
 
-        const fallbackParams = new URLSearchParams();
-        const fallbackEntries = {
-          pagina: params.pagina,
-          limite: params.limite,
-          busca: params.busca,
-          status: params.status !== 'TODOS' ? params.status : undefined,
-          escopo: params.escopo !== 'QUALQUER' ? params.escopo : undefined,
-          prioridade: params.prioridade !== 'TODAS' ? params.prioridade : undefined,
-          dataInicio: params.dataInicio,
-          dataFim: params.dataFim,
-          publicadoEm: params.publicadoEm,
-        };
-
-        for (const [key, value] of Object.entries(fallbackEntries)) {
-          if (value === undefined || value === null || value === '') continue;
-          fallbackParams.set(key, String(value));
-        }
-
+        const fallbackParams = buildQueryParams(true);
         const fallbackSuffix = fallbackParams.toString() ? `?${fallbackParams.toString()}` : '';
         return api.get<ListarComunicadosAdminResponse>(`/admin/comunicados${fallbackSuffix}`);
       }
@@ -1191,7 +1196,17 @@ export function useCriarComunicado() {
 
   return useMutation({
     mutationFn: (body: CriarComunicadoDTO) =>
-      api.post<{ comunicado: { id: string; status: string } }>('/admin/comunicados', body),
+      api.post<{ comunicado: { id: string; status: string } }>(
+        '/admin/comunicados',
+        IS_EXTERNAL_API_BASE
+          ? {
+              titulo: body.titulo,
+              conteudo: body.conteudo,
+              prioridade: body.prioridade,
+              escopoDestino: body.escopoDestino,
+            }
+          : body
+      ),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: queryKeys.comunicadosAdmin });
       void qc.invalidateQueries({ queryKey: ['comunicado-admin-detalhe'] });
@@ -1204,7 +1219,17 @@ export function useAtualizarComunicado() {
 
   return useMutation({
     mutationFn: ({ id, body }: { id: string; body: AtualizarComunicadoDTO }) =>
-      api.patch<{ comunicado: { id: string; status: string } }>(`/admin/comunicados/${id}`, body),
+      api.patch<{ comunicado: { id: string; status: string } }>(
+        `/admin/comunicados/${id}`,
+        IS_EXTERNAL_API_BASE
+          ? {
+              titulo: body.titulo,
+              conteudo: body.conteudo,
+              prioridade: body.prioridade,
+              escopoDestino: body.escopoDestino,
+            }
+          : body
+      ),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: queryKeys.comunicadosAdmin });
       void qc.invalidateQueries({ queryKey: ['comunicado-admin-detalhe'] });
