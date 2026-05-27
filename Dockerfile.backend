@@ -45,6 +45,16 @@ COPY --from=builder --chown=nodejs:nodejs /app/packages/shared/package*.json ./p
 # Copy database migrations
 COPY --chown=nodejs:nodejs db ./db
 
+# Create upload directories with proper ownership before switching user
+RUN mkdir -p /app/uploads/planilhas \
+    /app/uploads/ocr \
+    /app/uploads/ocr-recebimento \
+    /app/uploads/ausencias \
+    /app/uploads/logos \
+    /app/uploads/relatorios \
+    /app/uploads/mapas \
+    && chown -R nodejs:nodejs /app/uploads
+
 # Set environment variables
 ENV NODE_ENV=production
 ENV PORT=3001
