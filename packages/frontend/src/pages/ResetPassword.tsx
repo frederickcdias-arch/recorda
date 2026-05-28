@@ -66,8 +66,8 @@ export function ResetPasswordPage(): JSX.Element {
 
   return (
     <AuthShell
-      title="Redefinir senha"
-      subtitle="Informe o token e defina a nova senha."
+      title="Redefinir Senha"
+      subtitle="Informe o token e a nova senha."
       footer={
         <Link
           to="/login"

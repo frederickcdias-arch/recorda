@@ -19,15 +19,17 @@ export function ProgressIndicator({ steps, className = '' }: ProgressIndicatorPr
           <span
             className={`h-2 w-2 rounded-full ${
               step.done
-                ? 'bg-primary-600'
+                ? 'bg-[var(--color-primary-600)]'
                 : step.active
-                  ? 'bg-primary-300 animate-pulse'
+                  ? 'bg-[var(--color-primary-300)]'
                   : 'bg-[var(--color-border-primary)]'
             }`}
           />
           <span
             className={`text-[10px] leading-none ${
-              step.done ? 'font-medium text-primary-700' : 'text-[var(--color-text-tertiary)]'
+              step.done
+                ? 'font-medium text-[var(--color-primary-700)]'
+                : 'text-[var(--color-text-tertiary)]'
             }`}
           >
             {step.label}

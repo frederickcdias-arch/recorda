@@ -59,13 +59,13 @@ export function DevolucaoDetalhePanel({
     <Modal
       open
       onClose={onClose}
-      title={devolucao ? `Devolução - ${devolucao.coordenadoria_destino}` : 'Detalhes da devolução'}
+      title={devolucao ? `Devolução - ${devolucao.coordenadoria_destino}` : 'Detalhes da Devolução'}
       subtitle={
         devolucao
           ? `${formatarData(devolucao.data_devolucao)} • ${devolucao.responsavel_retirada}`
           : detalheQuery.isLoading
-            ? 'Carregando detalhes...'
-            : 'Detalhes da devolução'
+            ? 'Carregando...'
+            : 'Detalhes da Devolução'
       }
       size="xl"
       footer={
@@ -86,7 +86,7 @@ export function DevolucaoDetalhePanel({
     >
       <div className="space-y-5 p-5">
         {detalheQuery.isLoading ? (
-          <p className="text-sm text-[var(--color-text-secondary)]">Carregando detalhes...</p>
+          <p className="text-sm text-[var(--color-text-secondary)]">Carregando...</p>
         ) : !devolucao ? (
           <p className="text-sm text-[var(--color-text-secondary)]">
             Não foi possível carregar a devolução.

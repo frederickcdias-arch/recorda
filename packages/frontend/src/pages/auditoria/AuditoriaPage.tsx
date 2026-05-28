@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+﻿import { useEffect, useMemo, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { DateRangePicker } from '../../components/ui/DateRangePicker';
@@ -58,7 +58,6 @@ const CATEGORIA_CONFIG: Record<
 };
 
 export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
-  const navigate = useNavigate();
   const location = useLocation();
   const config = categoria ? CATEGORIA_CONFIG[categoria] : null;
   const queryClient = useQueryClient();
@@ -101,39 +100,6 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
     filtrosUrl.operacao,
     filtrosUrl.pagina,
     filtrosUrl.tabela,
-  ]);
-
-  useEffect(() => {
-    const params = new URLSearchParams();
-    if (pagina > 1) params.set('pagina', String(pagina));
-    if (filtroTabela) params.set('tabela', filtroTabela);
-    if (filtroOperacao) params.set('operacao', filtroOperacao);
-    if (dataInicio) params.set('dataInicio', dataInicio);
-    if (dataFim) params.set('dataFim', dataFim);
-
-    const nextSearch = params.toString();
-    const currentSearch = location.search.startsWith('?')
-      ? location.search.slice(1)
-      : location.search;
-
-    if (nextSearch !== currentSearch) {
-      navigate(
-        {
-          pathname: location.pathname,
-          search: nextSearch ? `?${nextSearch}` : '',
-        },
-        { replace: true }
-      );
-    }
-  }, [
-    dataFim,
-    dataInicio,
-    filtroOperacao,
-    filtroTabela,
-    location.pathname,
-    location.search,
-    navigate,
-    pagina,
   ]);
 
   const tabelaEfetiva =
@@ -240,7 +206,7 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
   return (
     <PageState
       loading={carregando}
-      loadingMessage="Carregando logs de auditoria..."
+      loadingMessage="Carregando auditoria..."
       error={erroComAcao}
     >
       <div className="space-y-6">
@@ -265,7 +231,7 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
               }}
               fullWidth
             >
-              Filtrar
+              Atualizar lista
             </Button>
           }
         >
@@ -327,7 +293,7 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
                 <p className="text-sm font-medium text-[var(--color-text-primary)]">
                   {temFiltroAtivo
                     ? 'Nenhum resultado para os filtros aplicados'
-                    : 'Nenhum evento de auditoria encontrado.'}
+                    : 'Nenhum evento.'}
                 </p>
                 <p className="mt-1 text-xs text-[var(--color-text-tertiary)]">
                   {temFiltroAtivo
@@ -383,7 +349,7 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
                                 onClick={() => setExpandido(null)}
                                 className="rounded text-xs text-primary-600 hover:text-primary-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
                               >
-                                Ocultar detalhes
+                                Ocultar
                               </button>
                             ) : (
                               <button
@@ -393,7 +359,7 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
                                 onClick={() => setExpandido(log.id)}
                                 className="rounded text-xs text-primary-600 hover:text-primary-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
                               >
-                                Ver detalhes
+                                Detalhes
                               </button>
                             )}
                           </div>
@@ -470,3 +436,4 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
     </PageState>
   );
 }
+

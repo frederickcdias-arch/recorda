@@ -268,8 +268,8 @@ function LancarAusenciaModal({
     <Modal
       open={open}
       onClose={handleClose}
-      title="Lançar ausência"
-      subtitle="Registre uma ausência diretamente para um colaborador."
+      title="Lançar Ausência"
+      subtitle="Registre uma ausência."
       size="lg"
       scrollable
     >
@@ -297,7 +297,7 @@ function LancarAusenciaModal({
           {/* Tipo de ausência */}
           <div>
             <Select
-              label="Tipo de ausência *"
+              label="Tipo de Ausência *"
               value={tipoAusenciaId}
               onChange={(e) => setTipoAusenciaId(e.target.value)}
               options={[
@@ -321,7 +321,7 @@ function LancarAusenciaModal({
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <Input
-                label="Data de início *"
+                label="Data de Início *"
                 type="date"
                 value={dataInicio}
                 onChange={(e) => setDataInicio(e.target.value)}
@@ -332,7 +332,7 @@ function LancarAusenciaModal({
             </div>
             <div>
               <Input
-                label="Data de fim *"
+                label="Data de Fim *"
                 type="date"
                 value={dataFim}
                 onChange={(e) => setDataFim(e.target.value)}
@@ -364,7 +364,7 @@ function LancarAusenciaModal({
             {periodo === 'horas' ? (
               <div>
                 <Input
-                  label="Horas de ausência *"
+                  label="Horas de Ausência *"
                   type="number"
                   min={0.5}
                   max={24}
@@ -385,7 +385,7 @@ function LancarAusenciaModal({
           {/* Status inicial */}
           <div>
             <Select
-              label="Status inicial *"
+              label="Status Inicial *"
               value={statusInicial}
               onChange={(e) => setStatusInicial(e.target.value as 'pendente' | 'aprovado')}
               options={STATUS_LANCAMENTO_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
@@ -653,10 +653,10 @@ export function AusenciasPage(): JSX.Element {
       <div className="space-y-6">
         <PageHeader
           title="Ausências"
-          subtitle="Gerencie e aprove ausências dos colaboradores."
+          subtitle="Lançamentos da equipe."
           actions={
             <Button variant="primary" onClick={() => setLancamentoAberto(true)}>
-              Lançar ausência
+              Lançar Ausência
             </Button>
           }
         />
@@ -670,92 +670,77 @@ export function AusenciasPage(): JSX.Element {
           />
         ) : null}
 
-        <Card padding="sm">
-          <FilterBar
-            actions={
-              <Button variant="secondary" onClick={() => void invalidarAusencias()}>
-                Atualizar
-              </Button>
-            }
-          >
-            <Input
-              label="Buscar"
-              value={buscaInput}
-              onChange={(event) => setBuscaInput(event.target.value)}
-              placeholder="Colaborador, justificativa ou observações"
-            />
-            <Select
-              label="Colaborador"
-              value={filters.usuarioId ?? ''}
-              onChange={(event) => handleFilterChange('usuarioId', event.target.value)}
-              options={[{ value: '', label: 'Todos colaboradores' }].concat(
-                usuariosQuery.data?.map((usuario) => ({
-                  value: usuario.id,
-                  label: `${usuario.nome} (${usuario.email})`,
-                })) ?? []
-              )}
-              disabled={usuariosQuery.isLoading}
-              placeholder="Todos colaboradores"
-            />
-            <Select
-              label="Status"
-              value={filters.status ?? 'TODOS'}
-              onChange={(event) => handleFilterChange('status', event.target.value)}
-              options={STATUS_OPTIONS.map((option) => ({
-                value: option.value,
-                label: option.label,
-              }))}
-            />
-            <Input
-              label="Data início"
-              type="date"
-              value={filters.dataInicio ?? ''}
-              onChange={(event) => handleFilterChange('dataInicio', event.target.value)}
-            />
-            <Input
-              label="Data fim"
-              type="date"
-              value={filters.dataFim ?? ''}
-              onChange={(event) => handleFilterChange('dataFim', event.target.value)}
-            />
-          </FilterBar>
+        <Card padding="sm" className="bg-[var(--color-bg-secondary)]">
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
+            <span className="text-[var(--color-text-secondary)]">
+              Resultados <strong className="text-[var(--color-text-primary)]">{total}</strong>
+            </span>
+            <span className="text-[var(--color-text-secondary)]">
+              Pendentes{' '}
+              <strong className="text-[var(--color-warning-700)]">{resumo.pendentes}</strong>
+            </span>
+            <span className="text-[var(--color-text-secondary)]">
+              Aprovadas{' '}
+              <strong className="text-[var(--color-success-700)]">{resumo.aprovadas}</strong>
+            </span>
+            <span className="text-[var(--color-text-secondary)]">
+              Rejeitadas{' '}
+              <strong className="text-[var(--color-error-700)]">{resumo.rejeitadas}</strong>
+            </span>
+          </div>
         </Card>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Card padding="sm">
-            <p className="text-xs font-medium text-[var(--color-text-tertiary)]">
-              Total de resultados
-            </p>
-            <p className="mt-2 text-2xl font-semibold text-[var(--color-text-primary)]">{total}</p>
-          </Card>
-          <Card padding="sm">
-            <p className="text-xs font-medium text-[var(--color-text-tertiary)]">
-              Pendentes na página
-            </p>
-            <p className="mt-2 text-2xl font-semibold text-[var(--color-warning-600)]">
-              {resumo.pendentes}
-            </p>
-          </Card>
-          <Card padding="sm">
-            <p className="text-xs font-medium text-[var(--color-text-tertiary)]">
-              Aprovadas na página
-            </p>
-            <p className="mt-2 text-2xl font-semibold text-[var(--color-success-600)]">
-              {resumo.aprovadas}
-            </p>
-          </Card>
-          <Card padding="sm">
-            <p className="text-xs font-medium text-[var(--color-text-tertiary)]">
-              Rejeitadas na página
-            </p>
-            <p className="mt-2 text-2xl font-semibold text-[var(--color-error-600)]">
-              {resumo.rejeitadas}
-            </p>
-          </Card>
-        </div>
+        <FilterBar
+          actions={
+            <Button variant="secondary" onClick={() => void invalidarAusencias()}>
+              Atualizar lista
+            </Button>
+          }
+        >
+          <Input
+            label="Buscar"
+            value={buscaInput}
+            onChange={(event) => setBuscaInput(event.target.value)}
+            placeholder="Colaborador, justificativa ou observações"
+          />
+          <Select
+            label="Colaborador"
+            value={filters.usuarioId ?? ''}
+            onChange={(event) => handleFilterChange('usuarioId', event.target.value)}
+            options={[{ value: '', label: 'Todos' }].concat(
+              usuariosQuery.data?.map((usuario) => ({
+                value: usuario.id,
+                label: `${usuario.nome} (${usuario.email})`,
+              })) ?? []
+            )}
+            disabled={usuariosQuery.isLoading}
+            placeholder="Todos"
+          />
+          <Select
+            label="Status"
+            value={filters.status ?? 'TODOS'}
+            onChange={(event) => handleFilterChange('status', event.target.value)}
+            options={STATUS_OPTIONS.map((option) => ({
+              value: option.value,
+              label: option.label,
+            }))}
+          />
+          <Input
+            label="Início"
+            type="date"
+            value={filters.dataInicio ?? ''}
+            onChange={(event) => handleFilterChange('dataInicio', event.target.value)}
+          />
+          <Input
+            label="Fim"
+            type="date"
+            value={filters.dataFim ?? ''}
+            onChange={(event) => handleFilterChange('dataFim', event.target.value)}
+          />
+        </FilterBar>
 
         <Card padding="none">
-          <CardHeader title="Solicitações de ausência" className="px-5 pt-5" />
+          <CardHeader title="Solicitações" className="px-5 pt-5" />
           <Table>
             <TableHead>
               <tr>
@@ -772,7 +757,7 @@ export function AusenciasPage(): JSX.Element {
                 <TableEmptyState
                   colSpan={6}
                   title="Nenhuma ausência encontrada"
-                  description="Ajuste os filtros ou aguarde novas solicitações."
+                  description="Ajuste os filtros."
                 />
               ) : (
                 ausencias.map((ausencia) => (
@@ -913,7 +898,7 @@ export function AusenciasPage(): JSX.Element {
         <Modal
           open={rejeicaoAberta}
           onClose={handleFecharRejeicao}
-          title="Rejeitar ausência"
+          title="Rejeitar Ausência"
           subtitle={
             selecionada
               ? `${selecionada.usuarioNome} • ${formatDate(selecionada.dataInicio)} até ${formatDate(selecionada.dataFim)}`
@@ -947,7 +932,7 @@ export function AusenciasPage(): JSX.Element {
         <Modal
           open={cancelamentoAberto}
           onClose={handleFecharCancelamento}
-          title="Cancelar ausência"
+          title="Cancelar Ausência"
           subtitle={
             selecionada
               ? `${selecionada.usuarioNome} • ${formatDate(selecionada.dataInicio)} até ${formatDate(selecionada.dataFim)}`

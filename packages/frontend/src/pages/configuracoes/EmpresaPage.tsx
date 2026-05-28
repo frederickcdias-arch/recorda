@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+﻿import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Button } from '../../components/ui/Button';
 import { Card, CardHeader } from '../../components/ui/Card';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
@@ -249,14 +249,14 @@ export function EmpresaPage(): JSX.Element {
       <div className="mx-auto max-w-5xl space-y-6">
         <PageHeader
           title="Empresa"
-          subtitle="Identidade institucional e dados para relatórios."
+          subtitle="Identidade e dados institucionais."
           actions={
             <div className="flex flex-wrap gap-2">
               <Button
                 variant="secondary"
                 onClick={() => void queryClient.invalidateQueries({ queryKey: queryKeys.empresa })}
               >
-                Recarregar
+                Atualizar
               </Button>
               <Button
                 variant="primary"
@@ -264,7 +264,7 @@ export function EmpresaPage(): JSX.Element {
                 loading={salvando}
                 onClick={handleSalvar}
               >
-                Salvar configurações
+                Salvar
               </Button>
             </div>
           }
@@ -283,13 +283,13 @@ export function EmpresaPage(): JSX.Element {
 
         <Card>
           <CardHeader
-            title="Dados da empresa"
-            description="Informações exibidas em relatórios e documentos."
+            title="Dados da Empresa"
+            description="Dados usados em relatórios e documentos."
           />
 
           <div className="space-y-4">
             <Input
-              label="Nome da empresa"
+              label="Nome da Empresa"
               value={config.nome}
               onChange={(e) => handleChange('nome', e.target.value)}
               placeholder="Nome completo da empresa"
@@ -329,8 +329,8 @@ export function EmpresaPage(): JSX.Element {
 
         <Card>
           <CardHeader
-            title="Logo da empresa"
-            description="Imagem usada no cabeçalho dos relatórios e documentos gerados."
+            title="Logo da Empresa"
+            description="Imagem usada nos documentos gerados."
           />
 
           <div className="space-y-5">
@@ -358,7 +358,7 @@ export function EmpresaPage(): JSX.Element {
 
               <div className="min-w-0 flex-1 space-y-4">
                 <div className="rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-3 text-sm text-[var(--color-text-secondary)]">
-                  PNG, JPG, SVG ou WebP — máx. 5 MB.
+                  PNG, JPG, SVG ou WebP. Máx. 5 MB.
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3">
@@ -413,7 +413,7 @@ export function EmpresaPage(): JSX.Element {
                   <div className="rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] p-3">
                     <Select
                       id="logo-alinhamento"
-                      label="Alinhamento da logo"
+                      label="Alinhamento da Logo"
                       value={config.logoAlinhamentoRelatorio}
                       onChange={(e) =>
                         handleChange(
@@ -520,3 +520,4 @@ export function EmpresaPage(): JSX.Element {
     </PageState>
   );
 }
+

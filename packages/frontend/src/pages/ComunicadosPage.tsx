@@ -1,15 +1,14 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import type { ComunicadoPrioridade, ComunicadoUsuarioItem } from '@recorda/shared';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
-import { Icon } from '../components/ui/Icon';
 import { Input } from '../components/ui/Input';
 import { PageHeader } from '../components/ui/PageHeader';
 import { PageState } from '../components/ui/PageState';
 import { useToastHelpers } from '../components/ui/Toast';
 import { useComunicadosUsuario, useMarcarComunicadoLido } from '../hooks/useQueries';
-import { extractErrorMessage } from '../utils/errors';
 import { formatDateTimeBR } from '../utils/date';
+import { extractErrorMessage } from '../utils/errors';
 
 function isNaoLido(item: ComunicadoUsuarioItem): boolean {
   return item.destinatario.lidoEm === null;
@@ -52,6 +51,10 @@ function getDataPublicacao(item: ComunicadoUsuarioItem): number {
   return new Date(item.publicadoEm ?? item.criadoEm).getTime();
 }
 
+function getCaixaStatusLabel(item: ComunicadoUsuarioItem): string {
+  return item.status === 'ENCERRADO' ? 'Encerrado' : 'Lido';
+}
+
 function ordenarPendentes(a: ComunicadoUsuarioItem, b: ComunicadoUsuarioItem): number {
   if (Number(b.leituraObrigatoria) !== Number(a.leituraObrigatoria)) {
     return Number(b.leituraObrigatoria) - Number(a.leituraObrigatoria);
@@ -69,7 +72,7 @@ function ordenarSecundarios(a: ComunicadoUsuarioItem, b: ComunicadoUsuarioItem):
   return getDataPublicacao(b) - getDataPublicacao(a);
 }
 
-function resumir(texto: string, limite = 120): string {
+function resumir(texto: string, limite = 110): string {
   const normalizado = texto.replace(/\s+/g, ' ').trim();
   if (normalizado.length <= limite) return normalizado;
   return `${normalizado.slice(0, limite).trim()}...`;
@@ -80,6 +83,8 @@ interface ListaCompactaProps {
   selecionadoId: string | null;
   onSelecionar: (id: string) => void;
   emptyLabel: string;
+  mostrarResumo?: boolean;
+  mostrarStatusSecundario?: boolean;
 }
 
 function ListaCompacta({
@@ -87,6 +92,8 @@ function ListaCompacta({
   selecionadoId,
   onSelecionar,
   emptyLabel,
+  mostrarResumo = false,
+  mostrarStatusSecundario = false,
 }: ListaCompactaProps): JSX.Element {
   if (itens.length === 0) {
     return (
@@ -112,33 +119,32 @@ function ListaCompacta({
                 : 'border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] hover:bg-[var(--color-bg-secondary)]'
             }`}
           >
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span
-                    className={`rounded-full border px-2.5 py-1 text-xs font-medium ${getPrioridadeBadge(item.prioridade)}`}
-                  >
-                    {getPrioridadeLabel(item.prioridade)}
-                  </span>
-                  {isNaoLido(item) ? (
-                    <span className="rounded-full bg-[var(--color-warning-50)] px-2 py-1 text-xs font-medium text-[var(--color-warning-700)]">
-                      Pendente
-                    </span>
-                  ) : null}
-                </div>
-
-                <h3 className="mt-3 text-sm font-semibold text-[var(--color-text-primary)]">
-                  {item.titulo}
-                </h3>
-                <p className="mt-1 text-sm leading-6 text-[var(--color-text-secondary)]">
-                  {resumir(item.conteudo)}
-                </p>
-              </div>
-
-              {isNaoLido(item) ? (
-                <span className="mt-1 h-2.5 w-2.5 flex-none rounded-full bg-[var(--color-primary-600)]" />
+            <div className="flex flex-wrap items-center gap-2">
+              <span
+                className={`rounded-full border px-2.5 py-1 text-xs font-medium ${getPrioridadeBadge(item.prioridade)}`}
+              >
+                {getPrioridadeLabel(item.prioridade)}
+              </span>
+              {mostrarStatusSecundario ? (
+                <span className="rounded-full bg-[var(--color-bg-secondary)] px-2 py-1 text-xs font-medium text-[var(--color-text-secondary)]">
+                  {getCaixaStatusLabel(item)}
+                </span>
+              ) : isNaoLido(item) ? (
+                <span className="rounded-full bg-[var(--color-warning-50)] px-2 py-1 text-xs font-medium text-[var(--color-warning-700)]">
+                  Pendente
+                </span>
               ) : null}
             </div>
+
+            <h3 className="mt-3 text-sm font-semibold text-[var(--color-text-primary)]">
+              {item.titulo}
+            </h3>
+
+            {mostrarResumo ? (
+              <p className="mt-1 text-sm leading-6 text-[var(--color-text-secondary)]">
+                {resumir(item.conteudo)}
+              </p>
+            ) : null}
 
             <p className="mt-3 text-xs text-[var(--color-text-tertiary)]">
               {formatDateTimeBR(item.publicadoEm ?? item.criadoEm)}
@@ -160,7 +166,9 @@ export function ComunicadosPage(): JSX.Element {
   const [selecionadoPendenteId, setSelecionadoPendenteId] = useState<string | null>(null);
   const [selecionadoCaixaId, setSelecionadoCaixaId] = useState<string | null>(null);
 
-  const comunicados = comunicadosQuery.data?.comunicados ?? [];
+  const comunicadosData = comunicadosQuery.data?.comunicados;
+  const comunicados = useMemo(() => comunicadosData ?? [], [comunicadosData]);
+
   const ativos = useMemo(
     () => comunicados.filter((item) => item.status === 'PUBLICADO'),
     [comunicados]
@@ -169,7 +177,6 @@ export function ComunicadosPage(): JSX.Element {
     () => comunicados.filter((item) => item.status === 'ENCERRADO').sort(ordenarSecundarios),
     [comunicados]
   );
-
   const pendentes = useMemo(
     () => ativos.filter((item) => isNaoLido(item)).sort(ordenarPendentes),
     [ativos]
@@ -181,25 +188,19 @@ export function ComunicadosPage(): JSX.Element {
 
   const totalNaoLidos =
     comunicadosQuery.data?.totalNaoLidos ?? comunicados.filter((item) => isNaoLido(item)).length;
+  const totalCaixa = lidos.length + encerrados.length;
+  const mostrarBuscaCaixa = totalCaixa > 8;
 
   const caixaFiltrada = useMemo(() => {
     const termo = buscaCaixa.trim().toLowerCase();
     const base = [...lidos, ...encerrados];
     if (!termo) return base;
+
     return base.filter(
       (item) =>
         item.titulo.toLowerCase().includes(termo) || item.conteudo.toLowerCase().includes(termo)
     );
   }, [buscaCaixa, encerrados, lidos]);
-
-  const lidosFiltrados = useMemo(
-    () => caixaFiltrada.filter((item) => item.status === 'PUBLICADO'),
-    [caixaFiltrada]
-  );
-  const encerradosFiltrados = useMemo(
-    () => caixaFiltrada.filter((item) => item.status === 'ENCERRADO'),
-    [caixaFiltrada]
-  );
 
   useEffect(() => {
     const proximoId = pendentes[0]?.id ?? null;
@@ -218,7 +219,7 @@ export function ComunicadosPage(): JSX.Element {
   }, [pendentes, selecionadoPendenteId]);
 
   useEffect(() => {
-    if (!caixaAberta) return;
+    if (!caixaAberta && pendentes.length > 0) return;
 
     const proximoId = caixaFiltrada[0]?.id ?? null;
     if (!proximoId) {
@@ -233,12 +234,13 @@ export function ComunicadosPage(): JSX.Element {
     if (!existeSelecionado) {
       setSelecionadoCaixaId(proximoId);
     }
-  }, [caixaAberta, caixaFiltrada, selecionadoCaixaId]);
+  }, [caixaAberta, caixaFiltrada, pendentes.length, selecionadoCaixaId]);
 
   const comunicadoPrincipal =
     pendentes.find((item) => item.id === selecionadoPendenteId) ?? pendentes[0] ?? null;
   const comunicadoCaixa =
     caixaFiltrada.find((item) => item.id === selecionadoCaixaId) ?? caixaFiltrada[0] ?? null;
+  const mostrarCaixa = totalCaixa > 0 && (!comunicadoPrincipal || caixaAberta);
 
   const handleMarcarComoLido = async (comunicadoId: string): Promise<void> => {
     try {
@@ -257,7 +259,7 @@ export function ComunicadosPage(): JSX.Element {
   return (
     <PageState
       loading={comunicadosQuery.isLoading}
-      loadingMessage="Carregando comunicados..."
+      loadingMessage="Carregando..."
       error={
         comunicadosQuery.error
           ? {
@@ -277,13 +279,15 @@ export function ComunicadosPage(): JSX.Element {
           subtitle={subtitle}
           actions={
             <div className="flex gap-2">
-              <Button
-                variant={caixaAberta ? 'secondary' : 'outline'}
-                icon={caixaAberta ? 'chevron-up' : 'inbox'}
-                onClick={() => setCaixaAberta((current) => !current)}
-              >
-                {caixaAberta ? 'Ocultar caixa de entrada' : 'Abrir caixa de entrada'}
-              </Button>
+              {comunicadoPrincipal && totalCaixa > 0 ? (
+                <Button
+                  variant={caixaAberta ? 'secondary' : 'outline'}
+                  icon={caixaAberta ? 'chevron-up' : 'inbox'}
+                  onClick={() => setCaixaAberta((current) => !current)}
+                >
+                  {caixaAberta ? 'Ocultar caixa' : 'Abrir caixa'}
+                </Button>
+              ) : null}
               <Button
                 variant="secondary"
                 icon="refresh-cw"
@@ -357,95 +361,46 @@ export function ComunicadosPage(): JSX.Element {
 
             <Card>
               <div className="space-y-4">
-                <div>
-                  <p className="text-sm font-semibold text-[var(--color-text-primary)]">
-                    Outros pendentes
-                  </p>
-                  <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
-                    Escolha o próximo comunicado que precisa da sua leitura.
-                  </p>
-                </div>
-
+                <p className="text-sm font-semibold text-[var(--color-text-primary)]">
+                  Outros pendentes
+                </p>
                 <ListaCompacta
                   itens={pendentes}
                   selecionadoId={comunicadoPrincipal.id}
                   onSelecionar={setSelecionadoPendenteId}
                   emptyLabel="Nenhum outro pendente."
+                  mostrarResumo
                 />
               </div>
             </Card>
           </div>
-        ) : (
-          <Card className="text-center">
-            <Icon
-              name="check-circle"
-              className="mx-auto h-10 w-10 text-[var(--color-success-600)]"
-            />
-            <h2 className="mt-4 text-xl font-semibold text-[var(--color-text-primary)]">
-              Tudo lido por aqui
-            </h2>
-            <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-[var(--color-text-secondary)]">
-              Não há comunicados pendentes. Os itens já lidos e encerrados ficam guardados na sua
-              caixa de entrada.
-            </p>
-            <div className="mt-5">
-              <Button variant="outline" icon="inbox" onClick={() => setCaixaAberta(true)}>
-                Abrir caixa de entrada
-              </Button>
-            </div>
-          </Card>
-        )}
+        ) : null}
 
-        {caixaAberta ? (
+        {mostrarCaixa ? (
           <Card className="overflow-hidden">
             <div className="space-y-5 p-5 md:p-6">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                <div>
-                  <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">
-                    Caixa de entrada
-                  </h2>
-                  <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
-                    Lidos recentes e comunicados encerrados ficam aqui, sem competir com os
-                    pendentes.
-                  </p>
-                </div>
-
-                <div className="w-full lg:max-w-sm">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">
+                  Caixa de Entrada
+                </h2>
+                {mostrarBuscaCaixa ? (
                   <Input
-                    label="Buscar na caixa"
+                    label="Buscar na Caixa"
                     value={buscaCaixa}
                     onChange={(event) => setBuscaCaixa(event.target.value)}
                     placeholder="Título ou conteúdo"
                   />
-                </div>
+                ) : null}
               </div>
 
-              <div className="grid gap-5 xl:grid-cols-[320px_minmax(0,1fr)]">
-                <div className="space-y-5">
-                  <div>
-                    <h3 className="mb-3 text-sm font-semibold text-[var(--color-text-primary)]">
-                      Lidos recentes
-                    </h3>
-                    <ListaCompacta
-                      itens={lidosFiltrados}
-                      selecionadoId={selecionadoCaixaId}
-                      onSelecionar={setSelecionadoCaixaId}
-                      emptyLabel="Nenhum comunicado lido neste filtro."
-                    />
-                  </div>
-
-                  <div>
-                    <h3 className="mb-3 text-sm font-semibold text-[var(--color-text-primary)]">
-                      Encerrados
-                    </h3>
-                    <ListaCompacta
-                      itens={encerradosFiltrados}
-                      selecionadoId={selecionadoCaixaId}
-                      onSelecionar={setSelecionadoCaixaId}
-                      emptyLabel="Nenhum comunicado encerrado neste filtro."
-                    />
-                  </div>
-                </div>
+              <div className="grid gap-5 xl:grid-cols-[340px_minmax(0,1fr)]">
+                <ListaCompacta
+                  itens={caixaFiltrada}
+                  selecionadoId={selecionadoCaixaId}
+                  onSelecionar={setSelecionadoCaixaId}
+                  emptyLabel="Nenhum comunicado."
+                  mostrarStatusSecundario
+                />
 
                 <Card variant="ghost" className="min-h-[320px]">
                   {comunicadoCaixa ? (
@@ -457,7 +412,7 @@ export function ComunicadosPage(): JSX.Element {
                           {getPrioridadeLabel(comunicadoCaixa.prioridade)}
                         </span>
                         <span className="rounded-full bg-[var(--color-bg-primary)] px-2.5 py-1 text-xs font-medium text-[var(--color-text-secondary)]">
-                          {comunicadoCaixa.status === 'ENCERRADO' ? 'Encerrado' : 'Lido'}
+                          {getCaixaStatusLabel(comunicadoCaixa)}
                         </span>
                       </div>
 
@@ -478,9 +433,7 @@ export function ComunicadosPage(): JSX.Element {
                             </span>
                           ) : null}
                           {comunicadoCaixa.encerradoEm ? (
-                            <span>
-                              Encerrado em {formatDateTimeBR(comunicadoCaixa.encerradoEm)}
-                            </span>
+                            <span>Encerrado em {formatDateTimeBR(comunicadoCaixa.encerradoEm)}</span>
                           ) : null}
                         </div>
                       </div>
@@ -490,9 +443,8 @@ export function ComunicadosPage(): JSX.Element {
                       </p>
                     </div>
                   ) : (
-                    <div className="flex min-h-[260px] flex-col items-center justify-center text-center">
-                      <Icon name="inbox" className="h-8 w-8 text-[var(--color-gray-300)]" />
-                      <p className="mt-3 text-sm text-[var(--color-text-secondary)]">
+                    <div className="flex min-h-[260px] items-center justify-center text-center">
+                      <p className="text-sm text-[var(--color-text-secondary)]">
                         Selecione um comunicado para revisar o conteúdo.
                       </p>
                     </div>

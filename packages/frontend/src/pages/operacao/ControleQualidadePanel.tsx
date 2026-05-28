@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+﻿import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDebounce } from '../../hooks/useDebounce';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -184,8 +184,8 @@ export function ControleQualidadePanel({
       await queryClient.invalidateQueries({ queryKey: queryKeys.repositoriosAll });
       onSuccess(
         result.reprovados > 0
-          ? `CQ concluido com ${result.reprovados} reprovacao(oes). Gere o Termo de Correcao.`
-          : 'CQ concluido - todos aprovados! Gere o Termo de Devolucao.'
+          ? `CQ concluído com ${result.reprovados} reprovação(ões). Gere o termo de correção.`
+          : 'CQ concluído. Gere o termo de devolução.'
       );
     } catch (error) {
       onError(error instanceof Error ? error.message : 'Erro ao concluir CQ.');
@@ -201,7 +201,7 @@ export function ControleQualidadePanel({
       await devolverMut.mutateAsync(repoSelecionadoId);
       await carregarAvaliacoes(repoSelecionadoId);
       await queryClient.invalidateQueries({ queryKey: queryKeys.repositoriosAll });
-      onSuccess('Repositorio retornado para Recebimento.');
+      onSuccess('Repositório retornado para recebimento.');
     } catch (error) {
       onError(error instanceof Error ? error.message : 'Erro ao retornar para recebimento.');
     } finally {
@@ -215,9 +215,9 @@ export function ControleQualidadePanel({
       setBusy(true);
       const rel = await termoCorrecaoMut.mutateAsync(repoSelecionadoId);
       setUltimoRelatorioId(rel.id);
-      onSuccess('Termo de Correcao gerado.');
+      onSuccess('Termo de correção gerado.');
     } catch (error) {
-      onError(error instanceof Error ? error.message : 'Erro ao gerar Termo de Correcao.');
+      onError(error instanceof Error ? error.message : 'Erro ao gerar Termo de correção.');
     } finally {
       setBusy(false);
     }
@@ -229,9 +229,9 @@ export function ControleQualidadePanel({
       setBusy(true);
       const rel = await termoDevolucaoMut.mutateAsync(repoSelecionadoId);
       setUltimoRelatorioId(rel.id);
-      onSuccess('Termo de Devolucao gerado.');
+      onSuccess('Termo de devolução gerado.');
     } catch (error) {
-      onError(error instanceof Error ? error.message : 'Erro ao gerar Termo de Devolucao.');
+      onError(error instanceof Error ? error.message : 'Erro ao gerar Termo de devolução.');
     } finally {
       setBusy(false);
     }
@@ -251,7 +251,7 @@ export function ControleQualidadePanel({
         `/api/operacional/relatorios/${rel.id}/download?token=${encodeURIComponent(token)}`
       );
     } catch (error) {
-      onError(error instanceof Error ? error.message : 'Erro ao gerar Termo de Devolucao.');
+      onError(error instanceof Error ? error.message : 'Erro ao gerar Termo de devolução.');
     } finally {
       setBusy(false);
     }
@@ -332,18 +332,18 @@ export function ControleQualidadePanel({
   return (
     <div className="space-y-6">
       {confirmConcluir ? (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-[var(--color-bg-primary)] rounded-xl shadow-xl w-full max-w-sm p-6">
+        <div className="fixed inset-0 bg-[var(--color-overlay-backdrop)] z-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-sm rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] p-6 shadow-xl">
             <h3 className="text-base font-semibold text-[var(--color-text-primary)] mb-2">
               Concluir Controle de Qualidade?
             </h3>
             <p className="text-sm text-[var(--color-text-secondary)] mb-1">
               {resumo.reprovados > 0
-                ? `${resumo.reprovados} documento(s) reprovado(s). O repositorio sera marcado como CQ_REPROVADO.`
-                : 'Todos os documentos foram aprovados. O repositorio sera marcado como CQ_APROVADO.'}
+                ? `${resumo.reprovados} documento(s) reprovado(s). O repositório será marcado como CQ_REPROVADO.`
+                : 'Todos os documentos foram aprovados. O repositório será marcado como CQ_APROVADO.'}
             </p>
             <p className="text-xs text-[var(--color-text-tertiary)] mb-5">
-              Esta acao nao pode ser desfeita sem devolucao.
+              Esta ação não pode ser desfeita sem devolução.
             </p>
             <div className="flex gap-2 justify-end">
               <Button size="sm" variant="secondary" onClick={() => setConfirmConcluir(false)}>
@@ -362,8 +362,8 @@ export function ControleQualidadePanel({
       ) : null}
 
       {reprovandoId ? (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-[var(--color-bg-primary)] rounded-xl shadow-xl w-full max-w-sm p-6">
+        <div className="fixed inset-0 bg-[var(--color-overlay-backdrop)] z-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-sm rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] p-6 shadow-xl">
             <h3 className="text-base font-semibold text-[var(--color-text-primary)] mb-1">
               Reprovar documento
             </h3>
@@ -371,7 +371,7 @@ export function ControleQualidadePanel({
               {docs.find((d) => d.processo_id === reprovandoId)?.protocolo}
             </p>
             <label className="block text-xs font-medium text-[var(--color-text-secondary)] mb-1">
-              Motivo da reprovacao <span className="text-red-500">*</span>
+              Motivo da reprovação <span className="text-red-500">*</span>
             </label>
             <input
               ref={obsInputRef}
@@ -484,7 +484,7 @@ export function ControleQualidadePanel({
                     onClick={() => void handleAprovarTodos()}
                     disabled={busy || docs.length === 0}
                   >
-                    Aprovar Todos
+                    Aprovar todos
                   </Button>
                   <Button
                     size="sm"
@@ -502,7 +502,7 @@ export function ControleQualidadePanel({
                   onClick={() => void handleTermoCorrecao()}
                   disabled={busy}
                 >
-                  Gerar Termo de Correcao
+                  Gerar termo de correção
                 </Button>
               ) : null}
               {repoSelecionado ? (
@@ -512,12 +512,12 @@ export function ControleQualidadePanel({
                   onClick={() => void handleDevolver()}
                   disabled={busy}
                 >
-                  Retornar para Recebimento
+                  Retornar para recebimento
                 </Button>
               ) : null}
               {repoSelecionado?.status_atual === 'CQ_APROVADO' ? (
                 <Button size="sm" onClick={() => void handleTermoDevolucao()} disabled={busy}>
-                  Gerar Termo de Devolucao
+                  Gerar termo de devolução
                 </Button>
               ) : null}
               {ultimoRelatorioId ? (
@@ -642,11 +642,11 @@ export function ControleQualidadePanel({
 
       {reposAprovados.length > 0 ? (
         <Card>
-          <h2 className="text-lg font-semibold text-[var(--color-text-primary)] mb-3">
-            Termo de Devolução Combinado
+          <h2 className="mb-3 text-lg font-semibold text-[var(--color-text-primary)]">
+            Termo de devolução combinado
           </h2>
-          <p className="text-sm text-[var(--color-text-secondary)] mb-3">
-            Selecione repositórios aprovados para gerar um único Termo de Devolução.
+          <p className="mb-3 text-sm text-[var(--color-text-secondary)]">
+            Selecione os aprovados para gerar um único termo.
           </p>
           <div className="space-y-2 max-h-48 overflow-auto">
             {reposAprovados.map((repo) => (
@@ -681,11 +681,11 @@ export function ControleQualidadePanel({
               disabled={busy || reposSelecionadosDev.size === 0}
               loading={busy}
             >
-              Gerar Termo ({reposSelecionadosDev.size})
+              Gerar termo ({reposSelecionadosDev.size})
             </Button>
             {reposSelecionadosDev.size > 0 ? (
               <span className="text-xs text-[var(--color-text-tertiary)]">
-                {reposSelecionadosDev.size} repositorio(s) selecionado(s)
+                {reposSelecionadosDev.size} repositório(s) selecionado(s)
               </span>
             ) : null}
           </div>
@@ -693,11 +693,11 @@ export function ControleQualidadePanel({
       ) : null}
 
       {previewDevolucaoUrl ? (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-[var(--color-bg-primary)] rounded-xl shadow-xl w-full max-w-4xl h-[85vh] flex flex-col overflow-hidden animate-scale-in">
-            <div className="px-6 py-4 border-b border-[var(--color-border-primary)] flex items-center justify-between shrink-0">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-overlay-backdrop)] p-4">
+          <div className="flex h-[85vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] shadow-xl">
+            <div className="flex shrink-0 items-center justify-between border-b border-[var(--color-border-primary)] px-6 py-4">
               <h3 className="text-lg font-semibold text-[var(--color-text-primary)]">
-                Termo de Devolução
+                Termo de devolução
               </h3>
               <div className="flex gap-2">
                 <Button
@@ -725,7 +725,7 @@ export function ControleQualidadePanel({
                 id="devolucao-preview-iframe"
                 src={previewDevolucaoUrl}
                 className="w-full h-full border-0"
-                title="Preview do Termo de Devolucao"
+                title="Pré-visualização do Termo de Devolução"
               />
             </div>
           </div>

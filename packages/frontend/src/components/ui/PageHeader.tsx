@@ -22,7 +22,7 @@ export function PageHeader({
   return (
     <div
       className={cn(
-        'flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between',
+        'flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between',
         className
       )}
     >
@@ -35,7 +35,9 @@ export function PageHeader({
         </div>
 
         {subtitle ? (
-          <p className="mt-1 max-w-3xl text-sm text-[var(--color-text-secondary)]">{subtitle}</p>
+          <p className="mt-0.5 max-w-3xl text-sm text-[var(--color-text-secondary)]">
+            {subtitle}
+          </p>
         ) : null}
       </div>
 

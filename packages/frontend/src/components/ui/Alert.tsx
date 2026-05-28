@@ -79,11 +79,7 @@ export function Alert({
 
   return (
     <div
-      className={`
-        ${styles.container} border rounded-lg ${sizeStyle.padding}
-        animate-fade-in-up
-        ${className}
-      `}
+      className={`${styles.container} border rounded-lg ${sizeStyle.padding} ${className}`}
       role="alert"
     >
       <div className={`flex ${sizeStyle.gap}`}>

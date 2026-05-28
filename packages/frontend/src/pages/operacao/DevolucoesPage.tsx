@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
+﻿import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { FilterBar } from '../../components/ui/FilterBar';
@@ -97,7 +97,7 @@ function CoordCombobox({ value, onChange, opcoes, required }: CoordComboboxProps
       </label>
       <input
         type="text"
-        className="h-11 w-full min-w-0 rounded-lg border border-[var(--color-gray-300)] bg-[var(--color-bg-primary)] px-3.5 text-sm text-[var(--color-text-primary)] transition-all duration-150 placeholder:text-[var(--color-text-placeholder)] focus:border-[var(--color-primary-500)] focus:outline-none focus:ring-[3px] focus:ring-[var(--color-primary-100)] sm:h-9"
+        className="h-11 w-full min-w-0 rounded-lg border border-[var(--color-gray-300)] bg-[var(--color-bg-primary)] px-3.5 text-sm text-[var(--color-text-primary)] transition-colors duration-150 placeholder:text-[var(--color-text-placeholder)] focus:border-[var(--color-primary-500)] focus:outline-none focus:ring-[3px] focus:ring-[var(--color-primary-100)] sm:h-9"
         placeholder="Digite ou selecione a coordenadoria..."
         value={open ? query : value}
         onChange={(event) => {
@@ -296,7 +296,7 @@ function ModalNovaDevolucao({ onClose, onSaved }: ModalDevolucaoProps): JSX.Elem
     <Modal
       open
       onClose={onClose}
-      title="Nova devolução operacional"
+      title="Nova Devolução Operacional"
       subtitle="Preencha os dados e vincule os itens devolvidos."
       size="xl"
       scrollable
@@ -323,7 +323,7 @@ function ModalNovaDevolucao({ onClose, onSaved }: ModalDevolucaoProps): JSX.Elem
             >
               {criarMut.isPending
                 ? 'Salvando...'
-                : `Registrar devolução (${itens.length} item${itens.length !== 1 ? 's' : ''})`}
+                : `Registrar Devolução (${itens.length} item${itens.length !== 1 ? 's' : ''})`}
             </Button>
           </div>
         </div>
@@ -332,7 +332,7 @@ function ModalNovaDevolucao({ onClose, onSaved }: ModalDevolucaoProps): JSX.Elem
       <div className="space-y-6 p-5">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <Input
-            label="Data da devolução"
+            label="Data da Devolução"
             type="date"
             value={dataDevolucao}
             max={new Date().toISOString().split('T')[0] ?? ''}
@@ -347,7 +347,7 @@ function ModalNovaDevolucao({ onClose, onSaved }: ModalDevolucaoProps): JSX.Elem
           />
           <div>
             <Input
-              label="Responsável pela retirada"
+              label="Responsável pela Retirada"
               value={responsavelRetirada}
               onChange={(event) => setResponsavelRetirada(event.target.value)}
               placeholder="Nome de quem retirou os documentos"
@@ -413,7 +413,7 @@ function ModalNovaDevolucao({ onClose, onSaved }: ModalDevolucaoProps): JSX.Elem
                   onChange={(event) => setBuscaProcesso(event.target.value)}
                 />
                 {buscarProcessosMut.isPending ? (
-                  <span className="absolute right-3 top-3 text-xs text-[var(--color-primary-600)] animate-pulse">
+                  <span className="absolute right-3 top-3 text-xs text-[var(--color-primary-600)]">
                     Buscando...
                   </span>
                 ) : null}
@@ -622,7 +622,7 @@ function ModalNovaDevolucao({ onClose, onSaved }: ModalDevolucaoProps): JSX.Elem
           <div className="overflow-hidden rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)]">
             <div className="flex items-center justify-between border-b border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] px-4 py-2">
               <span className="text-sm font-semibold text-[var(--color-text-primary)]">
-                Pré-visualização do termo
+                Pré-visualização do Termo
               </span>
               <button
                 type="button"
@@ -771,11 +771,11 @@ export function DevolucoesPage(): JSX.Element {
     <PageState>
       <div className="space-y-6">
         <PageHeader
-          title="Devoluções operacionais"
-          subtitle="Processos e documentos devolvidos a coordenadorias."
+          title="Devoluções"
+          subtitle="Registros e termos de devolução."
           actions={
             <Button variant="primary" onClick={() => setModalAberto(true)} fullWidth>
-              + Nova devolução
+              + Nova Devolução
             </Button>
           }
         />
@@ -791,7 +791,7 @@ export function DevolucoesPage(): JSX.Element {
         >
           <Input
             label="Buscar"
-            placeholder="Protocolo, repositório ou interessado..."
+            placeholder="Protocolo, repositório ou interessado"
             value={busca}
             onChange={(event) => setBusca(event.target.value)}
           />
@@ -802,13 +802,13 @@ export function DevolucoesPage(): JSX.Element {
             onChange={(event) => setCoordenadoriaFiltro(event.target.value)}
           />
           <Input
-            label="Data início"
+            label="Data Início"
             type="date"
             value={dataInicio}
             onChange={(event) => setDataInicio(event.target.value)}
           />
           <Input
-            label="Data fim"
+            label="Data Fim"
             type="date"
             value={dataFim}
             onChange={(event) => setDataFim(event.target.value)}
@@ -1020,7 +1020,7 @@ export function DevolucoesPage(): JSX.Element {
       <Modal
         open={!!confirmandoExclusao}
         onClose={() => setConfirmandoExclusao(null)}
-        title="Excluir devolução?"
+        title="Excluir Devolução?"
         subtitle="Esta ação remove o registro e todos os itens vinculados."
         size="sm"
         footer={
@@ -1067,3 +1067,4 @@ export function DevolucoesPage(): JSX.Element {
     </PageState>
   );
 }
+

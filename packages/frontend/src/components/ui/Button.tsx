@@ -100,10 +100,9 @@ export function Button({
     <button
       className={`
         inline-flex items-center justify-center font-medium
-        rounded-xl border border-transparent transition-all duration-200 ease-in-out
+        rounded-xl border border-transparent transition-colors duration-150 ease-out
         touch-manipulation
         focus:outline-none
-        active:scale-[0.97]
         disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none
         ${variantClasses[variant]}
         ${iconOnly ? iconOnlySizeClasses[size] : sizeClasses[size]}

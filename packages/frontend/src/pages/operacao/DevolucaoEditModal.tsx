@@ -46,7 +46,7 @@ function CoordCombobox({ value, onChange, opcoes, required }: CoordComboboxProps
       </label>
       <input
         type="text"
-        className="h-11 w-full rounded-lg border border-[var(--color-gray-300)] bg-[var(--color-bg-primary)] px-3.5 text-sm text-[var(--color-text-primary)] transition-all duration-150 placeholder:text-[var(--color-text-placeholder)] focus:border-[var(--color-primary-500)] focus:outline-none focus:ring-[3px] focus:ring-[var(--color-primary-100)] sm:h-9"
+        className="h-11 w-full rounded-lg border border-[var(--color-gray-300)] bg-[var(--color-bg-primary)] px-3.5 text-sm text-[var(--color-text-primary)] transition-colors duration-150 placeholder:text-[var(--color-text-placeholder)] focus:border-[var(--color-primary-500)] focus:outline-none focus:ring-[3px] focus:ring-[var(--color-primary-100)] sm:h-9"
         placeholder="Digite ou selecione a coordenadoria..."
         value={open ? query : value}
         onChange={(event) => {
@@ -149,7 +149,7 @@ export function DevolucaoEditModal({
     <Modal
       open
       onClose={onClose}
-      title="Editar devolução"
+      title="Editar Devolução"
       subtitle="Ajuste os dados principais sem alterar os itens já vinculados."
       size="md"
       footer={
@@ -163,14 +163,14 @@ export function DevolucaoEditModal({
             disabled={editarMut.isPending}
             fullWidth
           >
-            {editarMut.isPending ? 'Salvando...' : 'Salvar alterações'}
+            {editarMut.isPending ? 'Salvando...' : 'Salvar Alterações'}
           </Button>
         </div>
       }
     >
       <div className="space-y-4 p-5">
         <Input
-          label="Data da devolução"
+          label="Data da Devolução"
           type="date"
           value={dataDevolucao}
           max={new Date().toISOString().split('T')[0]}
@@ -185,7 +185,7 @@ export function DevolucaoEditModal({
         />
         <div>
           <Input
-            label="Responsável pela retirada"
+            label="Responsável pela Retirada"
             value={responsavelRetirada}
             onChange={(event) => setResponsavelRetirada(event.target.value)}
             placeholder="Nome de quem retirou os documentos"

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo, useState } from 'react';
+﻿import { lazy, Suspense, useMemo, useState } from 'react';
 import { Button } from '../../components/ui/Button';
 import { Card, CardFooter, CardHeader, CardSection } from '../../components/ui/Card';
 import { Input } from '../../components/ui/Input';
@@ -401,7 +401,7 @@ export function ImportarProducaoPage(): JSX.Element {
       const parsed = parseCsvToProducao(dadosColados);
       if (parsed.length === 0) {
         toast.error(
-          'Nenhum registro válido encontrado. Verifique se você copiou o cabeçalho e ao menos uma linha.'
+          'Nenhum registro válido. Verifique o cabeçalho e uma linha.'
         );
         return;
       }
@@ -577,7 +577,7 @@ export function ImportarProducaoPage(): JSX.Element {
         {/* Fontes Cadastradas */}
         <Card>
           <CardHeader
-            title="Fontes cadastradas"
+            title="Fontes Cadastradas"
             description="Salve links para importar mais rapido."
           />
           {fontes.length > 0 ? (
@@ -822,7 +822,7 @@ export function ImportarProducaoPage(): JSX.Element {
         {/* Main import card */}
         <Card>
           <CardHeader
-            title="Importar produção"
+            title="Importar Produção"
             description="Escolha a origem, carregue os dados e revise antes de importar."
             action={
               fontes.length > 0 ? (
@@ -954,7 +954,7 @@ export function ImportarProducaoPage(): JSX.Element {
               size="md"
               className="sm:w-auto"
             >
-              {validando ? 'Verificando...' : 'Importar produção'}
+              {validando ? 'Verificando...' : 'Importar Produção'}
             </Button>
             <span className="text-sm text-[var(--color-text-secondary)]">
               {arquivoNomeProducao
@@ -1059,7 +1059,7 @@ export function ImportarProducaoPage(): JSX.Element {
               className="flex w-full items-center justify-between px-5 py-4 text-left"
             >
               <span className="text-sm font-medium text-[var(--color-text-primary)]">
-                Histórico de importações ({historico.length})
+                Histórico de Importações ({historico.length})
               </span>
               <span className="text-xs text-[var(--color-text-tertiary)]">
                 {historicoAberto ? 'Recolher' : 'Expandir'}
@@ -1238,3 +1238,4 @@ export function ImportarProducaoPage(): JSX.Element {
     </PageState>
   );
 }
+

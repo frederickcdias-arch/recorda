@@ -164,7 +164,7 @@ export function VincularProducoesPage(): JSX.Element {
     <PageState loading={loading} loadingMessage="Carregando dados para vinculação...">
       <div className="space-y-6">
         <PageHeader
-          title="Vincular produções"
+          title="Vincular Produções"
           subtitle="Associe produções legadas a usuários colaboradores já cadastrados no sistema."
         />
 
@@ -172,7 +172,7 @@ export function VincularProducoesPage(): JSX.Element {
           <ActionFeedback
             type={mensagem.tipo}
             title={
-              mensagem.tipo === 'success' ? 'Vinculação concluída' : 'Não foi possível concluir'
+              mensagem.tipo === 'success' ? 'Vinculação Concluída' : 'Não Foi Possível Concluir'
             }
             message={mensagem.texto}
             onDismiss={() => setMensagem(null)}
@@ -182,7 +182,7 @@ export function VincularProducoesPage(): JSX.Element {
         <div className="grid gap-6 xl:grid-cols-2">
           <Card>
             <CardHeader
-              title="Colaboradores do sistema legado"
+              title="Colaboradores do Sistema Legado"
               description="Selecione o nome importado que ainda precisa ser vinculado."
             />
 
@@ -230,7 +230,7 @@ export function VincularProducoesPage(): JSX.Element {
 
           <Card>
             <CardHeader
-              title="Usuários colaboradores"
+              title="Usuários Colaboradores"
               description="Selecione o usuário que deve receber o histórico de produção legado."
             />
 
@@ -280,7 +280,7 @@ export function VincularProducoesPage(): JSX.Element {
         {colaboradorSelecionado && usuarioSelecionado ? (
           <Card>
             <CardHeader
-              title="Vinculação selecionada"
+              title="Vinculação Selecionada"
               description="Confira o mapeamento antes de confirmar a importação do histórico."
               action={
                 <Button

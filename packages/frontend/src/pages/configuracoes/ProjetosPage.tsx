@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+﻿import { useMemo, useState } from 'react';
 import { useDebounce } from '../../hooks/useDebounce';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
@@ -65,7 +65,7 @@ export function ProjetosPage(): JSX.Element {
     e.preventDefault();
 
     if (!formulario.nome.trim()) {
-      setMensagem({ tipo: 'error', texto: 'Nome do projeto é obrigatório.' });
+      setMensagem({ tipo: 'error', texto: 'Nome do projeto e obrigatorio.' });
       return;
     }
 
@@ -103,7 +103,7 @@ export function ProjetosPage(): JSX.Element {
       <div className="space-y-6">
         <PageHeader
           title="Projetos"
-          subtitle="Gerencie os projetos disponíveis para uso no sistema."
+          subtitle="Projetos Disponíveis no Sistema."
           actions={
             <Button
               variant="primary"
@@ -113,7 +113,7 @@ export function ProjetosPage(): JSX.Element {
                 setMostrarForm(true);
               }}
             >
-              Novo projeto
+              Novo Projeto
             </Button>
           }
         />
@@ -121,32 +121,28 @@ export function ProjetosPage(): JSX.Element {
         {mensagem ? (
           <ActionFeedback
             type={mensagem.tipo}
-            title={
-              mensagem.tipo === 'success' ? 'Atualização concluída' : 'Não foi possível concluir'
-            }
+            title={mensagem.tipo === 'success' ? 'Atualização Concluída' : 'Não Foi Possível Concluir'}
             message={mensagem.texto}
             onDismiss={() => setMensagem(null)}
           />
         ) : null}
 
-        <div className="grid gap-4 sm:grid-cols-3">
-          <Card padding="sm">
-            <p className="text-xs font-medium text-[var(--color-text-tertiary)]">Projetos</p>
-            <p className="mt-2 text-xl font-semibold text-[var(--color-text-primary)]">
-              {projetos.length}
-            </p>
-          </Card>
-          <Card padding="sm">
-            <p className="text-xs font-medium text-[var(--color-text-tertiary)]">Visíveis</p>
-            <p className="mt-2 text-xl font-semibold text-[var(--color-text-primary)]">
-              {projetosFiltrados.length}
-            </p>
-          </Card>
-          <Card padding="sm">
-            <p className="text-xs font-medium text-[var(--color-text-tertiary)]">Status padrão</p>
-            <p className="mt-2 text-lg font-semibold text-[var(--color-text-primary)]">Ativo</p>
-          </Card>
-        </div>
+        <Card padding="sm" className="bg-[var(--color-bg-secondary)]">
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
+            <span className="text-[var(--color-text-secondary)]">
+              Projetos <strong className="text-[var(--color-text-primary)]">{projetos.length}</strong>
+            </span>
+            <span className="text-[var(--color-text-secondary)]">
+              Visíveis{' '}
+              <strong className="text-[var(--color-text-primary)]">
+                {projetosFiltrados.length}
+              </strong>
+            </span>
+            <span className="text-[var(--color-text-secondary)]">
+              Status <strong className="text-[var(--color-text-primary)]">Ativo</strong>
+            </span>
+          </div>
+        </Card>
 
         <FilterBar
           actions={
@@ -158,7 +154,7 @@ export function ProjetosPage(): JSX.Element {
           }
         >
           <Input
-            label="Buscar Projeto"
+            label="Buscar"
             placeholder="Digite o nome do projeto"
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
@@ -167,7 +163,7 @@ export function ProjetosPage(): JSX.Element {
 
         <Card padding="none">
           <CardHeader
-            title="Projetos cadastrados"
+            title="Projetos"
             className="px-5 pt-5"
             badge={<Badge variant="info">{projetosFiltrados.length}</Badge>}
           />
@@ -185,11 +181,7 @@ export function ProjetosPage(): JSX.Element {
                 <TableEmptyState
                   colSpan={3}
                   title={busca ? 'Nenhum projeto encontrado' : 'Nenhum projeto cadastrado'}
-                  description={
-                    busca
-                      ? 'Tente ajustar o termo de busca.'
-                      : 'Clique em "Novo projeto" para criar o primeiro.'
-                  }
+                  description={busca ? 'Tente ajustar a busca.' : 'Crie o primeiro projeto.'}
                 />
               ) : (
                 projetosFiltrados.map((projeto) => (
@@ -200,7 +192,7 @@ export function ProjetosPage(): JSX.Element {
                           {projeto.nome}
                         </p>
                         <p className="text-xs text-[var(--color-text-tertiary)]">
-                          Projeto disponível para vinculação operacional
+                          Disponível para Vinculação Operacional
                         </p>
                       </div>
                     </TableCell>
@@ -214,7 +206,7 @@ export function ProjetosPage(): JSX.Element {
                         icon="trash"
                         onClick={() => handleExcluir(projeto.id)}
                         disabled
-                        title="Exclusão em desenvolvimento"
+                        title="Exclusão em Desenvolvimento"
                       >
                         Excluir
                       </Button>
@@ -229,8 +221,8 @@ export function ProjetosPage(): JSX.Element {
         <Modal
           open={mostrarForm}
           onClose={resetForm}
-          title="Novo projeto"
-          subtitle="Cadastre um novo projeto mantendo a organização administrativa do sistema."
+          title="Novo Projeto"
+          subtitle="Cadastre um Projeto para Uso Administrativo e Operacional."
           footer={
             <div className="flex flex-col-reverse gap-3 p-5 sm:flex-row sm:justify-end">
               <Button
@@ -264,12 +256,12 @@ export function ProjetosPage(): JSX.Element {
 
             <div>
               <label className="mb-1.5 block text-sm font-medium text-[var(--color-text-primary)]">
-                Descrição
+                Descricao
               </label>
               <textarea
                 value={formulario.descricao}
                 onChange={(e) => setFormulario({ ...formulario, descricao: e.target.value })}
-                className="min-h-[110px] w-full rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] px-3.5 py-2.5 text-sm text-[var(--color-text-primary)] transition-all duration-150 focus:border-[var(--color-primary-500)] focus:outline-none focus:ring-[3px] focus:ring-[var(--color-primary-100)]"
+                className="min-h-[110px] w-full rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] px-3.5 py-2.5 text-sm text-[var(--color-text-primary)] transition-colors duration-150 focus:border-[var(--color-primary-500)] focus:outline-none focus:ring-[3px] focus:ring-[var(--color-primary-100)]"
                 placeholder="Descrição detalhada do projeto"
               />
             </div>
@@ -285,7 +277,7 @@ export function ProjetosPage(): JSX.Element {
               <div>
                 <span className="font-medium text-[var(--color-text-primary)]">Projeto ativo</span>
                 <p className="text-sm text-[var(--color-text-secondary)]">
-                  O projeto ficará disponível imediatamente para uso no sistema.
+                  O projeto fica disponível imediatamente para uso no sistema.
                 </p>
               </div>
             </label>

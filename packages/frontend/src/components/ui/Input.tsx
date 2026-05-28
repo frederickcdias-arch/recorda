@@ -89,7 +89,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             disabled={disabled}
             className={`
               min-w-0 max-w-full w-full rounded-lg border bg-[var(--color-bg-primary)]
-              transition-all duration-200 ease-in-out
+              transition-colors duration-150 ease-out
               placeholder:text-[var(--color-text-placeholder)]
               focus:outline-none
               ${sizeClasses[inputSize]}

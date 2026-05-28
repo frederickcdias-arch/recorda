@@ -204,7 +204,7 @@ export function RecebimentoLoteModal({
         interessado: form.interessado.trim(),
       };
       setSalvos((prev) => [...prev, saved]);
-      toast.success('Processo Avulso salvo.');
+      toast.success('Processo avulso salvo.');
 
       // If there are more files in the queue, auto-advance
       const nextIndex = fileQueueIndex + 1;
@@ -217,7 +217,7 @@ export function RecebimentoLoteModal({
         setStep('salvo');
       }
     } catch (error) {
-      toast.error(extractErrorMessage(error, 'Erro ao Salvar Processo'));
+      toast.error(extractErrorMessage(error, 'Erro ao salvar processo'));
     } finally {
       setProcessando(false);
     }
@@ -283,8 +283,8 @@ export function RecebimentoLoteModal({
   // ---------------------------------------------------------------------------
 
   return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center animate-fade-in">
-      <div className="bg-[var(--color-bg-primary)] w-full h-full sm:h-auto sm:max-h-[92vh] sm:max-w-lg sm:rounded-xl sm:shadow-xl overflow-hidden flex flex-col animate-scale-in">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-[var(--color-overlay-backdrop)] sm:items-center">
+      <div className="flex h-full w-full flex-col overflow-hidden border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] sm:h-auto sm:max-h-[92vh] sm:max-w-lg sm:rounded-xl sm:shadow-xl">
         {/* Header */}
         <div className="px-4 py-3 border-b border-[var(--color-border-primary)] flex items-center justify-between shrink-0">
           <div className="min-w-0">
@@ -422,7 +422,7 @@ export function RecebimentoLoteModal({
           {/* ====== STEP: PROCESSANDO ====== */}
           {step === 'processando' && (
             <div className="flex flex-col items-center justify-center py-16 space-y-4">
-              <div className="animate-spin rounded-full h-10 w-10 border-4 border-[var(--color-bg-tertiary)] border-t-[var(--color-primary-600)]" />
+              <div className="h-9 w-9 motion-safe:animate-spin [animation-duration:1.2s] rounded-full border-4 border-[var(--color-bg-tertiary)] border-t-[var(--color-primary-600)]" />
               <p className="text-sm text-[var(--color-text-secondary)]">Processando OCR...</p>
               <p className="text-xs text-[var(--color-text-tertiary)]">
                 {hasQueue

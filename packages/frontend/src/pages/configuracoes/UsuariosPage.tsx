@@ -115,7 +115,7 @@ export function UsuariosPage(): JSX.Element {
 
   const handleSalvar = async (): Promise<void> => {
     if (!formData.email || !formData.nome || (!usuarioEditando && !formData.senha)) {
-      setMensagem({ tipo: 'error', texto: 'Preencha todos os campos obrigatórios.' });
+      setMensagem({ tipo: 'error', texto: 'Preencha os campos obrigatórios.' });
       return;
     }
 
@@ -135,7 +135,7 @@ export function UsuariosPage(): JSX.Element {
           perfil: formData.perfil,
           ...(formData.senha && { senha: formData.senha }),
         });
-        setMensagem({ tipo: 'success', texto: 'Usuário atualizado com sucesso.' });
+        setMensagem({ tipo: 'success', texto: 'Usuário atualizado.' });
       } else {
         await registerUsuario.mutateAsync({
           email: formData.email,
@@ -143,7 +143,7 @@ export function UsuariosPage(): JSX.Element {
           senha: formData.senha,
           perfil: formData.perfil,
         });
-        setMensagem({ tipo: 'success', texto: 'Usuário criado com sucesso.' });
+        setMensagem({ tipo: 'success', texto: 'Usuário criado.' });
       }
 
       setModalAberto(false);
@@ -181,10 +181,10 @@ export function UsuariosPage(): JSX.Element {
       <div className="space-y-6">
         <PageHeader
           title="Usuários"
-          subtitle="Gerencie acessos e perfis do sistema."
+          subtitle="Acessos e perfis do sistema."
           actions={
             <Button variant="primary" icon="plus" onClick={handleAbrirModalNovo}>
-              Novo usuário
+              Novo Usuário
             </Button>
           }
         />
@@ -200,29 +200,23 @@ export function UsuariosPage(): JSX.Element {
           />
         ) : null}
 
-        <div className="grid gap-4 sm:grid-cols-3">
-          <Card padding="sm">
-            <p className="text-xs font-medium text-[var(--color-text-tertiary)]">Total</p>
-            <p className="mt-2 text-xl font-semibold text-[var(--color-text-primary)]">
-              {resumo.total}
-            </p>
-          </Card>
-          <Card padding="sm">
-            <p className="text-xs font-medium text-[var(--color-text-tertiary)]">Ativos</p>
-            <p className="mt-2 text-xl font-semibold text-[var(--color-text-primary)]">
-              {resumo.ativos}
-            </p>
-          </Card>
-          <Card padding="sm">
-            <p className="text-xs font-medium text-[var(--color-text-tertiary)]">Administradores</p>
-            <p className="mt-2 text-xl font-semibold text-[var(--color-text-primary)]">
-              {resumo.admins}
-            </p>
-          </Card>
-        </div>
+        <Card padding="sm" className="bg-[var(--color-bg-secondary)]">
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
+            <span className="text-[var(--color-text-secondary)]">
+              Total <strong className="text-[var(--color-text-primary)]">{resumo.total}</strong>
+            </span>
+            <span className="text-[var(--color-text-secondary)]">
+              Ativos <strong className="text-[var(--color-text-primary)]">{resumo.ativos}</strong>
+            </span>
+            <span className="text-[var(--color-text-secondary)]">
+              Administradores{' '}
+              <strong className="text-[var(--color-text-primary)]">{resumo.admins}</strong>
+            </span>
+          </div>
+        </Card>
 
         <Card padding="none">
-          <CardHeader title="Acessos cadastrados" className="px-5 pt-5" />
+          <CardHeader title="Acessos" className="px-5 pt-5" />
 
           <Table>
             <TableHead>
@@ -239,7 +233,7 @@ export function UsuariosPage(): JSX.Element {
                 <TableEmptyState
                   colSpan={5}
                   title="Nenhum usuário encontrado"
-                  description="Quando novos acessos forem cadastrados, eles aparecerão aqui."
+                  description="Novos acessos aparecerão aqui."
                 />
               ) : (
                 usuarios.map((usuario) => (
@@ -288,8 +282,8 @@ export function UsuariosPage(): JSX.Element {
                           icon="edit"
                           iconOnly
                           onClick={() => handleAbrirModalEditar(usuario)}
-                          aria-label={`Editar usuário ${usuario.nome}`}
-                          title="Editar usuário"
+                          aria-label={`Editar Usuário ${usuario.nome}`}
+                          title="Editar Usuário"
                         />
                         <Button
                           variant={usuario.ativo ? 'ghost' : 'success'}
@@ -316,7 +310,7 @@ export function UsuariosPage(): JSX.Element {
         <Modal
           open={modalAberto}
           onClose={() => setModalAberto(false)}
-          title={usuarioEditando ? 'Editar usuário' : 'Novo usuário'}
+          title={usuarioEditando ? 'Editar Usuário' : 'Novo Usuário'}
           subtitle={usuarioEditando ? '' : ''}
           footer={
             <div className="flex flex-col-reverse gap-3 p-5 sm:flex-row sm:justify-end">
@@ -324,7 +318,7 @@ export function UsuariosPage(): JSX.Element {
                 Cancelar
               </Button>
               <Button variant="primary" onClick={handleSalvar} loading={salvando}>
-                {usuarioEditando ? 'Salvar usuário' : 'Criar usuário'}
+                {usuarioEditando ? 'Salvar Usuário' : 'Criar Usuário'}
               </Button>
             </div>
           }

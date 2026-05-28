@@ -87,7 +87,7 @@ export function ActionMenu({ items, disabled = false }: ActionMenuProps): JSX.El
             <div
               ref={menuRef}
               className={`fixed z-[9999] w-48 bg-[var(--color-bg-primary)] rounded-lg shadow-lg border border-[var(--color-border-primary)] py-1 max-h-[calc(100vh-16px)] overflow-auto origin-top-right ${
-                isClosing ? 'animate-scale-out' : 'animate-fade-in-down'
+                ''
               }`}
               style={{ top: pos.top, left: Math.max(pos.left, 8) }}
             >

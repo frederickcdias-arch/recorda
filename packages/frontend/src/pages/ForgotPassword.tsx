@@ -48,7 +48,7 @@ export function ForgotPasswordPage(): JSX.Element {
   return (
     <AuthShell
       title="Recuperar acesso"
-      subtitle="Informe o e-mail para receber o link de redefinição."
+      subtitle="Informe o e-mail."
       footer={
         <Link
           to="/login"

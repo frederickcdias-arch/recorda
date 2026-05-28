@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+﻿import { useEffect, useMemo, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Card } from '../../components/ui/Card';
 import { Icon } from '../../components/ui/Icon';
 import { PageState } from '../../components/ui/PageState';
@@ -58,7 +58,6 @@ interface MeuHistoricoResponse {
 }
 
 export function MeuHistoricoPage(): JSX.Element {
-  const navigate = useNavigate();
   const location = useLocation();
   const { usuario } = useAuth();
   const [pagina, setPagina] = useState(1);
@@ -103,29 +102,6 @@ export function MeuHistoricoPage(): JSX.Element {
     setDataInicio(filtrosUrl.dataInicio);
     setDataFim(filtrosUrl.dataFim);
   }, [filtrosUrl.pagina, filtrosUrl.etapa, filtrosUrl.dataInicio, filtrosUrl.dataFim]);
-
-  useEffect(() => {
-    const params = new URLSearchParams();
-    if (pagina > 1) params.set('pagina', String(pagina));
-    if (etapaFiltro) params.set('etapa', etapaFiltro);
-    if (dataInicio) params.set('dataInicio', dataInicio);
-    if (dataFim) params.set('dataFim', dataFim);
-
-    const nextSearch = params.toString();
-    const currentSearch = location.search.startsWith('?')
-      ? location.search.slice(1)
-      : location.search;
-
-    if (nextSearch !== currentSearch) {
-      navigate(
-        {
-          pathname: location.pathname,
-          search: nextSearch ? `?${nextSearch}` : '',
-        },
-        { replace: true }
-      );
-    }
-  }, [pagina, etapaFiltro, dataInicio, dataFim, location.pathname, location.search, navigate]);
 
   const queryParams = new URLSearchParams();
   queryParams.set('limite', String(limite));
@@ -217,7 +193,7 @@ export function MeuHistoricoPage(): JSX.Element {
       <div className="space-y-6">
         <PageHeader
           title="Meu Histórico"
-          subtitle={`Acompanhe sua produção - ${usuario?.nome ?? ''}`}
+          subtitle={`Produção de ${usuario?.nome ?? ''}`}
         />
 
         {/* Filtros */}
@@ -226,7 +202,7 @@ export function MeuHistoricoPage(): JSX.Element {
             temFiltros ? (
               <Button variant="ghost" size="sm" onClick={handleLimparFiltros}>
                 <Icon name="x" className="w-3 h-3" />
-                Limpar Filtros
+                Limpar filtros
               </Button>
             ) : undefined
           }
@@ -331,7 +307,7 @@ export function MeuHistoricoPage(): JSX.Element {
           <div className="p-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-4">
               <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">
-                Produção por etapa
+                Produção por Etapa
               </h2>
               <p className="text-xs text-[var(--color-text-secondary)]">
                 Mesmos filtros da tabela abaixo
@@ -386,8 +362,8 @@ export function MeuHistoricoPage(): JSX.Element {
             {producoes.length === 0 ? (
               <div className="rounded-xl border border-[var(--color-border-primary)] p-6 text-center text-[var(--color-text-secondary)] text-sm">
                 {temFiltros
-                  ? 'Nenhuma produção encontrada. Tente ajustar os filtros.'
-                  : 'Comece lançando sua primeira produção em "Lançar Produção".'}
+                  ? 'Ajuste os filtros.'
+                  : 'Lance sua primeira produção.'}
               </div>
             ) : (
               producoes.map((p) => {
@@ -487,8 +463,8 @@ export function MeuHistoricoPage(): JSX.Element {
                     title="Nenhuma produção encontrada"
                     description={
                       temFiltros
-                        ? 'Tente ajustar os filtros'
-                        : 'Comece lançando sua primeira produção em "Lançar Produção"'
+                        ? 'Ajuste os filtros'
+                        : 'Lance sua primeira produção'
                     }
                   />
                 ) : (

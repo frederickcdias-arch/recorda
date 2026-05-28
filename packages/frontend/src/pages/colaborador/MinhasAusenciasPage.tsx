@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
@@ -173,15 +173,15 @@ export function MinhasAusenciasPage(): JSX.Element {
 
   return (
     <div className="flex flex-col gap-6 p-4 sm:p-6">
-      <PageHeader title="Minhas Ausências" subtitle="Histórico de ausências registradas." />
+      <PageHeader title="Minhas Ausências" subtitle="Histórico de ausências." />
 
       <PageState
         loading={ausenciasQuery.isLoading}
-        loadingMessage="Carregando historico..."
+        loadingMessage="Carregando histórico..."
         error={
           ausenciasQuery.isError
             ? {
-                message: 'Nao foi possivel carregar suas ausencias.',
+                message: 'Não foi possível carregar suas ausências.',
                 action: { label: 'Tentar novamente', onClick: () => void ausenciasQuery.refetch() },
               }
             : null
@@ -191,7 +191,7 @@ export function MinhasAusenciasPage(): JSX.Element {
             ? {
                 icon: 'calendar',
                 title: 'Nenhuma ausência registrada',
-                description: 'Nenhuma ausência vinculada ao seu perfil até o momento.',
+                description: 'Nenhuma ausência vinculada ao seu perfil.',
               }
             : null
         }
@@ -236,7 +236,7 @@ export function MinhasAusenciasPage(): JSX.Element {
         <div className="space-y-3">
           {ausenciasFiltradas.length === 0 && ausencias.length > 0 ? (
             <p className="py-6 text-center text-sm text-[var(--color-text-tertiary)]">
-              Nenhuma solicitacao encontrada para os filtros selecionados.
+              Nenhuma solicitação encontrada.
             </p>
           ) : null}
 
@@ -255,3 +255,4 @@ export function MinhasAusenciasPage(): JSX.Element {
     </div>
   );
 }
+

@@ -59,7 +59,7 @@ export function LoginPage(): JSX.Element {
   return (
     <AuthShell
       title="Acesse sua conta"
-      subtitle="Entre para continuar o fluxo operacional."
+      subtitle="Entre para continuar."
       footer="Ambiente seguro do Recorda"
     >
       {erro ? (

@@ -12,7 +12,7 @@ const sizeClasses = {
 export function LoadingSpinner({ size = 'md', className = '' }: LoadingSpinnerProps): JSX.Element {
   return (
     <svg
-      className={`animate-spin ${sizeClasses[size]} ${className}`}
+      className={`motion-safe:animate-spin [animation-duration:1.2s] ${sizeClasses[size]} ${className}`}
       xmlns="http://www.w3.org/2000/svg"
       fill="none"
       viewBox="0 0 24 24"

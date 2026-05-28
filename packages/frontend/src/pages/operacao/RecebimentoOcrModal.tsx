@@ -91,8 +91,8 @@ export function RecebimentoOcrModal({
   if (!open || !ocrRepo) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 animate-fade-in sm:items-center sm:p-4">
-      <div className="flex h-[95vh] w-full flex-col overflow-hidden rounded-t-xl bg-[var(--color-bg-primary)] shadow-xl animate-scale-in sm:h-auto sm:max-h-[92vh] sm:max-w-6xl sm:rounded-xl">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-[var(--color-overlay-backdrop)] sm:items-center sm:p-4">
+      <div className="flex h-[95vh] w-full flex-col overflow-hidden rounded-t-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] shadow-xl sm:h-auto sm:max-h-[92vh] sm:max-w-6xl sm:rounded-xl">
         <div className="flex items-center justify-between border-b border-[var(--color-border-primary)] px-6 py-4 shrink-0">
           <div>
             <h3 className="text-lg font-semibold text-[var(--color-text-primary)]">

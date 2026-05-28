@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+﻿import { useCallback, useRef, useState } from 'react';
 import { useQueryClient } from '../../hooks/useQueries';
 import type { RelatorioAusenciasParams, RelatorioAusenciasResponse } from '@recorda/shared';
 import { api } from '../../services/api';
@@ -230,7 +230,7 @@ export function RelatorioAusenciasPage(): JSX.Element {
     <div className="space-y-6">
       <PageHeader
         title="Relatório de Ausências"
-        subtitle="Visão mensal para fechamento administrativo."
+        subtitle="Fechamento de ausências."
       />
 
       {mensagem && (
@@ -253,7 +253,7 @@ export function RelatorioAusenciasPage(): JSX.Element {
               loading={carregando}
               disabled={carregando}
             >
-              Gerar relatório
+              Visualizar
             </Button>
             <Button
               variant="secondary"
@@ -287,7 +287,7 @@ export function RelatorioAusenciasPage(): JSX.Element {
         />
 
         <Select
-          label="Tipo de ausência"
+          label="Tipo de Ausência"
           value={tipoAusenciaId}
           onChange={(e) => setTipoAusenciaId(e.target.value)}
           options={[
@@ -317,7 +317,7 @@ export function RelatorioAusenciasPage(): JSX.Element {
       {!carregando && totais && (
         <>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-            <SummaryCard label="Total de registros" value={totais.totalRegistros} />
+            <SummaryCard label="Total de Registros" value={totais.totalRegistros} />
             <SummaryCard
               label="Pendentes"
               value={totais.totalPorStatus['pendente'] ?? 0}
@@ -327,7 +327,7 @@ export function RelatorioAusenciasPage(): JSX.Element {
             <SummaryCard label="Rejeitados" value={totais.totalPorStatus['rejeitado'] ?? 0} />
             <SummaryCard label="Cancelados" value={totais.totalPorStatus['cancelado'] ?? 0} />
             <SummaryCard
-              label="Dias aprovados"
+              label="Dias Aprovados"
               value={totais.diasAprovados}
               highlight={totais.diasAprovados > 0}
             />
@@ -401,7 +401,7 @@ export function RelatorioAusenciasPage(): JSX.Element {
           <div className="rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] overflow-hidden">
             <div className="flex items-center gap-2 px-5 py-3 bg-[var(--color-gray-50)] border-b border-[var(--color-border-primary)]">
               <span className="text-sm font-semibold text-[var(--color-text-primary)]">
-                Registros detalhados ({registros.length})
+                Registros ({registros.length})
               </span>
             </div>
 
@@ -409,7 +409,7 @@ export function RelatorioAusenciasPage(): JSX.Element {
             <div className="space-y-2 p-3 md:hidden">
               {registros.length === 0 ? (
                 <p className="py-6 text-center text-sm text-[var(--color-text-tertiary)]">
-                  Nenhum registro encontrado para os filtros selecionados.
+                  Nenhum registro para os filtros.
                 </p>
               ) : (
                 registros.map((r) => (
@@ -459,7 +459,7 @@ export function RelatorioAusenciasPage(): JSX.Element {
                   {registros.length === 0 ? (
                     <TableEmptyState
                       colSpan={8}
-                      title="Nenhum registro encontrado para os filtros selecionados."
+                      title="Nenhum registro para os filtros"
                     />
                   ) : (
                     registros.map((r) => (
@@ -523,3 +523,4 @@ export function RelatorioAusenciasPage(): JSX.Element {
     </div>
   );
 }
+

@@ -225,7 +225,7 @@ function toManualCorners(points: Point[] | null): Array<{ x: number; y: number }
 function getProcessingBadge(result: ProcessarResponse | null): string {
   if (!result) return '';
   if (result.processamento.status === 'falhou_processamento') {
-    return 'Nao foi possivel corrigir automaticamente';
+    return 'Não foi possível corrigir automaticamente';
   }
   if (result.processamento.fallback) {
     return 'Correcao parcial';
@@ -596,7 +596,7 @@ export function CapturaMapaPage() {
       );
       handleCloseEditor();
     } catch {
-      toast.error('Nao foi possivel aplicar as bordas ajustadas.');
+      toast.error('Não foi possível aplicar as bordas ajustadas.');
     } finally {
       setEditorSaving(false);
     }
@@ -857,7 +857,7 @@ export function CapturaMapaPage() {
                 Envie as imagens e revise apenas o que precisar.
               </h2>
               <p className="text-sm text-[var(--color-text-secondary)]">
-                A correcao roda sozinha. Ajuste manualmente quando a folha nao for detectada.
+                A correção roda sozinha. Ajuste manualmente quando a folha não for detectada.
               </p>
             </div>
             <div className="flex flex-wrap gap-2 text-xs text-[var(--color-text-secondary)]">
@@ -940,8 +940,8 @@ export function CapturaMapaPage() {
               ref={cameraInputRef}
               type="file"
               accept="image/*"
-              aria-label="Capturar imagem pela camera"
-              title="Capturar imagem pela camera"
+              aria-label="Capturar imagem pela câmera"
+              title="Capturar imagem pela câmera"
               aria-hidden="true"
               tabIndex={-1}
               className="hidden"
@@ -952,8 +952,8 @@ export function CapturaMapaPage() {
               type="file"
               accept="image/*"
               multiple
-              aria-label="Selecionar varias imagens"
-              title="Selecionar varias imagens"
+              aria-label="Selecionar várias imagens"
+              title="Selecionar várias imagens"
               aria-hidden="true"
               tabIndex={-1}
               className="hidden"
@@ -1085,8 +1085,8 @@ export function CapturaMapaPage() {
 
                       {/* Overlay de estado */}
                       {(item.status === 'corrigindo' || item.status === 'processando') && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-                          <div className="h-7 w-7 animate-spin rounded-full border-4 border-white/30 border-t-white" />
+                        <div className="absolute inset-0 flex items-center justify-center bg-[var(--color-overlay-backdrop)]">
+                          <div className="h-6 w-6 motion-safe:animate-spin [animation-duration:1.2s] rounded-full border-4 border-white/30 border-t-white" />
                         </div>
                       )}
 
@@ -1111,14 +1111,14 @@ export function CapturaMapaPage() {
                           className="absolute inset-x-2 bottom-2 rounded-lg bg-warning-500 px-3 py-2 text-xs font-medium text-white shadow-sm"
                           onClick={() => void handleOpenEditor(item)}
                         >
-                          Ajustar bordas
+                          Ajustar Bordas
                         </button>
                       )}
 
                       {/* Botao remover */}
                       {item.status !== 'processando' && (
                         <button
-                          className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-black/55 text-white opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
+                          className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-[color:color-mix(in_srgb,var(--color-bg-primary)_72%,transparent)] text-[var(--color-text-primary)] opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
                           onClick={() => handleRemover(item.localId)}
                           aria-label="Remover"
                         >
@@ -1168,7 +1168,7 @@ export function CapturaMapaPage() {
                             <button
                               className="flex h-8 w-8 items-center justify-center rounded-full text-[var(--color-primary-600)] transition-colors hover:bg-[var(--color-primary-50)] hover:text-[var(--color-primary-700)]"
                               onClick={() => void handleOpenEditor(item)}
-                              aria-label="Ajustar bordas"
+                              aria-label="Ajustar Bordas"
                             >
                               <Icon name="edit" className="h-3.5 w-3.5" />
                             </button>
@@ -1227,7 +1227,7 @@ export function CapturaMapaPage() {
       <Modal
         open={!!editorItem && !!editorImageSize}
         onClose={handleCloseEditor}
-        title="Ajustar bordas"
+        title="Ajustar Bordas"
         subtitle="Enquadre apenas a folha."
         size="xl"
         scrollable
@@ -1328,7 +1328,7 @@ export function CapturaMapaPage() {
       <Modal
         open={!!previewItem?.result}
         onClose={() => setPreviewItemId(null)}
-        title="Imagem processada"
+        title="Imagem Processada"
         subtitle={previewItem?.result?.nomeArquivo}
         size="xl"
         scrollable

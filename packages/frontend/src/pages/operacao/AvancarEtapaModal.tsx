@@ -32,8 +32,8 @@ export function AvancarEtapaModal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 animate-fade-in">
-      <div className="flex max-h-[88vh] w-full max-w-2xl flex-col overflow-hidden rounded-xl bg-[var(--color-bg-primary)] shadow-xl animate-scale-in">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-overlay-backdrop)] p-4">
+      <div className="flex max-h-[88vh] w-full max-w-2xl flex-col overflow-hidden rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] shadow-xl">
         <div className="border-b border-[var(--color-border-primary)] px-6 py-4 shrink-0">
           <h3 className="text-lg font-semibold text-[var(--color-text-primary)]">
             Avançar para {etapaDestino}

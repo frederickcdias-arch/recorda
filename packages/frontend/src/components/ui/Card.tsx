@@ -38,11 +38,11 @@ export function Card({
   const isClickable = !!onClick;
 
   const tagClasses = `
-        min-w-0 max-w-full rounded-2xl transition-all duration-200
+        min-w-0 max-w-full rounded-2xl transition-colors duration-150
         ${variantClasses[variant]}
         ${paddingClasses[padding]}
-        ${hover || isClickable ? 'hover:shadow-sm hover:border-[var(--color-gray-300)] hover:-translate-y-0.5' : ''}
-        ${isClickable ? 'cursor-pointer active:scale-[0.99]' : ''}
+        ${hover || isClickable ? 'hover:shadow-sm hover:border-[var(--color-gray-300)]' : ''}
+        ${isClickable ? 'cursor-pointer' : ''}
         ${className}
       `;
 

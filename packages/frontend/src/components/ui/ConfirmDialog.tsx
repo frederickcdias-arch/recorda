@@ -38,12 +38,12 @@ export function ConfirmDialog({
   return (
     <div
       className={`fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-overlay-backdrop)] p-4 ${
-        isClosing ? 'animate-fade-out' : 'animate-fade-in'
+        ''
       }`}
     >
       <div
         className={`bg-[var(--color-bg-primary)] rounded-xl shadow-xl w-full max-w-md p-6 ${
-          isClosing ? 'animate-scale-out' : 'animate-scale-in'
+          ''
         }`}
       >
         <h3 className={`text-lg font-semibold ${variantStyles[state.variant]} mb-2`}>

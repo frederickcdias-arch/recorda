@@ -161,8 +161,8 @@ export function LancarProducaoPage(): JSX.Element {
         )}
 
         <Card padding="none">
-          <div className="p-6 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-4 p-6">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <Input
                 label="Data"
                 type="date"
@@ -226,7 +226,7 @@ export function LancarProducaoPage(): JSX.Element {
                     </option>
                   ))}
                 </Select>
-                <div className="flex items-end gap-2 mt-2">
+                <div className="mt-2 flex items-end gap-2">
                   <div className="flex-1">
                     <Input
                       placeholder="Novo órgão / unidade..."
@@ -245,7 +245,7 @@ export function LancarProducaoPage(): JSX.Element {
                     variant="secondary"
                     onClick={() => void handleCriarCoordenadoriaRapida()}
                     disabled={!novaCoordenadoriaInput.trim() || salvando}
-                    title="Adicionar e selecionar órgão / unidade"
+                    title="Adicionar e Selecionar Órgão / Unidade"
                   >
                     Adicionar
                   </Button>
@@ -289,9 +289,9 @@ export function LancarProducaoPage(): JSX.Element {
           </div>
         </Card>
 
-        <div className="bg-[var(--color-primary-50)] border border-[var(--color-primary-200)] rounded-lg p-4">
-          <h3 className="font-semibold text-[var(--color-primary-900)] mb-2">📋 Instruções</h3>
-          <ul className="text-sm text-[var(--color-primary-800)] space-y-1">
+        <div className="rounded-lg border border-[var(--color-primary-200)] bg-[var(--color-primary-50)] p-4">
+          <h3 className="mb-2 font-semibold text-[var(--color-primary-900)]">Instruções</h3>
+          <ul className="space-y-1 text-sm text-[var(--color-primary-800)]">
             <li>
               • <strong>Data:</strong> Data da produção (padrão: hoje)
             </li>

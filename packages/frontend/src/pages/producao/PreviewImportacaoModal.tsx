@@ -65,7 +65,7 @@ export function PreviewImportacaoModal({
     <Modal
       open
       onClose={onClose}
-      title="Pré-visualização da importação"
+      title="Pré-visualização da Importação"
       subtitle="Confira os impactos antes de confirmar."
       size="lg"
       scrollable
@@ -76,7 +76,7 @@ export function PreviewImportacaoModal({
           </Button>
           {preview.registrosValidos > 0 && (
             <Button variant="primary" size="sm" onClick={onConfirm} loading={processando}>
-              Confirmar importação ({preview.registrosValidos})
+              Confirmar Importação ({preview.registrosValidos})
             </Button>
           )}
         </div>

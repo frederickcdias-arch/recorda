@@ -10,7 +10,6 @@ interface FilterBarProps {
   children: ReactNode;
   actions?: ReactNode;
   className?: string;
-  /** Number of active filters — shown on the mobile toggle button */
   activeCount?: number;
 }
 
@@ -29,7 +28,6 @@ export function FilterBar({
         className
       )}
     >
-      {/* Mobile header: Filtros toggle + actions */}
       <div className="flex items-center justify-between gap-2 sm:hidden">
         <Button
           type="button"
@@ -43,7 +41,6 @@ export function FilterBar({
         {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
       </div>
 
-      {/* Filter grid — always visible on sm+, toggle on mobile */}
       <div
         className={cn(
           'flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between',
@@ -55,7 +52,7 @@ export function FilterBar({
         </div>
 
         {actions ? (
-          <div className="hidden sm:flex w-full flex-wrap items-center gap-2 xl:w-auto xl:justify-end">
+          <div className="flex w-full flex-wrap items-center gap-2 border-t border-[var(--color-border-primary)] pt-3 sm:justify-end xl:w-auto xl:border-t-0 xl:pt-0">
             {actions}
           </div>
         ) : null}

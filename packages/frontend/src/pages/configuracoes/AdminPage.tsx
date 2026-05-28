@@ -91,7 +91,7 @@ export function AdminPage(): JSX.Element {
 
   const handleLimparDuplicatasProducao = async (): Promise<void> => {
     confirmDialog.confirm({
-      title: 'Limpar duplicatas de produção',
+      title: 'Limpar Duplicatas de Produção',
       message: 'Deseja remover registros duplicados de produção? Esta ação não pode ser desfeita.',
       confirmLabel: 'Limpar',
       variant: 'danger',
@@ -113,7 +113,7 @@ export function AdminPage(): JSX.Element {
 
   const handleLimparDuplicatasRecebimento = async (): Promise<void> => {
     confirmDialog.confirm({
-      title: 'Limpar duplicatas de recebimento',
+      title: 'Limpar Duplicatas de Recebimento',
       message:
         'Deseja remover registros duplicados de recebimento? Esta ação não pode ser desfeita.',
       confirmLabel: 'Limpar',
@@ -138,7 +138,7 @@ export function AdminPage(): JSX.Element {
 
   const handleRecontarProducao = async (): Promise<void> => {
     confirmDialog.confirm({
-      title: 'Recontar produção',
+      title: 'Recontar Produção',
       message: 'Deseja recontar todos os registros de produção? Isso pode demorar vários minutos.',
       confirmLabel: 'Recontar',
       variant: 'warning',
@@ -198,7 +198,7 @@ export function AdminPage(): JSX.Element {
       {resultados ? (
         <ActionFeedback
           type="success"
-          title="Operação concluída"
+          title="Operação Concluída"
           message={JSON.stringify(resultados, null, 2)}
           onDismiss={() => setResultados(null)}
         />
@@ -215,7 +215,7 @@ export function AdminPage(): JSX.Element {
         </Card>
         <Card padding="sm">
           <p className="text-xs font-medium text-[var(--color-text-tertiary)]">
-            Última atualização
+            Última Atualização
           </p>
           <p className="mt-2 text-lg font-semibold text-[var(--color-text-primary)]">
             {new Date().toLocaleString('pt-BR')}
@@ -225,12 +225,12 @@ export function AdminPage(): JSX.Element {
 
       <Card>
         <CardHeader
-          title="Limpeza de dados"
+          title="Limpeza de Dados"
           description="Remove duplicidades em registros de produção e recebimento."
         />
         <div className="grid gap-4 md:grid-cols-2">
           <ActionTile
-            title="Duplicatas de produção"
+            title="Duplicatas de Produção"
             description="Remove registros duplicados de produção. Não pode ser desfeito."
             icon="trash"
             accentClass="bg-[var(--color-error-50)] text-[var(--color-error-600)]"
@@ -240,7 +240,7 @@ export function AdminPage(): JSX.Element {
             loading={processando}
           />
           <ActionTile
-            title="Duplicatas de recebimento"
+            title="Duplicatas de Recebimento"
             description="Remove registros duplicados de recebimento. Não pode ser desfeito."
             icon="trash"
             accentClass="bg-[var(--color-warning-50)] text-[var(--color-warning-600)]"
@@ -254,12 +254,12 @@ export function AdminPage(): JSX.Element {
 
       <Card>
         <CardHeader
-          title="Manutenção do sistema"
+          title="Manutenção do Sistema"
           description="Atualização de estatísticas e performance."
         />
         <div className="grid gap-4 md:grid-cols-2">
           <ActionTile
-            title="Recontar produção"
+            title="Recontar Produção"
             description="Recalcula totais e estatísticas gerais de produção."
             icon="refresh-cw"
             accentClass="bg-[var(--color-primary-50)] text-[var(--color-primary-600)]"

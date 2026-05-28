@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+﻿import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Badge } from '../components/ui/Badge';
@@ -33,15 +33,6 @@ interface StatCardProps {
   subtitle?: string;
   tone?: 'primary' | 'success' | 'warning' | 'neutral';
   onClick?: () => void;
-  index?: number;
-}
-
-interface InsightCardProps {
-  title: string;
-  description: string;
-  actionLabel?: string;
-  onAction?: () => void;
-  icon: string;
 }
 
 interface ProducaoItem {
@@ -176,19 +167,15 @@ function StatCard({
   subtitle,
   tone = 'primary',
   onClick,
-  index = 0,
 }: StatCardProps): JSX.Element {
   const animated = useCountUp(rawValue ?? 0);
   const displayValue = rawValue != null ? animated.toLocaleString('pt-BR') : value;
   const toneClass = statToneClasses[tone];
-  const delayClasses = ['delay-0', 'delay-75', 'delay-150', 'delay-200'];
-  const animationDelayClass = delayClasses[index] ?? 'delay-0';
-
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`animate-fade-in-up [animation-fill-mode:both] w-full text-left ${animationDelayClass}`}
+      className="w-full text-left"
     >
       <Card padding="sm" hover={!!onClick} className="h-full border-[var(--color-border-primary)]">
         <div className="flex items-start justify-between gap-4">
@@ -207,33 +194,6 @@ function StatCard({
         </div>
       </Card>
     </button>
-  );
-}
-
-function InsightCard({
-  title,
-  description,
-  actionLabel,
-  onAction,
-  icon,
-}: InsightCardProps): JSX.Element {
-  return (
-    <Card padding="md">
-      <div className="flex items-start gap-3">
-        <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-[var(--color-gray-100)] text-[var(--color-text-secondary)]">
-          <Icon name={icon} className="h-4 w-4" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">{title}</h3>
-          <p className="mt-1 text-sm text-[var(--color-text-secondary)]">{description}</p>
-          {actionLabel && onAction ? (
-            <Button variant="ghost" size="sm" className="mt-3 px-0" onClick={onAction}>
-              {actionLabel}
-            </Button>
-          ) : null}
-        </div>
-      </div>
-    </Card>
   );
 }
 
@@ -310,44 +270,44 @@ function DashboardColaborador(): JSX.Element {
     >
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
-          title="Total de registros"
+          title="Total de Registros"
           value={formatCriticalNumber(totalProducoes)}
           rawValue={totalProducoes}
           icon="clipboard"
           tone="primary"
-          index={0}
+
         />
         <StatCard
-          title="Quantidade total"
+          title="Quantidade Total"
           value={formatCriticalNumber(totalQuantidade)}
           rawValue={totalQuantidade}
           icon="bar-chart"
           tone="success"
-          index={1}
+
         />
         <StatCard
-          title="Registros nos últimos 7 dias"
+          title="Registros nos Últimos 7 Dias"
           value={formatCriticalNumber(registrosUltimos7Dias)}
           rawValue={registrosUltimos7Dias}
           icon="calendar"
-          subtitle="atividade recente"
+
           tone="warning"
-          index={2}
+
         />
         <StatCard
-          title="Quantidade nos últimos 7 dias"
+          title="Quantidade nos Últimos 7 Dias"
           value={formatCriticalNumber(quantidadeUltimos7Dias)}
           rawValue={quantidadeUltimos7Dias}
           icon="trending-up"
-          subtitle="produção recente"
+
           tone="neutral"
-          index={3}
+
         />
       </section>
 
       <section className="grid grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-[1.6fr_1fr]">
         <Card padding="lg">
-          <CardHeader title="Produção por etapa" />
+          <CardHeader title="Produção por Etapa" />
           {producaoPorEtapa.length === 0 ? (
             <p className="py-4 text-sm text-[var(--color-text-secondary)]">
               Nenhuma produção registrada.
@@ -387,7 +347,7 @@ function DashboardColaborador(): JSX.Element {
         </Card>
 
         <Card padding="lg">
-          <CardHeader title="Produção por tipo" />
+          <CardHeader title="Produção por Tipo" />
           {producaoPorTipo.length === 0 ? (
             <p className="py-4 text-sm text-[var(--color-text-secondary)]">
               Nenhum dado disponível para o período.
@@ -431,7 +391,7 @@ function DashboardColaborador(): JSX.Element {
       <section className="grid grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-[1.7fr_1fr]">
         <Card padding="none">
           <CardHeader
-            title="Histórico recente"
+            title="Histórico Recente"
             className="px-5 pt-5"
             action={
               <Button
@@ -439,7 +399,7 @@ function DashboardColaborador(): JSX.Element {
                 size="sm"
                 onClick={() => navigate('/minha-producao/historico')}
               >
-                Ver histórico completo
+                Ver histórico
               </Button>
             }
           />
@@ -501,22 +461,16 @@ function DashboardColaborador(): JSX.Element {
           )}
         </Card>
 
-        <div className="space-y-6">
-          <InsightCard
-            title="Lançamento rápido"
-            description="Registre a produção diária no fluxo principal."
-            actionLabel="Abrir lançamento"
-            onAction={() => navigate('/minha-producao/lancar')}
-            icon="plus-circle"
-          />
-          <InsightCard
-            title="Conferência de histórico"
-            description="Revise lançamentos anteriores e acompanhe a evolução recente."
-            actionLabel="Abrir histórico"
-            onAction={() => navigate('/minha-producao/historico')}
-            icon="history"
-          />
-        </div>
+        <Card padding="md">
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Button variant="secondary" onClick={() => navigate('/minha-producao/lancar')}>
+              Lançar produção
+            </Button>
+            <Button variant="ghost" onClick={() => navigate('/minha-producao/historico')}>
+              Abrir histórico
+            </Button>
+          </div>
+        </Card>
       </section>
     </DashboardShell>
   );
@@ -539,17 +493,17 @@ function DashboardContent({ data }: { data: DashboardData }): JSX.Element {
     <DashboardShell title="Dashboard">
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <StatCard
-          title="Produção do mês"
+          title="Produção do Mês"
           value={formatCriticalNumber(producaoTotal)}
           rawValue={producaoTotal ?? 0}
           icon="bar-chart"
           subtitle={data.stats.producaoTrend !== '0%' ? data.stats.producaoTrend : undefined}
           tone="primary"
           onClick={() => navigate('/producao')}
-          index={0}
+
         />
         <StatCard
-          title="Repositórios com produção"
+          title="Repositórios com Produção"
           value={formatCriticalNumber(processosAtivos)}
           rawValue={processosAtivos ?? 0}
           icon="folder"
@@ -560,22 +514,22 @@ function DashboardContent({ data }: { data: DashboardData }): JSX.Element {
           }
           tone="success"
           onClick={() => navigate('/producao')}
-          index={1}
+
         />
         <StatCard
-          title="Usuários ativos"
+          title="Usuários Ativos"
           value={formatCriticalNumber(colaboradoresAtivos)}
           rawValue={colaboradoresAtivos ?? 0}
           icon="users"
           tone="warning"
           onClick={() => navigate('/producao')}
-          index={2}
+
         />
       </section>
 
       <section className="grid grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-[1.4fr_1fr]">
         <Card padding="lg">
-          <CardHeader title="Produção por etapa" />
+          <CardHeader title="Produção por Etapa" />
           <div className="space-y-4">
             {producaoPorEtapa.length === 0 ? (
               <p className="text-sm text-[var(--color-text-secondary)]">
@@ -612,7 +566,7 @@ function DashboardContent({ data }: { data: DashboardData }): JSX.Element {
         </Card>
 
         <Card padding="lg">
-          <CardHeader title="Status da produção" />
+          <CardHeader title="Status da Produção" />
           <div className="space-y-3">
             {statusProducao.map((item) => (
               <button

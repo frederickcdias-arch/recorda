@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+﻿import { useRef, useState } from 'react';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -143,7 +143,7 @@ export function RecebimentoAvulsosPanel({
         <div className="flex flex-wrap items-end gap-3">
           <div className="flex-1 min-w-[200px]">
             <Input
-              label="Buscar Avulsos"
+              label="Buscar"
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
               placeholder="Protocolo ou interessado"
@@ -153,7 +153,7 @@ export function RecebimentoAvulsosPanel({
             />
           </div>
           <Button size="sm" variant="secondary" onClick={handleBuscar} loading={carregando}>
-            Buscar Avulsos
+            Buscar
           </Button>
           <Button
             size="sm"
@@ -162,10 +162,10 @@ export function RecebimentoAvulsosPanel({
               setFormAberto(true);
             }}
           >
-            + Novo Avulso
+            + Novo avulso
           </Button>
           <Button size="sm" variant="outline" onClick={() => setLoteModalOpen(true)}>
-            Adicionar em Lote
+            Adicionar em lote
           </Button>
           {selecionados.size > 0 && (
             <Button size="sm" variant="outline" onClick={() => void handleAbrirVincular()}>
@@ -179,7 +179,7 @@ export function RecebimentoAvulsosPanel({
       {formAberto && (
         <Card>
           <h3 className="text-sm font-semibold text-[var(--color-text-primary)] mb-3">
-            Cadastrar Processo Avulso
+            Cadastrar processo avulso
           </h3>
 
           {/* OCR photo upload */}
@@ -414,7 +414,7 @@ export function RecebimentoAvulsosPanel({
 
         {avulsos.length === 0 ? (
           <p className="text-sm text-[var(--color-text-secondary)] text-center py-8">
-            Nenhum processo avulso cadastrado.
+            Nenhum avulso cadastrado.
           </p>
         ) : (
           <div className="space-y-3">
@@ -622,14 +622,14 @@ export function RecebimentoAvulsosPanel({
 
       {/* Modal vincular a repositório */}
       {vincularModalOpen && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-[var(--color-bg-primary)] rounded-xl shadow-xl w-full max-w-lg max-h-[80vh] overflow-hidden flex flex-col animate-scale-in">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--color-overlay-backdrop)] p-4">
+          <div className="flex max-h-[80vh] w-full max-w-lg flex-col overflow-hidden rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] shadow-xl">
             <div className="px-6 py-4 border-b border-[var(--color-border-primary)]">
               <h3 className="text-lg font-semibold text-[var(--color-text-primary)]">
                 Vincular {selecionados.size} processo(s) a repositório
               </h3>
               <p className="text-sm text-[var(--color-text-secondary)] mt-1">
-                Selecione o repositório de destino na etapa de Recebimento.
+                Selecione o repositório de destino na etapa de recebimento.
               </p>
             </div>
 
@@ -645,7 +645,7 @@ export function RecebimentoAvulsosPanel({
             <div className="flex-1 overflow-auto px-6 pb-3">
               {reposFiltrados.length === 0 ? (
                 <p className="text-sm text-[var(--color-text-secondary)] text-center py-6">
-                  Nenhum repositório encontrado na Etapa de Recebimento.
+                  Nenhum repositório.
                 </p>
               ) : (
                 <div className="space-y-2">
@@ -711,3 +711,4 @@ export function RecebimentoAvulsosPanel({
     </div>
   );
 }
+
