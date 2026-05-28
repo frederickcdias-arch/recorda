@@ -1,7 +1,3 @@
-/**
- * Toast - Notificações temporárias
- */
-
 import { useEffect, useState, createContext, useContext, useCallback } from 'react';
 import { Icon } from './Icon';
 
@@ -25,7 +21,7 @@ interface ToastContextType {
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
-export function useToast() {
+export function useToast(): ToastContextType {
   const context = useContext(ToastContext);
   if (!context) {
     throw new Error('useToast must be used within a ToastProvider');
@@ -62,22 +58,26 @@ const variantStyles: Record<
   }
 > = {
   info: {
-    container: 'bg-[var(--color-bg-primary)] border-[var(--color-gray-200)]',
+    container:
+      'border-[color:color-mix(in_srgb,var(--color-primary-600)_16%,var(--color-border-primary))]',
     icon: 'text-[var(--color-primary-600)]',
     iconName: 'info',
   },
   success: {
-    container: 'bg-[var(--color-bg-primary)] border-[var(--color-success-200)]',
+    container:
+      'border-[color:color-mix(in_srgb,var(--color-success-600)_18%,var(--color-border-primary))]',
     icon: 'text-[var(--color-success-600)]',
     iconName: 'check-square',
   },
   warning: {
-    container: 'bg-[var(--color-bg-primary)] border-[var(--color-warning-200)]',
+    container:
+      'border-[color:color-mix(in_srgb,var(--color-warning-600)_18%,var(--color-border-primary))]',
     icon: 'text-[var(--color-warning-600)]',
     iconName: 'alert-triangle',
   },
   error: {
-    container: 'bg-[var(--color-bg-primary)] border-[var(--color-error-200)]',
+    container:
+      'border-[color:color-mix(in_srgb,var(--color-error-600)_18%,var(--color-border-primary))]',
     icon: 'text-[var(--color-error-600)]',
     iconName: 'alert-circle',
   },
@@ -92,7 +92,7 @@ function ToastItem({ toast, onRemove }: ToastItemProps): JSX.Element {
   const [isVisible, setIsVisible] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
   const styles = variantStyles[toast.variant];
-  const duration = toast.duration ?? 5000;
+  const duration = toast.duration ?? 4500;
 
   useEffect(() => {
     const raf = requestAnimationFrame(() => setIsVisible(true));
@@ -102,41 +102,41 @@ function ToastItem({ toast, onRemove }: ToastItemProps): JSX.Element {
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsExiting(true);
-      setTimeout(() => onRemove(toast.id), 200);
+      setTimeout(() => onRemove(toast.id), 180);
     }, duration);
 
     return () => clearTimeout(timer);
   }, [toast.id, duration, onRemove]);
 
-  const handleClose = () => {
+  const handleClose = (): void => {
     setIsExiting(true);
-    setTimeout(() => onRemove(toast.id), 200);
+    setTimeout(() => onRemove(toast.id), 180);
   };
 
   return (
     <div
       className={`
         ${styles.container}
-        border rounded-lg shadow-lg p-4 w-full
-        transition-all duration-200
-        ${!isVisible || isExiting ? 'opacity-0 translate-y-4' : 'opacity-100 translate-y-0'}
+        w-full rounded-2xl border bg-[var(--color-bg-primary)] px-4 py-3 shadow-lg
+        transition-[opacity,transform] duration-150
+        ${!isVisible || isExiting ? 'translate-y-3 opacity-0' : 'translate-y-0 opacity-100'}
       `}
       role="alert"
     >
       <div className="flex gap-3">
-        <div className={`${styles.icon} flex-shrink-0 mt-0.5`}>
-          <Icon name={styles.iconName} className="w-5 h-5" />
+        <div className={`${styles.icon} mt-0.5 flex-shrink-0`}>
+          <Icon name={styles.iconName} className="h-4.5 w-4.5" />
         </div>
-        <div className="flex-1 min-w-0">
-          <p className="font-medium text-[var(--color-text-primary)] text-sm">{toast.title}</p>
-          {toast.message && (
-            <p className="text-sm text-[var(--color-text-secondary)] mt-0.5">{toast.message}</p>
-          )}
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-[var(--color-text-primary)]">{toast.title}</p>
+          {toast.message ? (
+            <p className="mt-0.5 text-sm text-[var(--color-text-secondary)]">{toast.message}</p>
+          ) : null}
           {toast.actionLabel && toast.onAction ? (
             <button
               type="button"
               onClick={toast.onAction}
-              className="mt-3 rounded-lg border border-[var(--color-primary-200)] bg-[var(--color-primary-50)] px-3 py-2 text-sm font-semibold text-[var(--color-primary-700)] transition-colors hover:bg-[var(--color-primary-100)]"
+              className="mt-2 rounded-lg px-0 py-1 text-sm font-medium text-[var(--color-primary-600)] transition-colors hover:text-[var(--color-primary-700)]"
             >
               {toast.actionLabel}
             </button>
@@ -144,10 +144,10 @@ function ToastItem({ toast, onRemove }: ToastItemProps): JSX.Element {
         </div>
         <button
           onClick={handleClose}
-          className="flex-shrink-0 text-[var(--color-gray-400)] hover:text-[var(--color-gray-600)] p-1 -m-1 rounded transition-colors"
+          className="flex-shrink-0 rounded p-1 text-[var(--color-text-tertiary)] transition-colors hover:text-[var(--color-text-primary)]"
           aria-label="Fechar"
         >
-          <Icon name="x" className="w-4 h-4" />
+          <Icon name="x" className="h-4 w-4" />
         </button>
       </div>
     </div>
@@ -164,7 +164,7 @@ function ToastContainer({ toasts, onRemove }: ToastContainerProps): JSX.Element 
 
   return (
     <div
-      className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] left-4 right-4 z-[var(--z-toast)] flex flex-col gap-2 sm:left-auto sm:w-[380px] md:bottom-4"
+      className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] left-4 right-4 z-[var(--z-toast)] flex flex-col gap-2 sm:left-auto sm:w-[340px] md:bottom-4"
       aria-live="assertive"
       aria-atomic="true"
     >
@@ -175,15 +175,17 @@ function ToastContainer({ toasts, onRemove }: ToastContainerProps): JSX.Element 
   );
 }
 
-/**
- * Hook helper para criar toasts rapidamente
- */
 type ToastAction = {
   label: string;
   onAction: () => void;
 };
 
-export function useToastHelpers() {
+export function useToastHelpers(): {
+  success: (title: string, message?: string, action?: ToastAction) => void;
+  error: (title: string, message?: string, action?: ToastAction) => void;
+  warning: (title: string, message?: string, action?: ToastAction) => void;
+  info: (title: string, message?: string, action?: ToastAction) => void;
+} {
   const { addToast } = useToast();
 
   return {

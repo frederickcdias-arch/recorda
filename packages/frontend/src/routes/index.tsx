@@ -102,6 +102,11 @@ const MinhasAusenciasPage = lazy(() =>
 const DevolucoesPage = lazy(() =>
   import('../pages/operacao/DevolucoesPage').then((m) => ({ default: m.DevolucoesPage }))
 );
+const EtiquetasLocalizacaoPage = lazy(() =>
+  import('../pages/operacao/EtiquetasLocalizacaoPage').then((m) => ({
+    default: m.EtiquetasLocalizacaoPage,
+  }))
+);
 
 function PageSuspense({ children }: { children: React.ReactNode }): JSX.Element {
   return (
@@ -253,6 +258,16 @@ export const router = createBrowserRouter([
           <RoleRoute allowedProfiles={['operador', 'administrador']}>
             <PageSuspense>
               <DevolucoesPage />
+            </PageSuspense>
+          </RoleRoute>
+        ),
+      },
+      {
+        path: 'operacao/etiquetas',
+        element: (
+          <RoleRoute allowedProfiles={['operador', 'administrador']}>
+            <PageSuspense>
+              <EtiquetasLocalizacaoPage />
             </PageSuspense>
           </RoleRoute>
         ),

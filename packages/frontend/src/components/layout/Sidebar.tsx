@@ -108,7 +108,7 @@ function MenuItemComponent({
   if (hasChildren) {
     const btnClass = `flex w-full items-center gap-3 rounded-xl ${indentClass} py-3 text-sm transition-colors sm:py-2.5 ${
       isChildActive
-        ? 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)]'
+        ? 'bg-[var(--color-fill-selected)] text-[var(--color-text-primary)]'
         : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-primary)]'
     }`;
     const btnContent = (
@@ -119,7 +119,7 @@ function MenuItemComponent({
             <span className="flex-1 text-left">{item.label}</span>
             <Icon
               name="chevron-right"
-              className={`h-4 w-4 transition-transform duration-300 ${expanded ? 'rotate-90' : ''}`}
+               className={`h-4 w-4 transition-transform duration-200 ${expanded ? 'rotate-90' : ''}`}
             />
           </>
         ) : null}
@@ -139,7 +139,7 @@ function MenuItemComponent({
 
         {!collapsed ? (
           <div
-            className={`mt-1 space-y-1 overflow-hidden transition-all duration-300 ${
+            className={`mt-1 space-y-1 overflow-hidden transition-[max-height,opacity] duration-200 ${
               expanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
             }`}
           >
@@ -166,9 +166,9 @@ function MenuItemComponent({
       title={collapsed ? item.label : undefined}
       aria-label={collapsed ? item.label : undefined}
       className={({ isActive: navActive }) =>
-        `flex items-center gap-3 rounded-xl ${indentClass} py-3 text-sm transition-all sm:py-2.5 ${
+        `flex items-center gap-3 rounded-xl ${indentClass} py-3 text-sm transition-colors sm:py-2.5 ${
           navActive || isActive
-            ? 'border-l-2 border-[var(--color-primary-600)] bg-[var(--color-primary-50)] text-[var(--color-primary-700)]'
+            ? 'bg-[var(--color-fill-selected)] font-medium text-[var(--color-text-primary)]'
             : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-primary)]'
         }`
       }
@@ -208,9 +208,9 @@ function MenuSectionComponent({
         title={collapsed ? section.label : undefined}
         aria-label={collapsed ? section.label : undefined}
         className={({ isActive: navActive }) =>
-          `relative flex items-center gap-3 rounded-xl px-3 py-3 transition-all sm:py-2.5 ${
+          `relative flex items-center gap-3 rounded-xl px-3 py-3 transition-colors sm:py-2.5 ${
             navActive || isActive
-              ? 'border-l-2 border-[var(--color-primary-600)] bg-[var(--color-primary-50)] text-[var(--color-primary-700)]'
+              ? 'bg-[var(--color-fill-selected)] font-medium text-[var(--color-text-primary)]'
               : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-primary)]'
           }`
         }
@@ -224,7 +224,7 @@ function MenuSectionComponent({
 
   const sectionBtnClass = `flex w-full items-center gap-3 rounded-xl px-3 py-3 transition-colors sm:py-2.5 ${
     isActive
-      ? 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)]'
+      ? 'bg-[var(--color-fill-selected)] text-[var(--color-text-primary)]'
       : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)] hover:text-[var(--color-text-primary)]'
   }`;
   const sectionBtnContent = (
@@ -235,7 +235,7 @@ function MenuSectionComponent({
           <span className="flex-1 text-left font-medium">{section.label}</span>
           <Icon
             name="chevron-right"
-            className={`h-4 w-4 transition-transform duration-300 ${expanded ? 'rotate-90' : ''}`}
+            className={`h-4 w-4 transition-transform duration-200 ${expanded ? 'rotate-90' : ''}`}
           />
         </>
       ) : null}
@@ -269,7 +269,7 @@ function MenuSectionComponent({
       {!collapsed ? (
         <div
           id={sectionId}
-          className={`ml-3 overflow-hidden border-l border-[var(--color-border-primary)] pl-3 transition-all duration-300 ${
+          className={`ml-3 overflow-hidden border-l border-[var(--color-border-primary)] pl-3 transition-[max-height,opacity,margin] duration-200 ${
             expanded ? 'mt-2 max-h-[500px] opacity-100' : 'mt-0 max-h-0 opacity-0'
           }`}
         >
@@ -345,7 +345,7 @@ export function Sidebar({
 
   return (
     <aside
-      className={`flex h-full flex-col border-r border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] transition-all duration-300 ${
+      className={`flex h-full flex-col border-r border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] transition-[width] duration-200 ${
         collapsed ? 'w-16' : 'w-[17rem]'
       }`}
     >
@@ -406,14 +406,12 @@ export function Sidebar({
 
       <div className="border-t border-[var(--color-border-primary)] p-3">
         {!collapsed && usuario ? (
-          <div className="mb-2 flex items-center gap-3 rounded-2xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-3">
-            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-600)] text-xs font-semibold text-white">
+          <div className="mb-2 flex items-center gap-3 px-2 py-1 text-sm text-[var(--color-text-secondary)]">
+            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[var(--color-primary-50)] text-xs font-semibold text-[var(--color-primary-700)]">
               {userInitials}
             </div>
             <div className="min-w-0">
-              <p className="truncate text-sm font-medium text-[var(--color-text-primary)]">
-                {usuario.nome}
-              </p>
+              <p className="truncate font-medium text-[var(--color-text-primary)]">{usuario.nome}</p>
               <p className="truncate text-xs capitalize text-[var(--color-text-tertiary)]">
                 {usuario.perfil}
               </p>

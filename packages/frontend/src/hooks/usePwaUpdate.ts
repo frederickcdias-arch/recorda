@@ -14,7 +14,7 @@ interface PwaUpdateStoreState {
   snoozedUntil: number | null;
 }
 
-interface UsePwaUpdateResult {
+export interface UsePwaUpdateResult {
   visible: boolean;
   isUpdating: boolean;
   currentVersion: string;

@@ -48,7 +48,7 @@ export function MobileBottomNav({ unreadComunicados = 0 }: MobileBottomNavProps)
   return (
     <>
       <nav
-        aria-label="Navegacao principal"
+        aria-label="Navegação Principal"
         className="fixed bottom-0 left-0 right-0 z-40 border-t border-[var(--color-border-primary)] bg-[color:color-mix(in_srgb,var(--color-bg-primary)_94%,transparent)] pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
       >
         <ul className={`grid ${colsClass[totalItems] ?? 'grid-cols-4'} px-1 py-1`}>
@@ -57,9 +57,9 @@ export function MobileBottomNav({ unreadComunicados = 0 }: MobileBottomNavProps)
               <NavLink
                 to={item.path}
                 className={({ isActive }) =>
-                  `relative flex min-h-[60px] flex-col items-center justify-center gap-1 rounded-2xl px-1 transition-all duration-150 active:scale-95 ${
+                  `relative flex min-h-[60px] flex-col items-center justify-center gap-1 rounded-2xl px-1 transition-colors ${
                     isActive
-                      ? 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)]'
+                      ? 'bg-[var(--color-fill-selected)] text-[var(--color-text-primary)]'
                       : 'text-[var(--color-text-secondary)]'
                   }`
                 }
@@ -74,10 +74,10 @@ export function MobileBottomNav({ unreadComunicados = 0 }: MobileBottomNavProps)
             <li>
               <button
                 onClick={(): void => setSheetOpen(true)}
-                aria-label="Abrir mais opcoes"
-                className={`flex min-h-[60px] w-full flex-col items-center justify-center gap-1 rounded-2xl px-1 transition-all duration-150 active:scale-95 ${
+                aria-label="Abrir Mais Opções"
+                className={`flex min-h-[60px] w-full flex-col items-center justify-center gap-1 rounded-2xl px-1 transition-colors ${
                   maisIsActive
-                    ? 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)]'
+                    ? 'bg-[var(--color-fill-selected)] text-[var(--color-text-primary)]'
                     : 'text-[var(--color-text-secondary)]'
                 }`}
               >
@@ -106,13 +106,13 @@ export function MobileBottomNav({ unreadComunicados = 0 }: MobileBottomNavProps)
           <div
             role="dialog"
             aria-modal="true"
-            aria-label="Mais opcoes"
+            aria-label="Mais Opções"
             className="fixed inset-x-0 bottom-0 z-50 rounded-t-3xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] pb-[env(safe-area-inset-bottom)] shadow-xl"
           >
             <div className="flex items-center justify-between border-b border-[var(--color-border-primary)] px-4 py-4">
               <div>
                 <h2 className="text-sm font-semibold text-[var(--color-text-primary)]">
-                  Mais opcoes
+                  Mais Opções
                 </h2>
               </div>
               <button
@@ -132,7 +132,7 @@ export function MobileBottomNav({ unreadComunicados = 0 }: MobileBottomNavProps)
                     className={({ isActive }) =>
                       `flex items-center gap-3 rounded-2xl px-4 py-3 text-sm transition-colors ${
                         isActive
-                          ? 'bg-[var(--color-primary-50)] font-medium text-[var(--color-primary-700)]'
+                          ? 'bg-[var(--color-fill-selected)] font-medium text-[var(--color-text-primary)]'
                           : 'text-[var(--color-text-primary)] hover:bg-[var(--color-bg-secondary)]'
                       }`
                     }

@@ -13,7 +13,7 @@ type NotificationPromptState = NotificationPermission | 'unsupported';
 
 type PwaNotificationError = 'unsupported' | 'denied' | 'not-configured' | 'error' | null;
 
-interface UsePwaNotificationsResult {
+export interface UsePwaNotificationsResult {
   permission: NotificationPromptState;
   supported: boolean;
   visible: boolean;

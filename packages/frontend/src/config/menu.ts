@@ -90,6 +90,12 @@ export const menuSections: MenuSection[] = [
         icon: 'corner-up-right',
         path: '/operacao/devolucoes',
       },
+      {
+        id: 'operacao-etiquetas',
+        label: 'Etiquetas de Localização',
+        icon: 'tag',
+        path: '/operacao/etiquetas',
+      },
     ],
   },
   {

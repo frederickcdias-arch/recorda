@@ -90,6 +90,8 @@ function ThemeToggle(): JSX.Element {
 export function Header({ onMenuToggle, title, unreadComunicados = 0 }: HeaderProps): JSX.Element {
   const { usuario, logout } = useAuth();
   const breadcrumbs = buildBreadcrumbs(title);
+  const currentSection = breadcrumbs[0] ?? 'Recorda';
+  const currentPage = breadcrumbs[breadcrumbs.length - 1] ?? currentSection;
 
   const initial = usuario?.nome?.trim()?.charAt(0)?.toUpperCase() ?? 'U';
   const perfilLabel = usuario?.perfil ? formatPerfil(usuario.perfil) : '';
@@ -110,24 +112,18 @@ export function Header({ onMenuToggle, title, unreadComunicados = 0 }: HeaderPro
         </div>
 
         <div className="min-w-0 flex-1">
-          <nav className="hidden min-w-0 items-center gap-1.5 text-sm sm:flex">
-            {breadcrumbs.map((crumb, index) => (
-              <span key={index} className="flex min-w-0 items-center gap-1.5">
-                {index > 0 ? <span className="text-[var(--color-gray-300)]">/</span> : null}
-                {index < breadcrumbs.length - 1 ? (
-                  <span className="truncate text-[var(--color-text-tertiary)]">{crumb}</span>
-                ) : (
-                  <span className="truncate font-semibold text-[var(--color-text-primary)]">
-                    {crumb}
-                  </span>
-                )}
-              </span>
-            ))}
-          </nav>
+          <div className="hidden min-w-0 sm:block">
+            <p className="truncate text-[11px] font-medium uppercase tracking-[0.12em] text-[var(--color-text-tertiary)]">
+              {currentSection}
+            </p>
+            <p className="truncate text-base font-semibold text-[var(--color-text-primary)]">
+              {currentPage}
+            </p>
+          </div>
 
           {title ? (
             <h1 className="truncate text-base font-semibold text-[var(--color-text-primary)] sm:hidden">
-              {title.split(' - ').pop()}
+              {currentPage}
             </h1>
           ) : null}
 
@@ -156,7 +152,7 @@ export function Header({ onMenuToggle, title, unreadComunicados = 0 }: HeaderPro
           >
             <Icon name="mail" className="h-5 w-5" />
             {unreadComunicados > 0 ? (
-              <span className="absolute -right-1 -top-1 inline-flex min-w-[1.1rem] items-center justify-center rounded-full bg-[var(--color-error-600)] px-1 text-[10px] font-semibold leading-4 text-white">
+              <span className="absolute -right-1 -top-1 inline-flex min-w-[1.1rem] items-center justify-center rounded-full bg-[var(--color-primary-100)] px-1 text-[10px] font-semibold leading-4 text-[var(--color-primary-700)]">
                 {unreadComunicados > 99 ? '99+' : unreadComunicados}
               </span>
             ) : null}

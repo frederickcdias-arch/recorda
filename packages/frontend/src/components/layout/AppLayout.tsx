@@ -10,6 +10,9 @@ import { getPageTitle } from '../../config/menu';
 import { PwaInstallPrompt } from '../pwa/PwaInstallPrompt';
 import { PwaNotificationPrompt } from '../pwa/PwaNotificationPrompt';
 import { PwaUpdatePrompt } from '../pwa/PwaUpdatePrompt';
+import { usePwaInstallPrompt } from '../../hooks/usePwaInstallPrompt';
+import { usePwaNotifications } from '../../hooks/usePwaNotifications';
+import { usePwaUpdate } from '../../hooks/usePwaUpdate';
 
 export function AppLayout(): JSX.Element {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -21,7 +24,6 @@ export function AppLayout(): JSX.Element {
   const { usuario } = useAuth();
   const toast = useToastHelpers();
   const previousUnreadCountRef = useRef<number | null>(null);
-  const initialUnreadToastShownRef = useRef(false);
 
   const pollingAtivo = !!usuario && paginaVisivel;
   const comunicadosNaoLidosQuery = useComunicadosNaoLidos({
@@ -30,6 +32,9 @@ export function AppLayout(): JSX.Element {
     refetchOnWindowFocus: true,
   });
   const unreadComunicados = comunicadosNaoLidosQuery.data?.totalNaoLidos ?? 0;
+  const pwaUpdate = usePwaUpdate();
+  const pwaInstall = usePwaInstallPrompt();
+  const pwaNotifications = usePwaNotifications();
 
   const pageTitle = getPageTitle(location.pathname);
 
@@ -51,7 +56,6 @@ export function AppLayout(): JSX.Element {
   useEffect((): void | (() => void) => {
     if (!usuario) {
       previousUnreadCountRef.current = null;
-      initialUnreadToastShownRef.current = false;
       return;
     }
 
@@ -61,25 +65,6 @@ export function AppLayout(): JSX.Element {
 
     if (previousUnreadCountRef.current === null) {
       previousUnreadCountRef.current = unreadComunicados;
-
-      if (
-        unreadComunicados > 0 &&
-        !initialUnreadToastShownRef.current &&
-        !location.pathname.startsWith('/comunicados')
-      ) {
-        initialUnreadToastShownRef.current = true;
-        toast.info(
-          unreadComunicados === 1 ? 'Comunicado pendente' : 'Comunicados pendentes',
-          unreadComunicados === 1
-            ? 'Voce entrou no sistema com 1 comunicado nao lido.'
-            : `Voce entrou no sistema com ${unreadComunicados} comunicados nao lidos.`,
-          {
-            label: 'Ver comunicados',
-            onAction: openComunicados,
-          }
-        );
-      }
-
       return;
     }
 
@@ -91,8 +76,8 @@ export function AppLayout(): JSX.Element {
       toast.info(
         novos === 1 ? 'Novo comunicado interno' : 'Novos comunicados internos',
         novos === 1
-          ? 'Existe 1 comunicado nao lido aguardando sua leitura.'
-          : `Existem ${novos} novos comunicados nao lidos aguardando sua leitura.`,
+          ? 'Existe 1 comunicado não lido aguardando sua leitura.'
+          : `Existem ${novos} novos comunicados não lidos aguardando sua leitura.`,
         {
           label: 'Ver comunicados',
           onAction: openComunicados,
@@ -116,10 +101,10 @@ export function AppLayout(): JSX.Element {
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-50 md:hidden">
           <div
-            className="absolute inset-0 animate-fade-in bg-[var(--color-overlay-backdrop)]"
+            className="absolute inset-0 bg-[var(--color-overlay-backdrop)]"
             onClick={() => setMobileMenuOpen(false)}
           />
-          <div className="absolute left-0 top-0 h-full animate-slide-in-left">
+          <div className="absolute left-0 top-0 h-full">
             <Sidebar
               collapsed={false}
               onToggle={() => setMobileMenuOpen(false)}
@@ -137,15 +122,16 @@ export function AppLayout(): JSX.Element {
           unreadComunicados={unreadComunicados}
         />
         <main className="flex-1 overflow-y-auto overflow-x-hidden px-4 pb-24 pt-4 sm:px-5 md:px-6 md:pb-8 md:pt-6">
-          <div
-            key={location.pathname}
-            className="mx-auto min-w-0 max-w-[1280px] animate-fade-in-up"
-          >
+          <div className="mx-auto min-w-0 max-w-[1280px]">
             {usuario ? (
               <>
-                <PwaUpdatePrompt />
-                <PwaInstallPrompt />
-                <PwaNotificationPrompt />
+                {pwaUpdate.visible ? <PwaUpdatePrompt state={pwaUpdate} /> : null}
+                {!pwaUpdate.visible && pwaNotifications.visible ? (
+                  <PwaNotificationPrompt state={pwaNotifications} />
+                ) : null}
+                {!pwaUpdate.visible && !pwaNotifications.visible && pwaInstall.visible ? (
+                  <PwaInstallPrompt state={pwaInstall} />
+                ) : null}
               </>
             ) : null}
             <Outlet />

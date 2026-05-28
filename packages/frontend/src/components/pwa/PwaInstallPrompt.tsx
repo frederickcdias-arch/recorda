@@ -1,7 +1,10 @@
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { Icon } from '../ui/Icon';
-import { usePwaInstallPrompt } from '../../hooks/usePwaInstallPrompt';
+import {
+  usePwaInstallPrompt,
+  type UsePwaInstallPromptResult,
+} from '../../hooks/usePwaInstallPrompt';
 import { useToastHelpers } from '../ui/Toast';
 
 function getInstruction(
@@ -10,26 +13,31 @@ function getInstruction(
 ): string {
   if (platform === 'android') {
     return canPromptInstall
-      ? 'No Android, toque em Instalar app para adicionar o Recorda a tela inicial.'
-      : 'No Android, use o menu do navegador e escolha Instalar app.';
+      ? 'Adicione o Recorda à tela inicial.'
+      : 'Use o menu do navegador para instalar.';
   }
 
   if (platform === 'ios') {
-    return 'No iPhone ou iPad, abra no Safari, toque em Compartilhar e escolha Adicionar a Tela de Inicio.';
+    return 'No Safari, use Compartilhar e depois Adicionar à Tela de Início.';
   }
 
   if (platform === 'desktop') {
     return canPromptInstall
-      ? 'Instale o Recorda para abrir mais rapido e usar o sistema como aplicativo.'
-      : 'Quando o navegador permitir, a opcao de instalar o app aparecera aqui.';
+      ? 'Instale o app para abrir o sistema mais rápido.'
+      : 'Quando o navegador permitir, a opção aparece aqui.';
   }
 
   return '';
 }
 
-export function PwaInstallPrompt(): JSX.Element | null {
+export function PwaInstallPrompt({
+  state,
+}: {
+  state?: UsePwaInstallPromptResult;
+} = {}): JSX.Element | null {
+  const internalState = usePwaInstallPrompt();
   const { acknowledge, canPromptInstall, dismiss, install, platform, visible } =
-    usePwaInstallPrompt();
+    state ?? internalState;
   const toast = useToastHelpers();
 
   if (!visible || platform === 'unsupported') {
@@ -40,11 +48,11 @@ export function PwaInstallPrompt(): JSX.Element | null {
     const accepted = await install();
 
     if (accepted) {
-      toast.success('App instalado', 'O Recorda foi enviado para instalacao no dispositivo.');
+      toast.success('App Instalado', 'O Recorda foi enviado para instalação no dispositivo.');
       return;
     }
 
-    toast.info('Instalacao nao concluida', 'Voce pode instalar o app mais tarde.');
+    toast.info('Instalação não concluída', 'Você pode instalar o app mais tarde.');
   };
 
   return (
@@ -53,20 +61,17 @@ export function PwaInstallPrompt(): JSX.Element | null {
       padding="md"
       className="mb-4 overflow-hidden border-[color:color-mix(in_srgb,var(--color-primary-600)_18%,var(--color-border-primary))]"
     >
-      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="min-w-0 flex-1">
           <div className="flex items-start gap-3">
-            <div className="mt-0.5 rounded-2xl bg-[var(--color-primary-50)] p-2 text-[var(--color-primary-700)]">
-              <Icon name="download" className="h-5 w-5" />
+            <div className="mt-0.5 rounded-xl bg-[var(--color-primary-50)] p-2 text-[var(--color-primary-700)]">
+              <Icon name="download" className="h-4 w-4" />
             </div>
             <div className="min-w-0">
               <p className="text-sm font-semibold text-[var(--color-text-primary)]">
-                Instale o Recorda no celular
+                Instale o app
               </p>
               <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
-                Acesse o sistema mais rapido pela tela inicial.
-              </p>
-              <p className="mt-2 text-sm text-[var(--color-text-tertiary)]">
                 {getInstruction(platform, canPromptInstall)}
               </p>
             </div>
@@ -76,7 +81,7 @@ export function PwaInstallPrompt(): JSX.Element | null {
         <div className="flex flex-wrap items-center gap-2 md:justify-end">
           {canPromptInstall ? (
             <Button size="sm" icon="download" onClick={() => void handleInstall()}>
-              Instalar app
+              Instalar
             </Button>
           ) : null}
           {platform === 'ios' ? (
@@ -85,7 +90,7 @@ export function PwaInstallPrompt(): JSX.Element | null {
             </Button>
           ) : null}
           <Button variant="ghost" size="sm" onClick={dismiss}>
-            Nao mostrar agora
+            Agora não
           </Button>
         </div>
       </div>

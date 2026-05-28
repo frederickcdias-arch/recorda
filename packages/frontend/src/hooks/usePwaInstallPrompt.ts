@@ -8,7 +8,7 @@ import {
   type BeforeInstallPromptEvent,
 } from '../lib/pwa';
 
-interface UsePwaInstallPromptResult {
+export interface UsePwaInstallPromptResult {
   canPromptInstall: boolean;
   installed: boolean;
   platform: 'android' | 'ios' | 'desktop' | 'unsupported';

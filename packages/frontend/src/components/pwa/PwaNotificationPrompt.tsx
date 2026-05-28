@@ -1,11 +1,19 @@
+import {
+  usePwaNotifications,
+  type UsePwaNotificationsResult,
+} from '../../hooks/usePwaNotifications';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { Icon } from '../ui/Icon';
-import { usePwaNotifications } from '../../hooks/usePwaNotifications';
 import { useToastHelpers } from '../ui/Toast';
 
-export function PwaNotificationPrompt(): JSX.Element | null {
-  const { dismiss, visible, isLoading, activateNotifications } = usePwaNotifications();
+export function PwaNotificationPrompt({
+  state,
+}: {
+  state?: UsePwaNotificationsResult;
+} = {}): JSX.Element | null {
+  const internalState = usePwaNotifications();
+  const { dismiss, visible, isLoading, activateNotifications } = state ?? internalState;
   const toast = useToastHelpers();
 
   if (!visible) {
@@ -13,10 +21,7 @@ export function PwaNotificationPrompt(): JSX.Element | null {
   }
 
   const handleActivateNotifications = async (): Promise<void> => {
-    console.debug('[PWA Push][diagnostic] notification prompt clicked');
     const status = await activateNotifications();
-
-    console.debug('[PWA Push][diagnostic] activateNotifications result', { status });
 
     if (status === 'subscribed') {
       toast.success('Notificações ativadas', 'O navegador já pode exibir avisos do Recorda.');
@@ -54,36 +59,33 @@ export function PwaNotificationPrompt(): JSX.Element | null {
     <Card
       variant="default"
       padding="md"
-      className="mb-4 overflow-hidden border-[color:color-mix(in_srgb,var(--color-success-600)_18%,var(--color-border-primary))]"
+      className="mb-4 overflow-hidden border-[color:color-mix(in_srgb,var(--color-success-600)_14%,var(--color-border-primary))]"
     >
-      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="min-w-0 flex-1">
           <div className="flex items-start gap-3">
-            <div className="mt-0.5 rounded-2xl bg-[var(--color-success-50)] p-2 text-[var(--color-success-700)]">
-              <Icon name="mail" className="h-5 w-5" />
+            <div className="mt-0.5 rounded-xl bg-[var(--color-success-50)] p-2 text-[var(--color-success-700)]">
+              <Icon name="mail" className="h-4 w-4" />
             </div>
             <div className="min-w-0">
               <p className="text-sm font-semibold text-[var(--color-text-primary)]">
                 Ative as notificações
               </p>
               <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
-                Receba avisos e comunicados importantes do Recorda.
-              </p>
-              <p className="mt-2 text-sm text-[var(--color-text-tertiary)]">
-                A permissão será solicitada somente após seu clique.
+                Receba avisos importantes sem abrir o sistema.
               </p>
             </div>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 md:justify-end">
+        <div className="flex flex-wrap items-center gap-2 md:flex-none md:justify-end">
           <Button
             size="sm"
             icon="mail"
             loading={isLoading}
             onClick={() => void handleActivateNotifications()}
           >
-            Ativar notificações
+            Ativar
           </Button>
           <Button variant="ghost" size="sm" onClick={dismiss}>
             Agora não
