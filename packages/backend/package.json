@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "tsx watch src/main.ts",
     "build": "npm --prefix ../shared run build && tsc",
+    "pretypecheck": "npm --prefix ../shared run build",
     "start": "node dist/main.js",
     "typecheck": "tsc --noEmit",
     "migrate": "tsx src/infrastructure/database/migrate.ts",

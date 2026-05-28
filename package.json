@@ -19,7 +19,7 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,json,md}\"",
     "push:vapid": "node scripts/generate-vapid-keys.mjs",
     "test:push": "node scripts/test-push-flow.mjs",
-    "typecheck": "npm run typecheck --workspaces --if-present",
+    "typecheck": "npm run build --workspace=@recorda/shared && npm run typecheck --workspaces --if-present",
     "db:migrate": "npm run migrate --workspace=@recorda/backend",
     "db:bootstrap": "node scripts/db-bootstrap.js",
     "prepare": "node scripts/prepare-husky.js"
