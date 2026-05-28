@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+﻿import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Icon } from '../../components/ui/Icon';
 import { Button } from '../../components/ui/Button';
@@ -37,7 +37,7 @@ const ETAPA_LABELS: Record<string, string> = {
   RECEBIMENTO: 'Recebimento',
   PREPARACAO: 'Preparação',
   DIGITALIZACAO: 'Digitalização',
-  DIGITALIZACAO_COLORIDA: 'Digitalização Colorida',
+  DIGITALIZACAO_COLORIDA: 'Digitalização colorida',
   CONFERENCIA: 'Conferência',
   RECONFERENCIA: 'Reconferência',
   MONTAGEM: 'Montagem',
@@ -47,8 +47,8 @@ const ETAPA_LABELS: Record<string, string> = {
 };
 
 export function ProducaoPage(): JSX.Element {
-  const navigate = useNavigate();
   const location = useLocation();
+  const navigate = useNavigate();
   const { usuario } = useAuth();
   const queryClient = useQueryClient();
   const deleteProducao = useDeleteProducao();
@@ -194,7 +194,7 @@ export function ProducaoPage(): JSX.Element {
 
   const handleLimparTodasProducoes = (): void => {
     confirmDialog.confirm({
-      title: 'Limpar Produções Importadas',
+      title: 'Limpar produções importadas',
       message:
         'Esta ação excluirá apenas registros de produção importada (LEGADO). Deseja continuar?',
       confirmLabel: 'Limpar Importadas',
@@ -315,22 +315,13 @@ export function ProducaoPage(): JSX.Element {
   return (
     <PageState
       loading={carregando && !dados}
-      loadingMessage="Carregando registros de produção..."
+      loadingMessage="Carregando produção..."
       error={erroComAcao}
     >
       <div className="space-y-6">
         <PageHeader
           title="Produção"
-          subtitle={
-            <>
-              {totalFormatado} registros de produção
-              {atualizando && (
-                <span className="ml-2 text-xs text-[var(--color-primary-500)] animate-pulse">
-                  Atualizando...
-                </span>
-              )}
-            </>
-          }
+          subtitle={`${totalFormatado} registros`}
           actions={
             <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
               {isAdmin && (
@@ -341,7 +332,7 @@ export function ProducaoPage(): JSX.Element {
                   loading={limparProducoes.isPending}
                   disabled={limparProducoes.isPending}
                 >
-                  Limpar produções importadas
+                  Limpar importadas
                 </Button>
               )}
               <Button
@@ -352,7 +343,7 @@ export function ProducaoPage(): JSX.Element {
                 disabled={exportando || !dataInicio || !dataFim}
                 title={!dataInicio || !dataFim ? 'Selecione um período para exportar' : undefined}
               >
-                Exportar Excel
+                Exportar
               </Button>
             </div>
           }
@@ -381,20 +372,20 @@ export function ProducaoPage(): JSX.Element {
                 }}
               >
                 <Icon name="x" className="w-3 h-3" />
-                Limpar filtros
+                Limpar
               </Button>
             ) : undefined
           }
         >
           <Input
-            label="Data Início"
+            label="Início"
             type="date"
             value={dataInicio}
             max={dataFim || undefined}
             onChange={(e) => setDataInicio(e.target.value)}
           />
           <Input
-            label="Data Final"
+            label="Fim"
             type="date"
             value={dataFim}
             min={dataInicio || undefined}
@@ -436,7 +427,7 @@ export function ProducaoPage(): JSX.Element {
         <div className={`space-y-3 md:hidden${atualizando ? ' opacity-60' : ''}`}>
           {!dados || dados.registros.length === 0 ? (
             <div className="rounded-xl border border-dashed border-[var(--color-border-primary)] px-4 py-8 text-center text-sm text-[var(--color-text-secondary)]">
-              {carregando ? 'Carregando...' : 'Nenhum registro encontrado.'}
+              {carregando ? 'Carregando...' : 'Nenhum registro.'}
             </div>
           ) : (
             dados.registros.map((reg) => (
@@ -563,11 +554,11 @@ export function ProducaoPage(): JSX.Element {
               {!dados || registrosOrdenados.length === 0 ? (
                 <TableEmptyState
                   colSpan={isAdmin ? 9 : 8}
-                  title="Nenhum registro encontrado"
+                  title="Nenhum registro"
                   description={
                     etapa || colaborador || dataInicio || dataFim || busca
-                      ? 'Ajuste os filtros ou tente outro período.'
-                      : 'Ainda não há registros de produção cadastrados.'
+                      ? 'Ajuste os filtros.'
+                      : 'Os registros aparecerão aqui.'
                   }
                 />
               ) : (

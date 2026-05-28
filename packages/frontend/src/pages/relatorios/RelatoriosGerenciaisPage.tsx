@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -100,8 +100,8 @@ function ordemEtapa(nome: string): number {
 }
 
 export function RelatoriosGerenciaisPage(): JSX.Element {
-  const navigate = useNavigate();
   const location = useLocation();
+  const navigate = useNavigate();
   const [dataInicio, setDataInicio] = useState('');
   const [dataFim, setDataFim] = useState('');
   const [coordenadoriaId, setCoordenadoriaId] = useState('');
@@ -323,8 +323,8 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Relatórios gerenciais"
-        subtitle="Produção consolidada por período, coordenadoria e colaborador."
+        title="Relatórios Gerenciais"
+        subtitle="Produção por período."
       />
 
       {mensagem ? (
@@ -347,7 +347,7 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
               disabled={carregandoRelatorio || gerando !== null}
               fullWidth
             >
-              Gerar visualização
+              Visualizar
             </Button>
             <Button
               variant="secondary"
@@ -414,7 +414,7 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
             <div className="flex items-center gap-2 border-b border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] px-5 py-3">
               <Icon name="bar-chart" className="h-4 w-4 text-[var(--color-text-tertiary)]" />
               <h3 className="text-sm font-medium text-[var(--color-text-primary)]">
-                Resumo geral por etapa
+                Resumo por Etapa
               </h3>
             </div>
 
@@ -496,7 +496,7 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
             <div className="flex items-center gap-2 border-b border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] px-5 py-3">
               <Icon name="building" className="h-4 w-4 text-[var(--color-text-tertiary)]" />
               <h3 className="text-sm font-medium text-[var(--color-text-primary)]">
-                Por coordenadoria e etapa
+                Coordenadoria por Etapa
               </h3>
             </div>
 

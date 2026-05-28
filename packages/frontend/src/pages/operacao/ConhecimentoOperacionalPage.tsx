@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
+﻿import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useDebounce } from '../../hooks/useDebounce';
 import type { EtapaFluxo } from '@recorda/shared';
@@ -83,7 +83,6 @@ const ETAPA_LABELS: Record<string, string> = {
 function etapaLabel(etapa: EtapaFluxo): string {
   return ETAPA_LABELS[etapa] ?? etapa;
 }
-
 type KBTab = 'documentos' | 'glossario' | 'leis';
 
 function isKBTab(value: string | null): value is KBTab {
@@ -99,8 +98,8 @@ function MarkdownFallback({ label }: { label: string }): JSX.Element {
 }
 
 export function ConhecimentoOperacionalPage(): JSX.Element {
-  const navigate = useNavigate();
   const location = useLocation();
+  const navigate = useNavigate();
   const { usuario } = useAuth();
   const isAdmin = usuario?.perfil === 'administrador';
 
@@ -149,7 +148,7 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
 
   useEffect(() => {
     const params = new URLSearchParams();
-    if (activeTab !== 'documentos') params.set('tab', activeTab);
+    params.set('tab', activeTab);
     if (categoria) params.set('categoria', categoria);
     if (etapaFiltro) params.set('etapa', etapaFiltro);
     if (selectedId) params.set('documento', selectedId);
@@ -192,7 +191,7 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
   const loading = docsQuery.isLoading;
   const error = docsQuery.error
     ? {
-        message: 'Erro ao carregar a base de conhecimento operacional',
+        message: 'Erro ao carregar a base de Conhecimento Operacional',
         details: docsQuery.error instanceof Error ? docsQuery.error.message : 'Falha desconhecida',
       }
     : null;
@@ -322,7 +321,7 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
     if (!novoDoc.codigo || !novoDoc.titulo || !novoDoc.conteudo) {
       setMessage({
         tipo: 'error',
-        texto: 'Preencha Código, Título e Conteúdo para criar o Documento.',
+        texto: 'Preencha Código, Título e Conteúdo para criar o documento.',
       });
       return;
     }
@@ -353,18 +352,18 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
   const handlePublicarNovaVersao = async (): Promise<void> => {
     if (!isAdmin || !selectedId) return;
     if (!novaVersao.conteudo.trim()) {
-      setMessage({ tipo: 'error', texto: 'Conteúdo da nova Versão é obrigatório.' });
+      setMessage({ tipo: 'error', texto: 'Conteúdo da nova versão é obrigatório.' });
       return;
     }
     try {
       setSaving(true);
       await criarVersao.mutateAsync({ docId: selectedId, ...novaVersao });
-      setMessage({ tipo: 'success', texto: 'Nova Versão publicada.' });
+      setMessage({ tipo: 'success', texto: 'Nova versão publicada.' });
       invalidateDetalhe();
     } catch (err) {
       setMessage({
         tipo: 'error',
-        texto: err instanceof Error ? err.message : 'Erro ao publicar Versão',
+        texto: err instanceof Error ? err.message : 'Erro ao publicar versão',
       });
     } finally {
       setSaving(false);
@@ -497,13 +496,13 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
   return (
     <PageState
       loading={loading && activeTab === 'documentos'}
-      loadingMessage="Carregando Base de Conhecimento..."
+      loadingMessage="Carregando base..."
       error={activeTab === 'documentos' ? errorWithAction : null}
     >
       <div className="space-y-6">
         <PageHeader
           title="Conhecimento Operacional"
-          subtitle="Referência operacional, glossário e legislação."
+          subtitle="Documentos, glossário e normas."
         />
 
         {message ? (
@@ -546,10 +545,10 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
               <div className="flex gap-3 items-end flex-wrap">
                 <div className="flex-1 min-w-[200px]">
                   <Input
-                    label="Buscar (título, descrição ou conteúdo)"
+                    label="Buscar"
                     value={busca}
                     onChange={(e) => setBusca(e.target.value)}
-                    placeholder="Busque por título, descrição ou conteúdo..."
+                    placeholder="Título, descrição ou conteúdo"
                   />
                 </div>
                 <div className="w-48">
@@ -580,7 +579,7 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
                   onClick={() => invalidateDocs()}
                   loading={saving}
                 >
-                  Atualizar lista
+                  Atualizar
                 </Button>
               </div>
             </Card>
@@ -589,7 +588,7 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
               <div className="space-y-2 max-h-[65vh] overflow-auto pr-1">
                 {itens.length === 0 ? (
                   <p className="text-sm text-[var(--color-text-tertiary)] p-3">
-                    Nenhum documento encontrado.
+                    Nenhum documento.
                   </p>
                 ) : (
                   itens.map((doc) => (
@@ -726,7 +725,7 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
                       </div>
                       <div className="p-3">
                         <Suspense
-                          fallback={<MarkdownFallback label="Carregando visualização..." />}
+                          fallback={<MarkdownFallback label="Carregando..." />}
                         >
                           <MarkdownViewer content={detalhe.versaoAtual?.conteudo ?? ''} />
                         </Suspense>
@@ -761,7 +760,7 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
                             setNovaVersao((prev) => ({ ...prev, resumoAlteracao: e.target.value }))
                           }
                         />
-                        <Suspense fallback={<MarkdownFallback label="Carregando editor..." />}>
+                        <Suspense fallback={<MarkdownFallback label="Carregando..." />}>
                           <MarkdownEditor
                             label="Conteúdo (Markdown)"
                             value={novaVersao.conteudo}
@@ -774,7 +773,7 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
                           onClick={() => void handlePublicarNovaVersao()}
                           loading={saving}
                         >
-                          Publicar Versão
+                          Publicar versão
                         </Button>
                       </div>
                     ) : null}
@@ -829,9 +828,9 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
                       </button>
                     ))}
                   </div>
-                  <Suspense fallback={<MarkdownFallback label="Carregando editor..." />}>
+                  <Suspense fallback={<MarkdownFallback label="Carregando..." />}>
                     <MarkdownEditor
-                      label="Conteúdo inicial (Markdown)"
+                      label="Conteúdo Inicial (Markdown)"
                       value={novoDoc.conteudo}
                       onChange={(v) => setNovoDoc((p) => ({ ...p, conteudo: v }))}
                       placeholder="# Título&#10;&#10;Escreva o conteúdo em Markdown..."
@@ -865,7 +864,7 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
             </div>
 
             {glossarioQuery.isLoading ? (
-              <p className="text-sm text-[var(--color-text-tertiary)]">Carregando glossário...</p>
+              <p className="text-sm text-[var(--color-text-tertiary)]">Carregando...</p>
             ) : (
               <>
                 <div className="divide-y divide-[var(--color-border-primary)]">
@@ -938,8 +937,8 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
                   {glossarioFiltrado.length === 0 && (
                     <p className="text-sm text-[var(--color-text-tertiary)] py-4">
                       {buscaGlossario.trim()
-                        ? 'Nenhum termo encontrado.'
-                        : 'Nenhum termo cadastrado.'}
+                        ? 'Nenhum termo.'
+                        : 'Nenhum termo.'}
                     </p>
                   )}
                 </div>
@@ -996,7 +995,7 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
 
             {leisQuery.isLoading ? (
               <p className="text-sm text-[var(--color-text-tertiary)]">
-                Carregando leis e normas...
+                Carregando...
               </p>
             ) : (
               <>

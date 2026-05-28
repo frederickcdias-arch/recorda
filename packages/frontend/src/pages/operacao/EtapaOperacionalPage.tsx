@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Suspense, lazy } from 'react';
 import type { StatusRepositorio, OrigemDocumentoRecebimento } from '@recorda/shared';
@@ -83,10 +83,10 @@ const PdfPreviewModal = lazy(() =>
 function PanelLoadingFallback({ title }: { title: string }): JSX.Element {
   return (
     <Card>
-      <div className="flex min-h-[220px] flex-col items-center justify-center gap-3 text-center">
-        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[var(--color-border-secondary)] border-t-[var(--color-brand-500)]" />
+      <div className="flex min-h-[180px] flex-col items-center justify-center gap-2 text-center">
+        <div className="h-7 w-7 motion-safe:animate-spin [animation-duration:1.2s] rounded-full border-2 border-[var(--color-border-secondary)] border-t-[var(--color-brand-500)]" />
         <div>
-          <p className="text-sm font-medium text-[var(--color-text-primary)]">Carregando painel</p>
+          <p className="text-sm font-medium text-[var(--color-text-primary)]">Carregando</p>
           <p className="text-sm text-[var(--color-text-tertiary)]">{title}</p>
         </div>
       </div>
@@ -200,11 +200,6 @@ export function EtapaOperacionalPage(): JSX.Element {
   const queryClient = useQueryClient();
   const [processando, setProcessando] = useState(false);
   const [processandoCsv, setProcessandoCsv] = useState(false);
-  const [etiquetaPdfFiles, setEtiquetaPdfFiles] = useState<File[]>([]);
-  const [etiquetaPdfInputKey, setEtiquetaPdfInputKey] = useState(0);
-  const [etiquetaPdfProcessando, setEtiquetaPdfProcessando] = useState(false);
-  const [previewEtiquetasUrl, setPreviewEtiquetasUrl] = useState<string | null>(null);
-  const [previewEtiquetasFilename, setPreviewEtiquetasFilename] = useState<string | null>(null);
 
   const [pagina, setPagina] = useState(1);
   const [filtroBusca, setFiltroBusca] = useState('');
@@ -297,8 +292,6 @@ export function EtapaOperacionalPage(): JSX.Element {
     setFiltroDataFim(filtrosUrl.dataFim);
   }, [filtrosUrl.orgao, filtrosUrl.dataInicio, filtrosUrl.dataFim]);
 
-  const debouncedBusca = useDebounce(filtroBusca.trim(), 600);
-
   useEffect(() => {
     const params = new URLSearchParams();
     if (filtrosUrl.status) params.set('status', filtrosUrl.status);
@@ -329,6 +322,8 @@ export function EtapaOperacionalPage(): JSX.Element {
     location.search,
     navigate,
   ]);
+
+  const debouncedBusca = useDebounce(filtroBusca.trim(), 600);
 
   useEffect(() => {
     if (etapa !== 'recebimento' || !debouncedBusca) {
@@ -437,78 +432,18 @@ export function EtapaOperacionalPage(): JSX.Element {
   if (!etapaConfig) {
     return (
       <div className="text-center text-[var(--color-text-secondary)] py-12">
-        Etapa Operacional inválida.
+        Etapa operacional inválida.
       </div>
     );
   }
 
   const irProximaEtapa = (): void => {
     if (!etapaConfig.nextPath) return;
-    navigate(`${etapaConfig.nextPath}${location.search}`);
+    navigate(etapaConfig.nextPath);
   };
 
   const showSuccess = (texto: string): void => toast.success(texto);
   const showError = (texto: string): void => toast.error(texto);
-
-  const handleFecharPreviewEtiquetas = (): void => {
-    if (previewEtiquetasUrl) {
-      URL.revokeObjectURL(previewEtiquetasUrl);
-    }
-    setPreviewEtiquetasUrl(null);
-    setPreviewEtiquetasFilename(null);
-  };
-
-  const handleDownloadPreviewEtiquetas = (): void => {
-    if (!previewEtiquetasUrl) return;
-
-    const link = document.createElement('a');
-    link.href = previewEtiquetasUrl;
-    link.download = previewEtiquetasFilename ?? 'etiquetas-4-por-folha.pdf';
-    link.click();
-  };
-
-  const handleCompactarEtiquetasPdf = async (): Promise<void> => {
-    if (etiquetaPdfFiles.length === 0) {
-      showError('Selecione um ou mais PDFs de etiquetas para processar.');
-      return;
-    }
-
-    try {
-      setEtiquetaPdfProcessando(true);
-      const formData = new FormData();
-      etiquetaPdfFiles.forEach((file) => formData.append('arquivo', file));
-
-      const response = await api.fetchWithAuth('/operacional/etiquetas/compactar', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = (await response.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(errorData?.error ?? 'Erro ao processar PDF de etiquetas.');
-      }
-
-      const blob = await response.blob();
-      const downloadUrl = window.URL.createObjectURL(blob);
-      const baseName = etiquetaPdfFiles[0]!.name.toLowerCase().endsWith('.pdf')
-        ? etiquetaPdfFiles[0]!.name.slice(0, -4)
-        : etiquetaPdfFiles[0]!.name;
-      const filename = `${baseName || 'etiquetas'}-4-por-folha.pdf`;
-
-      if (previewEtiquetasUrl) {
-        URL.revokeObjectURL(previewEtiquetasUrl);
-      }
-      setPreviewEtiquetasUrl(downloadUrl);
-      setPreviewEtiquetasFilename(filename);
-      setEtiquetaPdfFiles([]);
-      setEtiquetaPdfInputKey((current) => current + 1);
-      showSuccess('PDF processado. Confira a visualização antes de imprimir.');
-    } catch (error) {
-      showError(extractErrorMessage(error, 'Erro ao processar PDF de etiquetas'));
-    } finally {
-      setEtiquetaPdfProcessando(false);
-    }
-  };
 
   const handleCriarUnidadeRapida = async (): Promise<void> => {
     const nomeUnidade = novaUnidadeInput.trim();
@@ -601,7 +536,7 @@ export function EtapaOperacionalPage(): JSX.Element {
         idGedEditado: false,
       }));
     } catch (error) {
-      showError(extractErrorMessage(error, 'Erro ao Criar Repositório'));
+      showError(extractErrorMessage(error, 'Erro ao Criar repositório'));
     } finally {
       setProcessando(false);
     }
@@ -650,7 +585,7 @@ export function EtapaOperacionalPage(): JSX.Element {
       setAvancarRepoId('');
       invalidateRepos();
     } catch (error) {
-      showError(extractErrorMessage(error, 'Erro ao Avançar Etapa'));
+      showError(extractErrorMessage(error, 'Erro ao avançar etapa'));
     } finally {
       setProcessando(false);
     }
@@ -750,7 +685,7 @@ export function EtapaOperacionalPage(): JSX.Element {
       showSuccess('Produção registrada com sucesso.');
       invalidateRepos();
     } catch (error) {
-      showError(extractErrorMessage(error, 'Erro ao Registrar Produção'));
+      showError(extractErrorMessage(error, 'Erro ao registrar produção'));
     } finally {
       setProcessando(false);
     }
@@ -804,9 +739,9 @@ export function EtapaOperacionalPage(): JSX.Element {
     try {
       setProcessando(true);
       await gerarRelProducao.mutateAsync(repositorioId);
-      showSuccess('Relatório de Produção gerado com sucesso.');
+      showSuccess('Relatório de produção gerado com sucesso.');
     } catch (error) {
-      showError(extractErrorMessage(error, 'Erro ao gerar Relatório de Produção'));
+      showError(extractErrorMessage(error, 'Erro ao gerar relatório de produção'));
     } finally {
       setProcessando(false);
     }
@@ -814,7 +749,7 @@ export function EtapaOperacionalPage(): JSX.Element {
 
   const handleOpenExcluir = (repositorioId: string): void => {
     confirmDialog.confirm({
-      title: 'Excluir Repositório',
+      title: 'Excluir repositório',
       message: 'Tem certeza que deseja excluir este repositório? Esta ação não pode ser desfeita.',
       confirmLabel: 'Excluir',
       variant: 'danger',
@@ -824,7 +759,7 @@ export function EtapaOperacionalPage(): JSX.Element {
           await deleteRepo.mutateAsync(repositorioId);
           showSuccess('Repositório excluído com sucesso.');
         } catch (error) {
-          showError(extractErrorMessage(error, 'Erro ao Excluir Repositório'));
+          showError(extractErrorMessage(error, 'Erro ao excluir repositório'));
         } finally {
           setProcessando(false);
         }
@@ -945,65 +880,57 @@ export function EtapaOperacionalPage(): JSX.Element {
   return (
     <PageState
       loading={carregando}
-      loadingMessage="Carregando Fila Operacional..."
+      loadingMessage="Carregando fila..."
       error={erroComAcao}
     >
       <div className="space-y-6">
         <PageHeader
           title={etapaConfig.label}
-          subtitle="Fila operacional."
+          subtitle="Fila da Etapa."
           actions={
             etapaConfig.nextPath ? (
               <Button variant="secondary" size="sm" onClick={irProximaEtapa}>
-                Ir para próxima etapa
+                Próxima etapa
               </Button>
             ) : undefined
           }
         />
 
-        {/* Summary cards */}
         {totalGeral > 0 ? (
-          <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
-            <div className="bg-[var(--color-bg-primary)] border border-[var(--color-border-primary)] rounded-xl px-4 py-3">
-              <p className="text-xs text-[var(--color-text-secondary)] font-medium">Total</p>
-              <p className="text-2xl font-bold text-[var(--color-text-primary)] mt-1">
-                {totalGeral}
-              </p>
-            </div>
-            {Object.entries(contadores).map(([status, qtd]) => (
-              <div
-                key={status}
-                className="bg-[var(--color-bg-primary)] border border-[var(--color-border-primary)] rounded-xl px-4 py-3"
-              >
-                <p className="text-xs text-[var(--color-text-secondary)] font-medium truncate">
+          <Card padding="sm" className="bg-[var(--color-bg-secondary)]">
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
+              <span className="text-[var(--color-text-secondary)]">
+                Total <strong className="text-[var(--color-text-primary)]">{totalGeral}</strong>
+              </span>
+              {Object.entries(contadores).map(([status, qtd]) => (
+                <span key={status} className="flex items-center gap-2 text-[var(--color-text-secondary)]">
                   <StatusBadge status={status} />
-                </p>
-                <p className="text-2xl font-bold text-[var(--color-text-primary)] mt-1">{qtd}</p>
-              </div>
-            ))}
-          </div>
+                  <strong className="text-[var(--color-text-primary)]">{qtd}</strong>
+                </span>
+              ))}
+            </div>
+          </Card>
         ) : null}
 
         {etapa === 'recebimento' ? (
           <>
-            {/* Sub-tabs: Repositórios | Avulsos */}
-            <div className="overflow-x-auto border-b border-[var(--color-border-primary)]">
-              <div className="flex min-w-max gap-1">
+            <div className="overflow-x-auto">
+              <div className="flex min-w-max gap-2 rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-1">
                 <button
-                  className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+                  className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                     recebSubTab === 'repositorios'
-                      ? 'border-primary-600 text-primary-700'
-                      : 'border-transparent text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)]'
+                      ? 'bg-[var(--color-fill-selected)] text-[var(--color-primary-700)]'
+                      : 'text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)]'
                   }`}
                   onClick={() => setRecebSubTab('repositorios')}
                 >
                   Repositórios ({itens.length})
                 </button>
                 <button
-                  className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+                  className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                     recebSubTab === 'avulsos'
-                      ? 'border-primary-600 text-primary-700'
-                      : 'border-transparent text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)]'
+                      ? 'bg-[var(--color-fill-selected)] text-[var(--color-primary-700)]'
+                      : 'text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)]'
                   }`}
                   onClick={() => setRecebSubTab('avulsos')}
                 >
@@ -1015,54 +942,8 @@ export function EtapaOperacionalPage(): JSX.Element {
             {recebSubTab === 'repositorios' ? (
               <div className="space-y-6 pb-24 md:pb-0">
                 <Card>
-                  <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                    <div className="max-w-2xl">
-                      <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">
-                        Etiquetas de localização
-                      </h2>
-                      <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
-                        Agrupa 4 etiquetas por folha, em layout vertical.
-                      </p>
-                    </div>
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-                      <div>
-                        <label
-                          htmlFor="etiquetaPdfFiles"
-                          className="block text-sm font-medium text-[var(--color-text-secondary)] mb-1"
-                        >
-                          PDFs de etiquetas
-                        </label>
-                        <input
-                          id="etiquetaPdfFiles"
-                          key={etiquetaPdfInputKey}
-                          type="file"
-                          accept="application/pdf,.pdf"
-                          multiple
-                          className="block w-full text-sm text-[var(--color-text-secondary)] file:mr-3 file:rounded-md file:border-0 file:bg-[var(--color-bg-secondary)] file:px-3 file:py-2 file:text-sm file:font-medium file:text-[var(--color-text-secondary)] hover:file:bg-[var(--color-border-primary)]"
-                          onChange={(e) => setEtiquetaPdfFiles(Array.from(e.target.files ?? []))}
-                        />
-                        {etiquetaPdfFiles.length > 0 ? (
-                          <p className="mt-1 text-xs text-[var(--color-text-tertiary)]">
-                            {etiquetaPdfFiles.length} arquivo(s) selecionado(s).
-                          </p>
-                        ) : null}
-                      </div>
-                      <Button
-                        fullWidth
-                        className="sm:w-auto"
-                        onClick={() => void handleCompactarEtiquetasPdf()}
-                        loading={etiquetaPdfProcessando}
-                        disabled={etiquetaPdfFiles.length === 0 || etiquetaPdfProcessando}
-                      >
-                        Gerar PDF 4 por folha
-                      </Button>
-                    </div>
-                  </div>
-                </Card>
-
-                <Card>
-                  <h2 className="text-lg font-semibold text-[var(--color-text-primary)] mb-4">
-                    Criar Repositório
+                  <h2 className="mb-4 text-lg font-semibold text-[var(--color-text-primary)]">
+                    Novo repositório
                   </h2>
                   <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
                     <Input
@@ -1104,7 +985,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                           }))
                         }
                       >
-                        <option value="">— Selecione —</option>
+                        <option value="">Selecione</option>
                         {orgaosOptions.map((o) => (
                           <option key={o.id} value={o.nome}>
                             {o.nome}
@@ -1129,7 +1010,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                           className="h-10 rounded bg-primary-600 px-3 text-sm text-white hover:bg-primary-700 disabled:opacity-50"
                           onClick={() => void handleCriarUnidadeRapida()}
                           disabled={!novaUnidadeInput.trim() || processando}
-                          title="Adicionar e selecionar unidade"
+                          title="Adicionar e Selecionar Unidade"
                         >
                           Adicionar
                         </button>
@@ -1154,7 +1035,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                           }))
                         }
                       >
-                        <option value="">— Selecione —</option>
+                        <option value="">Selecione</option>
                         {projetosOptions.map((o) => (
                           <option key={o.id} value={o.nome}>
                             {o.nome}
@@ -1209,7 +1090,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                           setNovoRepositorio((p) => ({ ...p, classificacaoId: e.target.value }))
                         }
                       >
-                        <option value="">— Selecione —</option>
+                        <option value="">Selecione</option>
                         {classificacoesOptions.map((c) => (
                           <option key={c.id} value={c.id}>
                             {c.nome}
@@ -1242,13 +1123,13 @@ export function EtapaOperacionalPage(): JSX.Element {
                               : !novoRepositorio.projeto
                                 ? 'Selecione o Projeto.'
                                 : !novoRepositorio.classificacaoId
-                                  ? 'Selecione a Classificação.'
+                                  ? 'Selecione a classificação.'
                                   : processando
                                     ? 'Processando...'
                                     : ''
                         }
                       >
-                        Criar Repositório
+                        Criar
                       </Button>
                     </div>
                   </div>
@@ -1323,7 +1204,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                       onClick={() => invalidateRepos()}
                       loading={processando}
                     >
-                      Atualizar
+                      Atualizar lista
                     </Button>
                     <Button
                       className="w-full md:w-auto"
@@ -1334,7 +1215,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                         setBatchAddModalOpen(true);
                       }}
                     >
-                      Adicionar em Lote
+                      Adicionar em lote
                     </Button>
                     {reposSelecionadosTermo.size > 0 && (
                       <div className="flex flex-wrap gap-2">
@@ -1400,8 +1281,8 @@ export function EtapaOperacionalPage(): JSX.Element {
 
                   <div className="md:hidden space-y-3">
                     {itens.length === 0 ? (
-                      <div className="px-4 py-8 text-center text-[var(--color-text-secondary)] border border-[var(--color-border-primary)] rounded-lg">
-                        Nenhum Repositório na Fila desta Etapa.
+                      <div className="rounded-lg border border-[var(--color-border-primary)] px-4 py-8 text-center text-[var(--color-text-secondary)]">
+                        Nenhum repositório nesta fila.
                       </div>
                     ) : (
                       itens.map((item) => (
@@ -1484,12 +1365,12 @@ export function EtapaOperacionalPage(): JSX.Element {
                                     ]),
                                 },
                                 {
-                                  label: 'Registrar Produção',
+                                  label: 'Registrar produção',
                                   onClick: () =>
                                     void handleRegistrarProducao(item.id_repositorio_recorda),
                                 },
                                 {
-                                  label: 'Avançar Etapa',
+                                  label: 'Avançar etapa',
                                   onClick: () =>
                                     void handleOpenAvancar(item.id_repositorio_recorda),
                                   hidden: !etapaConfig.nextEtapaApi,
@@ -1564,7 +1445,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                               colSpan={9}
                               className="px-4 py-8 text-center text-[var(--color-text-secondary)]"
                             >
-                              Nenhum Repositório na Fila desta Etapa.
+                              Nenhum repositório nesta fila.
                             </td>
                           </tr>
                         ) : (
@@ -1587,7 +1468,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                                     });
                                   }}
                                   className="rounded"
-                                  aria-label={`Selecionar repositório ${item.id_repositorio_ged}`}
+                              aria-label={`Selecionar repositório ${item.id_repositorio_ged}`}
                                 />
                               </td>
                               <td className="px-4 py-3 text-sm font-medium text-[var(--color-text-primary)]">
@@ -1648,12 +1529,12 @@ export function EtapaOperacionalPage(): JSX.Element {
                                         ]),
                                     },
                                     {
-                                      label: 'Registrar Produção',
+                                      label: 'Registrar produção',
                                       onClick: () =>
                                         void handleRegistrarProducao(item.id_repositorio_recorda),
                                     },
                                     {
-                                      label: 'Avançar Etapa',
+                                      label: 'Avançar etapa',
                                       onClick: () =>
                                         void handleOpenAvancar(item.id_repositorio_recorda),
                                       hidden: !etapaConfig.nextEtapaApi,
@@ -1682,7 +1563,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                 </Card>
               </div>
             ) : (
-              <Suspense fallback={<PanelLoadingFallback title="Recebimento de avulsos" />}>
+              <Suspense fallback={<PanelLoadingFallback title="Recebimento de Avulsos" />}>
                 <RecebimentoAvulsosPanel onSuccess={showSuccess} onError={showError} />
               </Suspense>
             )}
@@ -1727,7 +1608,7 @@ export function EtapaOperacionalPage(): JSX.Element {
             <div className="space-y-3 md:hidden">
               {itens.length === 0 ? (
                 <div className="rounded-lg border border-[var(--color-border-primary)] px-4 py-8 text-center text-[var(--color-text-secondary)]">
-                  Nenhum Repositório na Fila desta Etapa.
+                  Nenhum repositório nesta fila.
                 </div>
               ) : (
                 itens.map((item) => (
@@ -1779,17 +1660,17 @@ export function EtapaOperacionalPage(): JSX.Element {
                             onClick: () => void handleAbrirChecklist(item.id_repositorio_recorda),
                           },
                           {
-                            label: 'Rel. Produção',
+                            label: 'Rel. produção',
                             onClick: () =>
                               void handleGerarRelatorioProducao(item.id_repositorio_recorda),
                           },
                           {
-                            label: 'Registrar Produção',
+                            label: 'Registrar produção',
                             onClick: () =>
                               void handleRegistrarProducao(item.id_repositorio_recorda),
                           },
                           {
-                            label: 'Avançar Etapa',
+                            label: 'Avançar etapa',
                             onClick: () => void handleOpenAvancar(item.id_repositorio_recorda),
                             hidden: !etapaConfig.nextEtapaApi,
                           },
@@ -1850,7 +1731,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                         colSpan={8}
                         className="px-4 py-8 text-center text-[var(--color-text-secondary)]"
                       >
-                        Nenhum Repositório na Fila desta Etapa.
+                        Nenhum repositório nesta fila.
                       </td>
                     </tr>
                   ) : (
@@ -1906,17 +1787,17 @@ export function EtapaOperacionalPage(): JSX.Element {
                                   void handleAbrirChecklist(item.id_repositorio_recorda),
                               },
                               {
-                                label: 'Rel. Produção',
+                                label: 'Rel. produção',
                                 onClick: () =>
                                   void handleGerarRelatorioProducao(item.id_repositorio_recorda),
                               },
                               {
-                                label: 'Registrar Produção',
+                                label: 'Registrar produção',
                                 onClick: () =>
                                   void handleRegistrarProducao(item.id_repositorio_recorda),
                               },
                               {
-                                label: 'Avançar Etapa',
+                                label: 'Avançar etapa',
                                 onClick: () => void handleOpenAvancar(item.id_repositorio_recorda),
                                 hidden: !etapaConfig.nextEtapaApi,
                               },
@@ -1951,7 +1832,7 @@ export function EtapaOperacionalPage(): JSX.Element {
         ) : null}
 
         <Suspense
-          fallback={checklistModalOpen ? <PanelLoadingFallback title="Checklist da etapa" /> : null}
+          fallback={checklistModalOpen ? <PanelLoadingFallback title="Checklist da Etapa" /> : null}
         >
           <ChecklistModal
             open={checklistModalOpen}
@@ -2046,7 +1927,7 @@ export function EtapaOperacionalPage(): JSX.Element {
 
         <Suspense
           fallback={
-            previewTermoUrl ? <PanelLoadingFallback title="Pré-visualização do termo" /> : null
+            previewTermoUrl ? <PanelLoadingFallback title="Pré-visualização do Termo" /> : null
           }
         >
           <PdfPreviewModal
@@ -2060,23 +1941,6 @@ export function EtapaOperacionalPage(): JSX.Element {
               setPreviewTermoUrl(null);
               setPreviewTermoReportId(null);
             }}
-          />
-        </Suspense>
-
-        <Suspense
-          fallback={
-            previewEtiquetasUrl ? (
-              <PanelLoadingFallback title="Pré-visualização das etiquetas" />
-            ) : null
-          }
-        >
-          <PdfPreviewModal
-            open={!!previewEtiquetasUrl}
-            title="Pré-visualização das Etiquetas"
-            iframeId="etiquetas-preview-iframe"
-            src={previewEtiquetasUrl}
-            onDownload={handleDownloadPreviewEtiquetas}
-            onClose={handleFecharPreviewEtiquetas}
           />
         </Suspense>
       </div>

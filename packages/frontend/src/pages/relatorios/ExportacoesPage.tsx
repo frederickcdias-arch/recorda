@@ -63,13 +63,13 @@ interface ExportItem {
 const EXPORTACOES: ExportItem[] = [
   {
     id: 'gerencial',
-    nome: 'Relatorio gerencial de producao',
-    descricao: 'Resumo consolidado da producao por periodo, coordenadoria e colaborador.',
+    nome: 'Relatório Gerencial de Produção',
+    descricao: 'Resumo consolidado da produção por período, coordenadoria e colaborador.',
     detalhes: [
-      'Resumo geral por etapa',
-      'Producao por coordenadoria',
-      'Producao individual por colaborador',
-      'Totais consolidados do periodo',
+      'Resumo Geral por Etapa',
+      'Produção por coordenadoria',
+      'Produção individual por colaborador',
+      'Totais consolidados do período',
     ],
     icon: 'briefcase',
     color: 'blue',
@@ -78,11 +78,11 @@ const EXPORTACOES: ExportItem[] = [
   {
     id: 'operacional',
     nome: 'Detalhamento operacional',
-    descricao: 'Lista detalhada de todos os registros de producao no periodo.',
+    descricao: 'Lista detalhada de todos os registros de produção no período.',
     detalhes: [
       'Data, colaborador e etapa',
-      'Repositorio e funcao por registro',
-      'Consulta util para analise e auditoria',
+      'Repositório e função por registro',
+      'Consulta útil para análise e auditoria',
     ],
     icon: 'clipboard',
     color: 'blue',
@@ -105,7 +105,7 @@ function PreviewGerencialModal({
     <Modal
       open
       onClose={onClose}
-      title="Preview — relatório gerencial"
+      title="Preview — Relatório Gerencial"
       subtitle={data.titulo || ''}
       size="xl"
       scrollable
@@ -154,7 +154,7 @@ function PreviewGerencialModal({
         {data.resumoPorEtapa.length > 0 ? (
           <div className="space-y-3">
             <h4 className="text-sm font-semibold text-[var(--color-text-primary)]">
-              Resumo por etapa
+              Resumo por Etapa
             </h4>
 
             <div className="grid gap-3 lg:hidden">
@@ -251,7 +251,7 @@ function PreviewOperacionalModal({
     <Modal
       open
       onClose={onClose}
-      title={`Preview — detalhamento operacional (${rows.length} registros)`}
+      title={`Preview — Detalhamento Operacional (${rows.length} registros)`}
       subtitle=""
       size="xl"
       scrollable
@@ -269,7 +269,7 @@ function PreviewOperacionalModal({
       <div className="space-y-4 p-5">
         {rows.length === 0 ? (
           <p className="py-8 text-center text-sm text-[var(--color-text-secondary)]">
-            Nenhum registro encontrado no periodo.
+            Nenhum registro no período.
           </p>
         ) : (
           <>
@@ -322,8 +322,8 @@ function PreviewOperacionalModal({
                   {visibleRows.length === 0 ? (
                     <TableEmptyState
                       colSpan={5}
-                      title="Nenhum registro encontrado"
-                      description="Nao ha registros para o periodo selecionado."
+                      title="Nenhum registro"
+                      description="Não há registros no período."
                     />
                   ) : (
                     visibleRows.map((row, index) => (
@@ -355,8 +355,8 @@ function PreviewOperacionalModal({
 }
 
 export function ExportacoesPage(): JSX.Element {
-  const navigate = useNavigate();
   const location = useLocation();
+  const navigate = useNavigate();
   const [mensagem, setMensagem] = useState<{ tipo: 'success' | 'error'; texto: string } | null>(
     null
   );
@@ -424,13 +424,13 @@ export function ExportacoesPage(): JSX.Element {
 
   const validarPeriodo = useCallback((): boolean => {
     if (!dataInicio || !dataFim) {
-      setMensagem({ tipo: 'error', texto: 'Selecione a data de inicio e fim.' });
+      setMensagem({ tipo: 'error', texto: 'Selecione a data de início e fim.' });
       return false;
     }
     if (new Date(dataInicio) > new Date(dataFim)) {
       setMensagem({
         tipo: 'error',
-        texto: 'A data de inicio deve ser anterior a data de fim.',
+        texto: 'A data de início deve ser anterior à data de fim.',
       });
       return false;
     }
@@ -458,11 +458,11 @@ export function ExportacoesPage(): JSX.Element {
         await api.download(endpoint, `relatorio_gerencial_${dataInicio}_${dataFim}.${extension}`);
       }
 
-      setMensagem({ tipo: 'success', texto: `Exportacao ${formato.toUpperCase()} concluida.` });
+      setMensagem({ tipo: 'success', texto: `Exportação ${formato.toUpperCase()} concluída.` });
     } catch (error) {
       setMensagem({
         tipo: 'error',
-        texto: error instanceof Error ? error.message : 'Erro ao exportar relatorio',
+        texto: error instanceof Error ? error.message : 'Erro ao exportar relatório',
       });
     } finally {
       setExportando(null);
@@ -547,8 +547,8 @@ export function ExportacoesPage(): JSX.Element {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Exportacoes</h1>
-        <p className="mt-1 text-gray-500">Exporte relatorios em PDF e Excel.</p>
+        <h1 className="text-2xl font-bold text-gray-900">Exportações</h1>
+        <p className="mt-1 text-gray-500">Exporte relatórios em PDF e Excel.</p>
       </div>
 
       {mensagem ? (
