@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import type {
   ComunicadoAdminResumo,
   ComunicadoCategoria,
@@ -9,21 +9,21 @@ import type {
   PublicarComunicadoDTO,
 } from '@recorda/shared';
 import { Button } from '../../components/ui/Button';
-import { Card, CardHeader } from '../../components/ui/Card';
+import { Card } from '../../components/ui/Card';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { Icon } from '../../components/ui/Icon';
+import { Input } from '../../components/ui/Input';
 import { Modal } from '../../components/ui/Modal';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { PageState } from '../../components/ui/PageState';
 import { Pagination } from '../../components/ui/Pagination';
 import { Select } from '../../components/ui/Select';
-import { Input } from '../../components/ui/Input';
-import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { useToastHelpers } from '../../components/ui/Toast';
 import { useConfirmDialog } from '../../hooks/useConfirmDialog';
 import { useDebounce } from '../../hooks/useDebounce';
 import {
-  useComunicadosAdmin,
   useComunicadoAdminDetalhe,
+  useComunicadosAdmin,
   useCriarComunicado,
   useAtualizarComunicado,
   useEncerrarComunicado,
@@ -32,8 +32,8 @@ import {
   useUsuarios,
 } from '../../hooks/useQueries';
 import { api } from '../../services/api';
-import { extractErrorMessage } from '../../utils/errors';
 import { formatDateTimeBR } from '../../utils/date';
+import { extractErrorMessage } from '../../utils/errors';
 
 type FormState = {
   titulo: string;
@@ -53,7 +53,6 @@ type FiltroEscopo = 'QUALQUER' | ComunicadoEscopoDestino;
 type FiltroOrdenacao = 'mais-recentes' | 'mais-antigos' | 'mais-pendentes' | 'mais-lidos';
 type FiltroLeituraDetalhe = 'todos' | 'pendentes' | 'lidos';
 type FiltroPrioridade = 'TODAS' | ComunicadoPrioridade;
-
 type FiltroTipo = 'TODAS' | ComunicadoTipo;
 type FiltroCategoria = 'TODAS' | ComunicadoCategoria;
 
@@ -69,7 +68,34 @@ const initialFormState: FormState = {
   leituraObrigatoria: false,
   usuarioIds: [],
 };
+
 const ITENS_POR_PAGINA = 10;
+
+function buildComunicadoPayload(state: FormState): {
+  titulo: string;
+  conteudo: string;
+  prioridade: ComunicadoPrioridade;
+  escopoDestino: ComunicadoEscopoDestino;
+  tipo: ComunicadoTipo;
+  categoria: ComunicadoCategoria;
+  resumo: string | null;
+  fixado: boolean;
+  leituraObrigatoria: boolean;
+} {
+  const resumo = state.resumo.trim();
+
+  return {
+    titulo: state.titulo.trim(),
+    conteudo: state.conteudo.trim(),
+    prioridade: state.prioridade,
+    escopoDestino: state.escopoDestino,
+    tipo: state.tipo,
+    categoria: state.categoria,
+    resumo: resumo || null,
+    fixado: state.fixado,
+    leituraObrigatoria: state.leituraObrigatoria,
+  };
+}
 
 function getPrioridadeLabel(prioridade: ComunicadoPrioridade): string {
   switch (prioridade) {
@@ -77,7 +103,7 @@ function getPrioridadeLabel(prioridade: ComunicadoPrioridade): string {
       return 'Alta';
     case 'MEDIA':
       return 'Média';
-    case 'BAIXA':
+    default:
       return 'Baixa';
   }
 }
@@ -98,7 +124,7 @@ function getStatusBadge(status: ComunicadoAdminResumo['status']): string {
     case 'PUBLICADO':
       return 'bg-[var(--color-success-50)] text-[var(--color-success-700)] border-[var(--color-success-200)]';
     case 'ENCERRADO':
-      return 'bg-[var(--color-gray-100)] text-[var(--color-gray-700)] border-[var(--color-gray-200)]';
+      return 'bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)] border-[var(--color-border-primary)]';
     default:
       return 'bg-[var(--color-primary-50)] text-[var(--color-primary-700)] border-[var(--color-primary-200)]';
   }
@@ -123,9 +149,19 @@ function toCsvCell(value: string): string {
   return `"${value.replace(/"/g, '""')}"`;
 }
 
+function getResumoLista(comunicado: ComunicadoAdminResumo): string {
+  const resumo = comunicado.resumo?.trim();
+  if (resumo) return resumo;
+
+  const normalizado = comunicado.conteudo.replace(/\s+/g, ' ').trim();
+  if (normalizado.length <= 140) return normalizado;
+  return `${normalizado.slice(0, 140).trim()}...`;
+}
+
 export function ComunicadosPage(): JSX.Element {
   const toast = useToastHelpers();
   const confirmDialog = useConfirmDialog();
+
   const [modalAberto, setModalAberto] = useState(false);
   const [formData, setFormData] = useState<FormState>(initialFormState);
   const [publicandoDraft, setPublicandoDraft] = useState<ComunicadoAdminResumo | null>(null);
@@ -133,7 +169,6 @@ export function ComunicadosPage(): JSX.Element {
   const [detalheAbertoId, setDetalheAbertoId] = useState<string | null>(null);
   const [draftUsuarioIds, setDraftUsuarioIds] = useState<string[]>([]);
   const [buscaInput, setBuscaInput] = useState('');
-  const debouncedBusca = useDebounce(buscaInput, 600);
   const [filtroStatus, setFiltroStatus] = useState<FiltroStatus>('TODOS');
   const [filtroEscopo, setFiltroEscopo] = useState<FiltroEscopo>('QUALQUER');
   const [filtroTipo, setFiltroTipo] = useState<FiltroTipo>('TODAS');
@@ -145,8 +180,11 @@ export function ComunicadosPage(): JSX.Element {
   const [dataFim, setDataFim] = useState('');
   const [dataPublicacaoExata, setDataPublicacaoExata] = useState('');
   const [paginaHistorico, setPaginaHistorico] = useState(1);
+  const [filtrosAbertos, setFiltrosAbertos] = useState(false);
   const [filtroLeituraDetalhe, setFiltroLeituraDetalhe] = useState<FiltroLeituraDetalhe>('todos');
   const [buscaDestinatario, setBuscaDestinatario] = useState('');
+
+  const debouncedBusca = useDebounce(buscaInput, 600);
 
   useEffect(() => {
     setPaginaHistorico(1);
@@ -198,17 +236,44 @@ export function ComunicadosPage(): JSX.Element {
       );
     });
   }, [buscaDestinatario, destinatariosDetalhe, filtroLeituraDetalhe]);
+
   const resumo = comunicadosQuery.data?.resumo;
   const rascunhos = resumo?.rascunhos ?? 0;
   const publicados = resumo?.publicados ?? 0;
   const encerrados = resumo?.encerrados ?? 0;
   const naoLidos = resumo?.pendenciasLeitura ?? 0;
   const comunicadosAlta = resumo?.prioridadeAlta ?? 0;
-  const comunicadosMedia = resumo?.prioridadeMedia ?? 0;
-  const comunicadosBaixa = resumo?.prioridadeBaixa ?? 0;
+
+  const totalPendentesDetalhe = Math.max(
+    (detalheQuery.data?.comunicado.totalDestinatarios ?? 0) -
+      (detalheQuery.data?.comunicado.totalLidos ?? 0),
+    0
+  );
+  const taxaLeituraDetalhe =
+    (detalheQuery.data?.comunicado.totalDestinatarios ?? 0) > 0
+      ? Math.round(
+          ((detalheQuery.data?.comunicado.totalLidos ?? 0) /
+            (detalheQuery.data?.comunicado.totalDestinatarios ?? 1)) *
+            100
+        )
+      : 0;
 
   const resetFormulario = (): void => {
     setFormData(initialFormState);
+  };
+
+  const limparFiltros = (): void => {
+    setBuscaInput('');
+    setFiltroEscopo('QUALQUER');
+    setFiltroTipo('TODAS');
+    setFiltroCategoria('TODAS');
+    setFiltroFixado('TODAS');
+    setFiltroPrioridade('TODAS');
+    setOrdenacao('mais-recentes');
+    setDataInicio('');
+    setDataFim('');
+    setDataPublicacaoExata('');
+    setPaginaHistorico(1);
   };
 
   const validarFormulario = (state: FormState): string | null => {
@@ -246,18 +311,7 @@ export function ComunicadosPage(): JSX.Element {
     }
 
     try {
-      const dto = {
-        titulo: formData.titulo.trim(),
-        conteudo: formData.conteudo.trim(),
-        prioridade: formData.prioridade,
-        escopoDestino: formData.escopoDestino,
-        tipo: formData.tipo,
-        categoria: formData.categoria,
-        resumo: formData.resumo.trim() || null,
-        fixado: formData.fixado,
-        leituraObrigatoria: formData.leituraObrigatoria,
-      };
-
+      const dto = buildComunicadoPayload(formData);
       const comunicadoId = editingComunicado?.id;
       const publishBody: PublicarComunicadoDTO | undefined =
         formData.escopoDestino === 'USUARIOS_ESPECIFICOS'
@@ -290,6 +344,7 @@ export function ComunicadosPage(): JSX.Element {
         if (!created?.comunicado?.id) {
           throw new Error('Falha ao criar comunicado');
         }
+
         const novoId = created.comunicado.id;
 
         if (publicarAgora) {
@@ -400,7 +455,7 @@ export function ComunicadosPage(): JSX.Element {
 
   const duplicarComunicado = (comunicado: ComunicadoAdminResumo): void => {
     setFormData({
-      titulo: `${comunicado.titulo} (cópia)`,
+      titulo: `${comunicado.titulo} (copia)`,
       conteudo: comunicado.conteudo,
       prioridade: comunicado.prioridade,
       escopoDestino: comunicado.escopoDestino,
@@ -431,20 +486,6 @@ export function ComunicadosPage(): JSX.Element {
     setEditingComunicado(comunicado);
     setModalAberto(true);
   };
-
-  const totalPendentesDetalhe = Math.max(
-    (detalheQuery.data?.comunicado.totalDestinatarios ?? 0) -
-      (detalheQuery.data?.comunicado.totalLidos ?? 0),
-    0
-  );
-  const taxaLeituraDetalhe =
-    (detalheQuery.data?.comunicado.totalDestinatarios ?? 0) > 0
-      ? Math.round(
-          ((detalheQuery.data?.comunicado.totalLidos ?? 0) /
-            (detalheQuery.data?.comunicado.totalDestinatarios ?? 1)) *
-            100
-        )
-      : 0;
 
   const handleCopiarEmails = async (apenasPendentes: boolean): Promise<void> => {
     const base = apenasPendentes
@@ -486,9 +527,7 @@ export function ComunicadosPage(): JSX.Element {
       ]),
     ];
 
-    const csv = linhas
-      .map((linha) => linha.map((coluna) => toCsvCell(coluna)).join(';'))
-      .join('\n');
+    const csv = linhas.map((linha) => linha.map((coluna) => toCsvCell(coluna)).join(';')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
@@ -552,7 +591,7 @@ export function ComunicadosPage(): JSX.Element {
   return (
     <PageState
       loading={carregando}
-      loadingMessage="Carregando comunicados..."
+      loadingMessage="Carregando..."
       error={
         erro
           ? {
@@ -590,236 +629,224 @@ export function ComunicadosPage(): JSX.Element {
                 icon="plus"
                 onClick={() => {
                   resetFormulario();
+                  setEditingComunicado(null);
                   setModalAberto(true);
                 }}
               >
-                Novo comunicado
+                Novo Comunicado
               </Button>
             </>
           }
         />
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <p className="text-sm text-[var(--color-text-secondary)]">Rascunhos</p>
-            <div className="mt-3 flex items-end justify-between">
-              <p className="text-2xl font-semibold text-[var(--color-text-primary)]">{rascunhos}</p>
-              <Icon name="edit" className="h-5 w-5 text-[var(--color-primary-600)]" />
-            </div>
-          </Card>
-          <Card>
-            <p className="text-sm text-[var(--color-text-secondary)]">Publicados</p>
-            <div className="mt-3 flex items-end justify-between">
-              <p className="text-2xl font-semibold text-[var(--color-text-primary)]">
-                {publicados}
-              </p>
-              <Icon name="mail" className="h-5 w-5 text-[var(--color-success-600)]" />
-            </div>
-          </Card>
-          <Card>
-            <p className="text-sm text-[var(--color-text-secondary)]">Encerrados</p>
-            <div className="mt-3 flex items-end justify-between">
-              <p className="text-2xl font-semibold text-[var(--color-text-primary)]">
-                {encerrados}
-              </p>
-              <Icon name="archive" className="h-5 w-5 text-[var(--color-gray-400)]" />
-            </div>
-          </Card>
-          <Card>
-            <p className="text-sm text-[var(--color-text-secondary)]">Leituras pendentes</p>
-            <div className="mt-3 flex items-end justify-between">
-              <p className="text-2xl font-semibold text-[var(--color-text-primary)]">{naoLidos}</p>
-              <Icon name="alert-triangle" className="h-5 w-5 text-[var(--color-warning-600)]" />
-            </div>
-          </Card>
-        </div>
-
         <Card>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">
-                Histórico operacional
-              </h2>
-              <p className="text-sm text-[var(--color-text-secondary)]">
-                Consulte envios, datas e prioridade.
-              </p>
-            </div>
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex flex-wrap gap-2">
-              <span className="rounded-full border border-[var(--color-error-200)] bg-[var(--color-error-50)] px-3 py-1 text-sm font-medium text-[var(--color-error-700)]">
-                Alta: {comunicadosAlta}
+              <Button
+                variant={filtroStatus === 'RASCUNHO' ? 'primary' : 'secondary'}
+                size="sm"
+                onClick={() => {
+                  setFiltroStatus('RASCUNHO');
+                  setPaginaHistorico(1);
+                }}
+              >
+                Rascunhos {rascunhos}
+              </Button>
+              <Button
+                variant={filtroStatus === 'PUBLICADO' ? 'primary' : 'secondary'}
+                size="sm"
+                onClick={() => {
+                  setFiltroStatus('PUBLICADO');
+                  setPaginaHistorico(1);
+                }}
+              >
+                Publicados {publicados}
+              </Button>
+              <Button
+                variant={filtroStatus === 'ENCERRADO' ? 'primary' : 'secondary'}
+                size="sm"
+                onClick={() => {
+                  setFiltroStatus('ENCERRADO');
+                  setPaginaHistorico(1);
+                }}
+              >
+                Encerrados {encerrados}
+              </Button>
+              <Button
+                variant={filtroStatus === 'TODOS' ? 'secondary' : 'ghost'}
+                size="sm"
+                onClick={() => {
+                  setFiltroStatus('TODOS');
+                  setPaginaHistorico(1);
+                }}
+              >
+                Todos
+              </Button>
+            </div>
+
+            <div className="flex flex-wrap gap-2 text-sm">
+              <span className="rounded-full border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] px-3 py-1 text-[var(--color-text-secondary)]">
+                Leituras Pendentes: <strong className="text-[var(--color-text-primary)]">{naoLidos}</strong>
               </span>
-              <span className="rounded-full border border-[var(--color-warning-200)] bg-[var(--color-warning-50)] px-3 py-1 text-sm font-medium text-[var(--color-warning-700)]">
-                Média: {comunicadosMedia}
+              <span className="rounded-full border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] px-3 py-1 text-[var(--color-text-secondary)]">
+                Alta: <strong className="text-[var(--color-text-primary)]">{comunicadosAlta}</strong>
               </span>
-              <span className="rounded-full border border-[var(--color-primary-200)] bg-[var(--color-primary-50)] px-3 py-1 text-sm font-medium text-[var(--color-primary-700)]">
-                Baixa: {comunicadosBaixa}
-              </span>
-              <span className="rounded-full border border-[var(--color-gray-200)] bg-[var(--color-gray-100)] px-3 py-1 text-sm font-medium text-[var(--color-gray-700)]">
-                Filtrados: {resumo?.totalFiltrados ?? 0}
+              <span className="rounded-full border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] px-3 py-1 text-[var(--color-text-secondary)]">
+                Filtrados: <strong className="text-[var(--color-text-primary)]">{resumo?.totalFiltrados ?? 0}</strong>
               </span>
             </div>
           </div>
         </Card>
 
         <Card>
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-11">
-            <Input
-              label="Buscar"
-              value={buscaInput}
-              onChange={(event) => setBuscaInput(event.target.value)}
-              placeholder="Título ou conteúdo"
-            />
-            <Select
-              label="Status"
-              value={filtroStatus}
-              onChange={(event) => {
-                setFiltroStatus(event.target.value as FiltroStatus);
-                setPaginaHistorico(1);
-              }}
-              options={[
-                { value: 'TODOS', label: 'Todos' },
-                { value: 'RASCUNHO', label: 'Rascunho' },
-                { value: 'PUBLICADO', label: 'Publicado' },
-                { value: 'ENCERRADO', label: 'Encerrado' },
-              ]}
-            />
-            <Select
-              label="Escopo"
-              value={filtroEscopo}
-              onChange={(event) => {
-                setFiltroEscopo(event.target.value as FiltroEscopo);
-                setPaginaHistorico(1);
-              }}
-              options={[
-                { value: 'QUALQUER', label: 'Todos' },
-                { value: 'TODOS', label: 'Todos os usuários ativos' },
-                { value: 'USUARIOS_ESPECIFICOS', label: 'Usuários específicos' },
-              ]}
-            />
-            <Select
-              label="Tipo"
-              value={filtroTipo}
-              onChange={(event) => {
-                setFiltroTipo(event.target.value as FiltroTipo);
-                setPaginaHistorico(1);
-              }}
-              options={[
-                { value: 'TODAS', label: 'Todos' },
-                { value: 'COMUNICADO_GERAL', label: 'Comunicado geral' },
-                { value: 'COMUNICADO_IMPORTANTE', label: 'Importante' },
-                { value: 'DECISAO_OPERACIONAL', label: 'Decisão operacional' },
-                { value: 'PADRONIZACAO', label: 'Padronização' },
-                { value: 'SISTEMA', label: 'Sistema' },
-                { value: 'TREINAMENTO', label: 'Treinamento' },
-                { value: 'BLOG_INTERNO', label: 'Blog interno' },
-              ]}
-            />
-            <Select
-              label="Categoria"
-              value={filtroCategoria}
-              onChange={(event) => {
-                setFiltroCategoria(event.target.value as FiltroCategoria);
-                setPaginaHistorico(1);
-              }}
-              options={[
-                { value: 'TODAS', label: 'Todas' },
-                { value: 'PRODUCAO', label: 'Produção' },
-                { value: 'DIGITALIZACAO', label: 'Digitalização' },
-                { value: 'CONFERENCIA', label: 'Conferência' },
-                { value: 'RECONFERENCIA', label: 'Reconf.' },
-                { value: 'QUALIDADE', label: 'Qualidade' },
-                { value: 'ADMINISTRATIVO', label: 'Administrativo' },
-                { value: 'SISTEMA', label: 'Sistema' },
-                { value: 'GERAL', label: 'Geral' },
-              ]}
-            />
-            <Select
-              label="Fixado"
-              value={filtroFixado}
-              onChange={(event) => {
-                setFiltroFixado(event.target.value as 'TODAS' | 'SIM' | 'NAO');
-                setPaginaHistorico(1);
-              }}
-              options={[
-                { value: 'TODAS', label: 'Todos' },
-                { value: 'SIM', label: 'Fixados' },
-                { value: 'NAO', label: 'Não fixados' },
-              ]}
-            />
-            <Select
-              label="Prioridade"
-              value={filtroPrioridade}
-              onChange={(event) => {
-                setFiltroPrioridade(event.target.value as FiltroPrioridade);
-                setPaginaHistorico(1);
-              }}
-              options={[
-                { value: 'TODAS', label: 'Todas' },
-                { value: 'ALTA', label: 'Alta' },
-                { value: 'MEDIA', label: 'Média' },
-                { value: 'BAIXA', label: 'Baixa' },
-              ]}
-            />
-            <Select
-              label="Ordenação"
-              value={ordenacao}
-              onChange={(event) => {
-                setOrdenacao(event.target.value as FiltroOrdenacao);
-                setPaginaHistorico(1);
-              }}
-              options={[
-                { value: 'mais-recentes', label: 'Mais recentes' },
-                { value: 'mais-antigos', label: 'Mais antigos' },
-                { value: 'mais-pendentes', label: 'Mais pendentes' },
-                { value: 'mais-lidos', label: 'Mais lidos' },
-              ]}
-            />
-            <Input
-              label="Data Início"
-              type="date"
-              value={dataInicio}
-              onChange={(event) => {
-                setDataInicio(event.target.value);
-                setPaginaHistorico(1);
-              }}
-            />
-            <Input
-              label="Data Final"
-              type="date"
-              value={dataFim}
-              onChange={(event) => {
-                setDataFim(event.target.value);
-                setPaginaHistorico(1);
-              }}
-            />
-            <Input
-              label="Publicado em"
-              type="date"
-              value={dataPublicacaoExata}
-              onChange={(event) => {
-                setDataPublicacaoExata(event.target.value);
-                setPaginaHistorico(1);
-              }}
-            />
-            <div className="flex items-end">
-              <Button
-                variant="ghost"
-                fullWidth
-                onClick={() => {
-                  setBuscaInput('');
-                  setFiltroStatus('TODOS');
-                  setFiltroEscopo('QUALQUER');
-                  setFiltroPrioridade('TODAS');
-                  setOrdenacao('mais-recentes');
-                  setDataInicio('');
-                  setDataFim('');
-                  setDataPublicacaoExata('');
-                  setPaginaHistorico(1);
-                }}
-              >
-                Limpar Filtros
-              </Button>
+          <div className="space-y-4">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+              <div className="w-full lg:max-w-md">
+                <Input
+                  label="Buscar"
+                  value={buscaInput}
+                  onChange={(event) => setBuscaInput(event.target.value)}
+                  placeholder="Título ou conteúdo"
+                />
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant={filtrosAbertos ? 'secondary' : 'outline'}
+                  size="sm"
+                  icon={filtrosAbertos ? 'chevron-up' : 'sliders-horizontal'}
+                  onClick={() => setFiltrosAbertos((current) => !current)}
+                >
+                  {filtrosAbertos ? 'Ocultar filtros' : 'Mais filtros'}
+                </Button>
+                <Button variant="ghost" size="sm" onClick={limparFiltros}>
+                  Limpar
+                </Button>
+              </div>
             </div>
+
+            {filtrosAbertos ? (
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
+                <Select
+                  label="Escopo"
+                  value={filtroEscopo}
+                  onChange={(event) => {
+                    setFiltroEscopo(event.target.value as FiltroEscopo);
+                    setPaginaHistorico(1);
+                  }}
+                  options={[
+                    { value: 'QUALQUER', label: 'Todos' },
+                    { value: 'TODOS', label: 'Todos os usuários ativos' },
+                    { value: 'USUARIOS_ESPECIFICOS', label: 'Usuários específicos' },
+                  ]}
+                />
+                <Select
+                  label="Tipo"
+                  value={filtroTipo}
+                  onChange={(event) => {
+                    setFiltroTipo(event.target.value as FiltroTipo);
+                    setPaginaHistorico(1);
+                  }}
+                  options={[
+                    { value: 'TODAS', label: 'Todos' },
+                    { value: 'COMUNICADO_GERAL', label: 'Comunicado geral' },
+                    { value: 'COMUNICADO_IMPORTANTE', label: 'Importante' },
+                    { value: 'DECISAO_OPERACIONAL', label: 'Decisao operacional' },
+                    { value: 'PADRONIZACAO', label: 'Padronizacao' },
+                    { value: 'SISTEMA', label: 'Sistema' },
+                    { value: 'TREINAMENTO', label: 'Treinamento' },
+                    { value: 'BLOG_INTERNO', label: 'Blog interno' },
+                  ]}
+                />
+                <Select
+                  label="Categoria"
+                  value={filtroCategoria}
+                  onChange={(event) => {
+                    setFiltroCategoria(event.target.value as FiltroCategoria);
+                    setPaginaHistorico(1);
+                  }}
+                  options={[
+                    { value: 'TODAS', label: 'Todas' },
+                    { value: 'PRODUCAO', label: 'Produção' },
+                    { value: 'DIGITALIZACAO', label: 'Digitalização' },
+                    { value: 'CONFERENCIA', label: 'Conferência' },
+                    { value: 'RECONFERENCIA', label: 'Reconferência' },
+                    { value: 'QUALIDADE', label: 'Qualidade' },
+                    { value: 'ADMINISTRATIVO', label: 'Administrativo' },
+                    { value: 'SISTEMA', label: 'Sistema' },
+                    { value: 'GERAL', label: 'Geral' },
+                  ]}
+                />
+                <Select
+                  label="Fixado"
+                  value={filtroFixado}
+                  onChange={(event) => {
+                    setFiltroFixado(event.target.value as 'TODAS' | 'SIM' | 'NAO');
+                    setPaginaHistorico(1);
+                  }}
+                  options={[
+                    { value: 'TODAS', label: 'Todos' },
+                    { value: 'SIM', label: 'Fixados' },
+                    { value: 'NAO', label: 'Não fixados' },
+                  ]}
+                />
+                <Select
+                  label="Prioridade"
+                  value={filtroPrioridade}
+                  onChange={(event) => {
+                    setFiltroPrioridade(event.target.value as FiltroPrioridade);
+                    setPaginaHistorico(1);
+                  }}
+                  options={[
+                    { value: 'TODAS', label: 'Todas' },
+                    { value: 'ALTA', label: 'Alta' },
+                    { value: 'MEDIA', label: 'Média' },
+                    { value: 'BAIXA', label: 'Baixa' },
+                  ]}
+                />
+                <Select
+                  label="Ordenação"
+                  value={ordenacao}
+                  onChange={(event) => {
+                    setOrdenacao(event.target.value as FiltroOrdenacao);
+                    setPaginaHistorico(1);
+                  }}
+                  options={[
+                    { value: 'mais-recentes', label: 'Mais recentes' },
+                    { value: 'mais-antigos', label: 'Mais antigos' },
+                    { value: 'mais-pendentes', label: 'Mais pendentes' },
+                    { value: 'mais-lidos', label: 'Mais lidos' },
+                  ]}
+                />
+                <Input
+                  label="Data Início"
+                  type="date"
+                  value={dataInicio}
+                  onChange={(event) => {
+                    setDataInicio(event.target.value);
+                    setPaginaHistorico(1);
+                  }}
+                />
+                <Input
+                  label="Data Final"
+                  type="date"
+                  value={dataFim}
+                  onChange={(event) => {
+                    setDataFim(event.target.value);
+                    setPaginaHistorico(1);
+                  }}
+                />
+                <Input
+                  label="Publicado Em"
+                  type="date"
+                  value={dataPublicacaoExata}
+                  onChange={(event) => {
+                    setDataPublicacaoExata(event.target.value);
+                    setPaginaHistorico(1);
+                  }}
+                />
+              </div>
+            ) : null}
           </div>
         </Card>
 
@@ -827,10 +854,10 @@ export function ComunicadosPage(): JSX.Element {
           <Card className="text-center">
             <Icon name="mail" className="mx-auto h-8 w-8 text-[var(--color-gray-300)]" />
             <h2 className="mt-3 text-base font-semibold text-[var(--color-text-primary)]">
-              Nenhum comunicado encontrado
+              Nenhum comunicado
             </h2>
             <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
-              Ajuste os filtros ou crie o primeiro comunicado para publicar orientações no sistema.
+              Ajuste a busca, revise os filtros ou crie um novo comunicado.
             </p>
           </Card>
         ) : (
@@ -843,25 +870,39 @@ export function ComunicadosPage(): JSX.Element {
 
               return (
                 <Card key={comunicado.id}>
-                  <CardHeader
-                    title={comunicado.titulo}
-                    description={`Criado em ${formatDateTimeBR(comunicado.criadoEm)}`}
-                    badge={
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span
-                          className={`rounded-full border px-2.5 py-1 text-xs font-medium ${getPrioridadeBadge(comunicado.prioridade)}`}
-                        >
-                          {getPrioridadeLabel(comunicado.prioridade)}
-                        </span>
-                        <span
-                          className={`rounded-full border px-2.5 py-1 text-xs font-medium ${getStatusBadge(comunicado.status)}`}
-                        >
-                          {getStatusLabel(comunicado.status)}
-                        </span>
+                  <div className="space-y-4">
+                    <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h2 className="text-xl font-semibold text-[var(--color-text-primary)]">
+                            {comunicado.titulo}
+                          </h2>
+                          <span
+                            className={`rounded-full border px-2.5 py-1 text-xs font-medium ${getPrioridadeBadge(comunicado.prioridade)}`}
+                          >
+                            {getPrioridadeLabel(comunicado.prioridade)}
+                          </span>
+                          <span
+                            className={`rounded-full border px-2.5 py-1 text-xs font-medium ${getStatusBadge(comunicado.status)}`}
+                          >
+                            {getStatusLabel(comunicado.status)}
+                          </span>
+                        </div>
+
+                        <p className="mt-2 max-w-4xl text-sm leading-6 text-[var(--color-text-secondary)]">
+                          {getResumoLista(comunicado)}
+                        </p>
+
+                        <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm text-[var(--color-text-secondary)]">
+                          <span>{getEscopoLabel(comunicado.escopoDestino)}</span>
+                          <span>{comunicado.totalDestinatarios} destinatários</span>
+                          <span>{comunicado.totalLidos} leituras</span>
+                          <span>{totalPendentes} pendentes</span>
+                          <span>Criado em {formatDateTimeBR(comunicado.criadoEm)}</span>
+                        </div>
                       </div>
-                    }
-                    action={
-                      <div className="flex flex-wrap justify-end gap-2">
+
+                      <div className="flex flex-wrap gap-2 xl:justify-end">
                         {comunicado.status !== 'RASCUNHO' ? (
                           <Button
                             variant="ghost"
@@ -870,8 +911,7 @@ export function ComunicadosPage(): JSX.Element {
                           >
                             Acompanhar
                           </Button>
-                        ) : null}
-                        {comunicado.status === 'RASCUNHO' ? (
+                        ) : (
                           <Button
                             variant="ghost"
                             size="sm"
@@ -879,7 +919,7 @@ export function ComunicadosPage(): JSX.Element {
                           >
                             Editar
                           </Button>
-                        ) : null}
+                        )}
                         <Button
                           variant="ghost"
                           size="sm"
@@ -915,49 +955,6 @@ export function ComunicadosPage(): JSX.Element {
                           </Button>
                         ) : null}
                       </div>
-                    }
-                  />
-
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
-                      <div className="rounded-lg bg-[var(--color-gray-50)] p-3">
-                        <p className="text-xs font-medium text-[var(--color-text-tertiary)]">
-                          Escopo
-                        </p>
-                        <p className="mt-1 text-sm font-medium text-[var(--color-text-primary)]">
-                          {getEscopoLabel(comunicado.escopoDestino)}
-                        </p>
-                      </div>
-                      <div className="rounded-lg bg-[var(--color-gray-50)] p-3">
-                        <p className="text-xs font-medium text-[var(--color-text-tertiary)]">
-                          Destinatários
-                        </p>
-                        <p className="mt-1 text-sm font-medium text-[var(--color-text-primary)]">
-                          {comunicado.totalDestinatarios}
-                        </p>
-                      </div>
-                      <div className="rounded-lg bg-[var(--color-gray-50)] p-3">
-                        <p className="text-xs font-medium text-[var(--color-text-tertiary)]">
-                          Leituras
-                        </p>
-                        <p className="mt-1 text-sm font-medium text-[var(--color-text-primary)]">
-                          {comunicado.totalLidos}
-                        </p>
-                      </div>
-                      <div className="rounded-lg bg-[var(--color-gray-50)] p-3">
-                        <p className="text-xs font-medium text-[var(--color-text-tertiary)]">
-                          Pendentes
-                        </p>
-                        <p className="mt-1 text-sm font-medium text-[var(--color-text-primary)]">
-                          {totalPendentes}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="rounded-lg border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-4">
-                      <p className="whitespace-pre-wrap text-sm leading-6 text-[var(--color-text-primary)]">
-                        {comunicado.conteudo}
-                      </p>
                     </div>
 
                     <div className="flex flex-wrap gap-4 text-xs text-[var(--color-text-secondary)]">
@@ -969,11 +966,14 @@ export function ComunicadosPage(): JSX.Element {
                       {comunicado.encerradoEm ? (
                         <span>Encerrado em {formatDateTimeBR(comunicado.encerradoEm)}</span>
                       ) : null}
+                      {comunicado.fixado ? <span>Fixado</span> : null}
+                      {comunicado.leituraObrigatoria ? <span>Leitura obrigatória</span> : null}
                     </div>
                   </div>
                 </Card>
               );
             })}
+
             <Pagination
               pagina={paginaHistoricoAtual}
               totalPaginas={totalPaginasHistorico}
@@ -985,7 +985,7 @@ export function ComunicadosPage(): JSX.Element {
         <Modal
           open={modalAberto}
           onClose={() => setModalAberto(false)}
-          title="Novo comunicado"
+          title={editingComunicado ? 'Editar Comunicado' : 'Novo Comunicado'}
           subtitle="Crie um rascunho ou publique agora."
           size="xl"
           footer={
@@ -995,14 +995,18 @@ export function ComunicadosPage(): JSX.Element {
               </Button>
               <Button
                 variant="outline"
-                loading={criarComunicado.isPending}
+                loading={criarComunicado.isPending || atualizarComunicado.isPending}
                 onClick={() => void handleCriar(false)}
               >
                 Salvar rascunho
               </Button>
               <Button
                 variant="primary"
-                loading={criarComunicado.isPending || publicarComunicado.isPending}
+                loading={
+                  criarComunicado.isPending ||
+                  atualizarComunicado.isPending ||
+                  publicarComunicado.isPending
+                }
                 onClick={() => void handleCriar(true)}
               >
                 Salvar e publicar
@@ -1038,7 +1042,7 @@ export function ComunicadosPage(): JSX.Element {
             </div>
 
             <Select
-              label="Escopo de envio"
+              label="Escopo de Envio"
               value={formData.escopoDestino}
               onChange={(event) =>
                 setFormData((current) => ({
@@ -1053,9 +1057,85 @@ export function ComunicadosPage(): JSX.Element {
               ]}
             />
 
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              <Select
+                label="Tipo"
+                value={formData.tipo}
+                onChange={(event) =>
+                  setFormData((current) => ({
+                    ...current,
+                    tipo: event.target.value as ComunicadoTipo,
+                  }))
+                }
+                options={[
+                  { value: 'COMUNICADO_GERAL', label: 'Comunicado geral' },
+                  { value: 'COMUNICADO_IMPORTANTE', label: 'Importante' },
+                  { value: 'DECISAO_OPERACIONAL', label: 'Decisao operacional' },
+                  { value: 'PADRONIZACAO', label: 'Padronizacao' },
+                  { value: 'SISTEMA', label: 'Sistema' },
+                  { value: 'TREINAMENTO', label: 'Treinamento' },
+                  { value: 'BLOG_INTERNO', label: 'Blog interno' },
+                ]}
+              />
+              <Select
+                label="Categoria"
+                value={formData.categoria}
+                onChange={(event) =>
+                  setFormData((current) => ({
+                    ...current,
+                    categoria: event.target.value as ComunicadoCategoria,
+                  }))
+                }
+                options={[
+                  { value: 'PRODUCAO', label: 'Produção' },
+                  { value: 'DIGITALIZACAO', label: 'Digitalização' },
+                  { value: 'CONFERENCIA', label: 'Conferência' },
+                  { value: 'RECONFERENCIA', label: 'Reconferência' },
+                  { value: 'QUALIDADE', label: 'Qualidade' },
+                  { value: 'ADMINISTRATIVO', label: 'Administrativo' },
+                  { value: 'SISTEMA', label: 'Sistema' },
+                  { value: 'GERAL', label: 'Geral' },
+                ]}
+              />
+              <Input
+                label="Resumo"
+                value={formData.resumo}
+                onChange={(event) =>
+                  setFormData((current) => ({ ...current, resumo: event.target.value }))
+                }
+                placeholder="Opcional"
+              />
+            </div>
+
+            <div className="flex flex-wrap gap-4">
+              <label className="flex items-center gap-2 text-sm text-[var(--color-text-primary)]">
+                <input
+                  type="checkbox"
+                  checked={formData.fixado}
+                  onChange={(event) =>
+                    setFormData((current) => ({ ...current, fixado: event.target.checked }))
+                  }
+                />
+                Fixado
+              </label>
+              <label className="flex items-center gap-2 text-sm text-[var(--color-text-primary)]">
+                <input
+                  type="checkbox"
+                  checked={formData.leituraObrigatoria}
+                  onChange={(event) =>
+                    setFormData((current) => ({
+                      ...current,
+                      leituraObrigatoria: event.target.checked,
+                    }))
+                  }
+                />
+                Leitura obrigatória
+              </label>
+            </div>
+
             <div>
               <label className="mb-1.5 block text-sm font-medium text-[var(--color-text-primary)]">
-                Conteúdo
+                Conteudo
               </label>
               <textarea
                 value={formData.conteudo}
@@ -1064,7 +1144,7 @@ export function ComunicadosPage(): JSX.Element {
                 }
                 rows={8}
                 placeholder="Escreva o conteúdo do comunicado."
-                className="w-full rounded-lg border border-[var(--color-gray-300)] bg-[var(--color-bg-primary)] px-3.5 py-3 text-sm text-[var(--color-text-primary)] transition-all duration-150 focus:border-[var(--color-primary-500)] focus:outline-none focus:ring-[3px] focus:ring-[var(--color-primary-100)]"
+                className="w-full rounded-lg border border-[var(--color-gray-300)] bg-[var(--color-bg-primary)] px-3.5 py-3 text-sm text-[var(--color-text-primary)] transition-colors duration-150 focus:border-[var(--color-primary-500)] focus:outline-none focus:ring-[3px] focus:ring-[var(--color-primary-100)]"
               />
             </div>
 
@@ -1125,7 +1205,7 @@ export function ComunicadosPage(): JSX.Element {
             setPublicandoDraft(null);
             setDraftUsuarioIds([]);
           }}
-          title="Publicar comunicado"
+          title="Publicar Comunicado"
           subtitle={publicandoDraft?.titulo}
           size="lg"
           footer={
@@ -1205,7 +1285,7 @@ export function ComunicadosPage(): JSX.Element {
         <Modal
           open={detalheAbertoId !== null}
           onClose={() => setDetalheAbertoId(null)}
-          title="Acompanhamento do comunicado"
+          title="Acompanhamento do Comunicado"
           subtitle={detalheQuery.data?.comunicado.titulo}
           size="xl"
           footer={
@@ -1307,20 +1387,18 @@ export function ComunicadosPage(): JSX.Element {
                       </Button>
                     </div>
                   </div>
+
                   <div className="mt-4">
                     <Input
-                      label="Buscar destinatário"
+                      label="Buscar Destinatário"
                       value={buscaDestinatario}
                       onChange={(event) => setBuscaDestinatario(event.target.value)}
                       placeholder="Nome ou email"
                     />
                   </div>
+
                   <div className="mt-4 flex flex-wrap gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => void handleCopiarEmails(false)}
-                    >
+                    <Button variant="ghost" size="sm" onClick={() => void handleCopiarEmails(false)}>
                       Copiar emails
                     </Button>
                     <Button variant="ghost" size="sm" onClick={() => void handleCopiarEmails(true)}>
@@ -1335,7 +1413,7 @@ export function ComunicadosPage(): JSX.Element {
                 {destinatariosFiltrados.length === 0 ? (
                   <Card className="text-center">
                     <p className="text-sm text-[var(--color-text-secondary)]">
-                      Nenhum destinatário encontrado para este filtro.
+                      Nenhum destinatário.
                     </p>
                   </Card>
                 ) : (
@@ -1360,7 +1438,7 @@ export function ComunicadosPage(): JSX.Element {
                                   {pendente ? 'Pendente' : 'Lido'}
                                 </span>
                                 {!item.usuarioAtivo ? (
-                                  <span className="rounded-full bg-[var(--color-gray-100)] px-2.5 py-1 text-xs font-medium text-[var(--color-gray-700)]">
+                                  <span className="rounded-full bg-[var(--color-bg-secondary)] px-2.5 py-1 text-xs font-medium text-[var(--color-text-secondary)]">
                                     Usuário inativo
                                   </span>
                                 ) : null}
