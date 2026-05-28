@@ -1,11 +1,11 @@
 import { SYSTEM_TIMEZONE } from './producao-metrics.js';
 
 export const INVALID_QUANTIDADE_MESSAGE =
-  'Quantidade invalida. Informe um numero inteiro maior que zero.';
+  'Quantidade inválida. Informe um número inteiro maior que zero.';
 export const INVALID_DATA_MESSAGE =
-  'Data de producao invalida. Corrija a data na planilha antes de importar.';
+  'Data de produção inválida. Corrija a data na planilha antes de importar.';
 export const FUTURE_DATA_MESSAGE =
-  'Data de producao futura nao e permitida. Corrija a data na planilha antes de importar.';
+  'Data de produção futura não é permitida. Corrija a data na planilha antes de importar.';
 
 export type ValidationResult<T> = { ok: true; value: T } | { ok: false; error: string };
 
@@ -44,7 +44,7 @@ export function getTodayIsoInTimezone(
   const day = parts.find((part) => part.type === 'day')?.value;
 
   if (!year || !month || !day) {
-    throw new Error(`Nao foi possivel resolver a data atual para o timezone ${timeZone}`);
+    throw new Error(`Não foi possível resolver a data atual para o timezone ${timeZone}`);
   }
 
   return `${year}-${month}-${day}`;

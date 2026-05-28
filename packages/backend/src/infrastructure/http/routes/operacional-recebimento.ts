@@ -175,7 +175,7 @@ export function createOperacionalRecebimentoRoutes(): FastifyPluginAsync {
           const { id } = request.params as { id: string };
           const repositorio = await loadRepositorio(server, id);
           if (!repositorio) {
-            return reply.status(404).send({ error: 'Repositorio nao encontrado' });
+            return reply.status(404).send({ error: 'Repositório não encontrado' });
           }
 
           const procResult = await server.database.query(
@@ -258,7 +258,7 @@ export function createOperacionalRecebimentoRoutes(): FastifyPluginAsync {
 
           const repositorio = await loadRepositorio(server, id);
           if (!repositorio) {
-            return reply.status(404).send({ error: 'Repositorio nao encontrado' });
+            return reply.status(404).send({ error: 'Repositório não encontrado' });
           }
           const repoMeta = await server.database.query<{ classificacao_padrao_id: string | null }>(
             `SELECT classificacao_padrao_id FROM repositorios WHERE id_repositorio_recorda = $1`,

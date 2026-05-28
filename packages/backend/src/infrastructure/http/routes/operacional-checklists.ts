@@ -740,7 +740,7 @@ export function createOperacionalChecklistsRoutes(): FastifyPluginAsync {
           );
 
           if (result.rows.length === 0) {
-            return reply.status(404).send({ error: 'Checklist nao encontrado' });
+            return reply.status(404).send({ error: 'Checklist não encontrado' });
           }
 
           const checklistConcluido = result.rows[0] as {
@@ -808,7 +808,7 @@ export function createOperacionalChecklistsRoutes(): FastifyPluginAsync {
           await gerarRelatorioProducao(id, user.id);
           return reply.status(201).send(result.rows[0]);
         } catch (error) {
-          const message = error instanceof Error ? error.message : 'Erro ao registrar producao';
+          const message = error instanceof Error ? error.message : 'Erro ao registrar produção';
           return reply.status(400).send({ error: message });
         }
       }
@@ -834,14 +834,14 @@ export function createOperacionalChecklistsRoutes(): FastifyPluginAsync {
           const body = request.body as { repositorioIds?: string[] };
           const ids = body.repositorioIds;
           if (!ids || ids.length === 0) {
-            return reply.status(400).send({ error: 'repositorioIds é obrigatório' });
+          return reply.status(400).send({ error: 'repositorioIds é obrigatório' });
           }
           const user = getCurrentUser(request);
           const report = await gerarRelatorioRecebimento(ids, user.id);
           return reply.status(201).send(report);
         } catch (error) {
           const message =
-            error instanceof Error ? error.message : 'Erro ao gerar relatorio de recebimento';
+            error instanceof Error ? error.message : 'Erro ao gerar relatório de recebimento';
           return reply.status(400).send({ error: message });
         }
       }
@@ -867,7 +867,7 @@ export function createOperacionalChecklistsRoutes(): FastifyPluginAsync {
           return reply.status(201).send(report);
         } catch (error) {
           const message =
-            error instanceof Error ? error.message : 'Erro ao gerar relatorio de recebimento';
+            error instanceof Error ? error.message : 'Erro ao gerar relatório de recebimento';
           return reply.status(400).send({ error: message });
         }
       }
@@ -893,7 +893,7 @@ export function createOperacionalChecklistsRoutes(): FastifyPluginAsync {
           return reply.status(201).send(report);
         } catch (error) {
           const message =
-            error instanceof Error ? error.message : 'Erro ao gerar relatorio de producao';
+            error instanceof Error ? error.message : 'Erro ao gerar relatório de produção';
           return reply.status(400).send({ error: message });
         }
       }
@@ -931,7 +931,7 @@ export function createOperacionalChecklistsRoutes(): FastifyPluginAsync {
           );
           return reply.send({ itens: result.rows });
         } catch (error) {
-          const message = error instanceof Error ? error.message : 'Erro ao listar relatorios';
+          const message = error instanceof Error ? error.message : 'Erro ao listar relatórios';
           return sendDatabaseError(reply, error, message);
         }
       }

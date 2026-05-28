@@ -586,7 +586,7 @@ export function createOperacionalCQRoutes(): FastifyPluginAsync {
           );
           const repo = repoResult.rows[0];
           if (!repo) {
-            return reply.status(404).send({ error: 'Repositorio nao encontrado' });
+            return reply.status(404).send({ error: 'Repositório não encontrado' });
           }
 
           const repoCheck = await server.database.query<{ total: string }>(
@@ -813,7 +813,7 @@ export function createOperacionalCQRoutes(): FastifyPluginAsync {
           );
           const repo = repoResult.rows[0];
           if (!repo) {
-            return reply.status(404).send({ error: 'Repositorio nao encontrado' });
+            return reply.status(404).send({ error: 'Repositório não encontrado' });
           }
 
           await server.database.query(

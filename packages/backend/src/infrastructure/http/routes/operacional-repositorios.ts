@@ -98,7 +98,7 @@ export function createOperacionalRepositoriosRoutes(): FastifyPluginAsync {
           ) {
             return reply
               .status(409)
-              .send({ error: 'repositorio ja cadastrado para esta unidade e projeto' });
+              .send({ error: 'Repositório já cadastrado para esta unidade e projeto' });
           }
 
           if (
@@ -115,10 +115,10 @@ export function createOperacionalRepositoriosRoutes(): FastifyPluginAsync {
           if (pgError.code === '23514' || pgError.code === '22P02' || pgError.code === '23502') {
             return reply
               .status(400)
-              .send({ error: pgError.message ?? 'Dados invalidos para criar repositorio' });
+              .send({ error: pgError.message ?? 'Dados inválidos para criar repositório' });
           }
 
-          return reply.status(500).send({ error: pgError.message ?? 'Erro ao criar repositorio' });
+          return reply.status(500).send({ error: pgError.message ?? 'Erro ao criar repositório' });
         }
       }
     );
@@ -128,7 +128,7 @@ export function createOperacionalRepositoriosRoutes(): FastifyPluginAsync {
       {
         schema: {
           tags: ['operacional'],
-          summary: 'Listar unidades para criacao de repositorio',
+          summary: 'Listar unidades para criação de repositório',
           security: [{ bearerAuth: [] }],
         },
         preHandler: [server.authenticate, authorize('colaborador', 'operador', 'administrador')],
@@ -612,7 +612,7 @@ export function createOperacionalRepositoriosRoutes(): FastifyPluginAsync {
 
           const repositorio = await loadRepositorio(server, id);
           if (!repositorio) {
-            return reply.status(404).send({ error: 'Repositorio nao encontrado' });
+            return reply.status(404).send({ error: 'Repositório não encontrado' });
           }
 
           const validacao = await ocrService.validarImagem(imagemBase64);

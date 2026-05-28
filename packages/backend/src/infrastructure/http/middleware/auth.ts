@@ -21,7 +21,7 @@ export async function authenticate(request: FastifyRequest, reply: FastifyReply)
       }
     }
   } catch {
-    return reply.status(401).send({ error: 'Token invalido ou expirado', code: 'UNAUTHORIZED' });
+    return reply.status(401).send({ error: 'Token inválido ou expirado', code: 'UNAUTHORIZED' });
   }
 }
 
@@ -33,12 +33,12 @@ export function authorize(...perfisPermitidos: PerfilUsuario[]) {
     const user = request.user as { perfil: PerfilUsuario } | undefined;
 
     if (!user) {
-      return reply.status(401).send({ error: 'Usuario nao autenticado', code: 'UNAUTHORIZED' });
+      return reply.status(401).send({ error: 'Usuário não autenticado', code: 'UNAUTHORIZED' });
     }
 
     if (!perfisPermitidos.includes(user.perfil)) {
       return reply.status(403).send({
-        error: 'Acesso negado. Permissao insuficiente.',
+        error: 'Acesso negado. Permissão insuficiente.',
         code: 'FORBIDDEN',
         requiredProfiles: perfisPermitidos,
         currentProfile: user.perfil,

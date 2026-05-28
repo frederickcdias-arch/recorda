@@ -294,7 +294,7 @@ export function createDashboardRoutes(): FastifyPluginAsync {
           let producaoTrend = '0%';
           if (producaoMesAnterior > 0) {
             const diff = ((producaoMesAtual - producaoMesAnterior) / producaoMesAnterior) * 100;
-            producaoTrend = `${diff >= 0 ? '+' : ''}${diff.toFixed(0)}% vs mes anterior`;
+            producaoTrend = `${diff >= 0 ? '+' : ''}${diff.toFixed(0)}% vs. mês anterior`;
           }
 
           const producaoPorEtapa: ProducaoPorEtapa[] = producaoPorEtapaResult.rows.map((row) => ({
@@ -309,10 +309,10 @@ export function createDashboardRoutes(): FastifyPluginAsync {
           );
 
           const statusRecebimento: StatusRecebimento[] = [
-            { status: 'Importados hoje', valor: recebidosHoje, icon: 'inbox' },
-            { status: 'Registros no mes', valor: producaoMesAtual, icon: 'bar-chart' },
+            { status: 'Importados Hoje', valor: recebidosHoje, icon: 'inbox' },
+            { status: 'Registros no Mês', valor: producaoMesAtual, icon: 'bar-chart' },
             {
-              status: 'Importacoes com erro (24h)',
+              status: 'Importações com Erro (24h)',
               valor: importacoesComErro,
               icon: 'alert-triangle',
             },
@@ -324,8 +324,8 @@ export function createDashboardRoutes(): FastifyPluginAsync {
           if (parados > 0) {
             alertas.push({
               tipo: 'warning',
-              titulo: 'Repositorios parados',
-              descricao: `${parados} repositorio(s) sem movimentacao ha mais de 48h.`,
+              titulo: 'Repositórios Parados',
+              descricao: `${parados} repositório(s) sem movimentação há mais de 48h.`,
             });
           }
 
@@ -333,8 +333,8 @@ export function createDashboardRoutes(): FastifyPluginAsync {
           if (divergencias > 0) {
             alertas.push({
               tipo: 'error',
-              titulo: 'Divergencias operacionais',
-              descricao: `${divergencias} excecao(oes) em aberto ou em tratativa.`,
+              titulo: 'Divergências Operacionais',
+              descricao: `${divergencias} exceção(ões) em aberto ou em tratativa.`,
             });
           }
 
@@ -342,16 +342,16 @@ export function createDashboardRoutes(): FastifyPluginAsync {
           if (checklistPendentes > 0) {
             alertas.push({
               tipo: 'info',
-              titulo: 'Checklist ausente',
-              descricao: `${checklistPendentes} repositorio(s) sem checklist ativo da etapa atual.`,
+              titulo: 'Checklist Ausente',
+              descricao: `${checklistPendentes} repositório(s) sem checklist ativo da etapa atual.`,
             });
           }
 
           if (importacoesComErro > 0) {
             alertas.push({
               tipo: 'warning',
-              titulo: 'Importacao legada com erro',
-              descricao: `${importacoesComErro} importacao(oes) legadas com erro nas ultimas 24h.`,
+              titulo: 'Importação Legada com Erro',
+              descricao: `${importacoesComErro} importação(ões) legadas com erro nas últimas 24h.`,
             });
           }
 

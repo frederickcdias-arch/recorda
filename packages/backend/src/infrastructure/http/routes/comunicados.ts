@@ -523,7 +523,7 @@ export function createComunicadosRoutes(): FastifyPluginAsync {
           if (!comunicado) {
             await client.query('ROLLBACK');
             return reply.status(404).send({
-              error: 'Comunicado nao encontrado ou nao esta em rascunho',
+              error: 'Comunicado não encontrado ou não está em rascunho',
             });
           }
 
@@ -867,7 +867,7 @@ export function createComunicadosRoutes(): FastifyPluginAsync {
           const comunicado = comunicadoResult.rows[0];
           if (!comunicado) {
             await client.query('ROLLBACK');
-            return reply.status(404).send({ error: 'Comunicado nao encontrado' });
+            return reply.status(404).send({ error: 'Comunicado não encontrado' });
           }
 
           if (comunicado.status !== 'RASCUNHO') {
@@ -911,7 +911,7 @@ export function createComunicadosRoutes(): FastifyPluginAsync {
             if (usuarioIds.length !== requestedIds.length) {
               await client.query('ROLLBACK');
               return reply.status(400).send({
-                error: 'Um ou mais usuarios informados nao existem ou estao inativos',
+                error: 'Um ou mais usuários informados não existem ou estão inativos',
               });
             }
           }
@@ -1032,7 +1032,7 @@ export function createComunicadosRoutes(): FastifyPluginAsync {
           if (!comunicado) {
             await client.query('ROLLBACK');
             return reply.status(404).send({
-              error: 'Comunicado nao encontrado ou nao esta publicado',
+              error: 'Comunicado não encontrado ou não está publicado',
             });
           }
 
@@ -1091,7 +1091,7 @@ export function createComunicadosRoutes(): FastifyPluginAsync {
 
           if (!comunicado) {
             await client.query('ROLLBACK');
-            return reply.status(404).send({ error: 'Comunicado nao encontrado' });
+            return reply.status(404).send({ error: 'Comunicado não encontrado' });
           }
 
           if (comunicado.status === 'PUBLICADO') {
@@ -1179,7 +1179,7 @@ export function createComunicadosRoutes(): FastifyPluginAsync {
 
           const comunicado = comunicadoResult.rows[0];
           if (!comunicado) {
-            return reply.status(404).send({ error: 'Comunicado nao encontrado' });
+            return reply.status(404).send({ error: 'Comunicado não encontrado' });
           }
 
           const destinatariosResult = await server.database.query<ComunicadoAdminDestinatarioRow>(
@@ -1291,7 +1291,7 @@ export function createComunicadosRoutes(): FastifyPluginAsync {
       {
         schema: {
           tags: ['comunicados'],
-          summary: 'Listar comunicados nao lidos do usuario autenticado',
+          summary: 'Listar comunicados não lidos do usuário autenticado',
           security: [{ bearerAuth: [] }],
         },
         preHandler: [server.authenticate],
@@ -1348,7 +1348,7 @@ export function createComunicadosRoutes(): FastifyPluginAsync {
           return reply.send(response);
         } catch (error) {
           const message =
-            error instanceof Error ? error.message : 'Erro ao listar comunicados nao lidos';
+            error instanceof Error ? error.message : 'Erro ao listar comunicados não lidos';
           return reply.status(500).send({ error: message });
         }
       }
@@ -1389,7 +1389,7 @@ export function createComunicadosRoutes(): FastifyPluginAsync {
           if (!destinatario) {
             await client.query('ROLLBACK');
             return reply.status(404).send({
-              error: 'Comunicado nao encontrado para o usuario autenticado',
+              error: 'Comunicado não encontrado para o usuário autenticado',
             });
           }
 

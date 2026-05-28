@@ -445,7 +445,7 @@ export function createCapturasMapaRoutes(): FastifyPluginAsync {
             message.includes('Imagem invalida') ||
             message.includes('Imagem vazia') ||
             message.includes('Imagem muito grande') ||
-            message.includes('Tipo de imagem nao suportado')
+            message.includes('Tipo de imagem não suportado')
           ) {
             return reply.status(400).send({ error: message });
           }
@@ -531,7 +531,7 @@ export function createCapturasMapaRoutes(): FastifyPluginAsync {
           );
 
           if (result.rows.length === 0) {
-            return reply.status(404).send({ error: 'Captura nao encontrada' });
+            return reply.status(404).send({ error: 'Captura não encontrada' });
           }
 
           const row = result.rows[0] as {
@@ -542,12 +542,12 @@ export function createCapturasMapaRoutes(): FastifyPluginAsync {
           };
 
           if (new Date(row.expira_em) < new Date()) {
-            return reply.status(410).send({ error: 'Captura expirada e nao disponivel' });
+            return reply.status(410).send({ error: 'Captura expirada e não disponível' });
           }
 
           const relativePath = row.download_path || row.arquivo_original_path;
           if (!relativePath) {
-            return reply.status(404).send({ error: 'Arquivo nao encontrado no servidor' });
+            return reply.status(404).send({ error: 'Arquivo não encontrado no servidor' });
           }
 
           const filePath = resolveUploadPath(relativePath);
@@ -560,7 +560,7 @@ export function createCapturasMapaRoutes(): FastifyPluginAsync {
             .send(fileBuffer);
         } catch (error) {
           if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-            return reply.status(404).send({ error: 'Arquivo nao encontrado no servidor' });
+            return reply.status(404).send({ error: 'Arquivo não encontrado no servidor' });
           }
           const message = error instanceof Error ? error.message : 'Erro ao baixar arquivo';
           return reply.status(500).send({ error: message });
@@ -599,7 +599,7 @@ export function createCapturasMapaRoutes(): FastifyPluginAsync {
           );
 
           if (result.rows.length === 0) {
-            return reply.status(404).send({ error: 'Captura nao encontrada' });
+            return reply.status(404).send({ error: 'Captura não encontrada' });
           }
 
           const row = result.rows[0] as CaptureFileRow;

@@ -92,7 +92,7 @@ async function resolveReadablePath(configuredPath: string): Promise<string> {
     }
   }
 
-  throw new Error(`Arquivo nao encontrado para o processador de documento: ${configuredPath}`);
+  throw new Error(`Arquivo não encontrado para o processador de documento: ${configuredPath}`);
 }
 
 function parseImageDataUrl(dataUrl: string): { mimeType: string; buffer: Buffer } {
@@ -100,7 +100,7 @@ function parseImageDataUrl(dataUrl: string): { mimeType: string; buffer: Buffer 
   const mimeType = match?.[1];
   const base64Payload = match?.[2];
   if (!mimeType || !base64Payload) {
-    throw new Error('Imagem invalida. Envie base64 com data URI.');
+    throw new Error('Imagem inválida. Envie base64 com data URI.');
   }
 
   return {
@@ -218,7 +218,7 @@ async function runDockerProcessor(
   const dockerImage = config.documentProcessor.dockerImage.trim();
   if (!dockerImage) {
     throw new Error(
-      'DOCUMENT_PROCESSOR_DOCKER_IMAGE nao configurada para runtime docker do processador.'
+      'DOCUMENT_PROCESSOR_DOCKER_IMAGE não configurada para runtime Docker do processador.'
     );
   }
 
@@ -288,7 +288,7 @@ async function runDockerProcessor(
         reject(
           new Error(
             stderr.trim() ||
-              'Falha ao interpretar retorno do processador Docker: nenhuma saida JSON encontrada.'
+              'Falha ao interpretar retorno do processador Docker: nenhuma saída JSON encontrada.'
           )
         );
         return;

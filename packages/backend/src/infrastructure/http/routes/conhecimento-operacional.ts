@@ -365,11 +365,11 @@ export function createConhecimentoOperacionalRoutes(): FastifyPluginAsync {
            )
            VALUES ($1, 1, $2, $3, $4)
            RETURNING id`,
-            [documentoId, body.conteudo, body.resumoAlteracao?.trim() ?? 'Versao inicial', user.id]
+            [documentoId, body.conteudo, body.resumoAlteracao?.trim() ?? 'Versão inicial', user.id]
           );
           const versaoId = versaoResult.rows[0]?.id;
           if (!versaoId) {
-            throw new Error('Falha ao criar versao inicial');
+            throw new Error('Falha ao criar versão inicial');
           }
 
           if ((body.etapas ?? []).length > 0) {
@@ -461,7 +461,7 @@ export function createConhecimentoOperacionalRoutes(): FastifyPluginAsync {
           );
           const versaoId = versionResult.rows[0]?.id;
           if (!versaoId) {
-            throw new Error('Falha ao criar nova versao');
+            throw new Error('Falha ao criar nova versão');
           }
 
           await server.database.query(
@@ -475,7 +475,7 @@ export function createConhecimentoOperacionalRoutes(): FastifyPluginAsync {
           return reply.status(201).send({ documentoId: id, versaoId, versao: nextVersion });
         } catch (error) {
           await server.database.query('ROLLBACK');
-          const message = error instanceof Error ? error.message : 'Erro ao publicar nova versao';
+          const message = error instanceof Error ? error.message : 'Erro ao publicar nova versão';
           return reply.status(400).send({ error: message });
         }
       }

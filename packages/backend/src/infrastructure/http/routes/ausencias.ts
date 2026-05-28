@@ -252,7 +252,7 @@ export function createAusenciasRoutes(): FastifyPluginAsync {
       async (_request, reply) => {
         return reply.status(403).send({
           error:
-            'O colaborador nao pode registrar nova justificativa de ausencia. Esse cadastro e permitido apenas para administradores.',
+            'O colaborador não pode registrar nova justificativa de ausência. Esse cadastro é permitido apenas para administradores.',
         });
       }
     );

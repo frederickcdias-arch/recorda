@@ -86,11 +86,11 @@ interface ParsedAndValidatedImportRow {
 function parseImportRowStrict(
   row: ParsedImportRow | Record<string, unknown> | null | undefined
 ): { ok: true; value: ParsedAndValidatedImportRow } | { ok: false; error: string } {
-  if (!row) return { ok: false, error: 'Registro invalido' };
+  if (!row) return { ok: false, error: 'Registro inválido' };
 
   const repoIdentificadorRaw = String(row.repositorio ?? '').trim();
   if (!repoIdentificadorRaw) {
-    return { ok: false, error: 'Coluna repositorio e obrigatoria' };
+    return { ok: false, error: 'Coluna repositório é obrigatória' };
   }
 
   const colaboradorNome = String(row.colaborador ?? '').trim();
@@ -274,7 +274,7 @@ function sendSpreadsheetFetchError(
   if (status === 404) {
     return reply.status(400).send({
       error:
-        'Planilha nao encontrada. Verifique se a URL esta correta e a planilha esta publicada.',
+        'Planilha não encontrada. Verifique se a URL está correta e a planilha está publicada.',
     });
   }
   if (status === 403 || status === 401) {
@@ -650,7 +650,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
             [usuarioDestinoId]
           );
           if (usuarioDestinoResult.rows.length === 0) {
-            return reply.status(404).send({ error: 'Usuario destino nao encontrado ou inativo' });
+            return reply.status(404).send({ error: 'Usuário de destino não encontrado ou inativo' });
           }
 
           const erros: Array<{ linha: number; idRepositorioGed: string; erro: string }> = [];
@@ -1188,7 +1188,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
       {
         schema: {
           tags: ['operacional'],
-          summary: 'Exportar CSV de erros de uma importacao',
+          summary: 'Exportar CSV de erros de uma importação',
           security: [{ bearerAuth: [] }],
         },
         preHandler: [server.authenticate, authorize('operador', 'administrador')],
@@ -1208,9 +1208,9 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
             [id]
           );
           const item = result.rows[0];
-          if (!item) return reply.status(404).send({ error: 'Importacao nao encontrada' });
+          if (!item) return reply.status(404).send({ error: 'Importação não encontrada' });
           if (user.perfil !== 'administrador' && item.usuario_destino_id !== user.id) {
-            return reply.status(403).send({ error: 'Sem permissao para acessar esta importacao' });
+            return reply.status(403).send({ error: 'Sem permissão para acessar esta importação' });
           }
 
           const detalhes = item.detalhes_erros as
@@ -1283,7 +1283,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
       {
         schema: {
           tags: ['operacional'],
-          summary: 'Desfazer uma importacao de producao',
+          summary: 'Desfazer uma importação de produção',
           security: [{ bearerAuth: [] }],
         },
         preHandler: [server.authenticate, authorize('administrador')],
@@ -1303,7 +1303,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
             [id]
           );
           const item = result.rows[0];
-          if (!item) return reply.status(404).send({ error: 'Importacao nao encontrada' });
+          if (!item) return reply.status(404).send({ error: 'Importação não encontrada' });
           if (item.tipo !== 'PRODUCAO') {
             return reply
               .status(400)
@@ -1332,7 +1332,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
             (detalhes as Record<string, unknown>).rollback_executado
           );
           if (rollbackExecutado) {
-            return reply.status(400).send({ error: 'Rollback desta importacao ja foi executado' });
+            return reply.status(400).send({ error: 'Rollback desta importação já foi executado' });
           }
 
           await server.database.query('BEGIN');
@@ -1553,7 +1553,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
             if (fetched.contentType.includes('text/html') && fetched.csvContent.includes('<html')) {
               return reply.status(400).send({
                 error:
-                  'A planilha nao esta publicada. Publique via Arquivo > Compartilhar > Publicar na Web > CSV.',
+                  'A planilha não está publicada. Publique via Arquivo > Compartilhar > Publicar na Web > CSV.',
               });
             }
             return reply.send({ csv: fetched.csvContent, url: fetched.csvUrl });
@@ -1574,7 +1574,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
       {
         schema: {
           tags: ['operacional'],
-          summary: 'Listar fontes de importacao salvas',
+          summary: 'Listar fontes de importação salvas',
           security: [{ bearerAuth: [] }],
         },
         preHandler: [server.authenticate, authorize('operador', 'administrador')],
@@ -1595,7 +1595,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
           return reply.send({ fontes: result.rows });
         } catch (error) {
           const message =
-            error instanceof Error ? error.message : 'Erro ao listar fontes de importacao';
+            error instanceof Error ? error.message : 'Erro ao listar fontes de importação';
           return sendDatabaseError(reply, error, message);
         }
       }
@@ -1607,7 +1607,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
       {
         schema: {
           tags: ['operacional'],
-          summary: 'Criar fonte de importacao',
+          summary: 'Criar fonte de importação',
           security: [{ bearerAuth: [] }],
         },
         preHandler: [server.authenticate, authorize('operador', 'administrador')],
@@ -1630,7 +1630,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
           return reply.status(201).send({ id: result.rows[0]!.id });
         } catch (error) {
           const message =
-            error instanceof Error ? error.message : 'Erro ao criar fonte de importacao';
+            error instanceof Error ? error.message : 'Erro ao criar fonte de importação';
           return sendDatabaseError(reply, error, message);
         }
       }
@@ -1642,7 +1642,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
       {
         schema: {
           tags: ['operacional'],
-          summary: 'Excluir fonte de importacao',
+          summary: 'Excluir fonte de importação',
           security: [{ bearerAuth: [] }],
         },
         preHandler: [server.authenticate, authorize('operador', 'administrador')],
@@ -1654,7 +1654,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
           return reply.send({ ok: true });
         } catch (error) {
           const message =
-            error instanceof Error ? error.message : 'Erro ao excluir fonte de importacao';
+            error instanceof Error ? error.message : 'Erro ao excluir fonte de importação';
           return sendDatabaseError(reply, error, message);
         }
       }
@@ -1681,7 +1681,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
             url: string;
           }>(`SELECT id, nome, url FROM fontes_importacao WHERE id = $1`, [id]);
           if (fonteResult.rows.length === 0) {
-            return reply.status(404).send({ error: 'Fonte de importacao nao encontrada' });
+            return reply.status(404).send({ error: 'Fonte de importação não encontrada' });
           }
           const fonte = fonteResult.rows[0]!;
 
@@ -1749,7 +1749,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
               [repoId, orgaoRepositorio, PROJETO_IMPORTACAO_PRODUCAO]
             );
             if (repoResult.rows.length === 0) {
-              novos.push({ linha, dados: row, motivo: 'Repositorio nao encontrado' });
+              novos.push({ linha, dados: row, motivo: 'Repositório não encontrado' });
               continue;
             }
             const repositorioId = repoResult.rows[0]!.id_repositorio_recorda;
@@ -1817,7 +1817,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
       {
         schema: {
           tags: ['operacional'],
-          summary: 'Preview de impacto da importacao de producao',
+          summary: 'Pré-visualização do impacto da importação de produção',
           security: [{ bearerAuth: [] }],
         },
         preHandler: [
@@ -2016,7 +2016,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
             },
           });
         } catch (error) {
-          const message = error instanceof Error ? error.message : 'Erro no preview de importacao';
+          const message = error instanceof Error ? error.message : 'Erro na pré-visualização da importação';
           return reply.status(400).send({ error: message });
         }
       }
@@ -2044,7 +2044,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
             url: string;
           }>(`SELECT id, nome, url FROM fontes_importacao WHERE id = $1`, [id]);
           if (fonteResult.rows.length === 0) {
-            return reply.status(404).send({ error: 'Fonte de importacao nao encontrada' });
+            return reply.status(404).send({ error: 'Fonte de importação não encontrada' });
           }
           const fonte = fonteResult.rows[0]!;
 
@@ -2104,7 +2104,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
               [`importacao_fonte:${fonte.id}`]
             );
             if (!lockResult.rows[0]?.acquired) {
-              throw new Error('Importacao desta fonte ja esta em execucao. Tente novamente.');
+              throw new Error('Importação desta fonte já está em execução. Tente novamente.');
             }
 
             for (let idx = 0; idx < registros.length; idx++) {
@@ -2427,7 +2427,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
             url: string;
           }>(`SELECT id, nome, url FROM fontes_importacao ORDER BY nome`);
           if (fontesResult.rows.length === 0) {
-            return reply.status(400).send({ error: 'Nenhuma fonte de importacao cadastrada.' });
+            return reply.status(400).send({ error: 'Nenhuma fonte de importação cadastrada.' });
           }
 
           const fontes = fontesResult.rows;

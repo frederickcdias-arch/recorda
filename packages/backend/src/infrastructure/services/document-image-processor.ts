@@ -127,7 +127,7 @@ export function decodeImageDataUrl(dataUrl: string): { mimeType: string; buffer:
   const mimeType = match?.[1];
   const payload = match?.[2];
   if (!mimeType || !payload) {
-    throw new Error('Imagem invalida. Envie JPEG, PNG ou WEBP em data URI base64.');
+    throw new Error('Imagem inválida. Envie JPEG, PNG ou WEBP em data URI base64.');
   }
 
   return {
@@ -264,7 +264,7 @@ function buildWarnings(
   const warnings: string[] = [];
   if (analysis.kind === 'low_confidence_capture') {
     warnings.push(
-      'Captura com baixa confianca geometrica; revisar enquadramento ou ajustar bordas.'
+      'Captura com baixa confiança geométrica; revise o enquadramento ou ajuste as bordas.'
     );
   }
   if (
@@ -274,12 +274,12 @@ function buildWarnings(
     !detectedCorners?.length
   ) {
     warnings.push(
-      'A folha ocupa quase todo o quadro; a deteccao automatica pode confundir papel e fundo.'
+      'A folha ocupa quase todo o quadro; a detecção automática pode confundir papel e fundo.'
     );
   }
   if (analysis.paperLikeRatio < 0.18 && !assistedImageBuffer && !detectedCorners?.length) {
     warnings.push(
-      'Pouca area de papel isolada na imagem original; o sistema deve preferir revisao manual.'
+      'Pouca área de papel isolada na imagem original; o sistema deve preferir revisão manual.'
     );
   }
   return warnings;
@@ -455,7 +455,7 @@ async function processWithSharpFallback(
 
   const outputBuffer = await pipeline.toBuffer();
   const metadata = await sharp(outputBuffer).metadata();
-  warnings.push('Documento nao corrigido com perspectiva completa; aplicada melhoria leve.');
+  warnings.push('Documento não corrigido com perspectiva completa; melhoria leve aplicada.');
   return {
     buffer: outputBuffer,
     width: metadata.width ?? 0,
@@ -478,7 +478,7 @@ export async function processDocumentImage(
   } = input;
 
   if (!isSupportedMimeType(mimeType)) {
-    throw new Error('Tipo de imagem nao suportado. Use JPEG, PNG ou WEBP.');
+    throw new Error('Tipo de imagem não suportado. Use JPEG, PNG ou WEBP.');
   }
 
   const preserveColors = options?.preserveColors ?? true;
@@ -562,11 +562,11 @@ export async function processDocumentImage(
   }
 
   if (manualCorners?.length === 4 && !normalizedManualCorners) {
-    warnings.push('Os cantos manuais recebidos nao passaram na validacao geometrica do backend.');
+    warnings.push('Os cantos manuais recebidos não passaram na validação geométrica do backend.');
   }
   if (detectedCorners?.length === 4 && !normalizedDetectedCorners) {
     warnings.push(
-      'Os cantos detectados recebidos nao passaram na validacao geometrica do backend.'
+      'Os cantos detectados recebidos não passaram na validação geométrica do backend.'
     );
   }
 
@@ -615,7 +615,7 @@ export async function processDocumentImage(
                 ? 'Warp final aplicado no backend a partir dos cantos manuais sobre a imagem original.'
                 : 'Warp final aplicado no backend a partir dos cantos detectados sobre a imagem original.',
               ...(pythonResult.fallbackUsado
-                ? ['Nao foi possivel aplicar os cantos com seguranca. Aplicado fallback seguro.']
+                ? ['Não foi possível aplicar os cantos com segurança. Fallback seguro aplicado.']
                 : []),
               ...warnings,
             ].filter(Boolean),
@@ -665,7 +665,7 @@ export async function processDocumentImage(
           corners: preferredCorners,
           warnings: [
             ...(pythonResult.fallbackUsado
-              ? ['Nao foi possivel detectar a folha com seguranca. Aplicado fallback seguro.']
+              ? ['Não foi possível detectar a folha com segurança. Fallback seguro aplicado.']
               : []),
             ...warnings,
           ].filter(Boolean),
@@ -712,7 +712,7 @@ export async function processDocumentImage(
         analysis: analysisMetadata,
         corners: preferredCorners,
         warnings: [
-          'Imagem corrigida no frontend usada apenas como fallback, porque o backend nao conseguiu gerar o warp final oficial a partir da original.',
+          'Imagem corrigida no frontend usada apenas como fallback, porque o backend não conseguiu gerar o warp final oficial a partir da original.',
           ...(assistedMime !== finalized.mimeType
             ? ['A imagem assistida foi reencodada no backend para armazenamento final.']
             : []),
