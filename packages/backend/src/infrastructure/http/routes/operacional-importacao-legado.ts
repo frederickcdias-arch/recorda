@@ -650,7 +650,9 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
             [usuarioDestinoId]
           );
           if (usuarioDestinoResult.rows.length === 0) {
-            return reply.status(404).send({ error: 'Usuário de destino não encontrado ou inativo' });
+            return reply
+              .status(404)
+              .send({ error: 'Usuário de destino não encontrado ou inativo' });
           }
 
           const erros: Array<{ linha: number; idRepositorioGed: string; erro: string }> = [];
@@ -2016,7 +2018,8 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
             },
           });
         } catch (error) {
-          const message = error instanceof Error ? error.message : 'Erro na pré-visualização da importação';
+          const message =
+            error instanceof Error ? error.message : 'Erro na pré-visualização da importação';
           return reply.status(400).send({ error: message });
         }
       }

@@ -88,8 +88,8 @@ export function EtiquetasLocalizacaoPage(): JSX.Element {
               Compactar etiquetas
             </h2>
             <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
-              Selecione um ou mais PDFs de etiquetas. O resultado será um único PDF com 4
-              etiquetas por folha, prontas para impressão e recorte.
+              Selecione um ou mais PDFs de etiquetas. O resultado será um único PDF com 4 etiquetas
+              por folha, prontas para impressão e recorte.
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end">

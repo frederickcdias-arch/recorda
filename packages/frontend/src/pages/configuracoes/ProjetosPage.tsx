@@ -121,7 +121,9 @@ export function ProjetosPage(): JSX.Element {
         {mensagem ? (
           <ActionFeedback
             type={mensagem.tipo}
-            title={mensagem.tipo === 'success' ? 'Atualização Concluída' : 'Não Foi Possível Concluir'}
+            title={
+              mensagem.tipo === 'success' ? 'Atualização Concluída' : 'Não Foi Possível Concluir'
+            }
             message={mensagem.texto}
             onDismiss={() => setMensagem(null)}
           />
@@ -130,7 +132,8 @@ export function ProjetosPage(): JSX.Element {
         <Card padding="sm" className="bg-[var(--color-bg-secondary)]">
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
             <span className="text-[var(--color-text-secondary)]">
-              Projetos <strong className="text-[var(--color-text-primary)]">{projetos.length}</strong>
+              Projetos{' '}
+              <strong className="text-[var(--color-text-primary)]">{projetos.length}</strong>
             </span>
             <span className="text-[var(--color-text-secondary)]">
               Visíveis{' '}

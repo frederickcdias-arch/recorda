@@ -191,10 +191,7 @@ export function MeuHistoricoPage(): JSX.Element {
   return (
     <PageState loading={isLoading} loadingMessage="Carregando histórico...">
       <div className="space-y-6">
-        <PageHeader
-          title="Meu Histórico"
-          subtitle={`Produção de ${usuario?.nome ?? ''}`}
-        />
+        <PageHeader title="Meu Histórico" subtitle={`Produção de ${usuario?.nome ?? ''}`} />
 
         {/* Filtros */}
         <FilterBar
@@ -361,9 +358,7 @@ export function MeuHistoricoPage(): JSX.Element {
           <div className="md:hidden space-y-3">
             {producoes.length === 0 ? (
               <div className="rounded-xl border border-[var(--color-border-primary)] p-6 text-center text-[var(--color-text-secondary)] text-sm">
-                {temFiltros
-                  ? 'Ajuste os filtros.'
-                  : 'Lance sua primeira produção.'}
+                {temFiltros ? 'Ajuste os filtros.' : 'Lance sua primeira produção.'}
               </div>
             ) : (
               producoes.map((p) => {
@@ -461,11 +456,7 @@ export function MeuHistoricoPage(): JSX.Element {
                   <TableEmptyState
                     colSpan={5}
                     title="Nenhuma produção encontrada"
-                    description={
-                      temFiltros
-                        ? 'Ajuste os filtros'
-                        : 'Lance sua primeira produção'
-                    }
+                    description={temFiltros ? 'Ajuste os filtros' : 'Lance sua primeira produção'}
                   />
                 ) : (
                   producoes.map((p) => {

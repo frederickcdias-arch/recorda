@@ -255,4 +255,3 @@ export function MinhasAusenciasPage(): JSX.Element {
     </div>
   );
 }
-

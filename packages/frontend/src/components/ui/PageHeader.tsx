@@ -21,10 +21,7 @@ export function PageHeader({
 }: PageHeaderProps): JSX.Element {
   return (
     <div
-      className={cn(
-        'flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between',
-        className
-      )}
+      className={cn('flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between', className)}
     >
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
@@ -35,9 +32,7 @@ export function PageHeader({
         </div>
 
         {subtitle ? (
-          <p className="mt-0.5 max-w-3xl text-sm text-[var(--color-text-secondary)]">
-            {subtitle}
-          </p>
+          <p className="mt-0.5 max-w-3xl text-sm text-[var(--color-text-secondary)]">{subtitle}</p>
         ) : null}
       </div>
 

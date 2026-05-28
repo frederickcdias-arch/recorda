@@ -400,9 +400,7 @@ export function ImportarProducaoPage(): JSX.Element {
     try {
       const parsed = parseCsvToProducao(dadosColados);
       if (parsed.length === 0) {
-        toast.error(
-          'Nenhum registro válido. Verifique o cabeçalho e uma linha.'
-        );
+        toast.error('Nenhum registro válido. Verifique o cabeçalho e uma linha.');
         return;
       }
       setRegistrosProducao(parsed);
@@ -1238,4 +1236,3 @@ export function ImportarProducaoPage(): JSX.Element {
     </PageState>
   );
 }
-

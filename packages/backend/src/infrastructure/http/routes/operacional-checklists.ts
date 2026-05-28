@@ -834,7 +834,7 @@ export function createOperacionalChecklistsRoutes(): FastifyPluginAsync {
           const body = request.body as { repositorioIds?: string[] };
           const ids = body.repositorioIds;
           if (!ids || ids.length === 0) {
-          return reply.status(400).send({ error: 'repositorioIds é obrigatório' });
+            return reply.status(400).send({ error: 'repositorioIds é obrigatório' });
           }
           const user = getCurrentUser(request);
           const report = await gerarRelatorioRecebimento(ids, user.id);

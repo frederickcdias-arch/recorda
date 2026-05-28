@@ -328,10 +328,7 @@ export function EmpresaPage(): JSX.Element {
         </Card>
 
         <Card>
-          <CardHeader
-            title="Logo da Empresa"
-            description="Imagem usada nos documentos gerados."
-          />
+          <CardHeader title="Logo da Empresa" description="Imagem usada nos documentos gerados." />
 
           <div className="space-y-5">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
@@ -520,4 +517,3 @@ export function EmpresaPage(): JSX.Element {
     </PageState>
   );
 }
-

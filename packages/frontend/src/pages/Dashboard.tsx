@@ -172,11 +172,7 @@ function StatCard({
   const displayValue = rawValue != null ? animated.toLocaleString('pt-BR') : value;
   const toneClass = statToneClasses[tone];
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="w-full text-left"
-    >
+    <button type="button" onClick={onClick} className="w-full text-left">
       <Card padding="sm" hover={!!onClick} className="h-full border-[var(--color-border-primary)]">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
@@ -275,7 +271,6 @@ function DashboardColaborador(): JSX.Element {
           rawValue={totalProducoes}
           icon="clipboard"
           tone="primary"
-
         />
         <StatCard
           title="Quantidade Total"
@@ -283,25 +278,20 @@ function DashboardColaborador(): JSX.Element {
           rawValue={totalQuantidade}
           icon="bar-chart"
           tone="success"
-
         />
         <StatCard
           title="Registros nos Últimos 7 Dias"
           value={formatCriticalNumber(registrosUltimos7Dias)}
           rawValue={registrosUltimos7Dias}
           icon="calendar"
-
           tone="warning"
-
         />
         <StatCard
           title="Quantidade nos Últimos 7 Dias"
           value={formatCriticalNumber(quantidadeUltimos7Dias)}
           rawValue={quantidadeUltimos7Dias}
           icon="trending-up"
-
           tone="neutral"
-
         />
       </section>
 
@@ -500,7 +490,6 @@ function DashboardContent({ data }: { data: DashboardData }): JSX.Element {
           subtitle={data.stats.producaoTrend !== '0%' ? data.stats.producaoTrend : undefined}
           tone="primary"
           onClick={() => navigate('/producao')}
-
         />
         <StatCard
           title="Repositórios com Produção"
@@ -514,7 +503,6 @@ function DashboardContent({ data }: { data: DashboardData }): JSX.Element {
           }
           tone="success"
           onClick={() => navigate('/producao')}
-
         />
         <StatCard
           title="Usuários Ativos"
@@ -523,7 +511,6 @@ function DashboardContent({ data }: { data: DashboardData }): JSX.Element {
           icon="users"
           tone="warning"
           onClick={() => navigate('/producao')}
-
         />
       </section>
 

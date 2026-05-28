@@ -711,4 +711,3 @@ export function RecebimentoAvulsosPanel({
     </div>
   );
 }
-

@@ -433,7 +433,9 @@ export function ComunicadosPage(): JSX.Element {
                             </span>
                           ) : null}
                           {comunicadoCaixa.encerradoEm ? (
-                            <span>Encerrado em {formatDateTimeBR(comunicadoCaixa.encerradoEm)}</span>
+                            <span>
+                              Encerrado em {formatDateTimeBR(comunicadoCaixa.encerradoEm)}
+                            </span>
                           ) : null}
                         </div>
                       </div>

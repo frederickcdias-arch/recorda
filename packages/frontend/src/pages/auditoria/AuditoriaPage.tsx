@@ -204,11 +204,7 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
     : null;
 
   return (
-    <PageState
-      loading={carregando}
-      loadingMessage="Carregando auditoria..."
-      error={erroComAcao}
-    >
+    <PageState loading={carregando} loadingMessage="Carregando auditoria..." error={erroComAcao}>
       <div className="space-y-6">
         <PageHeader
           title={config?.titulo ?? 'Auditoria'}
@@ -291,9 +287,7 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
                   className="mx-auto mb-3 h-8 w-8 text-[var(--color-text-tertiary)]"
                 />
                 <p className="text-sm font-medium text-[var(--color-text-primary)]">
-                  {temFiltroAtivo
-                    ? 'Nenhum resultado para os filtros aplicados'
-                    : 'Nenhum evento.'}
+                  {temFiltroAtivo ? 'Nenhum resultado para os filtros aplicados' : 'Nenhum evento.'}
                 </p>
                 <p className="mt-1 text-xs text-[var(--color-text-tertiary)]">
                   {temFiltroAtivo
@@ -436,4 +430,3 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
     </PageState>
   );
 }
-

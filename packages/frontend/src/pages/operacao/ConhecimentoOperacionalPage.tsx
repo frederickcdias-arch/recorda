@@ -500,10 +500,7 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
       error={activeTab === 'documentos' ? errorWithAction : null}
     >
       <div className="space-y-6">
-        <PageHeader
-          title="Conhecimento Operacional"
-          subtitle="Documentos, glossário e normas."
-        />
+        <PageHeader title="Conhecimento Operacional" subtitle="Documentos, glossário e normas." />
 
         {message ? (
           <ActionFeedback
@@ -587,9 +584,7 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               <div className="space-y-2 max-h-[65vh] overflow-auto pr-1">
                 {itens.length === 0 ? (
-                  <p className="text-sm text-[var(--color-text-tertiary)] p-3">
-                    Nenhum documento.
-                  </p>
+                  <p className="text-sm text-[var(--color-text-tertiary)] p-3">Nenhum documento.</p>
                 ) : (
                   itens.map((doc) => (
                     <button
@@ -724,9 +719,7 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
                         </span>
                       </div>
                       <div className="p-3">
-                        <Suspense
-                          fallback={<MarkdownFallback label="Carregando..." />}
-                        >
+                        <Suspense fallback={<MarkdownFallback label="Carregando..." />}>
                           <MarkdownViewer content={detalhe.versaoAtual?.conteudo ?? ''} />
                         </Suspense>
                       </div>
@@ -936,9 +929,7 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
                   ))}
                   {glossarioFiltrado.length === 0 && (
                     <p className="text-sm text-[var(--color-text-tertiary)] py-4">
-                      {buscaGlossario.trim()
-                        ? 'Nenhum termo.'
-                        : 'Nenhum termo.'}
+                      {buscaGlossario.trim() ? 'Nenhum termo.' : 'Nenhum termo.'}
                     </p>
                   )}
                 </div>
@@ -994,9 +985,7 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
             </div>
 
             {leisQuery.isLoading ? (
-              <p className="text-sm text-[var(--color-text-tertiary)]">
-                Carregando...
-              </p>
+              <p className="text-sm text-[var(--color-text-tertiary)]">Carregando...</p>
             ) : (
               <>
                 <div className="space-y-3">

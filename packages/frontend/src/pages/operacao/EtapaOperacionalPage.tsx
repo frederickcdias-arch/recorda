@@ -878,11 +878,7 @@ export function EtapaOperacionalPage(): JSX.Element {
     : null;
 
   return (
-    <PageState
-      loading={carregando}
-      loadingMessage="Carregando fila..."
-      error={erroComAcao}
-    >
+    <PageState loading={carregando} loadingMessage="Carregando fila..." error={erroComAcao}>
       <div className="space-y-6">
         <PageHeader
           title={etapaConfig.label}
@@ -903,7 +899,10 @@ export function EtapaOperacionalPage(): JSX.Element {
                 Total <strong className="text-[var(--color-text-primary)]">{totalGeral}</strong>
               </span>
               {Object.entries(contadores).map(([status, qtd]) => (
-                <span key={status} className="flex items-center gap-2 text-[var(--color-text-secondary)]">
+                <span
+                  key={status}
+                  className="flex items-center gap-2 text-[var(--color-text-secondary)]"
+                >
                   <StatusBadge status={status} />
                   <strong className="text-[var(--color-text-primary)]">{qtd}</strong>
                 </span>
@@ -1468,7 +1467,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                                     });
                                   }}
                                   className="rounded"
-                              aria-label={`Selecionar repositório ${item.id_repositorio_ged}`}
+                                  aria-label={`Selecionar repositório ${item.id_repositorio_ged}`}
                                 />
                               </td>
                               <td className="px-4 py-3 text-sm font-medium text-[var(--color-text-primary)]">

@@ -119,7 +119,7 @@ function MenuItemComponent({
             <span className="flex-1 text-left">{item.label}</span>
             <Icon
               name="chevron-right"
-               className={`h-4 w-4 transition-transform duration-200 ${expanded ? 'rotate-90' : ''}`}
+              className={`h-4 w-4 transition-transform duration-200 ${expanded ? 'rotate-90' : ''}`}
             />
           </>
         ) : null}
@@ -411,7 +411,9 @@ export function Sidebar({
               {userInitials}
             </div>
             <div className="min-w-0">
-              <p className="truncate font-medium text-[var(--color-text-primary)]">{usuario.nome}</p>
+              <p className="truncate font-medium text-[var(--color-text-primary)]">
+                {usuario.nome}
+              </p>
               <p className="truncate text-xs capitalize text-[var(--color-text-tertiary)]">
                 {usuario.perfil}
               </p>

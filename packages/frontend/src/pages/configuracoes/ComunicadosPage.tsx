@@ -527,7 +527,9 @@ export function ComunicadosPage(): JSX.Element {
       ]),
     ];
 
-    const csv = linhas.map((linha) => linha.map((coluna) => toCsvCell(coluna)).join(';')).join('\n');
+    const csv = linhas
+      .map((linha) => linha.map((coluna) => toCsvCell(coluna)).join(';'))
+      .join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
@@ -686,13 +688,18 @@ export function ComunicadosPage(): JSX.Element {
 
             <div className="flex flex-wrap gap-2 text-sm">
               <span className="rounded-full border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] px-3 py-1 text-[var(--color-text-secondary)]">
-                Leituras Pendentes: <strong className="text-[var(--color-text-primary)]">{naoLidos}</strong>
+                Leituras Pendentes:{' '}
+                <strong className="text-[var(--color-text-primary)]">{naoLidos}</strong>
               </span>
               <span className="rounded-full border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] px-3 py-1 text-[var(--color-text-secondary)]">
-                Alta: <strong className="text-[var(--color-text-primary)]">{comunicadosAlta}</strong>
+                Alta:{' '}
+                <strong className="text-[var(--color-text-primary)]">{comunicadosAlta}</strong>
               </span>
               <span className="rounded-full border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] px-3 py-1 text-[var(--color-text-secondary)]">
-                Filtrados: <strong className="text-[var(--color-text-primary)]">{resumo?.totalFiltrados ?? 0}</strong>
+                Filtrados:{' '}
+                <strong className="text-[var(--color-text-primary)]">
+                  {resumo?.totalFiltrados ?? 0}
+                </strong>
               </span>
             </div>
           </div>
@@ -1398,7 +1405,11 @@ export function ComunicadosPage(): JSX.Element {
                   </div>
 
                   <div className="mt-4 flex flex-wrap gap-2">
-                    <Button variant="ghost" size="sm" onClick={() => void handleCopiarEmails(false)}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => void handleCopiarEmails(false)}
+                    >
                       Copiar emails
                     </Button>
                     <Button variant="ghost" size="sm" onClick={() => void handleCopiarEmails(true)}>

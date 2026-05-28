@@ -228,10 +228,7 @@ export function RelatorioAusenciasPage(): JSX.Element {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Relatório de Ausências"
-        subtitle="Fechamento de ausências."
-      />
+      <PageHeader title="Relatório de Ausências" subtitle="Fechamento de ausências." />
 
       {mensagem && (
         <ActionFeedback
@@ -457,10 +454,7 @@ export function RelatorioAusenciasPage(): JSX.Element {
                 </TableHead>
                 <TableBody>
                   {registros.length === 0 ? (
-                    <TableEmptyState
-                      colSpan={8}
-                      title="Nenhum registro para os filtros"
-                    />
+                    <TableEmptyState colSpan={8} title="Nenhum registro para os filtros" />
                   ) : (
                     registros.map((r) => (
                       <TableRow
@@ -523,4 +517,3 @@ export function RelatorioAusenciasPage(): JSX.Element {
     </div>
   );
 }
-

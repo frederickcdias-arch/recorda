@@ -1067,4 +1067,3 @@ export function DevolucoesPage(): JSX.Element {
     </PageState>
   );
 }
-
