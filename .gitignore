@@ -22,3 +22,11 @@ phase6-*.png
 phase7-*.png
 phase8-*.png
 phase*.png
+
+# Arquivos temporários de debug/IA (raiz e packages/backend)
+.tmp/
+.tmp-*.jpg
+.tmp-*.png
+MODELO*.jpg
+MODELO*.jpeg
+packages/backend/.tmp/
