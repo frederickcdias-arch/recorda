@@ -34,6 +34,11 @@ const EtapaOperacionalPage = lazy(() =>
     default: m.EtapaOperacionalPage,
   }))
 );
+const PainelEtapaPage = lazy(() =>
+  import('../pages/operacao/PainelEtapaPage').then((m) => ({
+    default: m.PainelEtapaPage,
+  }))
+);
 const ConhecimentoOperacionalPage = lazy(() =>
   import('../pages/operacao/ConhecimentoOperacionalPage').then((m) => ({
     default: m.ConhecimentoOperacionalPage,
@@ -268,6 +273,46 @@ export const router = createBrowserRouter([
           <RoleRoute allowedProfiles={['operador', 'administrador']}>
             <PageSuspense>
               <EtiquetasLocalizacaoPage />
+            </PageSuspense>
+          </RoleRoute>
+        ),
+      },
+      {
+        path: 'operacao/preparacao',
+        element: (
+          <RoleRoute allowedProfiles={['operador', 'administrador']}>
+            <PageSuspense>
+              <PainelEtapaPage />
+            </PageSuspense>
+          </RoleRoute>
+        ),
+      },
+      {
+        path: 'operacao/digitalizacao',
+        element: (
+          <RoleRoute allowedProfiles={['operador', 'administrador']}>
+            <PageSuspense>
+              <PainelEtapaPage />
+            </PageSuspense>
+          </RoleRoute>
+        ),
+      },
+      {
+        path: 'operacao/conferencia',
+        element: (
+          <RoleRoute allowedProfiles={['operador', 'administrador']}>
+            <PageSuspense>
+              <PainelEtapaPage />
+            </PageSuspense>
+          </RoleRoute>
+        ),
+      },
+      {
+        path: 'operacao/reconferencia',
+        element: (
+          <RoleRoute allowedProfiles={['operador', 'administrador']}>
+            <PageSuspense>
+              <PainelEtapaPage />
             </PageSuspense>
           </RoleRoute>
         ),

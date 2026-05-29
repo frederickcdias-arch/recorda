@@ -172,9 +172,8 @@ export const avancarEtapaSchema = z.object({
       'PREPARACAO',
       'DIGITALIZACAO',
       'CONFERENCIA',
-      'MONTAGEM',
+      'RECONFERENCIA',
       'CONTROLE_QUALIDADE',
-      'ENTREGA',
     ],
     { message: 'Etapa destino é obrigatória' }
   ),

@@ -8,6 +8,10 @@ import { createServer } from './server.js';
 import type { OCRService } from '../../application/ports/ocr-service.js';
 
 const HASHED_PASSWORD = bcrypt.hashSync('SenhaSegura123', 10);
+const ETAPA_1_ID = '11111111-1111-4111-8111-000000000001';
+const KB_DOC_1_ID = '22222222-2222-4222-8222-000000000001';
+const FUTURE_DATE_IMPORT_ERROR =
+  'Data de produção futura não é permitida. Corrija a data na planilha antes de importar.';
 
 function makeResult<T extends QueryResultRow>(rows: T[], command = 'SELECT'): QueryResult<T> {
   return {
@@ -75,6 +79,9 @@ function createMockDatabase(): DatabaseConnection & {
       projeto: string;
       status_atual: string;
       etapa_atual: string;
+      localizacao_fisica_armario_id?: string | null;
+      seadesk_confirmado_em?: string | null;
+      seadesk_confirmado_por?: string | null;
     }
   >;
   fontesImportacao: Map<string, { id: string; nome: string; url: string; tipo: string }>;
@@ -207,6 +214,9 @@ function createMockDatabase(): DatabaseConnection & {
       projeto: string;
       status_atual: string;
       etapa_atual: string;
+      localizacao_fisica_armario_id?: string | null;
+      seadesk_confirmado_em?: string | null;
+      seadesk_confirmado_por?: string | null;
     }
   >();
   const fontesImportacao = new Map<
@@ -396,32 +406,32 @@ function createMockDatabase(): DatabaseConnection & {
         endereco: params?.[2],
         telefone: params?.[3],
         email: params?.[4],
-        logo_url: params?.[5],
-        exibir_logo_relatorio: params?.[6],
-        exibir_endereco_relatorio: params?.[7],
-        exibir_contato_relatorio: params?.[8],
-        logo_largura_relatorio: params?.[9] ?? 120,
-        logo_alinhamento_relatorio: params?.[10] ?? 'CENTRO',
-        logo_deslocamento_y_relatorio: params?.[11] ?? 0,
+        logo_url: configuracaoEmpresa?.logo_url ?? null,
+        exibir_logo_relatorio: params?.[5],
+        exibir_endereco_relatorio: params?.[6],
+        exibir_contato_relatorio: params?.[7],
+        logo_largura_relatorio: params?.[8] ?? 120,
+        logo_alinhamento_relatorio: params?.[9] ?? 'CENTRO',
+        logo_deslocamento_y_relatorio: params?.[10] ?? 0,
       };
       return makeResult([configuracaoEmpresa], 'INSERT');
     }
 
     if (text.includes('UPDATE configuracao_empresa SET')) {
       configuracaoEmpresa = {
-        ...(configuracaoEmpresa ?? { id: params?.[12] ?? 'config-1' }),
+        ...(configuracaoEmpresa ?? { id: params?.[11] ?? 'config-1' }),
         nome: params?.[0],
         cnpj: params?.[1],
         endereco: params?.[2],
         telefone: params?.[3],
         email: params?.[4],
-        logo_url: params?.[5],
-        exibir_logo_relatorio: params?.[6],
-        exibir_endereco_relatorio: params?.[7],
-        exibir_contato_relatorio: params?.[8],
-        logo_largura_relatorio: params?.[9] ?? 120,
-        logo_alinhamento_relatorio: params?.[10] ?? 'CENTRO',
-        logo_deslocamento_y_relatorio: params?.[11] ?? 0,
+        logo_url: configuracaoEmpresa?.logo_url ?? null,
+        exibir_logo_relatorio: params?.[5],
+        exibir_endereco_relatorio: params?.[6],
+        exibir_contato_relatorio: params?.[7],
+        logo_largura_relatorio: params?.[8] ?? 120,
+        logo_alinhamento_relatorio: params?.[9] ?? 'CENTRO',
+        logo_deslocamento_y_relatorio: params?.[10] ?? 0,
       };
       return makeResult([configuracaoEmpresa], 'UPDATE');
     }
@@ -906,17 +916,16 @@ function createMockDatabase(): DatabaseConnection & {
       return makeResult([], 'UPDATE');
     }
 
-    if (text.includes('SELECT rt.usuario_id, rt.id as token_id')) {
-      const tokenHash = String(params?.[0]);
-      if (!tokenHash.startsWith('reset:')) {
-        return makeResult([]);
-      }
-      const token = refreshTokens.find(
-        (t) => t.token_hash === tokenHash && !t.revogado && t.expira_em > new Date()
-      );
-      return token
-        ? makeResult([{ usuario_id: token.usuario_id, token_id: token.id }])
-        : makeResult([]);
+    if (
+      text.includes('FROM password_reset_tokens') &&
+      text.includes('token_hash = $1') &&
+      text.includes('usado = false')
+    ) {
+      return makeResult([]);
+    }
+
+    if (text.includes('UPDATE password_reset_tokens SET usado = true WHERE id = $1')) {
+      return makeResult([], 'UPDATE');
     }
 
     // ── Coordenadorias ──
@@ -1177,9 +1186,23 @@ function createMockDatabase(): DatabaseConnection & {
       ]);
     }
     if (text.includes('FROM repositorios') && text.includes('WHERE id_repositorio_recorda = $1')) {
+      const id = String(params?.[0]);
+      for (const repo of repositorios.values()) {
+        if (String(repo.id_repositorio_recorda) === id) {
+          return makeResult([
+            {
+              id_repositorio_recorda: repo.id_repositorio_recorda,
+              localizacao_fisica_armario_id: repo.localizacao_fisica_armario_id ?? 'arm-1',
+              etapa_atual: repo.etapa_atual ?? 'RECEBIMENTO',
+              status_atual: repo.status_atual ?? 'RECEBIDO',
+              seadesk_confirmado_em: repo.seadesk_confirmado_em ?? null,
+            },
+          ]);
+        }
+      }
       return makeResult([
         {
-          id_repositorio_recorda: String(params?.[0]),
+          id_repositorio_recorda: id,
           localizacao_fisica_armario_id: 'arm-1',
           etapa_atual: 'RECEBIMENTO',
           status_atual: 'RECEBIDO',
@@ -1374,13 +1397,16 @@ function createMockDatabase(): DatabaseConnection & {
     }
     if (
       text.includes('DELETE FROM producao_repositorio') &&
-      text.includes("marcadores->>'origem'")
+      (text.includes("marcadores->>'origem'") || text.includes('COALESCE('))
     ) {
       const removidos = legacyProducoes.size;
       legacyProducoes.clear();
       return makeResult(new Array(removidos).fill({}), 'DELETE');
     }
-    if (text.includes("DELETE FROM checklists WHERE observacao = 'Importacao legada'")) {
+    if (
+      text.includes('DELETE FROM checklists WHERE') &&
+      text.includes("observacao = 'Importacao legada'")
+    ) {
       const removidos = legacyChecklists.size;
       legacyChecklists.clear();
       return makeResult(new Array(removidos).fill({}), 'DELETE');
@@ -1644,7 +1670,7 @@ function createMockDatabase(): DatabaseConnection & {
       }
       return makeResult([
         {
-          id: 'kb-1',
+          id: KB_DOC_1_ID,
           codigo: 'KB-001',
           titulo: 'Manual',
           categoria: 'MANUAIS',
@@ -1772,11 +1798,21 @@ function createMockDatabase(): DatabaseConnection & {
 
     // ── Seadesk confirmar ──
     if (text.includes('SET seadesk_confirmado_em')) {
+      const repoId = String(params?.[0]);
+      const confirmedAt = new Date().toISOString();
+      for (const [key, repo] of repositorios.entries()) {
+        if (String(repo.id_repositorio_recorda) === repoId || key === repoId) {
+          repo.seadesk_confirmado_em = confirmedAt;
+          repo.seadesk_confirmado_por = String(params?.[1]);
+          repositorios.set(key, repo);
+          break;
+        }
+      }
       return makeResult(
         [
           {
-            id_repositorio_recorda: String(params?.[0]),
-            seadesk_confirmado_em: new Date().toISOString(),
+            id_repositorio_recorda: repoId,
+            seadesk_confirmado_em: confirmedAt,
             seadesk_confirmado_por: String(params?.[1]),
           },
         ],
@@ -1784,7 +1820,15 @@ function createMockDatabase(): DatabaseConnection & {
       );
     }
     if (text.includes('seadesk_confirmado_em IS NOT NULL AS confirmado')) {
-      return makeResult([{ confirmado: false }]);
+      const repoId = String(params?.[0]);
+      let confirmado = false;
+      for (const repo of repositorios.values()) {
+        if (String(repo.id_repositorio_recorda) === repoId && repo.seadesk_confirmado_em) {
+          confirmado = true;
+          break;
+        }
+      }
+      return makeResult([{ confirmado }]);
     }
 
     // ── Dashboard extras ──
@@ -2816,7 +2860,11 @@ describe('HTTP server integration', () => {
   });
 
   it('returns system metrics', async () => {
-    const response = await server.inject({ method: 'GET', url: '/metrics' });
+    const response = await server.inject({
+      method: 'GET',
+      url: '/metrics',
+      headers: { authorization: `Bearer ${await authenticate()}` },
+    });
     expect(response.statusCode).toBe(200);
     const body = response.json();
     expect(body).toHaveProperty('memory');
@@ -3004,10 +3052,10 @@ describe('HTTP server integration', () => {
       method: 'POST',
       url: '/producao/metas',
       headers: { authorization: `Bearer ${await authenticate()}` },
-      payload: { etapaId: 'etapa-1', metaDiaria: 50, metaMensal: 1000 },
+      payload: { etapaId: ETAPA_1_ID, metaDiaria: 50, metaMensal: 1000 },
     });
     expect(response.statusCode).toBe(201);
-    expect(response.json()).toMatchObject({ etapa_id: 'etapa-1', meta_mensal: 1000 });
+    expect(response.json()).toMatchObject({ etapa_id: ETAPA_1_ID, meta_mensal: 1000 });
   });
 
   it('retorna indicadores de desempenho', async () => {
@@ -3128,7 +3176,7 @@ describe('HTTP server integration', () => {
     expect(first.statusCode).toBe(201);
     expect(second.statusCode).toBe(409);
     expect(second.json()).toMatchObject({
-      error: 'repositorio ja cadastrado para esta unidade e projeto',
+      error: 'Repositório já cadastrado para esta unidade e projeto',
     });
   });
 
@@ -3428,7 +3476,7 @@ describe('HTTP server integration', () => {
     expect(body.linhasInvalidas).toEqual([
       {
         linha: 1,
-        erro: 'Data de producao futura nao e permitida. Corrija a data na planilha antes de importar.',
+        erro: FUTURE_DATE_IMPORT_ERROR,
       },
     ]);
     expect(body.amostraDatas).toEqual([
@@ -3437,7 +3485,7 @@ describe('HTTP server integration', () => {
         dataOriginal: '15/12/2099',
         dataNormalizada: null,
         status: 'invalido',
-        erro: 'Data de producao futura nao e permitida. Corrija a data na planilha antes de importar.',
+        erro: FUTURE_DATE_IMPORT_ERROR,
       },
     ]);
   });
@@ -3490,6 +3538,21 @@ describe('HTTP server integration', () => {
   });
 
   it('limpa apenas dados legados na limpeza global de importacoes', async () => {
+    database.legacyProducoes.clear();
+    database.legacyProducoes.add('prod-legado-1');
+    database.importacaoFontesLinhas.clear();
+    database.importacaoFontesLinhas.add('fonte-legado-1::hash-legado-1');
+    database.importacaoFontesLinhas.add('fonte-nao-legada::hash-normal-1');
+    database.importacoesLegado.splice(0, database.importacoesLegado.length, {
+      tipo: 'PRODUCAO',
+      detalhes_erros: {
+        rollback: {
+          fonteId: 'fonte-legado-1',
+          importacaoFonteHashes: ['hash-legado-1'],
+        },
+      },
+    });
+
     const token = await authenticate();
 
     const response = await server.inject({
@@ -3627,7 +3690,7 @@ describe('HTTP server integration', () => {
   it('busca documento de conhecimento por ID', async () => {
     const response = await server.inject({
       method: 'GET',
-      url: '/operacional/conhecimento/documentos/kb-1',
+      url: `/operacional/conhecimento/documentos/${KB_DOC_1_ID}`,
       headers: { authorization: `Bearer ${await authenticate()}` },
     });
     expect(response.statusCode).toBe(200);
@@ -3668,7 +3731,7 @@ describe('HTTP server integration', () => {
   it('publica nova versão de documento de conhecimento', async () => {
     const response = await server.inject({
       method: 'POST',
-      url: '/operacional/conhecimento/documentos/kb-1/versoes',
+      url: `/operacional/conhecimento/documentos/${KB_DOC_1_ID}/versoes`,
       headers: { authorization: `Bearer ${await authenticate()}` },
       payload: {
         conteudo: 'Conteúdo atualizado v2',
@@ -3676,13 +3739,13 @@ describe('HTTP server integration', () => {
       },
     });
     expect(response.statusCode).toBe(201);
-    expect(response.json()).toMatchObject({ documentoId: 'kb-1', versao: 2 });
+    expect(response.json()).toMatchObject({ documentoId: KB_DOC_1_ID, versao: 2 });
   });
 
   it('atualiza metadados de documento de conhecimento', async () => {
     const response = await server.inject({
       method: 'PATCH',
-      url: '/operacional/conhecimento/documentos/kb-1',
+      url: `/operacional/conhecimento/documentos/${KB_DOC_1_ID}`,
       headers: { authorization: `Bearer ${await authenticate()}` },
       payload: {
         titulo: 'Manual Atualizado',
@@ -3790,12 +3853,36 @@ describe('HTTP server integration', () => {
 
   it('confirma envio Seadesk em repositório na digitalização', async () => {
     const token = await authenticate();
+    database.repositorios.set('repo-digitalizacao', {
+      id_repositorio_recorda: 'repo-digitalizacao',
+      id_repositorio_ged: 'GED-DIG-001',
+      orgao: 'Orgao A',
+      projeto: 'Projeto X',
+      status_atual: 'EM_DIGITALIZACAO',
+      etapa_atual: 'DIGITALIZACAO',
+      seadesk_confirmado_em: null,
+    });
+
+    const response = await server.inject({
+      method: 'PATCH',
+      url: '/operacional/repositorios/repo-digitalizacao/seadesk-confirmar',
+      headers: { authorization: `Bearer ${token}` },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      id_repositorio_recorda: 'repo-digitalizacao',
+    });
+    expect(database.repositorios.get('repo-digitalizacao')?.seadesk_confirmado_em).toBeTruthy();
+  });
+
+  it('rejeita confirmação Seadesk fora da etapa DIGITALIZACAO', async () => {
+    const token = await authenticate();
     const response = await server.inject({
       method: 'PATCH',
       url: '/operacional/repositorios/repo-1/seadesk-confirmar',
       headers: { authorization: `Bearer ${token}` },
     });
-    // Mock returns etapa_atual = RECEBIMENTO, so it should fail with ETAPA_INVALIDA
     expect(response.statusCode).toBe(400);
     expect(response.json()).toMatchObject({ code: 'ETAPA_INVALIDA' });
   });

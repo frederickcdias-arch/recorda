@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDebounce } from '../../hooks/useDebounce';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -81,7 +81,7 @@ export function ControleQualidadePanel({
   const [busca, setBusca] = useState('');
   const [reprovandoId, setReprovandoId] = useState<string | null>(null);
   const [confirmConcluir, setConfirmConcluir] = useState(false);
-  const [filtroRepo, setFiltroRepo] = useState<string>('TODOS');
+  const [filtroRepo, setFiltroRepo] = useState<string>('AGUARDANDO_CQ_LOTE');
   const [buscaRepo, setBuscaRepo] = useState('');
   const debouncedBusca = useDebounce(busca, 600);
   const debouncedBuscaRepo = useDebounce(buscaRepo, 600);
@@ -182,11 +182,13 @@ export function ControleQualidadePanel({
       setBusy(true);
       const result = await concluirMut.mutateAsync(repoSelecionadoId);
       await queryClient.invalidateQueries({ queryKey: queryKeys.repositoriosAll });
-      onSuccess(
-        result.reprovados > 0
-          ? `CQ concluído com ${result.reprovados} reprovação(ões). Gere o termo de correção.`
-          : 'CQ concluído. Gere o termo de devolução.'
-      );
+      if (result.reprovados > 0) {
+        onSuccess(
+          `Controle de qualidade concluído com ${result.reprovados} reprovação(ões). Gere o termo de correção.`
+        );
+      } else {
+        onSuccess('Repositório concluído. Controle de qualidade concluído.');
+      }
     } catch (error) {
       onError(error instanceof Error ? error.message : 'Erro ao concluir CQ.');
     } finally {
@@ -201,9 +203,9 @@ export function ControleQualidadePanel({
       await devolverMut.mutateAsync(repoSelecionadoId);
       await carregarAvaliacoes(repoSelecionadoId);
       await queryClient.invalidateQueries({ queryKey: queryKeys.repositoriosAll });
-      onSuccess('Repositório retornado para recebimento.');
+      onSuccess('Repositório retornado para reconferência.');
     } catch (error) {
-      onError(error instanceof Error ? error.message : 'Erro ao retornar para recebimento.');
+      onError(error instanceof Error ? error.message : 'Erro ao retornar para reconferência.');
     } finally {
       setBusy(false);
     }
@@ -512,7 +514,7 @@ export function ControleQualidadePanel({
                   onClick={() => void handleDevolver()}
                   disabled={busy}
                 >
-                  Retornar para recebimento
+                  Retornar para reconferência
                 </Button>
               ) : null}
               {repoSelecionado?.status_atual === 'CQ_APROVADO' ? (

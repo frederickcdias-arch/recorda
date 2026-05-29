@@ -1,8 +1,11 @@
 import sharp from 'sharp';
+import { isFaithfulScanMode } from '../config/map-image-faithful-scan-config.js';
 import {
   tryProcessDocumentImageWithPython,
   type PythonProcessorCornersInput,
 } from './document-image-python-processor.js';
+import { processFaithfulDocumentScan } from './faithful-document-scan.js';
+import { detectDocumentQuad, refineDocumentCorners } from './node-document-detect.js';
 
 export type DocumentProcessingMode = 'color_document' | 'map_document' | 'text_document';
 export type DocumentClassificationKind =
@@ -76,6 +79,15 @@ export interface ProcessDocumentImageResult {
     };
     corners?: DocumentImagePoint[];
     warnings?: string[];
+    faithfulScan?: {
+      processingMode: 'faithful-scan';
+      usedGenerativeAI: false;
+      perspectiveCorrected: boolean;
+      contentPreservationMode: boolean;
+      documentRatio?: string;
+      alignmentApplied?: boolean;
+      alignmentAngleDeg?: number;
+    };
   };
 }
 
@@ -296,7 +308,7 @@ function polygonArea(points: DocumentImagePoint[]): number {
   return Math.abs(area) / 2;
 }
 
-function sanitizeCorners(
+export function sanitizeDocumentCorners(
   corners: DocumentImagePoint[] | undefined,
   originalWidth: number,
   originalHeight: number
@@ -330,6 +342,191 @@ function sanitizeCorners(
   }
 
   return normalized;
+}
+
+function expandCornersFromCentroid(
+  corners: DocumentImagePoint[],
+  width: number,
+  height: number,
+  ratio: number
+): DocumentImagePoint[] {
+  const cx = corners.reduce((sum, point) => sum + point.x, 0) / corners.length;
+  const cy = corners.reduce((sum, point) => sum + point.y, 0) / corners.length;
+  return corners.map((point) => ({
+    x: Math.max(0, Math.min(width, cx + (point.x - cx) * (1 + ratio))),
+    y: Math.max(0, Math.min(height, cy + (point.y - cy) * (1 + ratio))),
+  }));
+}
+
+function angularSkewFromCorners(corners: DocumentImagePoint[]): number {
+  const bySumAsc = [...corners].sort((a, b) => a.x + a.y - (b.x + b.y));
+  const tl = bySumAsc[0]!;
+  const br = bySumAsc[3]!;
+  const rem = [bySumAsc[1]!, bySumAsc[2]!];
+  const tr = rem.reduce((a, b) => (a.x - a.y > b.x - b.y ? a : b));
+  const bl = rem.find((point) => point !== tr)!;
+  const width = Math.hypot(tr.x - tl.x, tr.y - tl.y) || 1;
+  const height = Math.hypot(bl.x - tl.x, bl.y - tl.y) || 1;
+  return (
+    Math.abs(tr.y - tl.y) / width +
+    Math.abs(br.y - bl.y) / width +
+    Math.abs(bl.x - tl.x) / height +
+    Math.abs(br.x - tr.x) / height +
+    Math.abs(tr.x - tl.x - (br.x - bl.x)) / width
+  );
+}
+
+function shiftCornersBySideOffsets(
+  corners: DocumentImagePoint[],
+  originalWidth: number,
+  originalHeight: number,
+  offsets: { top: number; right: number; bottom: number; left: number }
+): DocumentImagePoint[] {
+  const [tl, tr, br, bl] = corners.map((corner) => ({ ...corner })) as [
+    DocumentImagePoint,
+    DocumentImagePoint,
+    DocumentImagePoint,
+    DocumentImagePoint,
+  ];
+  tl.y += offsets.top;
+  tr.y += offsets.top;
+  bl.y += offsets.bottom;
+  br.y += offsets.bottom;
+  tl.x += offsets.left;
+  bl.x += offsets.left;
+  tr.x += offsets.right;
+  br.x += offsets.right;
+
+  return [tl, tr, br, bl].map((corner) => ({
+    x: Math.max(0, Math.min(originalWidth, corner.x)),
+    y: Math.max(0, Math.min(originalHeight, corner.y)),
+  }));
+}
+
+function scoreNativeAutoCornersCandidate(
+  corners: DocumentImagePoint[],
+  originalWidth: number,
+  originalHeight: number,
+  processingMode: DocumentProcessingMode,
+  edgeCoverage = 0
+): number {
+  const areaRatio = polygonArea(corners) / Math.max(1, originalWidth * originalHeight);
+  const skew = angularSkewFromCorners(corners);
+  const targetArea = processingMode === 'map_document' ? 0.69 : 0.58;
+  const targetSkew = processingMode === 'map_document' ? 0.2 : 0.14;
+  const borderTouches = corners.reduce((sum, corner) => {
+    const nearBorder =
+      corner.x < 8 || corner.y < 8 || corner.x > originalWidth - 8 || corner.y > originalHeight - 8;
+    return sum + (nearBorder ? 1 : 0);
+  }, 0);
+
+  return (
+    Math.min(areaRatio, targetArea) * 2.2 -
+    Math.abs(areaRatio - targetArea) * 1.7 -
+    Math.abs(skew - targetSkew) * 1.8 -
+    Math.max(0, skew - 0.32) * 2.4 -
+    borderTouches * 0.12 +
+    edgeCoverage * 0.05
+  );
+}
+
+async function selectBestNativeAutoCorners(
+  imageBuffer: Buffer,
+  baseCorners: DocumentImagePoint[],
+  originalWidth: number,
+  originalHeight: number,
+  processingMode: DocumentProcessingMode
+): Promise<DocumentImagePoint[]> {
+  const baseAreaRatio = polygonArea(baseCorners) / Math.max(1, originalWidth * originalHeight);
+  const isLargeFormatDocument =
+    processingMode === 'map_document' || processingMode === 'color_document';
+  const rawCandidates: DocumentImagePoint[][] = [baseCorners];
+
+  if (isLargeFormatDocument && baseAreaRatio < 0.7) {
+    for (const ratio of [0.04, 0.08, 0.1]) {
+      rawCandidates.push(
+        expandCornersFromCentroid(baseCorners, originalWidth, originalHeight, ratio)
+      );
+    }
+  }
+
+  if (processingMode === 'map_document' && baseAreaRatio < 0.66) {
+    const topOffsets = [0, -originalHeight * 0.15];
+    const leftOffsets = [0, -originalWidth * 0.155];
+    const rightOffsets = [0, -originalWidth * 0.09];
+    const bottomOffsets = [0, -originalHeight * 0.025];
+    for (const top of topOffsets) {
+      for (const left of leftOffsets) {
+        for (const right of rightOffsets) {
+          for (const bottom of bottomOffsets) {
+            if (top === 0 && left === 0 && right === 0 && bottom === 0) continue;
+            rawCandidates.push(
+              shiftCornersBySideOffsets(baseCorners, originalWidth, originalHeight, {
+                top,
+                right,
+                bottom,
+                left,
+              })
+            );
+          }
+        }
+      }
+    }
+  }
+
+  const uniqueCandidates = rawCandidates.filter((candidate, index, all) => {
+    const key = JSON.stringify(
+      candidate.map((point) => [Math.round(point.x), Math.round(point.y)])
+    );
+    return (
+      index ===
+      all.findIndex((other) => {
+        const otherKey = JSON.stringify(
+          other.map((point) => [Math.round(point.x), Math.round(point.y)])
+        );
+        return otherKey === key;
+      })
+    );
+  });
+
+  const shortlisted = uniqueCandidates
+    .map((candidate) => ({
+      candidate,
+      score: scoreNativeAutoCornersCandidate(
+        candidate,
+        originalWidth,
+        originalHeight,
+        processingMode
+      ),
+    }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, processingMode === 'map_document' ? 4 : 3);
+
+  let bestCorners = baseCorners;
+  let bestScore = scoreNativeAutoCornersCandidate(
+    baseCorners,
+    originalWidth,
+    originalHeight,
+    processingMode
+  );
+
+  for (const entry of shortlisted) {
+    const refined = await refineDocumentCorners(imageBuffer, entry.candidate).catch(() => null);
+    const candidate = refined?.corners ?? entry.candidate;
+    const score = scoreNativeAutoCornersCandidate(
+      candidate,
+      originalWidth,
+      originalHeight,
+      processingMode,
+      refined?.edgeCoverage ?? 0
+    );
+    if (score > bestScore) {
+      bestCorners = candidate;
+      bestScore = score;
+    }
+  }
+
+  return bestCorners;
 }
 
 type ImageEnhancementMode = 'standard' | 'conservative';
@@ -490,8 +687,16 @@ export async function processDocumentImage(
   const originalMetadata = await sharp(imageBuffer, { failOn: 'none' }).metadata();
   const originalWidth = originalMetadata.width ?? 0;
   const originalHeight = originalMetadata.height ?? 0;
-  const normalizedManualCorners = sanitizeCorners(manualCorners, originalWidth, originalHeight);
-  const normalizedDetectedCorners = sanitizeCorners(detectedCorners, originalWidth, originalHeight);
+  const normalizedManualCorners = sanitizeDocumentCorners(
+    manualCorners,
+    originalWidth,
+    originalHeight
+  );
+  const normalizedDetectedCorners = sanitizeDocumentCorners(
+    detectedCorners,
+    originalWidth,
+    originalHeight
+  );
   const preferredCorners = normalizedManualCorners ?? normalizedDetectedCorners;
   const warnings: string[] = buildWarnings(
     analysis,
@@ -571,6 +776,73 @@ export async function processDocumentImage(
   }
 
   if (preferredCorners) {
+    if (isFaithfulScanMode()) {
+      try {
+        const faithful = await processFaithfulDocumentScan({
+          imageBuffer,
+          corners: preferredCorners,
+          autoDetectCorners: false,
+          documentRatio: 'A1_PORTRAIT',
+        });
+        return {
+          success: true,
+          processedBuffer: faithful.imageBuffer,
+          thumbnailBuffer: faithful.thumbnailBuffer,
+          outputMimeType: faithful.mimeType,
+          metadata: {
+            engine: 'faithful-scan',
+            confidence: normalizedManualCorners ? 0.96 : 0.9,
+            fallback: false,
+            width: faithful.width,
+            height: faithful.height,
+            originalWidth,
+            originalHeight,
+            documentClass: analysis.kind,
+            decision: normalizedManualCorners
+              ? 'backend_manual_corners'
+              : 'backend_detected_corners',
+            analysis: analysisMetadata,
+            postprocess: {
+              manualMode: 'faithful-document',
+              cornersSource: normalizedManualCorners ? 'manual' : 'detected',
+              manualCornersReceived: !!normalizedManualCorners,
+              pythonUsed: false,
+              manualFinalizeUsed: false,
+              borderCleanup: false,
+              isolateExterior: false,
+              marginMode: 'clean-white',
+              paperNormalization: 'faithful-scan',
+              shadowBalance: true,
+              onlyWarpAndMargin: false,
+              contentPreserved: true,
+            },
+            faithfulScan: {
+              processingMode: faithful.processingMode,
+              usedGenerativeAI: faithful.usedGenerativeAI,
+              perspectiveCorrected: faithful.perspectiveCorrected,
+              contentPreservationMode: faithful.contentPreservationMode,
+              documentRatio: faithful.documentRatio,
+              alignmentApplied: faithful.alignmentApplied,
+              alignmentAngleDeg: faithful.alignmentAngleDeg,
+            },
+            corners: faithful.cornersUsed,
+            warnings: [
+              normalizedManualCorners
+                ? 'Scan fiel aplicado com cantos manuais (sem IA generativa).'
+                : 'Scan fiel aplicado com cantos detectados (sem IA generativa).',
+              ...warnings,
+            ].filter(Boolean),
+          },
+        };
+      } catch (error) {
+        warnings.push(
+          error instanceof Error
+            ? `Scan fiel indisponível com os cantos enviados: ${error.message}`
+            : 'Scan fiel indisponível com os cantos enviados.'
+        );
+      }
+    }
+
     const cornersInput: PythonProcessorCornersInput = {
       points: preferredCorners,
       source: normalizedManualCorners ? 'manual' : 'detected',
@@ -629,6 +901,134 @@ export async function processDocumentImage(
           : 'Falha ao processar a imagem original com os cantos enviados.'
       );
     }
+  }
+
+  try {
+    const nativeDetection = await detectDocumentQuad(imageBuffer);
+    if (nativeDetection?.corners?.length === 4) {
+      const autoDetectedCorners = await selectBestNativeAutoCorners(
+        imageBuffer,
+        nativeDetection.corners,
+        originalWidth,
+        originalHeight,
+        processingMode
+      );
+      if (isFaithfulScanMode()) {
+        const faithful = await processFaithfulDocumentScan({
+          imageBuffer,
+          corners: autoDetectedCorners,
+          autoDetectCorners: false,
+          documentRatio: 'A1_PORTRAIT',
+          marginRatio: 0,
+          enhanceText: false,
+          reduceShadows: false,
+          sharpen: false,
+          enableFineAlignment: false,
+          enableMeshDewarp: processingMode === 'map_document',
+        });
+        return {
+          success: true,
+          processedBuffer: faithful.imageBuffer,
+          thumbnailBuffer: faithful.thumbnailBuffer,
+          outputMimeType: faithful.mimeType,
+          metadata: {
+            engine: 'faithful-scan',
+            confidence: 0.88,
+            fallback: false,
+            width: faithful.width,
+            height: faithful.height,
+            originalWidth,
+            originalHeight,
+            documentClass: analysis.kind,
+            decision: 'backend_detected_corners',
+            analysis: analysisMetadata,
+            postprocess: {
+              manualMode: 'faithful-document',
+              cornersSource: 'native-detect',
+              manualCornersReceived: false,
+              pythonUsed: false,
+              manualFinalizeUsed: false,
+              borderCleanup: false,
+              isolateExterior: false,
+              marginMode: 'none',
+              paperNormalization: false,
+              shadowBalance: false,
+              onlyWarpAndMargin: true,
+              contentPreserved: true,
+            },
+            faithfulScan: {
+              processingMode: faithful.processingMode,
+              usedGenerativeAI: faithful.usedGenerativeAI,
+              perspectiveCorrected: faithful.perspectiveCorrected,
+              contentPreservationMode: faithful.contentPreservationMode,
+              documentRatio: faithful.documentRatio,
+              alignmentApplied: faithful.alignmentApplied,
+              alignmentAngleDeg: faithful.alignmentAngleDeg,
+            },
+            corners: faithful.cornersUsed,
+            warnings: [
+              'Detecção nativa local de bordas aplicada antes do fallback do backend.',
+              ...warnings,
+            ].filter(Boolean),
+          },
+        };
+      }
+
+      const cornersInput: PythonProcessorCornersInput = {
+        points: autoDetectedCorners,
+        source: 'detected',
+      };
+      const pythonResult = await tryProcessDocumentImageWithPython(
+        encodeDataUrl(imageBuffer, mimeType),
+        cornersInput
+      );
+      if (pythonResult) {
+        const processed = decodeImageDataUrl(pythonResult.processedBase64);
+        const finalized = await finalizeOutput(
+          processed.buffer,
+          outputFormat,
+          quality,
+          preserveColors,
+          processingMode
+        );
+        const thumbnailBuffer = await createThumbnail(finalized.buffer);
+        return {
+          success: true,
+          processedBuffer: finalized.buffer,
+          thumbnailBuffer,
+          outputMimeType: finalized.mimeType,
+          metadata: {
+            engine: pythonResult.processador,
+            confidence: Math.max(0.82, pythonResult.confiancaDeteccao),
+            fallback: pythonResult.fallbackUsado,
+            width: finalized.width,
+            height: finalized.height,
+            originalWidth,
+            originalHeight,
+            documentClass: analysis.kind,
+            decision: pythonResult.fallbackUsado ? 'safe_fallback' : 'backend_detected_corners',
+            analysis: analysisMetadata,
+            postprocess: pythonResult.postprocess,
+            corners: autoDetectedCorners,
+            warnings: [
+              'Detecção nativa local de bordas aplicada antes do fallback do backend.',
+              ...(pythonResult.fallbackUsado
+                ? [
+                    'NÃ£o foi possÃ­vel aplicar os cantos detectados com seguranÃ§a. Fallback seguro aplicado.',
+                  ]
+                : []),
+              ...warnings,
+            ].filter(Boolean),
+          },
+        };
+      }
+    }
+  } catch (error) {
+    warnings.push(
+      error instanceof Error
+        ? `DetecÃ§Ã£o nativa local indisponÃ­vel: ${error.message}`
+        : 'DetecÃ§Ã£o nativa local indisponÃ­vel.'
+    );
   }
 
   try {

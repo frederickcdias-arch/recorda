@@ -7,6 +7,7 @@ import { createOperacionalChecklistsRoutes } from './operacional-checklists.js';
 import { createOperacionalCQRoutes } from './operacional-cq.js';
 import { createOperacionalEtiquetasRoutes } from './operacional-etiquetas.js';
 import { createOperacionalDevolucoesRoutes } from './operacional-devolucoes.js';
+import { createOperacionalPainelRoutes } from './operacional-painel.js';
 
 /**
  * Orchestrator that registers all operational sub-route modules.
@@ -29,5 +30,6 @@ export function createOperacionalRoutes(): FastifyPluginAsync {
     await server.register(createOperacionalCQRoutes());
     await server.register(createOperacionalEtiquetasRoutes());
     await server.register(createOperacionalDevolucoesRoutes());
+    await server.register(createOperacionalPainelRoutes());
   };
 }

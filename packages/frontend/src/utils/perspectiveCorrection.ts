@@ -1432,6 +1432,12 @@ function warpDocument(src: HTMLCanvasElement, geometry: DocumentGeometry): strin
   return canvas.toDataURL('image/jpeg', 0.93);
 }
 
+function warpDocumentPreview(src: HTMLCanvasElement, geometry: DocumentGeometry): string {
+  const warped =
+    warpCurvedDocumentCanvas(src, geometry) || warpPerspectiveCanvas(src, geometry.corners);
+  return warped.toDataURL('image/jpeg', 0.95);
+}
+
 function assessCorrectedCanvas(canvas: HTMLCanvasElement): CorrectedDocumentConfidence {
   const scale = Math.min(1, 800 / Math.max(canvas.width, canvas.height));
   const sw = Math.max(1, Math.round(canvas.width * scale));
@@ -1648,7 +1654,7 @@ export async function correctPerspectiveWithCorners(
     corners: scalePoints(corners, ow / iw, oh / ih),
   };
 
-  return warpDocument(wc, scaledGeometry);
+  return warpDocumentPreview(wc, scaledGeometry);
 }
 
 export async function correctPerspectiveWithEdgePoints(
@@ -1679,5 +1685,5 @@ export async function correctPerspectiveWithEdgePoints(
     manualCurves: true,
   };
 
-  return warpDocument(wc, scaledGeometry);
+  return warpDocumentPreview(wc, scaledGeometry);
 }

@@ -1,5 +1,16 @@
 import type { PerfilUsuario } from '@recorda/shared';
+import { OPERACAO_ETAPA_MAP, OPERACAO_ETAPAS_ORDER } from './operacao-etapas';
 import type { MenuItem, MenuSection } from '../types/navigation';
+
+const operacaoFluxoMenuItems: MenuItem[] = OPERACAO_ETAPAS_ORDER.map((slug) => {
+  const etapa = OPERACAO_ETAPA_MAP[slug];
+  return {
+    id: `operacao-${slug}`,
+    label: etapa.label,
+    icon: etapa.menuIcon,
+    path: etapa.path,
+  };
+});
 
 export const menuSections: MenuSection[] = [
   {
@@ -72,18 +83,7 @@ export const menuSections: MenuSection[] = [
     basePath: '/operacao',
     allowedProfiles: ['operador', 'administrador'],
     items: [
-      {
-        id: 'operacao-recebimento',
-        label: 'Recebimento',
-        icon: 'inbox',
-        path: '/operacao/recebimento',
-      },
-      {
-        id: 'operacao-cq',
-        label: 'Controle de Qualidade',
-        icon: 'check-circle',
-        path: '/operacao/controle-qualidade',
-      },
+      ...operacaoFluxoMenuItems,
       {
         id: 'operacao-devolucoes',
         label: 'Devoluções',

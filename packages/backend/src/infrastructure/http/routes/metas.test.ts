@@ -361,7 +361,7 @@ describe('POST /producao/lancar-direto', () => {
       expect(response.statusCode).toBe(422);
       const body = response.json();
       expect(body).toHaveProperty('error', 'Sequência de etapas inválida');
-      expect(body.detalhes).toHaveProperty('etapaAnteriorNecessaria', 'PREPARACAO');
+      expect(body.detalhes).toHaveProperty('etapaAnteriorNecessaria', ['PREPARACAO']);
     });
 
     it('deve avisar falta da etapa anterior mesmo quando o repositório já teve outro lançamento', async () => {
@@ -395,7 +395,7 @@ describe('POST /producao/lancar-direto', () => {
       expect(response2.statusCode).toBe(422);
       const body = response2.json();
       expect(body).toHaveProperty('error', 'Sequência de etapas inválida');
-      expect(body.detalhes).toHaveProperty('etapaAnteriorNecessaria', 'PREPARACAO');
+      expect(body.detalhes).toHaveProperty('etapaAnteriorNecessaria', ['PREPARACAO']);
     });
 
     it('deve rejeitar requisiÃ§Ã£o sem autenticaÃ§Ã£o', async () => {

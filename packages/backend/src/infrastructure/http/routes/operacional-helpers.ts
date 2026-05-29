@@ -70,33 +70,32 @@ export function extractOCRPreview(texto: string, confianca: number): OCRPreview 
 
   // Fix common OCR character substitutions in numeric strings (applied only to matched groups)
   const fixOcrDigits = (s: string) =>
-    s.replace(/[Oo]/g, '0').replace(/[lIi]/g, '1').replace(/S/g, '5').replace(/B/g, '8');
+    s.replace(/[Oo]/g, '0').replace(/[lIi]/g, '1').replace(/[Ss]/g, '5').replace(/[Bb]/g, '8');
 
   // Remove spaces that OCR may insert within digit groups, then fix OCR digit errors
   const cleanNum = (s: string) => fixOcrDigits(s.replace(/\s+/g, '').trim());
 
+  const ocrChar = '\\dOIl';
+  const protocoloSegmentOcr = `[${ocrChar}][\\s${ocrChar}]{0,5}[\\/\\.\\-][${ocrChar}][\\s${ocrChar}]{0,3}`;
+
   // --- Protocolo ---
-  // Patterns ordered from most specific (keyword-anchored) to least specific (standalone number).
-  // Each digit group allows up to ~3 stray spaces (OCR may split "502824" as "502 824").
+  // Strict digit patterns first; OCR-tolerant patterns as fallback (O→0, l→1 after cleanNum).
   const protocoloPatterns: RegExp[] = [
-    // "Protocolo n.: 13142/2024" — colon/period after n, possible OCR artifacts before digits
     /protocolo\s*n[º°.]?\s*[.:][^\d]{0,6}(\d[\d ]{0,5}[/.\-]\d[\d ]{0,5})/i,
-    // "Protocolo: 502824/2021" or "Protocolo 502824/2021"
     /protocolo\s*:?[^\d]{0,6}(\d[\d ]{0,5}[/.\-]\d[\d ]{0,5})/i,
-    // "Processo nº 123456/2024" or "Processo n. 123456/2024"
     /processo\s+n[º°.]?\s*[.:]*[^\d]{0,4}(\d[\d ]{0,5}[/.\-]\d[\d ]{0,5})/i,
-    // "Processo: 123456/2024"
     /processo\s*:\s*[^\d]{0,4}(\d[\d ]{0,5}[/.\-]\d[\d ]{0,5})/i,
-    // "Prot.: 123456/2024" abbreviation
     /prot[o.]?\s*[.:]\s*[^\d]{0,4}(\d[\d ]{0,5}[/.\-]\d[\d ]{0,5})/i,
-    // "Nº 123456/2024" or "N.º 123456/2024"
     /n[º°]\s*(\d[\d ]{0,5}[/]\d[\d ]{0,5})/i,
-    // Standalone: 4+ digits / 4-digit year (e.g., "502824/2021") — least specific
     /\b(\d{3,}[\d ]{0,4}\/\d{4})\b/,
-    // Standalone: 4+ digits / 2-digit year
     /\b(\d{3,}[\d ]{0,4}\/\d{2})\b/,
-    // With dash as year separator (e.g., "13142-2024")
     /\b(\d{4,}-\d{4})\b/,
+    new RegExp(`protocolo\\s*n[º°.]?\\s*[.:][^\\dOIl]{0,6}(${protocoloSegmentOcr})`, 'i'),
+    new RegExp(`protocolo\\s*:?[^\\dOIl]{0,6}(${protocoloSegmentOcr})`, 'i'),
+    new RegExp(`processo\\s+n[º°.]?\\s*[.:]*[^\\dOIl]{0,4}(${protocoloSegmentOcr})`, 'i'),
+    new RegExp(`processo\\s*:\\s*[^\\dOIl]{0,4}(${protocoloSegmentOcr})`, 'i'),
+    new RegExp(`prot[o.]?\\s*[.:]\\s*[^\\dOIl]{0,4}(${protocoloSegmentOcr})`, 'i'),
+    new RegExp(`n[º°]\\s*(${protocoloSegmentOcr})`, 'i'),
   ];
 
   let protocolo = '';
@@ -112,14 +111,23 @@ export function extractOCRPreview(texto: string, confianca: number): OCRPreview 
   let interessado = '';
 
   // Prefer line-by-line search: find the line with "Interessado" or "Requerente" label
-  const labelPattern = /(?:interessad[oa]|requerente)\s*:?/i;
+  const labelPattern = /(?:interessad[oa](?:\(a\))?|requerente)\s*:?/i;
   const intIdx = lines.findIndex((l) => labelPattern.test(l));
   if (intIdx !== -1) {
     // Extract value after the label on the same line
-    const afterLabel = (lines[intIdx] ?? '')
+    let afterLabel = (lines[intIdx] ?? '')
       .replace(labelPattern, '')
       .replace(/^[\s:]+/, '')
       .trim();
+
+    // Stop at the next field label if it appears on the same line
+    const stopPattern =
+      /\b(?:assunto|resumo|setor|volume|data|protocolo|processo|origem)\b\s*[:;]/i;
+    const stopIndex = afterLabel.search(stopPattern);
+    if (stopIndex !== -1) {
+      afterLabel = afterLabel.slice(0, stopIndex).trim();
+    }
+
     if (afterLabel.length > 1) {
       interessado = afterLabel;
     } else if (lines[intIdx + 1] != null) {
@@ -174,6 +182,65 @@ export async function saveOCRImageBase64(
   await fs.mkdir(path.dirname(fullPath), { recursive: true });
   await fs.writeFile(fullPath, buffer);
   return relativePath;
+}
+
+/** Sequência operacional principal (Recebimento → CQ). */
+export const OPERACIONAL_FLUXO_ETAPAS: readonly EtapaFluxo[] = [
+  'RECEBIMENTO',
+  'PREPARACAO',
+  'DIGITALIZACAO',
+  'CONFERENCIA',
+  'RECONFERENCIA',
+  'CONTROLE_QUALIDADE',
+] as const;
+
+export interface TransicaoEtapaInvalida {
+  ok: false;
+  etapaAtual: EtapaFluxo;
+  etapaDestino: EtapaFluxo;
+  etapaEsperada: EtapaFluxo | null;
+}
+
+export type TransicaoEtapaResult = { ok: true } | TransicaoEtapaInvalida;
+
+export function getProximaEtapaOperacional(etapaAtual: EtapaFluxo): EtapaFluxo | null {
+  const idx = OPERACIONAL_FLUXO_ETAPAS.indexOf(etapaAtual);
+  if (idx < 0 || idx >= OPERACIONAL_FLUXO_ETAPAS.length - 1) return null;
+  return OPERACIONAL_FLUXO_ETAPAS[idx + 1] ?? null;
+}
+
+export function getEtapaAnteriorOperacional(etapaAtual: EtapaFluxo): EtapaFluxo | null {
+  const idx = OPERACIONAL_FLUXO_ETAPAS.indexOf(etapaAtual);
+  if (idx <= 0) return null;
+  return OPERACIONAL_FLUXO_ETAPAS[idx - 1] ?? null;
+}
+
+export function validarTransicaoEtapaOperacional(
+  etapaAtual: EtapaFluxo,
+  etapaDestino: EtapaFluxo
+): TransicaoEtapaResult {
+  const proxima = getProximaEtapaOperacional(etapaAtual);
+  const anterior = getEtapaAnteriorOperacional(etapaAtual);
+
+  if (etapaDestino === proxima || etapaDestino === anterior) {
+    return { ok: true };
+  }
+
+  const idxAtual = OPERACIONAL_FLUXO_ETAPAS.indexOf(etapaAtual);
+  const idxDestino = OPERACIONAL_FLUXO_ETAPAS.indexOf(etapaDestino);
+  const etapaEsperada =
+    idxAtual >= 0 && idxDestino >= 0 && idxDestino > idxAtual
+      ? proxima
+      : idxAtual >= 0 && idxDestino >= 0 && idxDestino < idxAtual
+        ? anterior
+        : proxima;
+
+  return {
+    ok: false,
+    etapaAtual,
+    etapaDestino,
+    etapaEsperada,
+  };
 }
 
 export async function loadRepositorio(

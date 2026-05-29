@@ -138,14 +138,21 @@ async function runPythonProcessor(
   scriptPath: string,
   inputPath: string,
   outputPath: string,
-  cornersFilePath?: string
+  cornersFilePath?: string,
+  timeoutMs?: number
 ): Promise<PythonDocumentProcessorPayload> {
   if (config.documentProcessor.runtime === 'docker') {
     return await runDockerProcessor(scriptPath, inputPath, outputPath, cornersFilePath);
   }
 
   try {
-    return await runLocalPythonProcessor(scriptPath, inputPath, outputPath, cornersFilePath);
+    return await runLocalPythonProcessor(
+      scriptPath,
+      inputPath,
+      outputPath,
+      cornersFilePath,
+      timeoutMs
+    );
   } catch (error) {
     const shouldTryDocker =
       config.documentProcessor.runtime === 'auto' &&
@@ -165,7 +172,8 @@ async function runLocalPythonProcessor(
   scriptPath: string,
   inputPath: string,
   outputPath: string,
-  cornersFilePath?: string
+  cornersFilePath?: string,
+  timeoutMs?: number
 ): Promise<PythonDocumentProcessorPayload> {
   return await new Promise((resolve, reject) => {
     const args = [scriptPath, '--input', inputPath, '--output', outputPath, '--json'];
@@ -180,6 +188,14 @@ async function runLocalPythonProcessor(
 
     let stdout = '';
     let stderr = '';
+    let timer: NodeJS.Timeout | undefined;
+
+    if (timeoutMs && timeoutMs > 0) {
+      timer = setTimeout(() => {
+        child.kill('SIGTERM');
+        reject(new Error(`Document processor timeout after ${timeoutMs}ms`));
+      }, timeoutMs);
+    }
 
     child.stdout.on('data', (chunk: Buffer | string) => {
       stdout += chunk.toString();
@@ -187,8 +203,12 @@ async function runLocalPythonProcessor(
     child.stderr.on('data', (chunk: Buffer | string) => {
       stderr += chunk.toString();
     });
-    child.on('error', reject);
+    child.on('error', (error) => {
+      if (timer) clearTimeout(timer);
+      reject(error);
+    });
     child.on('close', (code) => {
+      if (timer) clearTimeout(timer);
       if (code !== 0) {
         reject(new Error(stderr.trim() || `Document processor exited with code ${code}`));
         return;
@@ -309,12 +329,21 @@ async function runDockerProcessor(
   });
 }
 
+export interface TryProcessDocumentImageWithPythonOptions {
+  timeoutMs?: number;
+  fastWarpOnly?: boolean;
+}
+
 export async function tryProcessDocumentImageWithPython(
   imagemBase64: string,
-  cornersInput?: PythonProcessorCornersInput
+  cornersInput?: PythonProcessorCornersInput,
+  options?: TryProcessDocumentImageWithPythonOptions
 ): Promise<PythonDocumentProcessorResult | null> {
   if (!config.documentProcessor.enabled) {
     return null;
+  }
+  if (options?.fastWarpOnly && !cornersInput) {
+    throw new Error('Fast warp requer cantos informados.');
   }
 
   const scriptPath = await resolveReadablePath(config.documentProcessor.scriptPath);
@@ -333,7 +362,13 @@ export async function tryProcessDocumentImageWithPython(
     if (cornersFilePath && cornersInput) {
       await fs.writeFile(cornersFilePath, JSON.stringify(cornersInput.points), 'utf8');
     }
-    const payload = await runPythonProcessor(scriptPath, inputPath, outputPath, cornersFilePath);
+    const payload = await runPythonProcessor(
+      scriptPath,
+      inputPath,
+      outputPath,
+      cornersFilePath,
+      options?.timeoutMs
+    );
     if (!payload.success) {
       throw new Error(payload.error || 'Processamento do documento falhou.');
     }

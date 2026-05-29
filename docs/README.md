@@ -15,23 +15,24 @@ Organizacao:
 
 ## Indice mestre
 
-| Documento                                 | Finalidade                                  | Status           |
-| ----------------------------------------- | ------------------------------------------- | ---------------- |
-| `regras-de-negocio/DOMINIO.md`            | Conceitos centrais de dominio               | Atual            |
-| `regras-de-negocio/NUMEROS_E_METRICAS.md` | Regras oficiais de numeros e metricas       | Atual            |
-| `regras-de-negocio/TIMEZONE.md`           | Timezone oficial do sistema                 | Atual            |
-| `regras-de-negocio/IMPORTACAO_LEGADO.md`  | Regras da importacao legada                 | Atual            |
-| `padroes/PADRAO_NUMEROS_RECORDA.md`       | Padrao obrigatorio para evolucao de numeros | Atual            |
-| `arquitetura/VISAO_GERAL.md`              | Arquitetura geral do sistema                | Atual            |
-| `arquitetura/API.md`                      | Referencia tecnica de rotas                 | Atual            |
-| `arquitetura/DESIGN_SYSTEM.md`            | Guia visual e padroes de interface          | Atual            |
-| `operacao/COMO_RODAR_LOCAL.md`            | Setup e execucao local                      | Atual            |
-| `operacao/TESTES.md`                      | Estrategia e comandos de teste              | Atual            |
-| `operacao/DEPLOY.md`                      | Deploy e publicacao                         | Atual            |
-| `operacao/PRE_PRODUCAO.md`                | Checklist pre-producao                      | Atual            |
-| `operacao/LIMITACOES.md`                  | Limitacoes conhecidas                       | Atual            |
-| `operacao/PERFIL_COLABORADOR.md`          | Fluxo funcional do colaborador              | Atual            |
-| `auditorias/`                             | Registros historicos validos                | Historico valido |
+| Documento                                 | Finalidade                                             | Status           |
+| ----------------------------------------- | ------------------------------------------------------ | ---------------- |
+| `regras-de-negocio/DOMINIO.md`            | Conceitos centrais de dominio                          | Atual            |
+| `regras-de-negocio/NUMEROS_E_METRICAS.md` | Regras oficiais de numeros e metricas                  | Atual            |
+| `regras-de-negocio/TIMEZONE.md`           | Timezone oficial do sistema                            | Atual            |
+| `regras-de-negocio/IMPORTACAO_LEGADO.md`  | Regras da importacao legada                            | Atual            |
+| `regras-de-negocio/AUSENCIAS.md`          | Regra de ausencias (admin lança, colaborador consulta) | Atual            |
+| `padroes/PADRAO_NUMEROS_RECORDA.md`       | Padrao obrigatorio para evolucao de numeros            | Atual            |
+| `arquitetura/VISAO_GERAL.md`              | Arquitetura geral do sistema                           | Atual            |
+| `arquitetura/API.md`                      | Referencia tecnica de rotas                            | Atual            |
+| `arquitetura/DESIGN_SYSTEM.md`            | Guia visual e padroes de interface                     | Atual            |
+| `operacao/COMO_RODAR_LOCAL.md`            | Setup e execucao local                                 | Atual            |
+| `operacao/TESTES.md`                      | Estrategia e comandos de teste                         | Atual            |
+| `operacao/DEPLOY.md`                      | Deploy e publicacao                                    | Atual            |
+| `operacao/PRE_PRODUCAO.md`                | Checklist pre-producao                                 | Atual            |
+| `operacao/LIMITACOES.md`                  | Limitacoes conhecidas                                  | Atual            |
+| `operacao/PERFIL_COLABORADOR.md`          | Fluxo funcional do colaborador                         | Atual            |
+| `auditorias/`                             | Registros historicos validos                           | Historico valido |
 
 ## Ordem recomendada de leitura
 

@@ -106,7 +106,7 @@ export interface MinhaAusenciaItem {
 
 export interface ListarMinhasAusenciasResponse extends PaginatedResponse<MinhaAusenciaItem> {}
 
-/** Colaborador registra ausência própria. */
+/** DTO legado — criação de ausência é exclusiva do admin (`CriarAusenciaAdminDTO`). */
 export interface CriarAusenciaDTO {
   tipoAusenciaId: string;
   dataInicio: string;

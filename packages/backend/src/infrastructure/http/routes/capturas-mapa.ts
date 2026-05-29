@@ -7,6 +7,7 @@ import sharp from 'sharp';
 import { authorize } from '../middleware/auth.js';
 import { validateBody, validateParams } from '../middleware/validate.js';
 import { processMapImage, type ProcessMapImageInput } from '../../services/map-image-processor.js';
+import type { OpenAIImageMetadata } from '../../services/openai-image-processor.js';
 import { getCurrentUser } from './operacional-helpers.js';
 
 const UPLOADS_BASE = path.resolve(process.cwd(), 'uploads');
@@ -29,6 +30,15 @@ const capturasMapaBodySchema = z.object({
     )
     .length(4)
     .optional(),
+  manualEdgeMidpoints: z
+    .array(
+      z.object({
+        x: z.number(),
+        y: z.number(),
+      })
+    )
+    .length(4)
+    .optional(),
   detectedCorners: z
     .array(
       z.object({
@@ -38,6 +48,12 @@ const capturasMapaBodySchema = z.object({
     )
     .length(4)
     .optional(),
+  melhorarComIa: z.boolean().optional(),
+  forcarAnaliseIa: z.boolean().optional(),
+  reprocessarComIa: z.boolean().optional(),
+  preferirOriginal: z.boolean().optional(),
+  priorOpenAIMetadata: z.record(z.string(), z.unknown()).optional(),
+  nomePersonalizado: z.string().max(200).optional(),
 });
 
 const capturaIdParamsSchema = z.object({
@@ -85,6 +101,15 @@ function mimeTypeFromRelativePath(relativePath: string): string {
   if (ext === '.png') return 'image/png';
   if (ext === '.webp') return 'image/webp';
   return 'image/jpeg';
+}
+
+function sanitizeNomePersonalizado(nome: string): string {
+  return (
+    nome
+      .replace(/[\/\\:*?"<>|]/g, '_')
+      .trim()
+      .slice(0, 200) || 'mapa'
+  );
 }
 
 function resolveUploadPath(relativePath: string): string {
@@ -154,6 +179,17 @@ export function createCapturasMapaRoutes(): FastifyPluginAsync {
                   },
                 },
               },
+              manualEdgeMidpoints: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  required: ['x', 'y'],
+                  properties: {
+                    x: { type: 'number' },
+                    y: { type: 'number' },
+                  },
+                },
+              },
               detectedCorners: {
                 type: 'array',
                 items: {
@@ -181,13 +217,31 @@ export function createCapturasMapaRoutes(): FastifyPluginAsync {
       },
       async (request, reply) => {
         const user = getCurrentUser(request);
-        const { imagemBase64, imagemCorrigidaBase64, manualCorners, detectedCorners } =
-          request.body as {
-            imagemBase64: string;
-            imagemCorrigidaBase64?: string;
-            manualCorners?: ManualCorner[];
-            detectedCorners?: ManualCorner[];
-          };
+        const {
+          imagemBase64,
+          imagemCorrigidaBase64,
+          manualCorners,
+          manualEdgeMidpoints,
+          detectedCorners,
+          melhorarComIa,
+          forcarAnaliseIa,
+          reprocessarComIa,
+          preferirOriginal,
+          priorOpenAIMetadata,
+          nomePersonalizado,
+        } = request.body as {
+          imagemBase64: string;
+          imagemCorrigidaBase64?: string;
+          manualCorners?: ManualCorner[];
+          manualEdgeMidpoints?: ManualCorner[];
+          detectedCorners?: ManualCorner[];
+          melhorarComIa?: boolean;
+          forcarAnaliseIa?: boolean;
+          reprocessarComIa?: boolean;
+          preferirOriginal?: boolean;
+          priorOpenAIMetadata?: Record<string, unknown>;
+          nomePersonalizado?: string;
+        };
 
         try {
           const original = parseImageDataUrl(imagemBase64);
@@ -202,6 +256,13 @@ export function createCapturasMapaRoutes(): FastifyPluginAsync {
                   y: Number(corner.y),
                 }))
               : undefined;
+          const safeManualEdgeMidpoints =
+            manualEdgeMidpoints?.length === 4
+              ? manualEdgeMidpoints.map((point) => ({
+                  x: Number(point.x),
+                  y: Number(point.y),
+                }))
+              : undefined;
           const safeDetectedCorners =
             detectedCorners?.length === 4
               ? detectedCorners.map((corner) => ({
@@ -214,7 +275,12 @@ export function createCapturasMapaRoutes(): FastifyPluginAsync {
             imagemBase64,
             imagemCorrigidaBase64,
             manualCorners: safeCorners,
+            manualEdgeMidpoints: safeManualEdgeMidpoints,
             detectedCorners: safeDetectedCorners,
+            melhorarComIa,
+            forcarAnaliseIa,
+            reprocessarComIa,
+            priorOpenAIMetadata: priorOpenAIMetadata as ProcessMapImageInput['priorOpenAIMetadata'],
           };
           const fileBaseName = `mapa-${user.id}-${Date.now()}-${randomUUID()}`;
           const originalName = `${fileBaseName}-original.${extensionFromMimeType(original.mimeType)}`;
@@ -271,6 +337,13 @@ export function createCapturasMapaRoutes(): FastifyPluginAsync {
                 };
                 corners?: ManualCorner[];
                 warnings?: string[];
+                openai?: OpenAIImageMetadata | Record<string, unknown>;
+                aiCorners?: Record<string, unknown>;
+                aiWarp?: Record<string, unknown>;
+                documentDetection?: Record<string, unknown>;
+                processing?: Record<string, unknown>;
+                processingTiming?: Record<string, unknown>;
+                processingDecision?: Record<string, unknown>;
               }
             | undefined;
           let processamentoStatus = 'concluido';
@@ -284,7 +357,7 @@ export function createCapturasMapaRoutes(): FastifyPluginAsync {
             fallbackUsado = processedResult.fallbackUsado;
             dimensoesFinais = processedResult.dimensoesFinais;
             processador = processedResult.processador;
-            metadata = processedResult.metadata;
+            metadata = processedResult.metadata as typeof metadata;
             processamentoStatus = processingStatusFromFallback(fallbackUsado);
           } catch (processingError) {
             processedBase64 = imagemBase64;
@@ -310,8 +383,12 @@ export function createCapturasMapaRoutes(): FastifyPluginAsync {
           }
 
           const processed = parseImageDataUrl(processedBase64);
-          const correctedName = `${fileBaseName}-corrigida.${extensionFromMimeType(processed.mimeType)}`;
+          const ext = extensionFromMimeType(processed.mimeType);
+          const correctedName = `${fileBaseName}-corrigida.${ext}`;
           const thumbName = `${fileBaseName}-thumb.jpg`;
+          const nomeArquivo = nomePersonalizado
+            ? `${sanitizeNomePersonalizado(nomePersonalizado)}.${ext}`
+            : correctedName;
           const thumbnail = thumbnailBase64 ? parseImageDataUrl(thumbnailBase64) : null;
 
           if (dimensoesFinais.width === 0 || dimensoesFinais.height === 0) {
@@ -321,10 +398,15 @@ export function createCapturasMapaRoutes(): FastifyPluginAsync {
             };
           }
 
+          const saveStartedAt = Date.now();
           await fs.writeFile(path.join(MAPAS_CORRIGIDAS_DIR, correctedName), processed.buffer);
           if (thumbnail) {
             await fs.writeFile(path.join(MAPAS_THUMBS_DIR, thumbName), thumbnail.buffer);
           }
+          const saveMs = Date.now() - saveStartedAt;
+          const processingTiming = metadata?.processingTiming
+            ? { ...metadata.processingTiming, saveMs }
+            : { totalMs: saveMs, saveMs };
 
           const arquivoOriginalPath = path.posix.join('mapas', 'original', originalName);
           const arquivoCorrigidoPath = path.posix.join('mapas', 'corrigidas', correctedName);
@@ -341,9 +423,19 @@ export function createCapturasMapaRoutes(): FastifyPluginAsync {
             analysis: metadata?.analysis ?? null,
             postprocess: metadata?.postprocess ?? null,
             manualCorners: safeCorners ?? null,
+            manualEdgeMidpoints: safeManualEdgeMidpoints ?? null,
             detectedCorners: safeDetectedCorners ?? null,
             frontendCorrigida: Boolean(correctedPreview),
+            preferirOriginal: Boolean(preferirOriginal),
             warnings: metadata?.warnings ?? [],
+            openai: metadata?.openai ?? null,
+            aiCorners: metadata?.aiCorners ?? null,
+            aiWarp: metadata?.aiWarp ?? null,
+            documentDetection: metadata?.documentDetection ?? null,
+            processing: metadata?.processing ?? null,
+            corners: metadata?.corners ?? null,
+            processingTiming,
+            processingDecision: metadata?.processingDecision ?? null,
           };
 
           const result = await server.database.query(
@@ -381,7 +473,7 @@ export function createCapturasMapaRoutes(): FastifyPluginAsync {
             [
               user.id,
               arquivoCorrigidoPath,
-              correctedName,
+              nomeArquivo,
               tamanhoBytes,
               arquivoOriginalPath,
               arquivoCorrigidoPath,
@@ -521,7 +613,12 @@ export function createCapturasMapaRoutes(): FastifyPluginAsync {
         try {
           const result = await server.database.query(
             `SELECT
-               COALESCE(arquivo_corrigido_path, arquivo_path) AS download_path,
+               CASE
+                 WHEN COALESCE((processamento_metadata->>'preferirOriginal')::boolean, false)
+                   AND arquivo_original_path IS NOT NULL
+                   THEN arquivo_original_path
+                 ELSE COALESCE(arquivo_corrigido_path, arquivo_path)
+               END AS download_path,
                arquivo_original_path,
                nome_arquivo,
                expira_em

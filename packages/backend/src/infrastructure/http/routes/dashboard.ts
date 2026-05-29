@@ -221,7 +221,7 @@ export function createDashboardRoutes(): FastifyPluginAsync {
             server.database.query<{ total: string }>(
               `SELECT COUNT(*)::text AS total
              FROM repositorios
-             WHERE status_atual <> 'ENTREGUE'
+             WHERE status_atual NOT IN ('ENTREGUE', 'CQ_APROVADO')
                AND atualizado_em < (CURRENT_TIMESTAMP - INTERVAL '48 hours')`
             ),
             server.database.query<{ total: string }>(
@@ -251,7 +251,7 @@ export function createDashboardRoutes(): FastifyPluginAsync {
             server.database.query<{ etapa: string; total: string }>(
               `SELECT r.etapa_atual AS etapa, COUNT(*)::text AS total
              FROM repositorios r
-             WHERE r.status_atual NOT IN ('ENTREGUE', 'CQ_REPROVADO')
+             WHERE r.status_atual NOT IN ('ENTREGUE', 'CQ_REPROVADO', 'CQ_APROVADO')
              GROUP BY r.etapa_atual
              ORDER BY r.etapa_atual`
             ),

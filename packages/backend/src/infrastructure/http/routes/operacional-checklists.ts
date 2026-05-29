@@ -10,6 +10,7 @@ import {
   concluirChecklistSchema,
   registrarProducaoSchema,
   relatorioRecebimentoSchema,
+  avancarEtapaSchema,
 } from '../schemas/operacional.js';
 import {
   type EtapaFluxo,
@@ -22,6 +23,8 @@ import {
   loadRepositorio,
   saveOperationalReport,
   createPDFService,
+  validarTransicaoEtapaOperacional,
+  getProximaEtapaOperacional,
 } from './operacional-helpers.js';
 
 export function createOperacionalChecklistsRoutes(): FastifyPluginAsync {
@@ -1093,22 +1096,20 @@ export function createOperacionalChecklistsRoutes(): FastifyPluginAsync {
           security: [{ bearerAuth: [] }],
           params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
         },
-        preHandler: [server.authenticate, authorize('operador', 'administrador')],
+        preHandler: [
+          server.authenticate,
+          authorize('operador', 'administrador'),
+          validateBody(avancarEtapaSchema),
+        ],
       },
       async (request, reply) => {
         try {
           const { id } = request.params as { id: string };
           const body = request.body as {
-            etapaDestino?: EtapaFluxo;
-            statusDestino?: StatusRepositorio;
+            etapaDestino: EtapaFluxo;
+            statusDestino: StatusRepositorio;
           };
           const user = getCurrentUser(request);
-
-          if (!body.etapaDestino || !body.statusDestino) {
-            return reply.status(400).send({
-              error: 'Campos obrigatórios: etapaDestino, statusDestino',
-            });
-          }
 
           await server.database.query('BEGIN');
           const repositorio = await loadRepositorio(server, id);
@@ -1117,8 +1118,28 @@ export function createOperacionalChecklistsRoutes(): FastifyPluginAsync {
             return reply.status(404).send({ error: 'Repositório não encontrado' });
           }
 
-          // Regra: Digitalização exige confirmação Seadesk antes de avançar
-          if (repositorio.etapa_atual === 'DIGITALIZACAO') {
+          const transicao = validarTransicaoEtapaOperacional(
+            repositorio.etapa_atual,
+            body.etapaDestino
+          );
+          if (!transicao.ok) {
+            await server.database.query('ROLLBACK');
+            return reply.status(422).send({
+              error: 'Avanço de etapa inválido. Siga a sequência operacional.',
+              code: 'ETAPA_SEQUENCIA_INVALIDA',
+              detalhes: {
+                etapaAtual: transicao.etapaAtual,
+                etapaDestino: transicao.etapaDestino,
+                etapaEsperada: transicao.etapaEsperada,
+              },
+            });
+          }
+
+          // Regra: Digitalização exige confirmação Seadesk antes de avançar para Conferência
+          if (
+            repositorio.etapa_atual === 'DIGITALIZACAO' &&
+            body.etapaDestino === getProximaEtapaOperacional('DIGITALIZACAO')
+          ) {
             const seadeskCheck = await server.database.query<{ confirmado: boolean }>(
               `SELECT seadesk_confirmado_em IS NOT NULL AS confirmado
              FROM repositorios

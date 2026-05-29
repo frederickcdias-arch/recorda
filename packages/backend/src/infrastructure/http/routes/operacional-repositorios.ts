@@ -334,7 +334,9 @@ export function createOperacionalRepositoriosRoutes(): FastifyPluginAsync {
             where += ` AND r.data_criacao < ($${p++}::date + INTERVAL '1 day')`;
             params.push(query.dataFim);
           }
+          let buscaParamIdx = -1;
           if (query.busca) {
+            buscaParamIdx = p;
             where += ` AND (
             r.id_repositorio_ged ILIKE $${p}
             OR r.orgao ILIKE $${p}
@@ -364,6 +366,67 @@ export function createOperacionalRepositoriosRoutes(): FastifyPluginAsync {
             params
           );
           const total = parseInt(totalResult.rows[0]?.total ?? '0', 10);
+
+          // proc_matches CTE — only built when busca is active
+          const procMatchesCte =
+            buscaParamIdx > 0
+              ? `,
+           proc_matches AS (
+             SELECT
+               rp.repositorio_id,
+               json_agg(
+                 json_build_object(
+                   'nome',           rp.interessado,
+                   'numeroProcesso', rp.protocolo,
+                   'campoEncontrado', CASE
+                     WHEN rp.protocolo ILIKE $${buscaParamIdx} THEN 'numeroProcesso'
+                     ELSE 'nome'
+                   END
+                 )
+                 ORDER BY rp.rn
+               ) FILTER (WHERE rp.rn <= 3) AS process_matches,
+               MAX(rp.total_c) AS process_matches_count
+             FROM (
+               SELECT
+                 sub.repositorio_id,
+                 sub.protocolo,
+                 sub.interessado,
+                 ROW_NUMBER() OVER (
+                   PARTITION BY sub.repositorio_id
+                   ORDER BY
+                     CASE WHEN sub.protocolo ILIKE $${buscaParamIdx} THEN 0 ELSE 1 END,
+                     sub.protocolo
+                 ) AS rn,
+                 COUNT(*) OVER (PARTITION BY sub.repositorio_id)::int AS total_c
+               FROM (
+                 SELECT rp2.repositorio_id, rp2.protocolo, rp2.interessado
+                 FROM recebimento_processos rp2
+                 WHERE rp2.repositorio_id IN (SELECT id_repositorio_recorda FROM ids)
+                   AND (rp2.protocolo ILIKE $${buscaParamIdx} OR rp2.interessado ILIKE $${buscaParamIdx})
+                 UNION ALL
+                 SELECT rp2.repositorio_id, ra.protocolo, ra.interessado
+                 FROM recebimento_apensos ra
+                 JOIN recebimento_processos rp2 ON rp2.id = ra.processo_principal_id
+                 WHERE rp2.repositorio_id IN (SELECT id_repositorio_recorda FROM ids)
+                   AND (ra.protocolo ILIKE $${buscaParamIdx} OR ra.interessado ILIKE $${buscaParamIdx})
+               ) sub
+             ) rp
+             GROUP BY rp.repositorio_id
+           )`
+              : '';
+
+          const procMatchesSelect =
+            buscaParamIdx > 0
+              ? `,
+                  COALESCE(pm.process_matches, '[]'::json) AS process_matches,
+                  COALESCE(pm.process_matches_count, 0)    AS process_matches_count`
+              : '';
+
+          const procMatchesJoin =
+            buscaParamIdx > 0
+              ? `
+           LEFT JOIN proc_matches pm ON pm.repositorio_id = r.id_repositorio_recorda`
+              : '';
 
           params.push(limite, offset);
           const result = await server.database.query(
@@ -408,21 +471,21 @@ export function createOperacionalRepositoriosRoutes(): FastifyPluginAsync {
              JOIN ids ON ids.id_repositorio_recorda = he.repositorio_id
                AND he.etapa_destino = ids.etapa_atual
              GROUP BY he.repositorio_id
-           )
+           )${procMatchesCte}
            SELECT r.*,
                   COALESCE(pc.total_processos, 0)     AS total_processos,
                   COALESCE(cf.checklist_concluido, FALSE) AS checklist_concluido,
                   COALESCE(cf.checklist_aberto,    FALSE) AS checklist_aberto,
                   COALESCE(pf.producao_registrada, FALSE) AS producao_registrada,
                   COALESCE(rc.total_relatorios, 0)    AS total_relatorios,
-                  EXTRACT(EPOCH FROM (NOW() - COALESCE(hm.ultima_entrada, r.data_criacao)))::int AS segundos_na_etapa
+                  EXTRACT(EPOCH FROM (NOW() - COALESCE(hm.ultima_entrada, r.data_criacao)))::int AS segundos_na_etapa${procMatchesSelect}
            FROM repositorios r
            JOIN ids ON ids.id_repositorio_recorda = r.id_repositorio_recorda
            LEFT JOIN proc_count  pc ON pc.repositorio_id  = r.id_repositorio_recorda
            LEFT JOIN checklist_flags cf ON cf.repositorio_id = r.id_repositorio_recorda
            LEFT JOIN prod_flags   pf ON pf.repositorio_id  = r.id_repositorio_recorda
            LEFT JOIN rel_count    rc ON rc.repositorio_id  = r.id_repositorio_recorda
-           LEFT JOIN hist_max     hm ON hm.repositorio_id  = r.id_repositorio_recorda
+           LEFT JOIN hist_max     hm ON hm.repositorio_id  = r.id_repositorio_recorda${procMatchesJoin}
            ORDER BY r.data_criacao DESC`,
             params
           );

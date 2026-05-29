@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { extractOCRPreview, getCurrentUser, normalizeText } from './operacional-helpers.js';
+import {
+  extractOCRPreview,
+  getCurrentUser,
+  normalizeText,
+  getEtapaAnteriorOperacional,
+  getProximaEtapaOperacional,
+  validarTransicaoEtapaOperacional,
+} from './operacional-helpers.js';
 
 describe('normalizeText', () => {
   it('collapses multiple spaces', () => {
@@ -113,5 +120,34 @@ describe('getCurrentUser', () => {
 
   it('throws when user has no id', () => {
     expect(() => getCurrentUser({ user: { perfil: 'operador' } })).toThrow();
+  });
+});
+
+describe('validarTransicaoEtapaOperacional', () => {
+  it('permite avanço para a próxima etapa', () => {
+    expect(validarTransicaoEtapaOperacional('RECEBIMENTO', 'PREPARACAO')).toEqual({ ok: true });
+    expect(validarTransicaoEtapaOperacional('RECONFERENCIA', 'CONTROLE_QUALIDADE')).toEqual({
+      ok: true,
+    });
+  });
+
+  it('permite devolução para a etapa anterior', () => {
+    expect(validarTransicaoEtapaOperacional('CONTROLE_QUALIDADE', 'RECONFERENCIA')).toEqual({
+      ok: true,
+    });
+  });
+
+  it('rejeita salto de etapa', () => {
+    const result = validarTransicaoEtapaOperacional('RECEBIMENTO', 'CONTROLE_QUALIDADE');
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.etapaEsperada).toBe('PREPARACAO');
+    }
+  });
+
+  it('expõe cadeia de etapas', () => {
+    expect(getProximaEtapaOperacional('DIGITALIZACAO')).toBe('CONFERENCIA');
+    expect(getEtapaAnteriorOperacional('CONFERENCIA')).toBe('DIGITALIZACAO');
+    expect(getProximaEtapaOperacional('CONTROLE_QUALIDADE')).toBeNull();
   });
 });

@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Modal } from '../../components/ui/Modal';
@@ -7,6 +7,21 @@ import { useToastHelpers } from '../../components/ui/Toast';
 import { Icon } from '../../components/ui/Icon';
 import { api } from '../../services/api';
 import { formatDateBR } from '../../utils/date';
+import { useAuth } from '../../contexts/AuthContext';
+import {
+  getBatchProductionSummary,
+  getCaptureFlowStatusLabel,
+  getProductionStatusBadge,
+  getPreferredDownloadSrc,
+  getProcessingDelayWarning,
+  getProductionStatusLabel,
+  resolveProductionItemStatus,
+  shouldShowManualBorderAdjust,
+  shouldShowMelhorarComIa,
+  shouldShowPrimaryApprove,
+  shouldShowPrimaryRetake,
+  shouldShowReprocessarComIa,
+} from './capturaMapaIaUi';
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -64,13 +79,44 @@ interface ProcessarResponse {
         fillFrameLikelihood: number;
       };
       warnings?: string[];
+      openai?: {
+        called?: boolean;
+        attempted?: boolean;
+        success?: boolean;
+        cacheHit?: boolean;
+        model?: string;
+        error?: string;
+        usedGuidedLocalEnhancement?: boolean;
+        analysis?: {
+          quality?: string;
+          recommendedAction?: string;
+          notes?: string;
+        };
+      };
+      aiCorners?: {
+        applied?: boolean;
+        confidence?: number;
+        rejectionReason?: string;
+        geometryValid?: boolean;
+      };
+      processing?: {
+        origin?: string;
+        manualReviewRecommended?: boolean;
+      };
       [key: string]: unknown;
     } | null;
   };
 }
 
 type Point = [number, number];
-type ItemStatus = 'corrigindo' | 'revisar' | 'aguardando' | 'processando' | 'concluido' | 'erro';
+type ItemStatus =
+  | 'corrigindo'
+  | 'aguardando'
+  | 'processando'
+  | 'pronta'
+  | 'refazer'
+  | 'aprovada'
+  | 'erro';
 
 interface QueueItem {
   localId: string;
@@ -83,8 +129,10 @@ interface QueueItem {
   cornersSource: 'manual' | 'detected' | 'none';
   confidence: 'high' | 'low' | 'none';
   status: ItemStatus;
+  processingStartedAt?: number;
   result: ProcessarResponse | null;
   erro: string | null;
+  preferirOriginal: boolean;
 }
 
 interface ImageSize {
@@ -200,19 +248,6 @@ function defaultCorners(size: ImageSize): Point[] {
   ];
 }
 
-function defaultEdgeMidpoints(corners: Point[]): Point[] {
-  const tl = corners[0]!;
-  const tr = corners[1]!;
-  const br = corners[2]!;
-  const bl = corners[3]!;
-  return [
-    [(tl[0] + tr[0]) / 2, (tl[1] + tr[1]) / 2],
-    [(tr[0] + br[0]) / 2, (tr[1] + br[1]) / 2],
-    [(bl[0] + br[0]) / 2, (bl[1] + br[1]) / 2],
-    [(tl[0] + bl[0]) / 2, (tl[1] + bl[1]) / 2],
-  ];
-}
-
 function plural(n: number, singular: string, pluralForm: string): string {
   return `${n} ${n === 1 ? singular : pluralForm}`;
 }
@@ -222,15 +257,18 @@ function toManualCorners(points: Point[] | null): Array<{ x: number; y: number }
   return points.map(([x, y]) => ({ x, y }));
 }
 
-function getProcessingBadge(result: ProcessarResponse | null): string {
+function hasManualGeometry(item: QueueItem): boolean {
+  return item.cornersSource === 'manual' && Boolean(item.corners && item.corners.length === 4);
+}
+
+function getProcessingBadge(result: ProcessarResponse | null, itemStatus?: ItemStatus): string {
   if (!result) return '';
+  const badge = getProductionStatusBadge(result.processamento, itemStatus);
+  if (badge) return badge;
   if (result.processamento.status === 'falhou_processamento') {
-    return 'Não foi possível corrigir automaticamente';
+    return 'Foto precisa ser refeita';
   }
-  if (result.processamento.fallback) {
-    return 'Correcao parcial';
-  }
-  return 'Imagem corrigida';
+  return 'Pronto para revisar';
 }
 
 function formatConfidence(confidence: number | null): string | null {
@@ -238,59 +276,23 @@ function formatConfidence(confidence: number | null): string | null {
   return `${Math.round(confidence * 100)}%`;
 }
 
-function formatDocumentClass(result: ProcessarResponse | null): string | null {
-  const kind = result?.processamento.metadata?.documentClass;
-  if (!kind) return null;
-  switch (kind) {
-    case 'map_document':
-      return 'Mapa colorido';
-    case 'color_document':
-      return 'Documento colorido';
-    case 'text_document':
-      return 'Documento de texto';
-    case 'low_confidence_capture':
-      return 'Captura de baixa confianca';
-    default:
-      return null;
-  }
-}
-
-function getDecisionHint(result: ProcessarResponse | null): string | null {
-  const decision = result?.processamento.metadata?.decision;
-  if (!decision) return null;
-  switch (decision) {
-    case 'frontend_assisted':
-      return 'Fallback da imagem assistida';
-    case 'backend_manual_corners':
-      return 'Warp final com cantos manuais';
-    case 'backend_detected_corners':
-      return 'Warp final com cantos detectados';
-    case 'python_detected':
-      return 'Folha detectada automaticamente';
-    case 'manual_review_recommended':
-      return 'Revisao manual recomendada';
-    case 'safe_fallback':
-      return 'Fallback seguro aplicado';
-    default:
-      return null;
-  }
-}
-
 const STATUS_LABEL: Record<ItemStatus, string> = {
-  corrigindo: 'Corrigindo...',
-  revisar: 'Revisar bordas',
+  corrigindo: 'Processando automaticamente',
   aguardando: 'Aguardando',
-  processando: 'Processando...',
-  concluido: 'Concluido',
-  erro: 'Erro',
+  processando: 'Processando automaticamente',
+  pronta: 'Pronto para revisar',
+  refazer: 'Foto precisa ser refeita',
+  aprovada: 'Aprovado',
+  erro: 'Falhou',
 };
 
 const STATUS_COLOR: Record<ItemStatus, string> = {
   corrigindo: 'text-primary-600 dark:text-primary-400',
-  revisar: 'text-warning-700 dark:text-warning-300',
   aguardando: 'text-[var(--color-text-tertiary)]',
   processando: 'text-primary-600 dark:text-primary-400',
-  concluido: 'text-success-600 dark:text-success-400',
+  pronta: 'text-success-600 dark:text-success-400',
+  refazer: 'text-warning-700 dark:text-warning-300',
+  aprovada: 'text-success-700 dark:text-success-300',
   erro: 'text-error-600 dark:text-error-400',
 };
 
@@ -298,10 +300,22 @@ const STATUS_COLOR: Record<ItemStatus, string> = {
 
 export function CapturaMapaPage() {
   const toast = useToastHelpers();
+  const { usuario } = useAuth();
+  const isAdmin = usuario?.perfil === 'administrador' || usuario?.perfil === 'operador';
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const batchInputRef = useRef<HTMLInputElement>(null);
 
   const queueRef = useRef<QueueItem[]>([]);
+  const processQueueItemRef = useRef<
+    (
+      localId: string,
+      options?: {
+        melhorarComIa?: boolean;
+        reprocessarComIa?: boolean;
+        preferirOriginal?: boolean;
+      }
+    ) => Promise<'ok' | 'fail' | 'skip'>
+  >(async () => 'skip');
   const [queue, setQueueState] = useState<QueueItem[]>([]);
 
   const [processandoLote, setProcessandoLote] = useState(false);
@@ -313,10 +327,20 @@ export function CapturaMapaPage() {
   const [dragActive, setDragActive] = useState(false);
   const [editorItemId, setEditorItemId] = useState<string | null>(null);
   const [editorCorners, setEditorCorners] = useState<Point[]>([]);
-  const [editorEdgeMidpoints, setEditorEdgeMidpoints] = useState<Point[]>([]);
   const [editorImageSize, setEditorImageSize] = useState<ImageSize | null>(null);
   const [editorSaving, setEditorSaving] = useState(false);
   const [previewItemId, setPreviewItemId] = useState<string | null>(null);
+  const [previewCompareMode, setPreviewCompareMode] = useState(false);
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
+  const [, setProcessingTick] = useState(0);
+
+  const processandoAlgum = queue.some((it) => it.status === 'processando');
+
+  useEffect(() => {
+    if (!processandoAlgum) return;
+    const interval = window.setInterval(() => setProcessingTick((tick) => tick + 1), 500);
+    return () => window.clearInterval(interval);
+  }, [processandoAlgum]);
 
   const setQueue = useCallback((updater: (prev: QueueItem[]) => QueueItem[]) => {
     setQueueState((prev) => {
@@ -357,85 +381,28 @@ export function CapturaMapaPage() {
           const dataUrl = ev.target?.result as string;
           const thumbSrc = await makeThumbnail(dataUrl);
 
-          setQueue((prev) => [
-            ...prev,
-            {
-              localId,
-              originalSrc: dataUrl,
-              thumbSrc,
-              correctedSrc: null,
-              corners: null,
-              detectedCorners: null,
-              edgeMidpoints: null,
-              cornersSource: 'none',
-              confidence: 'none',
-              status: 'corrigindo',
-              result: null,
-              erro: null,
-            },
-          ]);
-
-          try {
-            const {
-              detectPerspective,
-              correctPerspective,
-              correctPerspectiveWithCorners,
-              validateCorrectedDocument,
-            } = await loadPerspectiveUtils();
-            const detection = await detectPerspective(dataUrl);
-            const corrected = detection.corners
-              ? await correctPerspectiveWithCorners(dataUrl, detection.corners)
-              : await correctPerspective(dataUrl);
-            const correctedConfidence =
-              detection.confidence === 'high' ? await validateCorrectedDocument(corrected) : 'low';
-            setQueue((prev) =>
-              prev.map((it) =>
-                it.localId === localId
-                  ? {
-                      ...it,
-                      correctedSrc:
-                        detection.confidence === 'high' && correctedConfidence === 'high'
-                          ? corrected
-                          : null,
-                      corners: detection.corners,
-                      detectedCorners: detection.corners,
-                      edgeMidpoints: null,
-                      cornersSource:
-                        detection.confidence === 'high' && correctedConfidence === 'high'
-                          ? 'detected'
-                          : detection.corners
-                            ? 'detected'
-                            : 'none',
-                      confidence:
-                        detection.confidence === 'high' && correctedConfidence === 'high'
-                          ? 'high'
-                          : 'low',
-                      status:
-                        detection.confidence === 'high' && correctedConfidence === 'high'
-                          ? 'aguardando'
-                          : 'revisar',
-                    }
-                  : it
-              )
-            );
-          } catch {
-            setQueue((prev) =>
-              prev.map((it) =>
-                it.localId === localId
-                  ? {
-                      ...it,
-                      correctedSrc: null,
-                      corners: null,
-                      detectedCorners: null,
-                      edgeMidpoints: null,
-                      cornersSource: 'none',
-                      confidence: 'none',
-                      status: 'revisar',
-                    }
-                  : it
-              )
-            );
-          }
+          setQueue((prev) => {
+            const next = [
+              ...prev,
+              {
+                localId,
+                originalSrc: dataUrl,
+                thumbSrc,
+                correctedSrc: null,
+                corners: null,
+                detectedCorners: null,
+                edgeMidpoints: null,
+                cornersSource: 'none' as const,
+                confidence: 'none' as const,
+                status: 'aguardando' as ItemStatus,
+                result: null,
+                erro: null,
+                preferirOriginal: false,
+              },
+            ];
+            queueRef.current = next;
+            return next;
+          });
         };
         reader.readAsDataURL(file);
       });
@@ -495,10 +462,6 @@ export function CapturaMapaPage() {
           ([x, y], index) =>
             `.editor-corner-${index}{left:${(x / editorImageSize.width) * 100}%;top:${(y / editorImageSize.height) * 100}%;}`
         ),
-        ...editorEdgeMidpoints.map(
-          ([x, y], index) =>
-            `.editor-edge-${index}{left:${(x / editorImageSize.width) * 100}%;top:${(y / editorImageSize.height) * 100}%;}`
-        ),
       ].join('\n')
     : '';
 
@@ -511,15 +474,10 @@ export function CapturaMapaPage() {
     [setQueue]
   );
 
-  const handleRetry = useCallback(
+  const handleRefazerFoto = useCallback(
     (localId: string) => {
-      setQueue((prev) =>
-        prev.map((it) =>
-          it.localId === localId
-            ? { ...it, status: it.correctedSrc ? 'aguardando' : 'revisar', erro: null }
-            : it
-        )
-      );
+      setQueue((prev) => prev.filter((it) => it.localId !== localId));
+      cameraInputRef.current?.click();
     },
     [setQueue]
   );
@@ -532,22 +490,32 @@ export function CapturaMapaPage() {
         : defaultCorners(size);
     setEditorImageSize(size);
     setEditorCorners(corners);
-    setEditorEdgeMidpoints(item.edgeMidpoints ?? defaultEdgeMidpoints(corners));
     setEditorItemId(item.localId);
   }, []);
+
+  const handleRetry = useCallback(
+    (localId: string) => {
+      const item = queueRef.current.find((it) => it.localId === localId);
+      if (!item) return;
+      if (!hasManualGeometry(item)) {
+        void handleOpenEditor(item);
+        return;
+      }
+      void processQueueItemRef.current(localId);
+    },
+    [handleOpenEditor]
+  );
 
   const handleCloseEditor = useCallback(() => {
     if (editorSaving) return;
     setEditorItemId(null);
     setEditorCorners([]);
-    setEditorEdgeMidpoints([]);
     setEditorImageSize(null);
   }, [editorSaving]);
 
   const handleSaveEditor = useCallback(async () => {
     const item = queueRef.current.find((it) => it.localId === editorItemId);
-    if (!item || editorCorners.length !== 4 || editorEdgeMidpoints.length !== 4 || !editorImageSize)
-      return;
+    if (!item || editorCorners.length !== 4 || !editorImageSize) return;
 
     const suggestedCorners = item.corners ?? defaultCorners(editorImageSize);
     if (!item.corners && pointsEqual(editorCorners, suggestedCorners)) {
@@ -561,19 +529,14 @@ export function CapturaMapaPage() {
 
     setEditorSaving(true);
     try {
-      const { correctPerspectiveWithEdgePoints, validateCorrectedDocument } =
+      const { correctPerspectiveWithCorners, validateCorrectedDocument } =
         await loadPerspectiveUtils();
-      const corrected = await correctPerspectiveWithEdgePoints(
-        item.originalSrc,
-        editorCorners,
-        editorEdgeMidpoints
-      );
+      const corrected = await correctPerspectiveWithCorners(item.originalSrc, editorCorners);
       const correctedConfidence = await validateCorrectedDocument(corrected);
       if (correctedConfidence !== 'high') {
-        toast.error(
-          'A imagem corrigida ainda manteve contexto externo demais. Ajuste os cantos no limite da folha.'
+        toast.info(
+          'A validacao automatica indicou margem externa, mas a marcacao manual sera mantida.'
         );
-        return;
       }
       const thumbSrc = await makeThumbnail(corrected);
       setQueue((prev) =>
@@ -585,7 +548,7 @@ export function CapturaMapaPage() {
                 correctedSrc: corrected,
                 corners: editorCorners,
                 detectedCorners: it.detectedCorners ?? it.corners,
-                edgeMidpoints: editorEdgeMidpoints,
+                edgeMidpoints: null,
                 cornersSource: 'manual',
                 confidence: 'high',
                 status: 'aguardando',
@@ -600,15 +563,7 @@ export function CapturaMapaPage() {
     } finally {
       setEditorSaving(false);
     }
-  }, [
-    editorCorners,
-    editorEdgeMidpoints,
-    editorImageSize,
-    editorItemId,
-    handleCloseEditor,
-    setQueue,
-    toast,
-  ]);
+  }, [editorCorners, editorImageSize, editorItemId, handleCloseEditor, setQueue, toast]);
 
   const handleCornerPointerMove = useCallback(
     (index: number, e: React.PointerEvent<HTMLButtonElement>) => {
@@ -635,62 +590,52 @@ export function CapturaMapaPage() {
     [editorImageSize]
   );
 
-  const handleEdgePointerMove = useCallback(
-    (index: number, e: React.PointerEvent<HTMLButtonElement>) => {
-      if (!(e.currentTarget as HTMLButtonElement).hasPointerCapture(e.pointerId)) return;
-      const board = e.currentTarget.parentElement;
-      if (!board || !editorImageSize) return;
-      const rect = board.getBoundingClientRect();
-      const x = Math.max(
-        0,
-        Math.min(
-          editorImageSize.width,
-          ((e.clientX - rect.left) / rect.width) * editorImageSize.width
-        )
-      );
-      const y = Math.max(
-        0,
-        Math.min(
-          editorImageSize.height,
-          ((e.clientY - rect.top) / rect.height) * editorImageSize.height
-        )
-      );
-      setEditorEdgeMidpoints((prev) => prev.map((point, i) => (i === index ? [x, y] : point)));
-    },
-    [editorImageSize]
-  );
-
   // ── Processar lote (paralelo com concorrência limitada) ──────────────────
 
-  const handleProcessarLote = useCallback(async () => {
-    if (processandoLote) return;
-    const bloqueadas = queueRef.current.some(
-      (it) => it.status === 'corrigindo' || it.status === 'revisar'
-    );
-    if (bloqueadas) {
-      toast.error('Revise as bordas pendentes antes de processar o lote.');
-      return;
-    }
-    setProcessandoLote(true);
+  const processQueueItem = useCallback(
+    async (
+      localId: string,
+      options: {
+        melhorarComIa?: boolean;
+        reprocessarComIa?: boolean;
+        preferirOriginal?: boolean;
+        loteSeq?: number;
+      } = {}
+    ): Promise<'ok' | 'fail' | 'skip'> => {
+      const queuedItem = queueRef.current.find((it) => it.localId === localId);
+      if (!queuedItem?.originalSrc) return 'skip';
+      if (!hasManualGeometry(queuedItem)) {
+        setQueue((prev) =>
+          prev.map((it) =>
+            it.localId === localId
+              ? {
+                  ...it,
+                  status: 'aguardando',
+                  erro: 'Marque as bordas da folha antes de processar.',
+                }
+              : it
+          )
+        );
+        return 'skip';
+      }
 
-    const pending = queueRef.current
-      .filter((it) => it.status === 'aguardando')
-      .map((it) => it.localId);
-
-    let ok = 0;
-    let fail = 0;
-
-    // Pool: até 3 uploads simultâneos para maximizar throughput sem sobrecarregar
-    const processOne = async (localId: string) => {
       setQueue((prev) =>
-        prev.map((it) => (it.localId === localId ? { ...it, status: 'processando' } : it))
+        prev.map((it) =>
+          it.localId === localId
+            ? { ...it, status: 'processando', processingStartedAt: Date.now() }
+            : it
+        )
       );
       const item = queueRef.current.find((it) => it.localId === localId);
-      if (!item?.originalSrc) return;
+      if (!item?.originalSrc) return 'skip';
+      const preferirOriginal = options.preferirOriginal ?? item.preferirOriginal;
+      const nomePersonalizado =
+        options.loteSeq != null ? `Mapa ${String(options.loteSeq).padStart(5, '0')}` : undefined;
       try {
         const result = await api.post<ProcessarResponse>('/colaborador/capturas-mapa', {
           imagemBase64: item.originalSrc,
-          imagemCorrigidaBase64: item.correctedSrc ?? undefined,
+          imagemCorrigidaBase64:
+            item.cornersSource === 'manual' ? undefined : (item.correctedSrc ?? undefined),
           manualCorners:
             item.cornersSource === 'manual' ? toManualCorners(item.corners) : undefined,
           detectedCorners:
@@ -699,42 +644,178 @@ export function CapturaMapaPage() {
               : item.cornersSource === 'detected'
                 ? toManualCorners(item.corners)
                 : undefined,
+          melhorarComIa: options.melhorarComIa,
+          reprocessarComIa: options.reprocessarComIa,
+          preferirOriginal,
+          priorOpenAIMetadata: item.result?.processamento.metadata?.openai,
+          nomePersonalizado,
         });
         setQueue((prev) =>
-          prev.map((it) => (it.localId === localId ? { ...it, status: 'concluido', result } : it))
+          prev.map((it) => {
+            if (it.localId !== localId) return it;
+            const productionStatus = resolveProductionItemStatus(result.processamento);
+            const backendCorners = result.processamento.metadata?.corners as
+              | Array<{ x: number; y: number }>
+              | undefined;
+            const mappedCorners =
+              backendCorners?.length === 4
+                ? backendCorners.map((corner) => [corner.x, corner.y] as Point)
+                : it.corners;
+            const processedSrc = result.imagemProcessada;
+            const keepManualGeometry = it.cornersSource === 'manual';
+            return {
+              ...it,
+              status: productionStatus,
+              result,
+              preferirOriginal,
+              erro: null,
+              confidence: productionStatus === 'refazer' ? 'low' : 'high',
+              corners: keepManualGeometry ? it.corners : mappedCorners,
+              detectedCorners: mappedCorners,
+              cornersSource: keepManualGeometry
+                ? 'manual'
+                : mappedCorners
+                  ? 'detected'
+                  : it.cornersSource,
+              correctedSrc: processedSrc,
+              thumbSrc: processedSrc,
+            };
+          })
         );
-        ok++;
+        if (result.imagemProcessada) {
+          void makeThumbnail(result.imagemProcessada).then((thumbSrc) => {
+            setQueue((prev) =>
+              prev.map((it) => (it.localId === localId ? { ...it, thumbSrc } : it))
+            );
+          });
+        }
+        return 'ok';
       } catch {
         setQueue((prev) =>
           prev.map((it) =>
             it.localId === localId ? { ...it, status: 'erro', erro: 'Falha ao processar' } : it
           )
         );
-        fail++;
+        return 'fail';
       }
-    };
+    },
+    [setQueue]
+  );
 
-    const queue = [...pending];
+  processQueueItemRef.current = processQueueItem;
+
+  const handleProcessarLote = useCallback(async () => {
+    if (processandoLote) return;
+    const bloqueadas = queueRef.current.some((it) => it.status === 'corrigindo');
+    if (bloqueadas) {
+      toast.error('Aguarde o processamento em andamento antes de processar o lote.');
+      return;
+    }
+    setProcessandoLote(true);
+
+    const semBordas = queueRef.current.filter(
+      (it) => it.status === 'aguardando' && !hasManualGeometry(it)
+    ).length;
+    if (semBordas > 0) {
+      toast.error(
+        `${plural(semBordas, 'imagem precisa de borda', 'imagens precisam de bordas')} antes do lote.`
+      );
+      setProcessandoLote(false);
+      return;
+    }
+
+    const pending = queueRef.current
+      .filter((it) => it.status === 'aguardando' && hasManualGeometry(it))
+      .map((it) => it.localId);
+
+    let ok = 0;
+    let fail = 0;
+
+    // Atribui numero sequencial por ordem na fila — reinicia a cada lote
+    const loteNumbers = new Map(pending.map((localId, idx) => [localId, idx + 1]));
+
+    const pendingQueue = [...pending];
     const workers = Array.from({ length: Math.min(3, pending.length) }, async () => {
-      while (queue.length > 0) {
-        const localId = queue.shift();
-        if (localId) await processOne(localId);
+      while (pendingQueue.length > 0) {
+        const localId = pendingQueue.shift();
+        if (!localId) continue;
+        const loteSeq = loteNumbers.get(localId);
+        const outcome = await processQueueItem(localId, { loteSeq });
+        if (outcome === 'ok') ok++;
+        if (outcome === 'fail') fail++;
       }
     });
     await Promise.all(workers);
 
+    if (pending.length === 0) {
+      toast.error('Marque as bordas dos mapas antes de processar o lote.');
+    }
     if (ok > 0)
       toast.success(`${plural(ok, 'imagem processada', 'imagens processadas')} com sucesso.`);
     if (fail > 0) toast.error(`${plural(fail, 'imagem com erro', 'imagens com erro')}.`);
     setProcessandoLote(false);
-  }, [processandoLote, setQueue, toast]);
+  }, [processandoLote, processQueueItem, toast]);
+
+  const handleAprovarItem = useCallback(
+    (localId: string) => {
+      setQueue((prev) =>
+        prev.map((it) => (it.localId === localId ? { ...it, status: 'aprovada' } : it))
+      );
+    },
+    [setQueue]
+  );
+
+  const handleMelhorarComIa = useCallback(
+    async (localId: string) => {
+      if (processandoLote) return;
+      setProcessandoLote(true);
+      const outcome = await processQueueItem(localId, { melhorarComIa: true });
+      if (outcome === 'ok') {
+        toast.success('Processamento com IA concluído.');
+      } else if (outcome === 'fail') {
+        toast.error('Falha ao processar com IA.');
+      }
+      setProcessandoLote(false);
+    },
+    [processandoLote, processQueueItem, toast]
+  );
+
+  const handleReprocessarComIa = useCallback(
+    async (localId: string) => {
+      if (processandoLote) return;
+      setProcessandoLote(true);
+      const outcome = await processQueueItem(localId, { reprocessarComIa: true });
+      if (outcome === 'ok') {
+        toast.success('Reprocessamento com IA concluído.');
+      } else if (outcome === 'fail') {
+        toast.error('Falha ao reprocessar com IA.');
+      }
+      setProcessandoLote(false);
+    },
+    [processandoLote, processQueueItem, toast]
+  );
+
+  const handleUsarOriginal = useCallback(
+    (localId: string) => {
+      setQueue((prev) =>
+        prev.map((it) =>
+          it.localId === localId ? { ...it, preferirOriginal: !it.preferirOriginal } : it
+        )
+      );
+    },
+    [setQueue]
+  );
 
   // ── Downloads de itens ────────────────────────────────────────────────────
 
   const handleDownloadItem = useCallback((item: QueueItem) => {
     if (!item.result) return;
     const link = document.createElement('a');
-    link.href = item.result.imagemProcessada;
+    link.href = getPreferredDownloadSrc(
+      item.originalSrc,
+      item.result.imagemProcessada,
+      item.preferirOriginal
+    );
     link.download = item.result.nomeArquivo;
     document.body.appendChild(link);
     link.click();
@@ -743,12 +824,16 @@ export function CapturaMapaPage() {
 
   const handleBaixarTodos = useCallback(() => {
     queueRef.current
-      .filter((it) => it.status === 'concluido' && it.result)
+      .filter((it) => it.status === 'aprovada' && it.result)
       .forEach((item, i) => {
         setTimeout(() => {
           if (!item.result) return;
           const link = document.createElement('a');
-          link.href = item.result.imagemProcessada;
+          link.href = getPreferredDownloadSrc(
+            item.originalSrc,
+            item.result.imagemProcessada,
+            item.preferirOriginal
+          );
           link.download = item.result.nomeArquivo;
           document.body.appendChild(link);
           link.click();
@@ -819,12 +904,24 @@ export function CapturaMapaPage() {
   // ── Dados derivados ───────────────────────────────────────────────────────
 
   const aguardando = queue.filter((it) => it.status === 'aguardando').length;
-  const revisar = queue.filter((it) => it.status === 'revisar').length;
+  const aguardandoComBordas = queue.filter(
+    (it) => it.status === 'aguardando' && hasManualGeometry(it)
+  ).length;
+  const refazer = queue.filter((it) => it.status === 'refazer').length;
+  const prontas = queue.filter((it) => it.status === 'pronta').length;
+  const aprovadas = queue.filter((it) => it.status === 'aprovada').length;
   const corrigindo = queue.filter((it) => it.status === 'corrigindo').length;
-  const concluidos = queue.filter((it) => it.status === 'concluido').length;
   const temErro = queue.some((it) => it.status === 'erro');
-  const processandoAlgum = queue.some((it) => it.status === 'processando');
-  const podeProcessarLote = aguardando > 0 && revisar === 0 && corrigindo === 0;
+  const podeProcessarLote = aguardandoComBordas > 0 && corrigindo === 0;
+  const batchSummary = getBatchProductionSummary(
+    queue.map((it) => ({
+      status: it.status,
+      confidence: it.confidence,
+      processingStartedAt: it.processingStartedAt,
+      preferirOriginal: it.preferirOriginal,
+      result: it.result ? { processamento: it.result.processamento } : null,
+    }))
+  );
   const editorItem = queue.find((it) => it.localId === editorItemId) ?? null;
   const previewItem = queue.find((it) => it.localId === previewItemId) ?? null;
 
@@ -832,10 +929,7 @@ export function CapturaMapaPage() {
 
   return (
     <div className="flex flex-col gap-6 pb-10">
-      <PageHeader
-        title="Captura de Mapas"
-        subtitle="Capture, revise as bordas e processe em lote."
-      />
+      <PageHeader title="Captura de Mapas" subtitle="Envie, ajuste e salve." />
 
       {/* Banner de aviso sobre retencao */}
       <div className="flex items-start gap-3 rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] px-4 py-3 text-sm text-[var(--color-text-secondary)]">
@@ -844,7 +938,7 @@ export function CapturaMapaPage() {
           className="mt-0.5 h-4 w-4 flex-none text-[var(--color-text-tertiary)]"
         />
         <span>
-          As capturas ficam disponiveis por <strong>30 dias</strong>. Baixe antes do vencimento.
+          Disponivel por <strong>30 dias</strong>.
         </span>
       </div>
 
@@ -854,21 +948,19 @@ export function CapturaMapaPage() {
           <div className="mb-4 flex flex-col gap-3 rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="space-y-1">
               <h2 className="text-sm font-medium text-[var(--color-text-primary)]">
-                Envie as imagens e revise apenas o que precisar.
+                Ajuste as bordas e processe.
               </h2>
               <p className="text-sm text-[var(--color-text-secondary)]">
                 A correção roda sozinha. Ajuste manualmente quando a folha não for detectada.
               </p>
             </div>
             <div className="flex flex-wrap gap-2 text-xs text-[var(--color-text-secondary)]">
+              <span className="rounded-full bg-[var(--color-bg-primary)] px-3 py-1">1. Enviar</span>
               <span className="rounded-full bg-[var(--color-bg-primary)] px-3 py-1">
-                1. Capturar ou enviar
+                2. Ajustar
               </span>
               <span className="rounded-full bg-[var(--color-bg-primary)] px-3 py-1">
-                2. Revisar bordas
-              </span>
-              <span className="rounded-full bg-[var(--color-bg-primary)] px-3 py-1">
-                3. Processar lote
+                3. Processar
               </span>
             </div>
           </div>
@@ -890,21 +982,15 @@ export function CapturaMapaPage() {
             </div>
             <div className="space-y-1">
               <p className="text-sm font-medium text-[var(--color-text-primary)]">
-                Arraste imagens aqui ou use a camera.
+                Arraste aqui ou escolha imagens.
               </p>
               <p className="text-sm text-[var(--color-text-secondary)]">
-                JPEG, PNG ou WEBP com ate 10 MB por arquivo.
+                JPEG, PNG ou WEBP ate 10 MB.
               </p>
             </div>
             <div className="flex flex-wrap justify-center gap-2 text-xs text-[var(--color-text-secondary)]">
               <span className="rounded-full bg-[var(--color-bg-primary)] px-3 py-1">
-                Sem envio imediato
-              </span>
-              <span className="rounded-full bg-[var(--color-bg-primary)] px-3 py-1">
-                Revisao antes do lote
-              </span>
-              <span className="rounded-full bg-[var(--color-bg-primary)] px-3 py-1">
-                Preview da imagem final
+                Ajuste antes de salvar
               </span>
             </div>
             <div className="grid w-full grid-cols-1 gap-2 sm:w-auto sm:grid-cols-2">
@@ -933,7 +1019,7 @@ export function CapturaMapaPage() {
               </Button>
             </div>
             <p className="text-xs text-[var(--color-text-tertiary)]">
-              No celular, prefira enquadrar a folha inteira antes de capturar.
+              No celular, fotografe a folha inteira.
             </p>
 
             <input
@@ -969,34 +1055,41 @@ export function CapturaMapaPage() {
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                   <div className="space-y-2">
                     <p className="text-sm font-medium text-[var(--color-text-primary)]">
-                      {plural(queue.length, 'imagem na fila', 'imagens na fila')}
+                      {plural(queue.length, 'imagem', 'imagens')}
                     </p>
                     <div className="flex flex-wrap gap-2 text-xs text-[var(--color-text-secondary)]">
-                      {corrigindo > 0 && (
-                        <span className="rounded-full bg-[var(--color-primary-50)] px-3 py-1 text-[var(--color-primary-700)]">
-                          Corrigindo {corrigindo}
+                      {batchSummary && (
+                        <span className="rounded-full bg-[var(--color-bg-primary)] px-3 py-1 font-medium">
+                          {batchSummary}
                         </span>
                       )}
-                      {aguardando > 0 && (
-                        <span className="rounded-full bg-[var(--color-bg-primary)] px-3 py-1">
-                          {aguardando} prontas
-                        </span>
-                      )}
-                      {revisar > 0 && (
-                        <span className="rounded-full bg-warning-50 px-3 py-1 text-warning-700 dark:bg-warning-950 dark:text-warning-300">
-                          {revisar} para revisar
-                        </span>
-                      )}
-                      {concluidos > 0 && (
+                      {prontas > 0 && (
                         <span className="rounded-full bg-success-50 px-3 py-1 text-success-700 dark:bg-success-950 dark:text-success-300">
-                          {concluidos} concluidas
+                          {prontas} pronta{prontas === 1 ? '' : 's'}
+                        </span>
+                      )}
+                      {refazer > 0 && (
+                        <span className="rounded-full bg-warning-50 px-3 py-1 text-warning-700 dark:bg-warning-950 dark:text-warning-300">
+                          {refazer} precisa{refazer === 1 ? '' : 'm'} refazer
+                        </span>
+                      )}
+                      {aprovadas > 0 && (
+                        <span className="rounded-full bg-success-50 px-3 py-1 text-success-700 dark:bg-success-950 dark:text-success-300">
+                          {aprovadas} aprovada{aprovadas === 1 ? '' : 's'}
                         </span>
                       )}
                     </div>
+                    <button
+                      type="button"
+                      className="text-xs text-[var(--color-text-tertiary)] underline-offset-2 hover:underline"
+                      onClick={() => setShowAdvancedOptions((open) => !open)}
+                    >
+                      {showAdvancedOptions ? 'Ocultar opções avançadas' : 'Opções avançadas'}
+                    </button>
                   </div>
 
                   <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:flex">
-                    {concluidos > 0 && (
+                    {aprovadas > 0 && (
                       <Button
                         variant="secondary"
                         size="md"
@@ -1020,7 +1113,7 @@ export function CapturaMapaPage() {
                       >
                         {processandoLote || processandoAlgum
                           ? 'Processando...'
-                          : `Processar ${plural(aguardando, 'imagem', 'imagens')}`}
+                          : `Processar ${plural(aguardandoComBordas, 'imagem', 'imagens')}`}
                       </Button>
                     )}
                     {!podeProcessarLote && aguardando > 0 && (
@@ -1032,7 +1125,7 @@ export function CapturaMapaPage() {
                         className="xl:w-auto"
                         disabled
                       >
-                        {revisar > 0 ? 'Revise as bordas pendentes' : 'Aguarde a correcao'}
+                        Ajuste as bordas antes de processar
                       </Button>
                     )}
                     {temErro && (
@@ -1070,7 +1163,7 @@ export function CapturaMapaPage() {
 
               {/* Grade de miniaturas */}
               <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-                {queue.map((item) => (
+                {queue.map((item, queueIndex) => (
                   <div
                     key={item.localId}
                     className="group relative flex min-w-0 flex-col overflow-hidden rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] shadow-sm"
@@ -1090,11 +1183,17 @@ export function CapturaMapaPage() {
                         </div>
                       )}
 
-                      {item.status === 'concluido' && (
+                      {item.status === 'aprovada' && (
                         <div className="absolute inset-0 flex items-center justify-center bg-success-900/30">
                           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-success-500 text-white">
                             <Icon name="check" className="h-4 w-4" />
                           </div>
+                        </div>
+                      )}
+
+                      {item.status === 'refazer' && (
+                        <div className="absolute inset-x-2 bottom-2 rounded-lg bg-warning-500 px-3 py-2 text-xs font-medium text-white shadow-sm">
+                          Refazer foto
                         </div>
                       )}
 
@@ -1105,16 +1204,6 @@ export function CapturaMapaPage() {
                           </div>
                         </div>
                       )}
-
-                      {item.status === 'revisar' && (
-                        <button
-                          className="absolute inset-x-2 bottom-2 rounded-lg bg-warning-500 px-3 py-2 text-xs font-medium text-white shadow-sm"
-                          onClick={() => void handleOpenEditor(item)}
-                        >
-                          Ajustar Bordas
-                        </button>
-                      )}
-
                       {/* Botao remover */}
                       {item.status !== 'processando' && (
                         <button
@@ -1133,44 +1222,51 @@ export function CapturaMapaPage() {
                         <span
                           className={`min-w-0 text-xs font-medium ${STATUS_COLOR[item.status]}`}
                         >
-                          {item.status === 'concluido' && item.result
-                            ? getProcessingBadge(item.result)
-                            : STATUS_LABEL[item.status]}
-                          {item.status === 'concluido' && item.result && (
-                            <span className="ml-1 font-normal text-[var(--color-text-tertiary)]">
-                              {' '}
-                              {formatBytes(item.result.tamanhoBytes)}
-                            </span>
-                          )}
+                          {item.status === 'pronta' || item.status === 'aprovada'
+                            ? getProcessingBadge(item.result, item.status)
+                            : item.status === 'processando' && item.processingStartedAt
+                              ? (getCaptureFlowStatusLabel(item) ?? STATUS_LABEL[item.status])
+                              : getProductionStatusLabel(item)}
+                          {(item.status === 'pronta' || item.status === 'aprovada') &&
+                            item.result && (
+                              <span className="ml-1 font-normal text-[var(--color-text-tertiary)]">
+                                {' '}
+                                {formatBytes(item.result.tamanhoBytes)}
+                              </span>
+                            )}
                         </span>
 
-                        {item.status === 'concluido' && item.result && (
-                          <div className="flex flex-none gap-1">
-                            <button
-                              className="flex h-8 w-8 items-center justify-center rounded-full text-[var(--color-primary-600)] transition-colors hover:bg-[var(--color-primary-50)] hover:text-[var(--color-primary-700)]"
-                              onClick={() => setPreviewItemId(item.localId)}
-                              aria-label="Visualizar"
-                            >
-                              <Icon name="eye" className="h-3.5 w-3.5" />
-                            </button>
-                            <button
-                              className="flex h-8 w-8 items-center justify-center rounded-full text-[var(--color-primary-600)] transition-colors hover:bg-[var(--color-primary-50)] hover:text-[var(--color-primary-700)]"
-                              onClick={() => handleDownloadItem(item)}
-                              aria-label="Baixar"
-                            >
-                              <Icon name="download" className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
-                        )}
+                        {(item.status === 'pronta' || item.status === 'aprovada') &&
+                          item.result && (
+                            <div className="flex flex-none gap-1">
+                              <button
+                                className="flex h-8 w-8 items-center justify-center rounded-full text-[var(--color-primary-600)] transition-colors hover:bg-[var(--color-primary-50)] hover:text-[var(--color-primary-700)]"
+                                onClick={() => {
+                                  setPreviewItemId(item.localId);
+                                  setPreviewCompareMode(false);
+                                }}
+                                aria-label="Visualizar"
+                              >
+                                <Icon name="eye" className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                className="flex h-8 w-8 items-center justify-center rounded-full text-[var(--color-primary-600)] transition-colors hover:bg-[var(--color-primary-50)] hover:text-[var(--color-primary-700)]"
+                                onClick={() => handleDownloadItem(item)}
+                                aria-label="Baixar"
+                              >
+                                <Icon name="download" className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          )}
 
-                        {item.status === 'revisar' && (
+                        {item.status === 'refazer' && (
                           <div className="flex flex-none gap-1">
                             <button
-                              className="flex h-8 w-8 items-center justify-center rounded-full text-[var(--color-primary-600)] transition-colors hover:bg-[var(--color-primary-50)] hover:text-[var(--color-primary-700)]"
-                              onClick={() => void handleOpenEditor(item)}
-                              aria-label="Ajustar Bordas"
+                              className="flex h-8 w-8 items-center justify-center rounded-full text-warning-700 transition-colors hover:bg-warning-50 dark:hover:bg-warning-950"
+                              onClick={() => handleRefazerFoto(item.localId)}
+                              aria-label="Tirar nova foto"
                             >
-                              <Icon name="edit" className="h-3.5 w-3.5" />
+                              <Icon name="camera" className="h-3.5 w-3.5" />
                             </button>
                           </div>
                         )}
@@ -1186,35 +1282,131 @@ export function CapturaMapaPage() {
                         )}
                       </div>
 
-                      {item.status === 'concluido' && item.result && (
-                        <div className="space-y-1 text-[11px] leading-4 text-[var(--color-text-secondary)]">
-                          <div className="flex flex-wrap gap-x-2">
-                            {formatConfidence(item.result.processamento.confidence) && (
-                              <span>
-                                Confianca {formatConfidence(item.result.processamento.confidence)}
-                              </span>
-                            )}
-                            {item.result.processamento.engine && (
-                              <span>{item.result.processamento.engine}</span>
-                            )}
-                            {formatDocumentClass(item.result) && (
-                              <span>{formatDocumentClass(item.result)}</span>
-                            )}
-                            {getDecisionHint(item.result) && (
-                              <span>{getDecisionHint(item.result)}</span>
-                            )}
-                          </div>
-                          {item.result.processamento.fallback && (
-                            <p className="text-warning-700 dark:text-warning-300">
-                              Não conseguimos detectar a folha com seguranca. Salvamos a imagem
-                              original com melhoria leve.
-                            </p>
-                          )}
-                          {item.result.processamento.metadata?.warnings?.[0] && (
-                            <p>{item.result.processamento.metadata.warnings[0]}</p>
+                      {(item.status === 'aguardando' ||
+                        item.status === 'processando' ||
+                        item.status === 'refazer') &&
+                        getCaptureFlowStatusLabel(item) && (
+                          <p className="text-[11px] text-[var(--color-text-tertiary)]">
+                            {getCaptureFlowStatusLabel(item)}
+                          </p>
+                        )}
+                      {item.status === 'processando' &&
+                        item.processingStartedAt &&
+                        getProcessingDelayWarning(Date.now() - item.processingStartedAt) && (
+                          <p className="text-[11px] text-warning-700 dark:text-warning-300">
+                            {getProcessingDelayWarning(Date.now() - item.processingStartedAt)}
+                          </p>
+                        )}
+                      {item.status === 'aguardando' && (
+                        <div className="flex flex-wrap gap-1 pt-1 text-[11px] leading-4 text-[var(--color-text-secondary)]">
+                          <Button
+                            size="sm"
+                            variant="primary"
+                            onClick={() => void handleOpenEditor(item)}
+                          >
+                            {hasManualGeometry(item) ? 'Revisar bordas' : 'Marcar bordas'}
+                          </Button>
+                          {hasManualGeometry(item) && (
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() =>
+                                void processQueueItem(item.localId, { loteSeq: queueIndex + 1 })
+                              }
+                            >
+                              Processar agora
+                            </Button>
                           )}
                         </div>
                       )}
+                      {(item.status === 'pronta' ||
+                        item.status === 'refazer' ||
+                        item.status === 'aprovada') &&
+                        item.result && (
+                          <div className="space-y-1 text-[11px] leading-4 text-[var(--color-text-secondary)]">
+                            {formatConfidence(item.result.processamento.confidence) && (
+                              <span>
+                                Confiança {formatConfidence(item.result.processamento.confidence)}
+                              </span>
+                            )}
+                            <div className="flex flex-wrap gap-1 pt-1">
+                              {shouldShowPrimaryApprove(item) && (
+                                <Button
+                                  size="sm"
+                                  variant="primary"
+                                  onClick={() => handleAprovarItem(item.localId)}
+                                >
+                                  Aprovar
+                                </Button>
+                              )}
+                              {shouldShowPrimaryRetake(item) && (
+                                <Button
+                                  size="sm"
+                                  variant="primary"
+                                  icon="camera"
+                                  onClick={() => handleRefazerFoto(item.localId)}
+                                >
+                                  Tirar nova foto
+                                </Button>
+                              )}
+                              {item.status === 'pronta' && item.result && (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    variant="secondary"
+                                    onClick={() => handleUsarOriginal(item.localId)}
+                                  >
+                                    {item.preferirOriginal ? 'Usar corrigida' : 'Usar original'}
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => handleRefazerFoto(item.localId)}
+                                  >
+                                    Refazer
+                                  </Button>
+                                </>
+                              )}
+                              {shouldShowManualBorderAdjust(item, {
+                                showAdvanced: showAdvancedOptions,
+                                isAdmin,
+                              }) && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => void handleOpenEditor(item)}
+                                >
+                                  Ajustar bordas manualmente
+                                </Button>
+                              )}
+                              {shouldShowMelhorarComIa(item, {
+                                showAdvanced: showAdvancedOptions,
+                              }) && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => void handleMelhorarComIa(item.localId)}
+                                  disabled={processandoLote}
+                                >
+                                  Melhorar com IA
+                                </Button>
+                              )}
+                              {shouldShowReprocessarComIa(item, {
+                                showAdvanced: showAdvancedOptions,
+                              }) && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => void handleReprocessarComIa(item.localId)}
+                                  disabled={processandoLote}
+                                  title="Nova análise pode consumir créditos da API"
+                                >
+                                  Reprocessar com IA
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        )}
                     </div>
                   </div>
                 ))}
@@ -1251,7 +1443,7 @@ export function CapturaMapaPage() {
         {editorItem && editorImageSize && (
           <div className="space-y-3 p-4">
             <p className="text-sm text-[var(--color-text-secondary)]">
-              Arraste os cantos e os pontos centrais ate remover mesa, fundo e sombras externas.
+              Arraste os 4 cantos ate alinhar a folha sem cortar informacao.
             </p>
             <div
               className={`relative mx-auto w-full max-w-[760px] overflow-hidden rounded-xl bg-[var(--color-gray-900)] ${editorAspectClass}`}
@@ -1269,22 +1461,7 @@ export function CapturaMapaPage() {
                 preserveAspectRatio="none"
               >
                 <polygon
-                  points={
-                    editorCorners.length === 4 && editorEdgeMidpoints.length === 4
-                      ? [
-                          editorCorners[0]!,
-                          editorEdgeMidpoints[0]!,
-                          editorCorners[1]!,
-                          editorEdgeMidpoints[1]!,
-                          editorCorners[2]!,
-                          editorEdgeMidpoints[2]!,
-                          editorCorners[3]!,
-                          editorEdgeMidpoints[3]!,
-                        ]
-                          .map(([x, y]) => `${x},${y}`)
-                          .join(' ')
-                      : editorCorners.map(([x, y]) => `${x},${y}`).join(' ')
-                  }
+                  points={editorCorners.map(([x, y]) => `${x},${y}`).join(' ')}
                   fill="rgba(68, 76, 231, 0.12)"
                   stroke="rgb(68, 76, 231)"
                   strokeWidth={2}
@@ -1305,21 +1482,6 @@ export function CapturaMapaPage() {
                   {index + 1}
                 </button>
               ))}
-              {editorEdgeMidpoints.map((_, index) => (
-                <button
-                  key={`edge-${index}`}
-                  type="button"
-                  className={`absolute flex h-6 w-6 -translate-x-1/2 -translate-y-1/2 touch-none items-center justify-center rounded-full border-2 border-white bg-warning-500 text-[10px] font-bold text-white shadow-lg editor-edge-${index}`}
-                  onPointerDown={(e) => {
-                    e.currentTarget.setPointerCapture(e.pointerId);
-                    handleEdgePointerMove(index, e);
-                  }}
-                  onPointerMove={(e) => handleEdgePointerMove(index, e)}
-                  aria-label={`Curva da borda ${index + 1}`}
-                >
-                  {index + 1}
-                </button>
-              ))}
             </div>
           </div>
         )}
@@ -1327,14 +1489,24 @@ export function CapturaMapaPage() {
 
       <Modal
         open={!!previewItem?.result}
-        onClose={() => setPreviewItemId(null)}
+        onClose={() => {
+          setPreviewItemId(null);
+          setPreviewCompareMode(false);
+        }}
         title="Imagem Processada"
         subtitle={previewItem?.result?.nomeArquivo}
         size="xl"
         scrollable
         footer={
           <div className="flex flex-col gap-2 p-4 sm:flex-row sm:flex-wrap sm:justify-end">
-            <Button variant="ghost" size="sm" onClick={() => setPreviewItemId(null)}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setPreviewItemId(null);
+                setPreviewCompareMode(false);
+              }}
+            >
               Fechar
             </Button>
             {previewItem?.result && (
@@ -1352,50 +1524,96 @@ export function CapturaMapaPage() {
       >
         {previewItem?.result && (
           <div className="space-y-4 p-4">
-            <div className="grid gap-4 lg:grid-cols-2">
-              <div className="overflow-hidden rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)]">
-                <div className="border-b border-[var(--color-border-primary)] px-3 py-2 text-xs font-medium text-[var(--color-text-secondary)]">
-                  Original
+            {/* Imagem principal — corrigida em destaque, ou split de comparação */}
+            {previewCompareMode ? (
+              <div className="grid gap-4 lg:grid-cols-2">
+                <div className="overflow-hidden rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)]">
+                  <div className="border-b border-[var(--color-border-primary)] px-3 py-2 text-xs font-medium text-[var(--color-text-secondary)]">
+                    Original
+                  </div>
+                  <img
+                    src={previewItem.originalSrc}
+                    alt="Imagem original"
+                    className="max-h-[65vh] w-full object-contain"
+                  />
                 </div>
+                <div className="overflow-hidden rounded-xl border border-primary-500 ring-1 ring-primary-500/40 bg-[var(--color-bg-secondary)]">
+                  <div className="border-b border-[var(--color-border-primary)] px-3 py-2 text-xs font-medium text-[var(--color-text-secondary)]">
+                    Corrigida (preferida)
+                  </div>
+                  <img
+                    src={previewItem.result.imagemProcessada}
+                    alt="Imagem corrigida"
+                    className="max-h-[65vh] w-full object-contain"
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="overflow-hidden rounded-xl border border-primary-500 ring-1 ring-primary-500/40 bg-[var(--color-bg-secondary)]">
                 <img
-                  src={previewItem.originalSrc}
-                  alt="Imagem original"
-                  className="max-h-[65vh] w-full object-contain"
+                  src={
+                    previewItem.preferirOriginal
+                      ? previewItem.originalSrc
+                      : previewItem.result.imagemProcessada
+                  }
+                  alt="Imagem processada"
+                  className="max-h-[80vh] w-full object-contain"
                 />
               </div>
-              <div className="overflow-hidden rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)]">
-                <div className="border-b border-[var(--color-border-primary)] px-3 py-2 text-xs font-medium text-[var(--color-text-secondary)]">
-                  Corrigida
-                </div>
-                <img
-                  src={previewItem.result.imagemProcessada}
-                  alt="Preview da imagem processada"
-                  className="max-h-[65vh] w-full object-contain"
-                />
-              </div>
-            </div>
+            )}
+
+            {/* Metadados */}
             <div className="flex flex-wrap gap-2 text-xs text-[var(--color-text-secondary)]">
-              <span>{previewItem.result.nomeArquivo}</span>
               <span>{formatBytes(previewItem.result.tamanhoBytes)}</span>
               {formatConfidence(previewItem.result.processamento.confidence) && (
                 <span>
-                  Confianca {formatConfidence(previewItem.result.processamento.confidence)}
+                  Confiança {formatConfidence(previewItem.result.processamento.confidence)}
                 </span>
               )}
-              {formatDocumentClass(previewItem.result) && (
-                <span>{formatDocumentClass(previewItem.result)}</span>
-              )}
-              {getDecisionHint(previewItem.result) && (
-                <span>{getDecisionHint(previewItem.result)}</span>
-              )}
-              <span>{getProcessingBadge(previewItem.result)}</span>
             </div>
+
             {previewItem.result.processamento.fallback && (
-              <p className="mt-2 text-xs text-warning-700 dark:text-warning-300">
-                Não conseguimos detectar a folha com seguranca. Salvamos a imagem original com
+              <p className="text-xs text-warning-700 dark:text-warning-300">
+                Não conseguimos detectar a folha com segurança. Salvamos a imagem original com
                 melhoria leve.
               </p>
             )}
+
+            {/* Ações */}
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" variant="ghost" onClick={() => setPreviewCompareMode((v) => !v)}>
+                {previewCompareMode ? 'Ocultar original' : 'Comparar com original'}
+              </Button>
+              {shouldShowMelhorarComIa(previewItem) && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => void handleMelhorarComIa(previewItem.localId)}
+                  disabled={processandoLote}
+                >
+                  Melhorar com IA
+                </Button>
+              )}
+              {shouldShowReprocessarComIa(previewItem) && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => void handleReprocessarComIa(previewItem.localId)}
+                  disabled={processandoLote}
+                  title="Nova análise pode consumir créditos da API"
+                >
+                  Reprocessar com IA
+                </Button>
+              )}
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => handleUsarOriginal(previewItem.localId)}
+              >
+                {previewItem.preferirOriginal ? 'Usar corrigida' : 'Usar original'}
+              </Button>
+            </div>
+
             {previewItem.result.processamento.metadata?.warnings?.map((warning) => (
               <p key={warning} className="text-xs text-[var(--color-text-secondary)]">
                 {warning}
@@ -1413,9 +1631,7 @@ export function CapturaMapaPage() {
               <h3 className="text-base font-semibold text-[var(--color-text-primary)]">
                 Capturas recentes
               </h3>
-              <p className="text-sm text-[var(--color-text-secondary)]">
-                Arquivos salvos nos ultimos 30 dias.
-              </p>
+              <p className="text-sm text-[var(--color-text-secondary)]">Ultimos 30 dias.</p>
             </div>
             <Button
               variant="secondary"
@@ -1431,9 +1647,7 @@ export function CapturaMapaPage() {
           </div>
 
           {!listaExpandida && (
-            <p className="text-sm text-[var(--color-text-secondary)]">
-              Carregue a lista para ver imagens salvas.
-            </p>
+            <p className="text-sm text-[var(--color-text-secondary)]">Toque para ver a lista.</p>
           )}
 
           {listaExpandida && capturasRecentes !== null && capturasRecentes.length === 0 && (

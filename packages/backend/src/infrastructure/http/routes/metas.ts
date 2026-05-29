@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { authorize } from '../middleware/auth.js';
-import { getCurrentUser } from './operacional-helpers.js';
+import { getBrazilDateString, getCurrentUser } from './operacional-helpers.js';
 import { validateBody, validateParams, validateQuery } from '../middleware/validate.js';
 import { lancarProducaoColaboradorSchema } from '../schemas/producao.js';
 import { criarMapeamentoSchema, criarMetaSchema, idParamSchema } from '../schemas/operacional.js';
@@ -719,12 +719,7 @@ export function createMetasRoutes(): FastifyPluginAsync {
             origem: 'SISTEMA', // Marca produção lançada diretamente no sistema (vs legado importado)
           };
 
-          if (!body.data) {
-            return reply.status(400).send({
-              error: 'Data de produção inválida. Corrija a data antes de lançar.',
-            });
-          }
-          const dataProducao = body.data;
+          const dataProducao = body.data?.trim() || getBrazilDateString();
 
           // Sequência obrigatória de etapas (apenas dependências explícitas):
           // - Digitalização depende de Preparação

@@ -7,6 +7,7 @@ import {
   relatorioRecebimentoSchema,
   criarLoteCQSchema,
   importacaoLegadoSchema,
+  avancarEtapaSchema,
 } from './operacional.js';
 
 describe('criarRepositorioSchema', () => {
@@ -154,6 +155,24 @@ describe('importacaoLegadoSchema', () => {
     const result = importacaoLegadoSchema.safeParse({
       tipo: 'recebimento',
       registros: [],
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe('avancarEtapaSchema', () => {
+  it('accepts etapas do fluxo operacional', () => {
+    const result = avancarEtapaSchema.safeParse({
+      etapaDestino: 'RECONFERENCIA',
+      statusDestino: 'EM_CONFERENCIA',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects etapas fora do fluxo operacional', () => {
+    const result = avancarEtapaSchema.safeParse({
+      etapaDestino: 'MONTAGEM',
+      statusDestino: 'EM_MONTAGEM',
     });
     expect(result.success).toBe(false);
   });

@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
@@ -104,7 +104,7 @@ function AusenciaCard({
           ) : null}
 
           <p className="text-xs text-[var(--color-text-tertiary)]">
-            Solicitado em {formatDate(item.criadoEm)}
+            Registrado em {formatDate(item.criadoEm)}
           </p>
         </div>
 
@@ -159,12 +159,12 @@ export function MinhasAusenciasPage(): JSX.Element {
             id: item.id,
             body: { motivo: 'Cancelado pelo colaborador' },
           });
-          toastSuccess('Solicitacao cancelada.');
+          toastSuccess('Ausência cancelada.');
         } catch (err: unknown) {
           const msg =
             err && typeof err === 'object' && 'error' in err
               ? String((err as { error: string }).error)
-              : 'Erro ao cancelar solicitacao.';
+              : 'Erro ao cancelar ausência.';
           toastError(msg);
         }
       },
@@ -173,11 +173,18 @@ export function MinhasAusenciasPage(): JSX.Element {
 
   return (
     <div className="flex flex-col gap-6 p-4 sm:p-6">
-      <PageHeader title="Minhas Ausências" subtitle="Histórico de ausências." />
+      <PageHeader
+        title="Minhas Ausências"
+        subtitle="Suas ausências registradas pela administração."
+      />
+
+      <p className="-mt-2 text-sm text-[var(--color-text-secondary)]">
+        As ausências são lançadas pela administração. Em caso de divergência, procure o responsável.
+      </p>
 
       <PageState
         loading={ausenciasQuery.isLoading}
-        loadingMessage="Carregando histórico..."
+        loadingMessage="Carregando ausências..."
         error={
           ausenciasQuery.isError
             ? {
@@ -236,7 +243,7 @@ export function MinhasAusenciasPage(): JSX.Element {
         <div className="space-y-3">
           {ausenciasFiltradas.length === 0 && ausencias.length > 0 ? (
             <p className="py-6 text-center text-sm text-[var(--color-text-tertiary)]">
-              Nenhuma solicitação encontrada.
+              Nenhuma ausência encontrada com os filtros selecionados.
             </p>
           ) : null}
 

@@ -30,6 +30,12 @@ import type {
 
 export { useQueryClient } from '@tanstack/react-query';
 
+export interface ProcessMatch {
+  nome: string | null;
+  numeroProcesso: string;
+  campoEncontrado: 'nome' | 'numeroProcesso' | 'outro';
+}
+
 export interface RepositorioItem {
   id_repositorio_recorda: string;
   id_repositorio_ged: string;
@@ -39,6 +45,8 @@ export interface RepositorioItem {
   etapa_atual: string;
   data_criacao: string;
   seadesk_confirmado_em?: string | null;
+  process_matches?: ProcessMatch[] | null;
+  process_matches_count?: number;
 }
 
 export interface SelectOption {
@@ -89,6 +97,9 @@ export const queryKeys = {
   tiposAusencia: ['tipos-ausencia'] as const,
   minhasAusencias: (params: ListarMinhasAusenciasParams) => ['minhas-ausencias', params] as const,
   minhasAusenciasAll: ['minhas-ausencias'] as const,
+  painelEtapa: (etapa: string, params: Record<string, string | number | boolean>) =>
+    ['painel-etapa', etapa, params] as const,
+  painelEtapaAll: (etapa: string) => ['painel-etapa', etapa] as const,
 };
 
 // ─── Hooks ───────────────────────────────────────────────────
@@ -170,6 +181,91 @@ export function useRepositorios(params: {
         `/operacional/repositorios?${qs.toString()}`
       );
     },
+  });
+}
+
+// ─── Painel de Etapa ─────────────────────────────────────────
+
+export interface PainelDivergencia {
+  tipo:
+    | 'STATUS_ATRASADO'
+    | 'ETAPA_PULADA'
+    | 'DUPLICIDADE'
+    | 'RESPONSAVEL_AUSENTE'
+    | 'QUANTIDADE_AUSENTE';
+  mensagem: string;
+}
+
+export interface PainelEtapaItem {
+  producaoId: string;
+  repositorioId: string;
+  repositorioCodigo: string;
+  entidade: string;
+  etapa: string;
+  statusEtapa: 'CONCLUIDA' | 'PENDENTE' | 'DIVERGENTE';
+  responsavelId: string | null;
+  responsavelNome: string | null;
+  dataExecucao: string | null;
+  quantidade: number;
+  unidade: 'IMAGENS' | 'REPOSITORIO';
+  origem: 'LANCADA' | 'LEGADA' | null;
+  etapaAtualRepositorio: string;
+  statusAtualRepositorio: string;
+  etapaAtualCalculada: string | null;
+  proximaEtapaSugerida: string | null;
+  divergencias: PainelDivergencia[];
+  producaoRelacionada: unknown[];
+}
+
+export interface PainelEtapaParams {
+  page?: number;
+  limit?: number;
+  repositorio?: string;
+  colaboradorId?: string;
+  dataInicio?: string;
+  dataFim?: string;
+  origem?: 'LANCADA' | 'LEGADA' | '';
+  statusEtapa?: 'CONCLUIDA' | 'PENDENTE' | 'DIVERGENTE' | '';
+  somentePendentes?: boolean;
+}
+
+export interface PainelEtapaResponse {
+  data: PainelEtapaItem[];
+  meta: { page: number; limit: number; total: number };
+}
+
+export function usePainelEtapa(etapa: string, params: PainelEtapaParams = {}) {
+  const {
+    page = 1,
+    limit = 20,
+    repositorio,
+    colaboradorId,
+    dataInicio,
+    dataFim,
+    origem,
+    statusEtapa,
+    somentePendentes,
+  } = params;
+  const queryParams: Record<string, string | number | boolean> = { page, limit };
+  if (repositorio) queryParams.repositorio = repositorio;
+  if (colaboradorId) queryParams.colaboradorId = colaboradorId;
+  if (dataInicio) queryParams.dataInicio = dataInicio;
+  if (dataFim) queryParams.dataFim = dataFim;
+  if (origem) queryParams.origem = origem;
+  if (statusEtapa) queryParams.statusEtapa = statusEtapa;
+  if (somentePendentes) queryParams.somentePendentes = true;
+
+  return useQuery({
+    queryKey: queryKeys.painelEtapa(etapa, queryParams),
+    queryFn: () => {
+      const qs = new URLSearchParams();
+      for (const [k, v] of Object.entries(queryParams)) {
+        qs.set(k, String(v));
+      }
+      return api.get<PainelEtapaResponse>(`/operacional/etapas/${etapa}/painel?${qs.toString()}`);
+    },
+    enabled: Boolean(etapa),
+    staleTime: 30_000,
   });
 }
 
@@ -281,6 +377,21 @@ export function useAvancarEtapa() {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: queryKeys.repositoriosAll });
       void qc.invalidateQueries({ queryKey: queryKeys.dashboard });
+    },
+  });
+}
+
+export function useConfirmarSeadesk() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (repositorioId: string) =>
+      api.patch<{
+        id_repositorio_recorda: string;
+        seadesk_confirmado_em: string;
+        seadesk_confirmado_por: string;
+      }>(`/operacional/repositorios/${repositorioId}/seadesk-confirmar`),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: queryKeys.repositoriosAll });
     },
   });
 }
@@ -545,7 +656,9 @@ export function useConcluirCQ() {
 export function useDevolverCQ() {
   return useMutation({
     mutationFn: (repoId: string) =>
-      api.post(`/operacional/repositorios/${repoId}/cq-retornar-recebimento`),
+      api.post<{ ok: boolean; etapaAtual: string; statusAtual: string }>(
+        `/operacional/repositorios/${repoId}/cq-retornar-reconferencia`
+      ),
   });
 }
 

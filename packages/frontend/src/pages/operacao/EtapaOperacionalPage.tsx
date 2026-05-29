@@ -1,7 +1,7 @@
-﻿import { useEffect, useMemo, useState } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Suspense, lazy } from 'react';
-import type { StatusRepositorio, OrigemDocumentoRecebimento } from '@recorda/shared';
+import type { EtapaFluxo, OrigemDocumentoRecebimento } from '@recorda/shared';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -25,6 +25,7 @@ import {
   useCreateRepositorio,
   useDeleteRepositorio,
   useAvancarEtapa,
+  useConfirmarSeadesk,
   useBatchProcessos,
   useRegistrarProducao,
   useGerarRelatorioRecebimento,
@@ -37,8 +38,16 @@ import {
   useCriarOrgaoRecebimento,
   useQueryClient,
   queryKeys,
+  type ProcessMatch,
 } from '../../hooks/useQueries';
 import { useUltimoIdRepositorioGed } from '../../hooks/useUltimoIdRepositorioGed';
+import {
+  getOperacaoEtapaConfig,
+  isOperacaoEtapaSlug,
+  OPERACAO_ETAPA_MAP,
+  OPERACAO_ETAPAS_ORDER,
+  type EtapaSlug,
+} from '../../config/operacao-etapas';
 
 const ControleQualidadePanel = lazy(() =>
   import('./ControleQualidadePanel').then((module) => ({ default: module.ControleQualidadePanel }))
@@ -94,30 +103,11 @@ function PanelLoadingFallback({ title }: { title: string }): JSX.Element {
   );
 }
 
-type EtapaSlug = 'recebimento' | 'controle-qualidade';
-
-type EtapaApi = 'RECEBIMENTO' | 'CONTROLE_QUALIDADE';
-
 type ResultadoChecklist = 'CONFORME' | 'NAO_CONFORME_COM_TRATATIVA';
-
-interface RepositorioItem {
-  id_repositorio_recorda: string;
-  id_repositorio_ged: string;
-  orgao: string;
-  projeto: string;
-  status_atual: string;
-  etapa_atual: string;
-  total_processos?: number;
-  checklist_concluido?: boolean;
-  checklist_aberto?: boolean;
-  producao_registrada?: boolean;
-  total_relatorios?: number;
-  segundos_na_etapa?: number;
-}
 
 interface ChecklistResumo {
   id: string;
-  etapa: EtapaApi;
+  etapa: EtapaFluxo;
   status: 'ABERTO' | 'CONCLUIDO';
   ativo: boolean;
 }
@@ -135,12 +125,54 @@ interface ChecklistItem {
 interface ChecklistDetalheResponse {
   checklist: {
     id: string;
-    etapa: EtapaApi;
+    etapa: EtapaFluxo;
     status: 'ABERTO' | 'CONCLUIDO';
   };
   itens: ChecklistItem[];
 }
 
+interface RepositorioItem {
+  id_repositorio_recorda: string;
+  id_repositorio_ged: string;
+  orgao: string;
+  projeto: string;
+  status_atual: string;
+  etapa_atual: string;
+  total_processos?: number;
+  checklist_concluido?: boolean;
+  checklist_aberto?: boolean;
+  producao_registrada?: boolean;
+  total_relatorios?: number;
+  segundos_na_etapa?: number;
+  seadesk_confirmado_em?: string | null;
+  process_matches?: ProcessMatch[] | null;
+  process_matches_count?: number;
+}
+
+function ProcessMatchHint({
+  matches,
+  count,
+}: {
+  matches: ProcessMatch[] | null | undefined;
+  count: number | undefined;
+}): JSX.Element | null {
+  if (!matches || matches.length === 0) return null;
+  const first = matches[0]!;
+  const parts = [first.nome, first.numeroProcesso].filter(Boolean);
+  const extra = (count ?? matches.length) - 1;
+  return (
+    <div className="mt-0.5">
+      <p className="text-xs text-[var(--color-text-tertiary)] leading-tight">
+        &#8594; {parts.join(' — ')}
+      </p>
+      {extra > 0 && (
+        <p className="text-xs text-[var(--color-text-tertiary)] leading-tight">
+          +{extra} processo{extra !== 1 ? 's' : ''} encontrado{extra !== 1 ? 's' : ''}
+        </p>
+      )}
+    </div>
+  );
+}
 interface DocumentoRecebimentoItem {
   id: string;
   processo: string;
@@ -159,34 +191,33 @@ interface AvulsoBuscaItem {
   interessado: string;
 }
 
-interface EtapaConfig {
-  label: string;
-  etapaApi: EtapaApi;
-  nextPath?: string;
-  nextEtapaApi?: EtapaApi;
-  nextStatus?: StatusRepositorio;
-  prevEtapaApi?: EtapaApi;
-  prevStatus?: StatusRepositorio;
-}
-
-const ETAPA_MAP: Record<EtapaSlug, EtapaConfig> = {
-  recebimento: {
-    label: 'Recebimento',
-    etapaApi: 'RECEBIMENTO',
-    nextPath: '/operacao/controle-qualidade',
-    nextEtapaApi: 'CONTROLE_QUALIDADE',
-    nextStatus: 'AGUARDANDO_CQ_LOTE',
-  },
-  'controle-qualidade': {
-    label: 'Controle de Qualidade',
-    etapaApi: 'CONTROLE_QUALIDADE',
-    prevEtapaApi: 'RECEBIMENTO',
-    prevStatus: 'RECEBIDO',
-  },
-};
-
-function isEtapaSlug(value: string | undefined): value is EtapaSlug {
-  return Boolean(value && value in ETAPA_MAP);
+export function OperacaoEtapasNav({ etapaAtual }: { etapaAtual: EtapaSlug }): JSX.Element {
+  return (
+    <div className="overflow-x-auto">
+      <nav
+        aria-label="Etapas do fluxo operacional"
+        className="flex min-w-max gap-1 rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-1"
+      >
+        {OPERACAO_ETAPAS_ORDER.map((slug) => {
+          const cfg = OPERACAO_ETAPA_MAP[slug];
+          const active = etapaAtual === slug;
+          return (
+            <Link
+              key={slug}
+              to={cfg.path}
+              className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors whitespace-nowrap ${
+                active
+                  ? 'bg-[var(--color-fill-selected)] text-[var(--color-primary-700)]'
+                  : 'text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)]'
+              }`}
+            >
+              {cfg.label}
+            </Link>
+          );
+        })}
+      </nav>
+    </div>
+  );
 }
 
 export function EtapaOperacionalPage(): JSX.Element {
@@ -271,10 +302,10 @@ export function EtapaOperacionalPage(): JSX.Element {
     confirmDialog: recebimentoConfirmDialog,
   } = useRecebimento();
 
-  const etapaConfig = useMemo(() => {
-    if (!isEtapaSlug(etapa)) return null;
-    return ETAPA_MAP[etapa];
-  }, [etapa]);
+  const etapaConfig = useMemo(() => getOperacaoEtapaConfig(etapa), [etapa]);
+  const proximaEtapaLabel = etapaConfig?.nextSlug
+    ? OPERACAO_ETAPA_MAP[etapaConfig.nextSlug].label
+    : null;
 
   const filtrosUrl = useMemo(() => {
     const params = new URLSearchParams(location.search);
@@ -387,6 +418,7 @@ export function EtapaOperacionalPage(): JSX.Element {
   const createRepo = useCreateRepositorio();
   const deleteRepo = useDeleteRepositorio();
   const avancarEtapa = useAvancarEtapa();
+  const confirmarSeadesk = useConfirmarSeadesk();
   const batchProcessos = useBatchProcessos();
   const registrarProducao = useRegistrarProducao();
   const gerarRelRecebimento = useGerarRelatorioRecebimento();
@@ -580,7 +612,7 @@ export function EtapaOperacionalPage(): JSX.Element {
         etapaDestino: etapaConfig.nextEtapaApi!,
         statusDestino: etapaConfig.nextStatus!,
       });
-      showSuccess(`Repositório avançado para ${etapaConfig.nextEtapaApi}.`);
+      showSuccess(`Repositório avançado para ${proximaEtapaLabel ?? etapaConfig.nextEtapaApi}.`);
       setAvancarModalOpen(false);
       setAvancarRepoId('');
       invalidateRepos();
@@ -589,6 +621,65 @@ export function EtapaOperacionalPage(): JSX.Element {
     } finally {
       setProcessando(false);
     }
+  };
+
+  const handleConfirmarSeadesk = async (repositorioId: string): Promise<void> => {
+    try {
+      setProcessando(true);
+      await confirmarSeadesk.mutateAsync(repositorioId);
+      showSuccess('Confirmação Seadesk registrada.');
+      invalidateRepos();
+    } catch (error) {
+      showError(extractErrorMessage(error, 'Erro ao confirmar Seadesk'));
+    } finally {
+      setProcessando(false);
+    }
+  };
+
+  const buildAcoesFilaEtapa = (
+    item: RepositorioItem
+  ): Array<{
+    label: string;
+    onClick: () => void;
+    hidden?: boolean;
+    variant?: 'danger';
+  }> => {
+    const acoes = [
+      {
+        label: 'Checklist',
+        onClick: () => void handleAbrirChecklist(item.id_repositorio_recorda),
+      },
+      {
+        label: 'Rel. produção',
+        onClick: () => void handleGerarRelatorioProducao(item.id_repositorio_recorda),
+      },
+      {
+        label: 'Registrar produção',
+        onClick: () => void handleRegistrarProducao(item.id_repositorio_recorda),
+      },
+      {
+        label: 'Confirmar Seadesk',
+        onClick: () => void handleConfirmarSeadesk(item.id_repositorio_recorda),
+        hidden: etapa !== 'digitalizacao' || Boolean(item.seadesk_confirmado_em),
+      },
+      {
+        label: 'Avançar etapa',
+        onClick: () => void handleOpenAvancar(item.id_repositorio_recorda),
+        hidden: !etapaConfig.nextEtapaApi,
+      },
+      {
+        label: 'Devolver',
+        onClick: () => void handleDevolverEtapaAnterior(item.id_repositorio_recorda),
+        hidden: !etapaConfig.prevEtapaApi,
+      },
+      {
+        label: 'Excluir',
+        onClick: () => handleOpenExcluir(item.id_repositorio_recorda),
+        variant: 'danger' as const,
+        hidden: !isAdmin,
+      },
+    ];
+    return acoes;
   };
 
   const handleDevolverEtapaAnterior = async (repositorioId: string): Promise<void> => {
@@ -867,6 +958,9 @@ export function EtapaOperacionalPage(): JSX.Element {
     }
   };
 
+  const showSeadeskCol = etapa === 'digitalizacao';
+  const filaColCount = showSeadeskCol ? 9 : 8;
+
   const erroComAcao = erro
     ? {
         ...erro,
@@ -882,15 +976,17 @@ export function EtapaOperacionalPage(): JSX.Element {
       <div className="space-y-6">
         <PageHeader
           title={etapaConfig.label}
-          subtitle="Fila da Etapa."
+          subtitle="Fila da etapa."
           actions={
             etapaConfig.nextPath ? (
               <Button variant="secondary" size="sm" onClick={irProximaEtapa}>
-                Próxima etapa
+                {proximaEtapaLabel ? `Próxima: ${proximaEtapaLabel}` : 'Próxima etapa'}
               </Button>
             ) : undefined
           }
         />
+
+        {isOperacaoEtapaSlug(etapa) ? <OperacaoEtapasNav etapaAtual={etapa} /> : null}
 
         {totalGeral > 0 ? (
           <Card padding="sm" className="bg-[var(--color-bg-secondary)]">
@@ -1294,6 +1390,10 @@ export function EtapaOperacionalPage(): JSX.Element {
                               <p className="text-sm font-semibold text-[var(--color-text-primary)]">
                                 {item.id_repositorio_ged}
                               </p>
+                              <ProcessMatchHint
+                                matches={item.process_matches}
+                                count={item.process_matches_count}
+                              />
                               <p className="text-xs text-[var(--color-text-tertiary)] mt-0.5">
                                 {item.orgao}
                               </p>
@@ -1472,6 +1572,10 @@ export function EtapaOperacionalPage(): JSX.Element {
                               </td>
                               <td className="px-4 py-3 text-sm font-medium text-[var(--color-text-primary)]">
                                 {item.id_repositorio_ged}
+                                <ProcessMatchHint
+                                  matches={item.process_matches}
+                                  count={item.process_matches_count}
+                                />
                               </td>
                               <td className="px-4 py-3 text-sm text-[var(--color-text-secondary)]">
                                 {item.orgao}
@@ -1620,6 +1724,10 @@ export function EtapaOperacionalPage(): JSX.Element {
                         <p className="text-sm font-semibold text-[var(--color-text-primary)]">
                           {item.id_repositorio_ged}
                         </p>
+                        <ProcessMatchHint
+                          matches={item.process_matches}
+                          count={item.process_matches_count}
+                        />
                         <p className="mt-0.5 text-xs text-[var(--color-text-tertiary)]">
                           {item.orgao}
                         </p>
@@ -1627,6 +1735,11 @@ export function EtapaOperacionalPage(): JSX.Element {
                       </div>
                       <StatusBadge status={item.status_atual} />
                     </div>
+                    {etapa === 'digitalizacao' ? (
+                      <p className="mt-2 text-xs text-[var(--color-text-tertiary)]">
+                        {item.seadesk_confirmado_em ? 'Seadesk confirmado' : 'Seadesk pendente'}
+                      </p>
+                    ) : null}
                     <div className="mt-3 flex items-center justify-between gap-2">
                       <span
                         className={`inline-flex h-8 w-8 items-center justify-center rounded-full text-xs font-medium ${(item.total_processos ?? 0) > 0 ? 'bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)]' : 'bg-[var(--color-bg-secondary)] text-[var(--color-text-tertiary)]'}`}
@@ -1651,42 +1764,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                       />
                     </div>
                     <div className="mt-3 flex justify-end">
-                      <ActionMenu
-                        disabled={processando}
-                        items={[
-                          {
-                            label: 'Checklist',
-                            onClick: () => void handleAbrirChecklist(item.id_repositorio_recorda),
-                          },
-                          {
-                            label: 'Rel. produção',
-                            onClick: () =>
-                              void handleGerarRelatorioProducao(item.id_repositorio_recorda),
-                          },
-                          {
-                            label: 'Registrar produção',
-                            onClick: () =>
-                              void handleRegistrarProducao(item.id_repositorio_recorda),
-                          },
-                          {
-                            label: 'Avançar etapa',
-                            onClick: () => void handleOpenAvancar(item.id_repositorio_recorda),
-                            hidden: !etapaConfig.nextEtapaApi,
-                          },
-                          {
-                            label: 'Devolver',
-                            onClick: () =>
-                              void handleDevolverEtapaAnterior(item.id_repositorio_recorda),
-                            hidden: !etapaConfig.prevEtapaApi,
-                          },
-                          {
-                            label: 'Excluir',
-                            onClick: () => handleOpenExcluir(item.id_repositorio_recorda),
-                            variant: 'danger',
-                            hidden: !isAdmin,
-                          },
-                        ]}
-                      />
+                      <ActionMenu disabled={processando} items={buildAcoesFilaEtapa(item)} />
                     </div>
                   </div>
                 ))
@@ -1709,6 +1787,11 @@ export function EtapaOperacionalPage(): JSX.Element {
                     <th className="px-4 py-3 text-left text-xs font-medium text-[var(--color-text-secondary)]">
                       Status
                     </th>
+                    {showSeadeskCol ? (
+                      <th className="px-4 py-3 text-left text-xs font-medium text-[var(--color-text-secondary)]">
+                        Seadesk
+                      </th>
+                    ) : null}
                     <th className="px-4 py-3 text-center text-xs font-medium text-[var(--color-text-secondary)]">
                       Proc.
                     </th>
@@ -1727,7 +1810,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                   {itens.length === 0 ? (
                     <tr>
                       <td
-                        colSpan={8}
+                        colSpan={filaColCount}
                         className="px-4 py-8 text-center text-[var(--color-text-secondary)]"
                       >
                         Nenhum repositório nesta fila.
@@ -1741,6 +1824,10 @@ export function EtapaOperacionalPage(): JSX.Element {
                       >
                         <td className="px-4 py-3 text-sm font-medium text-[var(--color-text-primary)]">
                           {item.id_repositorio_ged}
+                          <ProcessMatchHint
+                            matches={item.process_matches}
+                            count={item.process_matches_count}
+                          />
                         </td>
                         <td className="px-4 py-3 text-sm text-[var(--color-text-secondary)]">
                           {item.orgao}
@@ -1751,6 +1838,11 @@ export function EtapaOperacionalPage(): JSX.Element {
                         <td className="px-4 py-3">
                           <StatusBadge status={item.status_atual} />
                         </td>
+                        {showSeadeskCol ? (
+                          <td className="px-4 py-3 text-xs text-[var(--color-text-secondary)]">
+                            {item.seadesk_confirmado_em ? 'Confirmado' : 'Pendente'}
+                          </td>
+                        ) : null}
                         <td className="px-4 py-3 text-center">
                           <span
                             className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-medium ${(item.total_processos ?? 0) > 0 ? 'bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)]' : 'bg-[var(--color-bg-secondary)] text-[var(--color-text-tertiary)]'}`}
@@ -1777,43 +1869,7 @@ export function EtapaOperacionalPage(): JSX.Element {
                           ) : null}
                         </td>
                         <td className="px-4 py-3 text-right">
-                          <ActionMenu
-                            disabled={processando}
-                            items={[
-                              {
-                                label: 'Checklist',
-                                onClick: () =>
-                                  void handleAbrirChecklist(item.id_repositorio_recorda),
-                              },
-                              {
-                                label: 'Rel. produção',
-                                onClick: () =>
-                                  void handleGerarRelatorioProducao(item.id_repositorio_recorda),
-                              },
-                              {
-                                label: 'Registrar produção',
-                                onClick: () =>
-                                  void handleRegistrarProducao(item.id_repositorio_recorda),
-                              },
-                              {
-                                label: 'Avançar etapa',
-                                onClick: () => void handleOpenAvancar(item.id_repositorio_recorda),
-                                hidden: !etapaConfig.nextEtapaApi,
-                              },
-                              {
-                                label: 'Devolver',
-                                onClick: () =>
-                                  void handleDevolverEtapaAnterior(item.id_repositorio_recorda),
-                                hidden: !etapaConfig.prevEtapaApi,
-                              },
-                              {
-                                label: 'Excluir',
-                                onClick: () => handleOpenExcluir(item.id_repositorio_recorda),
-                                variant: 'danger',
-                                hidden: !isAdmin,
-                              },
-                            ]}
-                          />
+                          <ActionMenu disabled={processando} items={buildAcoesFilaEtapa(item)} />
                         </td>
                       </tr>
                     ))

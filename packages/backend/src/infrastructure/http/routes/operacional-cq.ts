@@ -668,6 +668,34 @@ export function createOperacionalCQRoutes(): FastifyPluginAsync {
           const { id } = request.params as { id: string };
           const user = getCurrentUser(request);
 
+          const repoResult = await server.database.query<{
+            etapa_atual: string;
+            status_atual: string;
+          }>(
+            `SELECT etapa_atual::text, status_atual::text
+           FROM repositorios
+           WHERE id_repositorio_recorda = $1`,
+            [id]
+          );
+          const repo = repoResult.rows[0];
+          if (!repo) {
+            return reply.status(404).send({ error: 'Repositório não encontrado' });
+          }
+          if (repo.etapa_atual !== 'CONTROLE_QUALIDADE') {
+            return reply.status(400).send({
+              error: 'Conclusão de CQ só é permitida na etapa de Controle de Qualidade',
+              code: 'ETAPA_INVALIDA',
+            });
+          }
+          if (repo.status_atual === 'CQ_APROVADO' || repo.status_atual === 'CQ_REPROVADO') {
+            return reply.status(400).send({
+              error: 'Controle de qualidade já foi concluído para este repositório',
+              code: 'CQ_JA_CONCLUIDO',
+            });
+          }
+
+          const statusOrigem = repo.status_atual;
+
           // Check all docs (processos + apensos) are evaluated
           const stats = await server.database.query<{
             total: string;
@@ -718,12 +746,12 @@ export function createOperacionalCQRoutes(): FastifyPluginAsync {
 
           await server.database.query(
             `INSERT INTO historico_etapas (repositorio_id, etapa_origem, etapa_destino, status_origem, status_destino, usuario_id, detalhes)
-           VALUES ($1, 'CONTROLE_QUALIDADE', 'CONTROLE_QUALIDADE', 'AGUARDANDO_CQ_LOTE', $2, $3,
-                   jsonb_build_object('origem', 'cq_avaliacoes', 'total', $4, 'reprovados', $5))`,
-            [id, novoStatus, user.id, total, reprovados]
+           VALUES ($1, 'CONTROLE_QUALIDADE', 'CONTROLE_QUALIDADE', $3, $2, $4,
+                   jsonb_build_object('origem', 'cq_concluir', 'total', $5, 'reprovados', $6))`,
+            [id, novoStatus, statusOrigem, user.id, total, reprovados]
           );
 
-          return reply.send({ status: novoStatus, total, reprovados });
+          return reply.send({ status: novoStatus, total, reprovados, concluido: true });
         } catch (error) {
           server.log.error(error, 'cq-concluir failed');
           const message = error instanceof Error ? error.message : 'Erro ao concluir CQ';
@@ -786,13 +814,13 @@ export function createOperacionalCQRoutes(): FastifyPluginAsync {
       }
     );
 
-    // POST /operacional/repositorios/:id/cq-retornar-recebimento
+    // POST /operacional/repositorios/:id/cq-retornar-reconferencia
     server.post(
-      '/operacional/repositorios/:id/cq-retornar-recebimento',
+      '/operacional/repositorios/:id/cq-retornar-reconferencia',
       {
         schema: {
           tags: ['operacional-cq'],
-          summary: 'Retornar repositório para recebimento',
+          summary: 'Retornar repositório do CQ para reconferência',
           security: [{ bearerAuth: [] }],
           params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
         },
@@ -816,6 +844,15 @@ export function createOperacionalCQRoutes(): FastifyPluginAsync {
             return reply.status(404).send({ error: 'Repositório não encontrado' });
           }
 
+          if (repo.etapa_atual !== 'CONTROLE_QUALIDADE') {
+            return reply.status(400).send({
+              error: 'Retorno para reconferência só é permitido na etapa de Controle de Qualidade',
+              code: 'ETAPA_INVALIDA',
+            });
+          }
+
+          const statusOrigem = repo.status_atual;
+
           await server.database.query(
             `UPDATE cq_avaliacoes
            SET resultado = 'PENDENTE', observacao = NULL, data_avaliacao = NULL, atualizado_em = CURRENT_TIMESTAMP
@@ -825,26 +862,51 @@ export function createOperacionalCQRoutes(): FastifyPluginAsync {
 
           await server.database.query(
             `UPDATE repositorios
-           SET etapa_atual = 'RECEBIMENTO', status_atual = 'RECEBIDO'
+           SET etapa_atual = 'RECONFERENCIA', status_atual = 'EM_CONFERENCIA'
            WHERE id_repositorio_recorda = $1`,
             [id]
           );
 
           await server.database.query(
             `INSERT INTO historico_etapas (repositorio_id, etapa_origem, etapa_destino, status_origem, status_destino, usuario_id, detalhes)
-           VALUES ($1, 'CONTROLE_QUALIDADE', 'RECEBIMENTO', $3, 'RECEBIDO', $2,
-                   jsonb_build_object('origem', 'cq_retornar_recebimento'))`,
-            [id, user.id, repo.status_atual]
+           VALUES ($1, 'CONTROLE_QUALIDADE', 'RECONFERENCIA', $3, 'EM_CONFERENCIA', $2,
+                   jsonb_build_object('origem', 'cq_retornar_reconferencia'))`,
+            [id, user.id, statusOrigem]
           );
 
-          return reply.send({ ok: true });
+          return reply.send({
+            ok: true,
+            etapaAtual: 'RECONFERENCIA',
+            statusAtual: 'EM_CONFERENCIA',
+          });
         } catch (error) {
           const message =
             error instanceof Error
               ? error.message
-              : 'Erro ao retornar repositório para recebimento';
+              : 'Erro ao retornar repositório para reconferência';
           return reply.status(400).send({ error: message });
         }
+      }
+    );
+
+    // POST /operacional/repositorios/:id/cq-retornar-recebimento — legado (descontinuado)
+    server.post(
+      '/operacional/repositorios/:id/cq-retornar-recebimento',
+      {
+        schema: {
+          tags: ['operacional-cq'],
+          summary: '[Legado] Retorno direto ao recebimento — descontinuado',
+          security: [{ bearerAuth: [] }],
+          params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
+        },
+        preHandler: [server.authenticate, authorize('operador', 'administrador')],
+      },
+      async (_request, reply) => {
+        return reply.status(410).send({
+          error:
+            'Rota descontinuada. O retorno operacional do CQ deve usar /cq-retornar-reconferencia.',
+          code: 'ROTA_DESCONTINUADA',
+        });
       }
     );
 
