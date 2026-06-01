@@ -3,6 +3,8 @@ dist
 build
 .env
 .env.local
+.env.production
+.env.*.local
 *.log
 .DS_Store
 coverage
@@ -10,6 +12,17 @@ coverage
 uploads/
 logs/
 tools/
+
+# Certificados e chaves privadas
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+credentials/
+
+# Deploy configs locais
+.railway/
 
 .vercel
 .claude/
