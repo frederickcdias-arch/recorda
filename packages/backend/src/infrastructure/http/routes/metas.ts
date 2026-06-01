@@ -170,7 +170,7 @@ export function createMetasRoutes(): FastifyPluginAsync {
 
           const result = await server.database.query(
             `
-          SELECT 
+          SELECT
             u.nome as colaborador_nome,
             COALESCE(SUM(rp.quantidade), 0) as total_producao,
             $1::integer as meta,
@@ -364,7 +364,7 @@ export function createMetasRoutes(): FastifyPluginAsync {
               registros_7dias: string;
               quantidade_7dias: string;
             }>(
-              `SELECT 
+              `SELECT
                  COUNT(*) as count,
                  COALESCE(SUM(pr.quantidade), 0)::text as total_quantidade,
                  COUNT(*) FILTER (WHERE ${dataProducaoLocal} >= ${sqlLastNDaysStartInSystemTimezone(7)})::text as registros_7dias,
@@ -379,7 +379,7 @@ export function createMetasRoutes(): FastifyPluginAsync {
               registros: string;
               quantidade: string;
             }>(
-              `SELECT 
+              `SELECT
                  COALESCE(NULLIF(TRIM(pr.marcadores->>'funcao'), ''),
                    CASE pr.etapa::text
                      WHEN 'RECEBIMENTO' THEN 'Recebimento'
@@ -406,8 +406,8 @@ export function createMetasRoutes(): FastifyPluginAsync {
               registros: string;
               quantidade: string;
             }>(
-              `SELECT 
-                 CASE 
+              `SELECT
+                 CASE
                    WHEN LOWER(COALESCE(NULLIF(TRIM(pr.marcadores->>'tipo'), ''), 'Não informado')) LIKE '%imag%' THEN 'Imagens'
                    WHEN LOWER(COALESCE(NULLIF(TRIM(pr.marcadores->>'tipo'), ''), 'Não informado')) LIKE '%caix%' THEN 'Caixas'
                    WHEN COALESCE(NULLIF(TRIM(pr.marcadores->>'tipo'), ''), '') = '' THEN 'Não informado'
@@ -466,7 +466,7 @@ export function createMetasRoutes(): FastifyPluginAsync {
           // Get paginated data with repository info
           params.push(Number(limite), offset);
           const result = await server.database.query(
-            `SELECT 
+            `SELECT
                pr.id,
                pr.etapa,
                pr.quantidade,
@@ -487,7 +487,7 @@ export function createMetasRoutes(): FastifyPluginAsync {
                    ELSE pr.etapa::text
                  END
                ) AS etapa_label,
-               CASE 
+               CASE
                  WHEN LOWER(COALESCE(NULLIF(TRIM(pr.marcadores->>'tipo'), ''), '')) LIKE '%imag%' THEN 'Imagens'
                  WHEN LOWER(COALESCE(NULLIF(TRIM(pr.marcadores->>'tipo'), ''), '')) LIKE '%caix%' THEN 'Caixas'
                  WHEN COALESCE(NULLIF(TRIM(pr.marcadores->>'tipo'), ''), '') = '' THEN 'Não informado'
@@ -573,9 +573,9 @@ export function createMetasRoutes(): FastifyPluginAsync {
 
           // Atualizar a produção
           const result = await server.database.query(
-            `UPDATE producao_repositorio 
-             SET usuario_id = $1 
-             WHERE id = $2 
+            `UPDATE producao_repositorio
+             SET usuario_id = $1
+             WHERE id = $2
              RETURNING *`,
             [usuarioId, id]
           );
@@ -660,10 +660,10 @@ export function createMetasRoutes(): FastifyPluginAsync {
 
           if (!repositorioId) {
             const createResult = await server.database.query(
-              `INSERT INTO repositorios 
+              `INSERT INTO repositorios
                (id_repositorio_ged, orgao, projeto, status_atual, etapa_atual)
                VALUES ($1, $2, $3, $4, $5)
-               ON CONFLICT (id_repositorio_ged, orgao, projeto) DO UPDATE 
+               ON CONFLICT (id_repositorio_ged, orgao, projeto) DO UPDATE
                  SET id_repositorio_ged = EXCLUDED.id_repositorio_ged
                RETURNING id_repositorio_recorda`,
               [repoId, orgaoRepositorio, PROJETO_IMPORTACAO_PRODUCAO, statusRepositorio, body.etapa]
@@ -719,7 +719,12 @@ export function createMetasRoutes(): FastifyPluginAsync {
             origem: 'SISTEMA', // Marca produção lançada diretamente no sistema (vs legado importado)
           };
 
-          const dataProducao = body.data?.trim() || getBrazilDateString();
+          // Administrador pode informar data para correção administrativa.
+          // Colaborador e operador sempre usam a data atual de Cuiabá — o campo body.data é ignorado.
+          const dataProducao =
+            user.perfil === 'administrador'
+              ? body.data?.trim() || getBrazilDateString()
+              : getBrazilDateString();
 
           // Sequência obrigatória de etapas (apenas dependências explícitas):
           // - Digitalização depende de Preparação
@@ -762,42 +767,64 @@ export function createMetasRoutes(): FastifyPluginAsync {
             });
           }
 
-          // Verificar se já existe registro idêntico NA MESMA ETAPA (previne duplicatas exatas)
-          const existente = await server.database.query(
-            `SELECT id, quantidade
-             FROM producao_repositorio
-             WHERE usuario_id = $1
-               AND repositorio_id = $2
-               AND (data_producao AT TIME ZONE 'America/Cuiaba')::date = $3::date
-               AND etapa = $4
-               AND COALESCE(marcadores->>'origem', '') = 'SISTEMA'
-               AND COALESCE(marcadores->>'tipo', '') = $5
-               AND COALESCE(marcadores->>'funcao', '') = $6
-               AND COALESCE(marcadores->>'coordenadoria', '') = $7
-             LIMIT 1`,
-            [
-              user.id,
-              repositorioId,
-              dataProducao,
-              body.etapa,
-              tipoMarcador,
-              funcaoMarcador,
-              coordenadoriaMarcador,
-            ]
-          );
+          // Verificar duplicidade — regras por tipo de etapa (A2)
+          // Etapas caixa/repositório: uma caixa só pode ser preparada/conferida/reconferida uma vez por dia,
+          // independente de qual usuário tenta o segundo lançamento.
+          const etapasCaixaRepositorio = new Set(['PREPARACAO', 'CONFERENCIA', 'RECONFERENCIA']);
 
-          if (existente.rows.length > 0) {
-            const registroExistente = existente.rows[0];
-            if (registroExistente && Number(registroExistente.quantidade) === quantidade) {
+          if (etapasCaixaRepositorio.has(body.etapa)) {
+            const existente = await server.database.query(
+              `SELECT id
+               FROM producao_repositorio
+               WHERE repositorio_id = $1
+                 AND etapa = $2
+                 AND (data_producao AT TIME ZONE 'America/Cuiaba')::date = $3::date
+                 AND COALESCE(marcadores->>'origem', 'SISTEMA') != 'LEGADO'
+               LIMIT 1`,
+              [repositorioId, body.etapa, dataProducao]
+            );
+
+            if (existente.rows.length > 0) {
               return reply.status(409).send({
-                error: 'Produção duplicada',
-                message: `Você já lançou esta produção: ${body.etapa} - ${repoId} - ${quantidade} unidade(s) na data ${new Date(dataProducao).toLocaleDateString('pt-BR')}`,
-                detalhes: {
-                  registroExistenteId: registroExistente.id,
-                  repositorio: repoId,
+                error: 'Produção possivelmente duplicada.',
+                code: 'PRODUCAO_DUPLICADA',
+                message: `Já existe produção registrada para o repositório ${repoId} na etapa ${body.etapa} hoje.`,
+                details: {
+                  repositorioId: repoId,
                   etapa: body.etapa,
-                  quantidade,
                   data: dataProducao,
+                  lancamentoExistenteId: existente.rows[0]?.id,
+                },
+              });
+            }
+          } else {
+            // Demais etapas (RECEBIMENTO, DIGITALIZACAO, MONTAGEM, etc.):
+            // bloquear duplicata exata do mesmo usuário com a mesma quantidade.
+            // Digitalização permite múltiplos lançamentos parciais desde que a quantidade seja diferente.
+            const existente = await server.database.query(
+              `SELECT id, quantidade
+               FROM producao_repositorio
+               WHERE usuario_id = $1
+                 AND repositorio_id = $2
+                 AND (data_producao AT TIME ZONE 'America/Cuiaba')::date = $3::date
+                 AND etapa = $4
+                 AND COALESCE(marcadores->>'origem', 'SISTEMA') != 'LEGADO'
+               LIMIT 1`,
+              [user.id, repositorioId, dataProducao, body.etapa]
+            );
+
+            if (existente.rows.length > 0 && Number(existente.rows[0]?.quantidade) === quantidade) {
+              return reply.status(409).send({
+                error: 'Produção possivelmente duplicada.',
+                code: 'PRODUCAO_DUPLICADA',
+                message: body.etapa.startsWith('DIGITALIZACAO')
+                  ? `Já existe lançamento de digitalização com esta quantidade para o repositório ${repoId} hoje.`
+                  : `Você já lançou esta produção: ${body.etapa} - ${repoId} - ${quantidade} unidade(s) na data ${new Date(dataProducao).toLocaleDateString('pt-BR')}`,
+                details: {
+                  repositorioId: repoId,
+                  etapa: body.etapa,
+                  data: dataProducao,
+                  lancamentoExistenteId: existente.rows[0]?.id,
                 },
               });
             }
@@ -844,7 +871,7 @@ export function createMetasRoutes(): FastifyPluginAsync {
           }
 
           const producaoResult = await server.database.query(
-            `INSERT INTO producao_repositorio 
+            `INSERT INTO producao_repositorio
              (repositorio_id, etapa, checklist_id, usuario_id, quantidade, marcadores, data_producao)
              VALUES ($1, $2, $3, $4, $5, $6::jsonb, ($7::date)::timestamp AT TIME ZONE '${SYSTEM_TIMEZONE}')
              RETURNING *`,

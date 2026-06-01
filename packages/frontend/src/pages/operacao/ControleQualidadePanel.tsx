@@ -12,8 +12,10 @@ import {
   useGerarTermoDevolucao,
   useGerarTermoDevolucaoMulti,
   useRepositoriosControleQualidade,
+  useCQSugestoes,
   useQueryClient,
   queryKeys,
+  type CQSugestaoItem,
 } from '../../hooks/useQueries';
 
 interface RepositorioItem {
@@ -65,6 +67,11 @@ export function ControleQualidadePanel({
 }: ControleQualidadePanelProps): JSX.Element {
   const reposCQQuery = useRepositoriosControleQualidade();
   const todosRepositoriosCQ = reposCQQuery.data ?? repositoriosDisponiveis;
+  const sugestoesQuery = useCQSugestoes({ limit: 50 });
+  const sugestoes = sugestoesQuery.data?.data ?? [];
+  const sugestoesResumo = sugestoesQuery.data?.resumo ?? { prontos: 0, comAlertas: 0 };
+  const [sugestoesSelecionadas, setSugestoesSelecionadas] = useState<Set<string>>(new Set());
+  const [sugestoesMostrar, setSugestoesMostrar] = useState(true);
   const [repoSelecionadoId, setRepoSelecionadoId] = useState('');
   const [docs, setDocs] = useState<CQDocItem[]>([]);
   const [resumo, setResumo] = useState<CQResumo>({
@@ -284,6 +291,20 @@ export function ControleQualidadePanel({
     }
   };
 
+  const toggleSugestao = (id: string): void => {
+    setSugestoesSelecionadas((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const selecionarTodosProntos = (): void => {
+    const prontos = sugestoes.filter((s) => s.prontoParaCQ).map((s) => s.repositorioId);
+    setSugestoesSelecionadas(new Set(prontos));
+  };
+
   const resultadoBadge = (resultado: string): JSX.Element => {
     if (resultado === 'APROVADO')
       return (
@@ -402,6 +423,147 @@ export function ControleQualidadePanel({
         </div>
       ) : null}
 
+      {/* ── Sugestões para CQ ─────────────────────────────────────────────────── */}
+      <Card>
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">
+              Sugestões para CQ
+            </h2>
+            {sugestoes.length > 0 ? (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                {sugestoes.length}
+              </span>
+            ) : null}
+          </div>
+          <button
+            onClick={() => setSugestoesMostrar((v) => !v)}
+            className="text-xs text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)]"
+          >
+            {sugestoesMostrar ? 'Recolher' : 'Expandir'}
+          </button>
+        </div>
+        <p className="text-xs text-[var(--color-text-tertiary)] mb-3">
+          Sugestões com base na produção registrada e nas etapas concluídas. O sistema não cria
+          lotes automaticamente — a seleção e confirmação são obrigatórias.
+        </p>
+        {sugestoesMostrar ? (
+          sugestoesQuery.isLoading ? (
+            <p className="text-sm text-[var(--color-text-tertiary)] py-2">Carregando sugestões…</p>
+          ) : sugestoes.length === 0 ? (
+            <p className="text-sm text-[var(--color-text-tertiary)] py-2">
+              Nenhum repositório pronto para Controle de Qualidade no momento.
+            </p>
+          ) : (
+            <>
+              <div className="flex flex-wrap gap-2 mb-3 text-xs text-[var(--color-text-secondary)]">
+                <span className="inline-flex items-center gap-1">
+                  <span className="inline-block w-2 h-2 rounded-full bg-green-500" />
+                  {sugestoesResumo.prontos} pronto(s)
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <span className="inline-block w-2 h-2 rounded-full bg-orange-400" />
+                  {sugestoesResumo.comAlertas} com alerta(s)
+                </span>
+              </div>
+              <div className="space-y-2 max-h-72 overflow-y-auto pr-1 mb-3">
+                {sugestoes.map((s: CQSugestaoItem) => (
+                  <label
+                    key={s.repositorioId}
+                    className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                      sugestoesSelecionadas.has(s.repositorioId)
+                        ? 'bg-[var(--color-primary-50)] border-[var(--color-primary-300)]'
+                        : 'bg-[var(--color-bg-primary)] border-[var(--color-border-primary)] hover:bg-[var(--color-bg-secondary)]'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={sugestoesSelecionadas.has(s.repositorioId)}
+                      onChange={() => toggleSugestao(s.repositorioId)}
+                      className="mt-0.5 rounded"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-sm font-medium text-[var(--color-text-primary)]">
+                          {s.repositorioCodigo}
+                        </span>
+                        <span className="text-xs text-[var(--color-text-tertiary)]">
+                          {s.entidade}
+                        </span>
+                        <span
+                          className={`inline-flex px-1.5 py-0.5 rounded text-xs font-medium ${
+                            s.origem === 'LEGADA'
+                              ? 'bg-purple-50 text-purple-700'
+                              : s.origem === 'MISTA'
+                                ? 'bg-yellow-50 text-yellow-700'
+                                : 'bg-blue-50 text-blue-700'
+                          }`}
+                        >
+                          {s.origem}
+                        </span>
+                        {s.prontoParaCQ ? (
+                          <span className="inline-flex px-1.5 py-0.5 rounded text-xs font-medium bg-green-50 text-green-700 border border-green-200">
+                            Pronto
+                          </span>
+                        ) : (
+                          <span className="inline-flex px-1.5 py-0.5 rounded text-xs font-medium bg-orange-50 text-orange-700 border border-orange-200">
+                            Atenção
+                          </span>
+                        )}
+                      </div>
+                      {s.ultimaEtapaConcluida ? (
+                        <p className="text-xs text-[var(--color-text-tertiary)] mt-0.5">
+                          Última reconferência:{' '}
+                          {s.ultimaEtapaConcluida.responsavelNome ?? 'sem responsável'}
+                          {s.ultimaEtapaConcluida.data ? ` — ${s.ultimaEtapaConcluida.data}` : ''}
+                        </p>
+                      ) : null}
+                      {s.divergencias.length > 0 ? (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {s.divergencias.map((d, i) => (
+                            <span
+                              key={i}
+                              title={d.mensagem}
+                              className={`inline-flex px-1.5 py-0.5 rounded text-xs ${
+                                d.severidade === 'alta'
+                                  ? 'bg-red-50 text-red-700'
+                                  : d.severidade === 'media'
+                                    ? 'bg-orange-50 text-orange-700'
+                                    : 'bg-yellow-50 text-yellow-700'
+                              }`}
+                            >
+                              {d.tipo === 'DIGITALIZACAO_SEM_IMAGENS'
+                                ? 'Sem imagens'
+                                : d.tipo === 'STATUS_ATRASADO'
+                                  ? 'Status atrasado'
+                                  : d.tipo}
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  </label>
+                ))}
+              </div>
+              <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-[var(--color-border-primary)]">
+                {sugestoesResumo.prontos > 0 ? (
+                  <Button size="sm" variant="secondary" onClick={selecionarTodosProntos}>
+                    Selecionar todos os prontos ({sugestoesResumo.prontos})
+                  </Button>
+                ) : null}
+                {sugestoesSelecionadas.size > 0 ? (
+                  <span className="text-xs text-[var(--color-text-tertiary)]">
+                    {sugestoesSelecionadas.size} repositório(s) selecionado(s) — use &quot;Criar
+                    lote CQ&quot; para confirmar a criação
+                  </span>
+                ) : null}
+              </div>
+            </>
+          )
+        ) : null}
+      </Card>
+
+      {/* ── Repositórios ─────────────────────────────────────────────────────── */}
       <Card>
         <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
           <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">Repositórios</h2>

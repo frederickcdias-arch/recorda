@@ -14,6 +14,8 @@ interface MockState {
   recebimentoProcessos: Map<string, number>;
   cqStats: Map<string, { total: number; pendentes: number; reprovados: number }>;
   historicoEtapas: Array<Record<string, unknown>>;
+  /** Repositório IDs currently in an ABERTO (active) CQ batch */
+  lotesCQAtivos: Set<string>;
   counters: { repo: number; checklist: number; producao: number };
 }
 
@@ -28,6 +30,7 @@ function createHelperMockDatabase(): DatabaseConnection {
     recebimentoProcessos: new Map(),
     cqStats: new Map(),
     historicoEtapas: [],
+    lotesCQAtivos: new Set<string>(),
     counters: { repo: 0, checklist: 0, producao: 0 },
   };
 
@@ -375,19 +378,39 @@ function createHelperMockDatabase(): DatabaseConnection {
         return mk([]);
       }
 
-      // Duplicate check (same user+repo+date+etapa+marcadores = 'SISTEMA')
+      // Duplicate check — box etapas (PREPARACAO, CONFERENCIA, RECONFERENCIA)
+      // Query: repositorio_id = $1, etapa = $2, origem != 'LEGADO' (any user)
+      if (
+        t.includes('FROM producao_repositorio') &&
+        !t.includes('usuario_id = $1') &&
+        t.includes('repositorio_id = $1') &&
+        t.includes("!= 'LEGADO'")
+      ) {
+        const repoId = String(params?.[0] ?? '');
+        const etapa = String(params?.[1] ?? '');
+        const found = [...state.producoes.values()].find((p) => {
+          const m =
+            typeof p.marcadores === 'string'
+              ? (JSON.parse(p.marcadores as string) as Record<string, unknown>)
+              : ((p.marcadores ?? {}) as Record<string, unknown>);
+          return (
+            p.repositorio_id === repoId && p.etapa === etapa && (m.origem ?? 'SISTEMA') !== 'LEGADO'
+          );
+        });
+        return mk(found ? [{ id: found.id }] : []);
+      }
+
+      // Duplicate check — other etapas (RECEBIMENTO, DIGITALIZACAO, etc.)
+      // Query: usuario_id = $1, repositorio_id = $2, etapa = $4, origem != 'LEGADO'
       if (
         t.includes('FROM producao_repositorio') &&
         t.includes('usuario_id = $1') &&
         t.includes('repositorio_id = $2') &&
-        t.includes("= 'SISTEMA'")
+        t.includes("!= 'LEGADO'")
       ) {
         const userId = String(params?.[0] ?? '');
         const repoId = String(params?.[1] ?? '');
         const etapa = String(params?.[3] ?? '');
-        const tipo = String(params?.[4] ?? '');
-        const funcao = String(params?.[5] ?? '');
-        const coordenadoria = String(params?.[6] ?? '');
         const found = [...state.producoes.values()].find((p) => {
           const m =
             typeof p.marcadores === 'string'
@@ -397,10 +420,7 @@ function createHelperMockDatabase(): DatabaseConnection {
             p.usuario_id === userId &&
             p.repositorio_id === repoId &&
             p.etapa === etapa &&
-            (m.origem ?? '') === 'SISTEMA' &&
-            (m.tipo ?? '') === tipo &&
-            (m.funcao ?? '') === funcao &&
-            (m.coordenadoria ?? '') === coordenadoria
+            (m.origem ?? 'SISTEMA') !== 'LEGADO'
           );
         });
         return mk(found ? [{ id: found.id, quantidade: found.quantidade }] : []);
@@ -518,7 +538,12 @@ function createHelperMockDatabase(): DatabaseConnection {
               entidade: repo?.orgao ?? '',
               etapa: String(p.etapa),
               responsavelId: p.usuario_id,
-              responsavelNome: (m.colaborador_nome as string | undefined) ?? 'Test User',
+              responsavelNome:
+                m.colaborador_nome != null && String(m.colaborador_nome).length > 0
+                  ? String(m.colaborador_nome)
+                  : p.usuario_id
+                    ? 'Test User'
+                    : null,
               dataExecucao: p.data_producao,
               quantidade: p.quantidade,
               unidade: String(p.etapa) === 'DIGITALIZACAO' ? 'IMAGENS' : 'REPOSITORIO',
@@ -601,7 +626,12 @@ function createHelperMockDatabase(): DatabaseConnection {
               entidade: repo?.orgao ?? '',
               etapa: String(p.etapa),
               responsavelId: p.usuario_id,
-              responsavelNome: (m.colaborador_nome as string | undefined) ?? 'Test User',
+              responsavelNome:
+                m.colaborador_nome != null && String(m.colaborador_nome).length > 0
+                  ? String(m.colaborador_nome)
+                  : p.usuario_id
+                    ? 'Test User'
+                    : null,
               dataExecucao: p.data_producao,
               quantidade: p.quantidade,
               unidade: String(p.etapa) === 'DIGITALIZACAO' ? 'IMAGENS' : 'REPOSITORIO',
@@ -672,9 +702,127 @@ function createHelperMockDatabase(): DatabaseConnection {
             etapaAtualCalculada: etapa,
             proximaEtapaSugerida: null,
             divergencias: [],
+            temDivergencia: false,
+            maiorSeveridade: null,
             producaoRelacionada: [],
           }));
         return mk(pendentes);
+      }
+
+      // ── SUGESTÕES CQ ──────────────────────────────────────────────────────
+      if (t.includes('@sugestoes-cq-count') || t.includes('@sugestoes-cq-data')) {
+        const EXCLUDED_CQ = new Set(['CQ_APROVADO', 'CQ_REPROVADO', 'EM_ENTREGA', 'ENTREGUE']);
+
+        const candidates = [...state.repositorios.values()].filter((r) => {
+          const repoId = String(r.id_repositorio_recorda);
+          if (EXCLUDED_CQ.has(String(r.status_atual))) return false;
+          if (state.lotesCQAtivos.has(repoId)) return false;
+          const etapas = new Set(
+            [...state.producoes.values()]
+              .filter((p) => String(p.repositorio_id) === repoId)
+              .map((p) => String(p.etapa))
+          );
+          return (
+            etapas.has('PREPARACAO') &&
+            etapas.has('DIGITALIZACAO') &&
+            etapas.has('CONFERENCIA') &&
+            etapas.has('RECONFERENCIA')
+          );
+        });
+
+        if (t.includes('@sugestoes-cq-count')) {
+          // Resumo variant (prontos / comAlertas)
+          if (t.includes('comAlertas') || t.includes('"comAlertas"')) {
+            let prontos = 0;
+            let comAlertas = 0;
+            for (const repo of candidates) {
+              const repoId = String(repo.id_repositorio_recorda);
+              const totalDig = [...state.producoes.values()]
+                .filter(
+                  (p) => String(p.repositorio_id) === repoId && String(p.etapa) === 'DIGITALIZACAO'
+                )
+                .reduce((sum, p) => sum + Number(p.quantidade ?? 0), 0);
+              if (totalDig > 0) prontos++;
+              else comAlertas++;
+            }
+            return mk([{ prontos: String(prontos), comAlertas: String(comAlertas) }]);
+          }
+          // Simple count
+          return mk([{ total: String(candidates.length) }]);
+        }
+
+        // @sugestoes-cq-data
+        const rows = candidates.map((r) => {
+          const repoId = String(r.id_repositorio_recorda);
+          const prods = [...state.producoes.values()].filter(
+            (p) => String(p.repositorio_id) === repoId
+          );
+
+          const totalDig = prods
+            .filter((p) => String(p.etapa) === 'DIGITALIZACAO')
+            .reduce((sum, p) => sum + Number(p.quantidade ?? 0), 0);
+
+          const reconfProds = prods
+            .filter((p) => String(p.etapa) === 'RECONFERENCIA')
+            .sort((a, b) =>
+              String(b.data_producao ?? '').localeCompare(String(a.data_producao ?? ''))
+            );
+          const lastReconf = reconfProds[0];
+
+          const hasLegado = prods.some((p) => {
+            const m =
+              typeof p.marcadores === 'string'
+                ? (JSON.parse(p.marcadores as string) as Record<string, unknown>)
+                : ((p.marcadores ?? {}) as Record<string, unknown>);
+            return m.origem === 'LEGADO';
+          });
+          const hasLancada = prods.some((p) => {
+            const m =
+              typeof p.marcadores === 'string'
+                ? (JSON.parse(p.marcadores as string) as Record<string, unknown>)
+                : ((p.marcadores ?? {}) as Record<string, unknown>);
+            return (m.origem ?? 'SISTEMA') !== 'LEGADO';
+          });
+          const origem: 'LANCADA' | 'LEGADA' | 'MISTA' =
+            hasLegado && hasLancada ? 'MISTA' : hasLegado ? 'LEGADA' : 'LANCADA';
+
+          const lastReconfM = lastReconf
+            ? typeof lastReconf.marcadores === 'string'
+              ? (JSON.parse(lastReconf.marcadores as string) as Record<string, unknown>)
+              : ((lastReconf.marcadores ?? {}) as Record<string, unknown>)
+            : null;
+          const ultimaRespReconferencia =
+            lastReconfM?.colaborador_nome != null && String(lastReconfM.colaborador_nome).length > 0
+              ? String(lastReconfM.colaborador_nome)
+              : lastReconf?.usuario_id
+                ? 'Test User'
+                : null;
+
+          return {
+            repositorioId: r.id_repositorio_recorda,
+            repositorioCodigo: r.id_repositorio_ged,
+            entidade: r.orgao,
+            etapaAtual: r.etapa_atual,
+            statusAtual: r.status_atual,
+            temPreparacao: true,
+            temDigitalizacao: true,
+            temConferencia: true,
+            temReconferencia: true,
+            totalImagensDigitalizacao: totalDig,
+            ultimaDataReconferencia: lastReconf?.data_producao ?? null,
+            origem,
+            ultimaRespReconferencia,
+          };
+        });
+
+        // Slow path (no LIMIT in the SQL text): return all rows
+        if (!t.includes('LIMIT $')) {
+          return mk(rows);
+        }
+        // Fast path: paginate using last 2 params
+        const mockLimit = Number(params?.[params.length - 2] ?? 20);
+        const mockOffset = Number(params?.[params.length - 1] ?? 0);
+        return mk(rows.slice(mockOffset, mockOffset + mockLimit));
       }
 
       // Default: empty result
@@ -728,6 +876,7 @@ export async function cleanupTestData(
     mockState.recebimentoProcessos.clear();
     mockState.cqStats.clear();
     mockState.historicoEtapas.splice(0, mockState.historicoEtapas.length);
+    mockState.lotesCQAtivos.clear();
     mockState.counters = { repo: 0, checklist: 0, producao: 0 };
   }
 }
@@ -827,6 +976,15 @@ export function seedTestCqStats(
     reprovados: stats.reprovados ?? 0,
   });
   mockState.recebimentoProcessos.set(repositorioId, total);
+}
+
+/**
+ * Mark a repositório as already assigned to an active (ABERTO) CQ batch.
+ * Repos in an active batch are excluded from CQ suggestions.
+ */
+export function seedTestRepoEmLoteCQAtivo(repositorioId: string): void {
+  if (!mockState) throw new Error('Mock database not initialized');
+  mockState.lotesCQAtivos.add(repositorioId);
 }
 
 export function isRepositorioCqPendente(repositorioId: string): boolean {

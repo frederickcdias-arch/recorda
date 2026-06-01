@@ -94,6 +94,8 @@ export const queryKeys = {
   lotesCQ: ['lotes-cq'] as const,
   loteCQDetalhe: (id: string) => ['lote-cq-detalhe', id] as const,
   cqAvaliacoes: (repoId: string) => ['cq-avaliacoes', repoId] as const,
+  cqSugestoes: (params: Record<string, string | number | boolean>) =>
+    ['cq-sugestoes', params] as const,
   tiposAusencia: ['tipos-ausencia'] as const,
   minhasAusencias: (params: ListarMinhasAusenciasParams) => ['minhas-ausencias', params] as const,
   minhasAusenciasAll: ['minhas-ausencias'] as const,
@@ -192,7 +194,10 @@ export interface PainelDivergencia {
     | 'ETAPA_PULADA'
     | 'DUPLICIDADE'
     | 'RESPONSAVEL_AUSENTE'
-    | 'QUANTIDADE_AUSENTE';
+    | 'QUANTIDADE_AUSENTE'
+    | 'POSSIVEL_DUPLICIDADE_HISTORICA'
+    | 'DIGITALIZACAO_SEM_IMAGENS';
+  severidade: 'alta' | 'media' | 'baixa';
   mensagem: string;
 }
 
@@ -214,6 +219,8 @@ export interface PainelEtapaItem {
   etapaAtualCalculada: string | null;
   proximaEtapaSugerida: string | null;
   divergencias: PainelDivergencia[];
+  temDivergencia: boolean;
+  maiorSeveridade: 'alta' | 'media' | 'baixa' | null;
   producaoRelacionada: unknown[];
 }
 
@@ -226,6 +233,7 @@ export interface PainelEtapaParams {
   dataFim?: string;
   origem?: 'LANCADA' | 'LEGADA' | '';
   statusEtapa?: 'CONCLUIDA' | 'PENDENTE' | 'DIVERGENTE' | '';
+  maiorSeveridade?: 'alta' | 'media' | 'baixa' | '';
   somentePendentes?: boolean;
 }
 
@@ -244,6 +252,7 @@ export function usePainelEtapa(etapa: string, params: PainelEtapaParams = {}) {
     dataFim,
     origem,
     statusEtapa,
+    maiorSeveridade,
     somentePendentes,
   } = params;
   const queryParams: Record<string, string | number | boolean> = { page, limit };
@@ -253,6 +262,7 @@ export function usePainelEtapa(etapa: string, params: PainelEtapaParams = {}) {
   if (dataFim) queryParams.dataFim = dataFim;
   if (origem) queryParams.origem = origem;
   if (statusEtapa) queryParams.statusEtapa = statusEtapa;
+  if (maiorSeveridade) queryParams.maiorSeveridade = maiorSeveridade;
   if (somentePendentes) queryParams.somentePendentes = true;
 
   return useQuery({
@@ -684,6 +694,70 @@ export function useGerarTermoDevolucaoMulti() {
   return useMutation({
     mutationFn: (repositorioIds: string[]) =>
       api.post<{ id: string }>('/operacional/termo-devolucao', { repositorioIds }),
+  });
+}
+
+// ─── CQ Sugestões ──────────────────────────────────────────────
+
+export interface CQSugestaoItem {
+  repositorioId: string;
+  repositorioCodigo: string;
+  entidade: string;
+  origem: 'LANCADA' | 'LEGADA' | 'MISTA';
+  etapaAtualCalculada: 'CONTROLE_QUALIDADE';
+  statusAtual: string;
+  prontoParaCQ: boolean;
+  motivos: string[];
+  divergencias: PainelDivergencia[];
+  ultimaEtapaConcluida: {
+    etapa: 'RECONFERENCIA';
+    responsavelNome: string | null;
+    data: string | null;
+  } | null;
+}
+
+export interface CQSugestoesResponse {
+  data: CQSugestaoItem[];
+  meta: { page: number; limit: number; total: number };
+  resumo: { prontos: number; comAlertas: number };
+}
+
+export interface CQSugestoesParams {
+  page?: number;
+  limit?: number;
+  entidade?: string;
+  repositorio?: string;
+  origem?: 'LANCADA' | 'LEGADA' | 'MISTA' | '';
+  incluirComAlertas?: boolean;
+  somenteProntos?: boolean;
+}
+
+export function useCQSugestoes(params: CQSugestoesParams = {}) {
+  const {
+    page = 1,
+    limit = 20,
+    entidade,
+    repositorio,
+    origem,
+    incluirComAlertas = true,
+    somenteProntos = false,
+  } = params;
+
+  const queryParams: Record<string, string | number | boolean> = { page, limit };
+  if (entidade) queryParams.entidade = entidade;
+  if (repositorio) queryParams.repositorio = repositorio;
+  if (origem) queryParams.origem = origem;
+  if (!incluirComAlertas) queryParams.incluirComAlertas = false;
+  if (somenteProntos) queryParams.somenteProntos = true;
+
+  const qs = new URLSearchParams(
+    Object.fromEntries(Object.entries(queryParams).map(([k, v]) => [k, String(v)]))
+  ).toString();
+
+  return useQuery({
+    queryKey: queryKeys.cqSugestoes(queryParams),
+    queryFn: () => api.get<CQSugestoesResponse>(`/operacional/controle-qualidade/sugestoes?${qs}`),
+    staleTime: 60_000,
   });
 }
 

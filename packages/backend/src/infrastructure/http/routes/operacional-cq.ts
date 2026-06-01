@@ -1303,7 +1303,7 @@ export function createOperacionalCQRoutes(): FastifyPluginAsync {
               const text = String(value ?? '');
               if (
                 text.includes('"') ||
-                text.includes(',') ||
+                text.includes(';') ||
                 text.includes('\n') ||
                 text.includes('\r')
               ) {
@@ -1321,9 +1321,11 @@ export function createOperacionalCQRoutes(): FastifyPluginAsync {
               'INTERESSADO',
               'CLASSIFICACAO',
               'VOLUME',
+              'CAIXAS',
+              'APENSO',
               'OBS',
             ];
-            const rows = [header.join(',')];
+            const rows = [header.join(';')];
 
             processos.forEach((processo, idx) => {
               rows.push(
@@ -1336,8 +1338,10 @@ export function createOperacionalCQRoutes(): FastifyPluginAsync {
                   escapeCsv(processo.interessado),
                   escapeCsv(processo.classificacao),
                   escapeCsv(processo.volume),
+                  escapeCsv(processo.numeroCaixas ?? ''),
+                  processo.isApenso ? 'SIM' : 'NAO',
                   escapeCsv(processo.obs),
-                ].join(',')
+                ].join(';')
               );
             });
 

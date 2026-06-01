@@ -769,9 +769,12 @@ export function createComunicadosRoutes(): FastifyPluginAsync {
 
           const header = [
             'titulo',
+            'tipo',
+            'categoria',
             'status',
             'prioridade',
             'escopo',
+            'leitura_obrigatoria',
             'criado_em',
             'publicado_em',
             'encerrado_em',
@@ -789,9 +792,12 @@ export function createComunicadosRoutes(): FastifyPluginAsync {
               );
               return [
                 row.titulo,
+                row.tipo,
+                row.categoria,
                 row.status,
                 row.prioridade,
                 row.escopo_destino,
+                row.leitura_obrigatoria ? 'SIM' : 'NAO',
                 toIsoString(row.criado_em) ?? '',
                 toIsoString(row.publicado_em) ?? '',
                 toIsoString(row.encerrado_em) ?? '',
@@ -811,7 +817,7 @@ export function createComunicadosRoutes(): FastifyPluginAsync {
             `attachment; filename="historico-comunicados-${today}.csv"`
           );
 
-          return reply.send(lines.join('\n'));
+          return reply.send('\uFEFF' + lines.join('\r\n'));
         } catch (error) {
           const message =
             error instanceof Error ? error.message : 'Erro ao exportar historico de comunicados';

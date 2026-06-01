@@ -297,7 +297,8 @@ describe('POST /producao/lancar-direto', () => {
 
       expect(response2.statusCode).toBe(409);
       const body = response2.json();
-      expect(body).toHaveProperty('error', 'Produção duplicada');
+      expect(body).toHaveProperty('error', 'Produção possivelmente duplicada.');
+      expect(body).toHaveProperty('code', 'PRODUCAO_DUPLICADA');
       expect(body.message).toContain('Você já lançou esta produção');
     });
 
@@ -529,7 +530,7 @@ describe('POST /producao/lancar-direto', () => {
       // Mas NÃƒO deve executar o DROP TABLE
       const database = (app as any).database;
       const tabelas = await database.query(
-        `SELECT table_name FROM information_schema.tables 
+        `SELECT table_name FROM information_schema.tables
          WHERE table_schema = 'public' AND table_name = 'repositorios'`
       );
 
@@ -595,6 +596,367 @@ describe('POST /producao/lancar-direto', () => {
       expect(marcadores.funcao).toBe('Digitalizador P/B');
       expect(marcadores.coordenadoria).toBe('CINF');
       expect(marcadores.tipo).toBe('Imagens');
+    });
+  });
+
+  describe('📅 Data automática de produção (A1)', () => {
+    let administradorToken: string;
+
+    // Calcula a data de hoje no fuso de Cuiabá — mesma lógica de getBrazilDateString()
+    const brazilToday = () =>
+      new Date().toLocaleString('en-CA', { timeZone: 'America/Cuiaba' }).split(',')[0];
+
+    beforeAll(async () => {
+      administradorToken = await getTestToken(app, 'administrador');
+    });
+
+    async function getStoredDataProducao(repoId: string): Promise<string | undefined> {
+      const database = (app as any).database;
+      const result = await database.query(
+        `SELECT p.data_producao
+         FROM producao_repositorio p
+         JOIN repositorios r ON r.id_repositorio_recorda = p.repositorio_id
+         WHERE r.id_repositorio_ged = $1`,
+        [repoId]
+      );
+      return result.rows[0]?.data_producao as string | undefined;
+    }
+
+    it('colaborador sem data no body → data gravada é hoje (Cuiabá)', async () => {
+      const repoId = generateTestRepoId();
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/producao/lancar-direto',
+        headers: { authorization: `Bearer ${colaboradorToken}` },
+        payload: { repositorio: repoId, etapa: 'RECEBIMENTO', quantidade: 1 },
+      });
+
+      expect(response.statusCode).toBe(201);
+      expect(await getStoredDataProducao(repoId)).toBe(brazilToday());
+    });
+
+    it('colaborador com data passada no body → backend ignora, data gravada é hoje', async () => {
+      const repoId = generateTestRepoId();
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/producao/lancar-direto',
+        headers: { authorization: `Bearer ${colaboradorToken}` },
+        payload: { repositorio: repoId, etapa: 'RECEBIMENTO', quantidade: 1, data: '2020-01-15' },
+      });
+
+      expect(response.statusCode).toBe(201);
+      const storedDate = await getStoredDataProducao(repoId);
+      expect(storedDate).toBe(brazilToday());
+      expect(storedDate).not.toBe('2020-01-15');
+    });
+
+    it('operador com data passada no body → backend ignora, data gravada é hoje', async () => {
+      const repoId = generateTestRepoId();
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/producao/lancar-direto',
+        headers: { authorization: `Bearer ${operadorToken}` },
+        payload: { repositorio: repoId, etapa: 'RECEBIMENTO', quantidade: 1, data: '2022-06-30' },
+      });
+
+      expect(response.statusCode).toBe(201);
+      const storedDate = await getStoredDataProducao(repoId);
+      expect(storedDate).toBe(brazilToday());
+      expect(storedDate).not.toBe('2022-06-30');
+    });
+
+    it('administrador sem data no body → data gravada é hoje', async () => {
+      const repoId = generateTestRepoId();
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/producao/lancar-direto',
+        headers: { authorization: `Bearer ${administradorToken}` },
+        payload: { repositorio: repoId, etapa: 'RECEBIMENTO', quantidade: 1 },
+      });
+
+      expect(response.statusCode).toBe(201);
+      expect(await getStoredDataProducao(repoId)).toBe(brazilToday());
+    });
+
+    it('administrador com data válida no body → usa data informada', async () => {
+      const repoId = generateTestRepoId();
+      const dataCorrecao = '2025-03-10';
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/producao/lancar-direto',
+        headers: { authorization: `Bearer ${administradorToken}` },
+        payload: { repositorio: repoId, etapa: 'RECEBIMENTO', quantidade: 1, data: dataCorrecao },
+      });
+
+      expect(response.statusCode).toBe(201);
+      expect(await getStoredDataProducao(repoId)).toBe(dataCorrecao);
+    });
+
+    it('administrador com data em formato inválido → 400', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/producao/lancar-direto',
+        headers: { authorization: `Bearer ${administradorToken}` },
+        payload: {
+          repositorio: generateTestRepoId(),
+          etapa: 'RECEBIMENTO',
+          quantidade: 1,
+          data: '10/03/2025',
+        },
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('data armazenada está no formato YYYY-MM-DD', async () => {
+      const repoId = generateTestRepoId();
+
+      await app.inject({
+        method: 'POST',
+        url: '/producao/lancar-direto',
+        headers: { authorization: `Bearer ${colaboradorToken}` },
+        payload: { repositorio: repoId, etapa: 'RECEBIMENTO', quantidade: 1 },
+      });
+
+      const stored = await getStoredDataProducao(repoId);
+      expect(stored).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    });
+  });
+
+  describe('🚫 Bloqueio de duplicidade (A2)', () => {
+    it('PREPARACAO duplicada no mesmo repositório → 409 PRODUCAO_DUPLICADA', async () => {
+      const repoId = generateTestRepoId();
+      const payload = { repositorio: repoId, etapa: 'PREPARACAO', quantidade: 5 };
+
+      const r1 = await app.inject({
+        method: 'POST',
+        url: '/producao/lancar-direto',
+        headers: { authorization: `Bearer ${colaboradorToken}` },
+        payload,
+      });
+      expect(r1.statusCode).toBe(201);
+
+      const r2 = await app.inject({
+        method: 'POST',
+        url: '/producao/lancar-direto',
+        headers: { authorization: `Bearer ${colaboradorToken}` },
+        payload,
+      });
+      expect(r2.statusCode).toBe(409);
+      const body = r2.json();
+      expect(body).toHaveProperty('code', 'PRODUCAO_DUPLICADA');
+      expect(body).toHaveProperty('error', 'Produção possivelmente duplicada.');
+      expect(body.details).toHaveProperty('etapa', 'PREPARACAO');
+    });
+
+    it('PREPARACAO por outro usuário no mesmo repositório → 409 (bloqueia qualquer usuário)', async () => {
+      const repoId = generateTestRepoId();
+      const payload = { repositorio: repoId, etapa: 'PREPARACAO', quantidade: 3 };
+
+      // Colaborador prepara primeiro
+      const r1 = await app.inject({
+        method: 'POST',
+        url: '/producao/lancar-direto',
+        headers: { authorization: `Bearer ${colaboradorToken}` },
+        payload,
+      });
+      expect(r1.statusCode).toBe(201);
+
+      // Operador tenta preparar o mesmo repositório no mesmo dia → deve bloquear
+      const r2 = await app.inject({
+        method: 'POST',
+        url: '/producao/lancar-direto',
+        headers: { authorization: `Bearer ${operadorToken}` },
+        payload,
+      });
+      expect(r2.statusCode).toBe(409);
+      expect(r2.json()).toHaveProperty('code', 'PRODUCAO_DUPLICADA');
+    });
+
+    it('CONFERENCIA duplicada → 409 PRODUCAO_DUPLICADA', async () => {
+      const repoId = generateTestRepoId();
+
+      // Preparação primeiro (para satisfazer sequência)
+      await app.inject({
+        method: 'POST',
+        url: '/producao/lancar-direto',
+        headers: { authorization: `Bearer ${colaboradorToken}` },
+        payload: { repositorio: repoId, etapa: 'PREPARACAO', quantidade: 1 },
+      });
+
+      // Digitalização
+      await app.inject({
+        method: 'POST',
+        url: '/producao/lancar-direto',
+        headers: { authorization: `Bearer ${colaboradorToken}` },
+        payload: { repositorio: repoId, etapa: 'DIGITALIZACAO', quantidade: 10 },
+      });
+
+      const payload = { repositorio: repoId, etapa: 'CONFERENCIA', quantidade: 10 };
+      const r1 = await app.inject({
+        method: 'POST',
+        url: '/producao/lancar-direto',
+        headers: { authorization: `Bearer ${colaboradorToken}` },
+        payload,
+      });
+      expect(r1.statusCode).toBe(201);
+
+      const r2 = await app.inject({
+        method: 'POST',
+        url: '/producao/lancar-direto',
+        headers: { authorization: `Bearer ${colaboradorToken}` },
+        payload,
+      });
+      expect(r2.statusCode).toBe(409);
+      expect(r2.json()).toHaveProperty('code', 'PRODUCAO_DUPLICADA');
+    });
+
+    it('PREPARACAO em outro repositório → 201 (permitido)', async () => {
+      const ts = Date.now();
+      const repoA = `TEST_${ts}/2026`;
+      const repoB = `TEST_${ts + 1}/2026`;
+
+      const r1 = await app.inject({
+        method: 'POST',
+        url: '/producao/lancar-direto',
+        headers: { authorization: `Bearer ${colaboradorToken}` },
+        payload: { repositorio: repoA, etapa: 'PREPARACAO', quantidade: 5 },
+      });
+      expect(r1.statusCode).toBe(201);
+
+      // Diferente repositório → deve permitir
+      const r2 = await app.inject({
+        method: 'POST',
+        url: '/producao/lancar-direto',
+        headers: { authorization: `Bearer ${colaboradorToken}` },
+        payload: { repositorio: repoB, etapa: 'PREPARACAO', quantidade: 5 },
+      });
+      expect(r2.statusCode).toBe(201);
+    });
+
+    it('DIGITALIZACAO com mesma quantidade pelo mesmo usuário → 409 PRODUCAO_DUPLICADA', async () => {
+      const repoId = generateTestRepoId();
+
+      // Preparação
+      await app.inject({
+        method: 'POST',
+        url: '/producao/lancar-direto',
+        headers: { authorization: `Bearer ${colaboradorToken}` },
+        payload: { repositorio: repoId, etapa: 'PREPARACAO', quantidade: 1 },
+      });
+
+      const payload = { repositorio: repoId, etapa: 'DIGITALIZACAO', quantidade: 100 };
+      const r1 = await app.inject({
+        method: 'POST',
+        url: '/producao/lancar-direto',
+        headers: { authorization: `Bearer ${colaboradorToken}` },
+        payload,
+      });
+      expect(r1.statusCode).toBe(201);
+
+      const r2 = await app.inject({
+        method: 'POST',
+        url: '/producao/lancar-direto',
+        headers: { authorization: `Bearer ${colaboradorToken}` },
+        payload,
+      });
+      expect(r2.statusCode).toBe(409);
+      const body = r2.json();
+      expect(body).toHaveProperty('code', 'PRODUCAO_DUPLICADA');
+      expect(body.message).toContain('digitalização');
+    });
+
+    it('DIGITALIZACAO com quantidade diferente pelo mesmo usuário → 201 (lançamento parcial permitido)', async () => {
+      const repoId = generateTestRepoId();
+
+      // Preparação
+      await app.inject({
+        method: 'POST',
+        url: '/producao/lancar-direto',
+        headers: { authorization: `Bearer ${colaboradorToken}` },
+        payload: { repositorio: repoId, etapa: 'PREPARACAO', quantidade: 1 },
+      });
+
+      const r1 = await app.inject({
+        method: 'POST',
+        url: '/producao/lancar-direto',
+        headers: { authorization: `Bearer ${colaboradorToken}` },
+        payload: { repositorio: repoId, etapa: 'DIGITALIZACAO', quantidade: 50 },
+      });
+      expect(r1.statusCode).toBe(201);
+
+      // Quantidade diferente → deve permitir (lançamento parcial)
+      const r2 = await app.inject({
+        method: 'POST',
+        url: '/producao/lancar-direto',
+        headers: { authorization: `Bearer ${colaboradorToken}` },
+        payload: { repositorio: repoId, etapa: 'DIGITALIZACAO', quantidade: 75 },
+      });
+      expect(r2.statusCode).toBe(201);
+    });
+
+    it('DIGITALIZACAO por outro usuário não bloqueia (cada um lança sua produção)', async () => {
+      const repoId = generateTestRepoId();
+
+      // Preparação
+      await app.inject({
+        method: 'POST',
+        url: '/producao/lancar-direto',
+        headers: { authorization: `Bearer ${colaboradorToken}` },
+        payload: { repositorio: repoId, etapa: 'PREPARACAO', quantidade: 1 },
+      });
+
+      const r1 = await app.inject({
+        method: 'POST',
+        url: '/producao/lancar-direto',
+        headers: { authorization: `Bearer ${colaboradorToken}` },
+        payload: { repositorio: repoId, etapa: 'DIGITALIZACAO', quantidade: 100 },
+      });
+      expect(r1.statusCode).toBe(201);
+
+      // Outro usuário, mesma quantidade → deve permitir
+      const r2 = await app.inject({
+        method: 'POST',
+        url: '/producao/lancar-direto',
+        headers: { authorization: `Bearer ${operadorToken}` },
+        payload: { repositorio: repoId, etapa: 'DIGITALIZACAO', quantidade: 100 },
+      });
+      expect(r2.statusCode).toBe(201);
+    });
+
+    it('resposta 409 contém code PRODUCAO_DUPLICADA e details completos', async () => {
+      const repoId = generateTestRepoId();
+      const payload = { repositorio: repoId, etapa: 'PREPARACAO', quantidade: 1 };
+
+      await app.inject({
+        method: 'POST',
+        url: '/producao/lancar-direto',
+        headers: { authorization: `Bearer ${colaboradorToken}` },
+        payload,
+      });
+
+      const r2 = await app.inject({
+        method: 'POST',
+        url: '/producao/lancar-direto',
+        headers: { authorization: `Bearer ${colaboradorToken}` },
+        payload,
+      });
+
+      const body = r2.json();
+      expect(r2.statusCode).toBe(409);
+      expect(body).toHaveProperty('code', 'PRODUCAO_DUPLICADA');
+      expect(body).toHaveProperty('error');
+      expect(body).toHaveProperty('message');
+      expect(body).toHaveProperty('details');
+      expect(body.details).toHaveProperty('repositorioId');
+      expect(body.details).toHaveProperty('etapa', 'PREPARACAO');
+      expect(body.details).toHaveProperty('data');
+      expect(body.details).toHaveProperty('lancamentoExistenteId');
     });
   });
 });

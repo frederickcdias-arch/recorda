@@ -48,6 +48,20 @@ function calcularProximaEtapa(etapaAtualCalculada: string): string | null {
   return ETAPA_ORDER[idx + 1] ?? null;
 }
 
+type Severidade = 'alta' | 'media' | 'baixa';
+
+const SEVERIDADE_ORDER: Severidade[] = ['alta', 'media', 'baixa'];
+
+function calcularMaiorSeveridade(
+  divergencias: ReadonlyArray<{ severidade: Severidade }>
+): Severidade | null {
+  if (divergencias.length === 0) return null;
+  for (const s of SEVERIDADE_ORDER) {
+    if (divergencias.some((d) => d.severidade === s)) return s;
+  }
+  return 'baixa';
+}
+
 // ── Raw DB row returned by the data query (before JS enrichment) ─────────────
 type PainelRawRow = {
   producaoId: string;
@@ -70,7 +84,7 @@ type PainelRawRow = {
   totalMesmaEtapa: number;
 };
 
-/** Calcula divergências e statusEtapa a partir dos campos brutos do DB. */
+/** Calcula divergências, severidade e statusEtapa a partir dos campos brutos do DB. */
 function enrichPainelRow(row: PainelRawRow) {
   const etapasConcluidas = new Set<string>();
   if (row.temPreparacao) etapasConcluidas.add('PREPARACAO');
@@ -81,17 +95,20 @@ function enrichPainelRow(row: PainelRawRow) {
   const etapaAtualCalculada = calcularEtapaAtual(etapasConcluidas);
   const proximaEtapaSugerida = calcularProximaEtapa(etapaAtualCalculada);
 
-  const divergencias: Array<{ tipo: string; mensagem: string }> = [];
+  const divergencias: Array<{ tipo: string; severidade: Severidade; mensagem: string }> = [];
 
+  // ── STATUS_ATRASADO: repositório indica etapa aquém da produção registrada ──
   const repoEtapaIdx = ETAPA_ORDER.indexOf(row.etapaAtualRepositorio);
   const calcIdx = ETAPA_ORDER.indexOf(etapaAtualCalculada);
   if (repoEtapaIdx >= 0 && calcIdx >= 0 && repoEtapaIdx < calcIdx) {
     divergencias.push({
       tipo: 'STATUS_ATRASADO',
-      mensagem: `Repositório indica etapa ${row.etapaAtualRepositorio}, mas produção aponta para ${etapaAtualCalculada}`,
+      severidade: 'media',
+      mensagem: 'Status atual parece atrasado em relação à produção registrada.',
     });
   }
 
+  // ── ETAPA_PULADA: produção em etapa avançada sem etapa anterior ───────────
   const etapaAtual = row.etapa;
   const etapaAtualIdx = ETAPA_ORDER.indexOf(etapaAtual);
   if (etapaAtualIdx > 1) {
@@ -99,33 +116,55 @@ function enrichPainelRow(row: PainelRawRow) {
     if (etapaAnterior && !etapasConcluidas.has(etapaAnterior) && etapaAnterior !== 'RECEBIMENTO') {
       divergencias.push({
         tipo: 'ETAPA_PULADA',
-        mensagem: `Existe produção de ${etapaAtual} mas não foi encontrada produção de ${etapaAnterior}`,
+        severidade: 'alta',
+        mensagem: 'Há produção em etapa avançada sem registro da etapa anterior.',
       });
     }
   }
 
+  // ── DUPLICIDADE / POSSIVEL_DUPLICIDADE_HISTORICA ──────────────────────────
   if (row.totalMesmaEtapa > 1) {
     divergencias.push({
       tipo: 'DUPLICIDADE',
+      severidade: 'baixa',
       mensagem: `${row.totalMesmaEtapa} registros de ${etapaAtual} encontrados para este repositório (legada + lançada)`,
     });
+    if (row.origem === 'LEGADA') {
+      divergencias.push({
+        tipo: 'POSSIVEL_DUPLICIDADE_HISTORICA',
+        severidade: 'baixa',
+        mensagem: 'Possível duplicidade histórica nesta etapa.',
+      });
+    }
   }
 
+  // ── RESPONSAVEL_AUSENTE ──────────────────────────────────────────────────
   if (!row.responsavelNome) {
     divergencias.push({
       tipo: 'RESPONSAVEL_AUSENTE',
-      mensagem: 'Responsável não identificado para esta produção',
+      severidade: 'media',
+      mensagem: 'Produção sem responsável identificado.',
     });
   }
 
+  // ── DIGITALIZACAO_SEM_IMAGENS / QUANTIDADE_AUSENTE ───────────────────────
   if (etapaAtual === 'DIGITALIZACAO' && (!row.quantidade || row.quantidade === 0)) {
     divergencias.push({
+      tipo: 'DIGITALIZACAO_SEM_IMAGENS',
+      severidade: 'alta',
+      mensagem: 'Digitalização sem quantidade de imagens registrada.',
+    });
+  } else if (etapaAtual !== 'DIGITALIZACAO' && (!row.quantidade || row.quantidade === 0)) {
+    divergencias.push({
       tipo: 'QUANTIDADE_AUSENTE',
-      mensagem: 'Digitalização sem quantidade de imagens registrada',
+      severidade: 'media',
+      mensagem: 'Quantidade não informada ou zerada.',
     });
   }
 
-  const statusEtapa = divergencias.length > 0 ? 'DIVERGENTE' : 'CONCLUIDA';
+  const maiorSeveridade = calcularMaiorSeveridade(divergencias);
+  const temDivergencia = divergencias.length > 0;
+  const statusEtapa = temDivergencia ? 'DIVERGENTE' : 'CONCLUIDA';
 
   const {
     temPreparacao: _tp,
@@ -142,6 +181,8 @@ function enrichPainelRow(row: PainelRawRow) {
     etapaAtualCalculada,
     proximaEtapaSugerida,
     divergencias,
+    temDivergencia,
+    maiorSeveridade,
     producaoRelacionada: [] as unknown[],
   };
 }
@@ -162,6 +203,7 @@ const painelQuerySchema = z.object({
   dataFim: z.string().optional(),
   origem: z.enum(['LANCADA', 'LEGADA']).optional(),
   statusEtapa: z.enum(['CONCLUIDA', 'PENDENTE', 'DIVERGENTE']).optional(),
+  maiorSeveridade: z.enum(['alta', 'media', 'baixa']).optional(),
   somentePendentes: z
     .union([z.boolean(), z.string().transform((v) => v === 'true')])
     .optional()
@@ -293,6 +335,8 @@ export function createOperacionalPainelRoutes(): FastifyPluginAsync {
                  -- próxima etapa
                  NULL::text              AS "proximaEtapaSugerida",
                  '[]'::jsonb             AS divergencias,
+                 FALSE                   AS "temDivergencia",
+                 NULL::text              AS "maiorSeveridade",
                  '[]'::jsonb             AS "producaoRelacionada"
                FROM repositorios r
                WHERE ${pendentesWhere}
@@ -389,10 +433,9 @@ export function createOperacionalPainelRoutes(): FastifyPluginAsync {
              WHERE ${etapaWhere}
              ORDER BY pr.data_producao DESC`;
 
-          if (q.statusEtapa) {
-            // ── Slow path: statusEtapa filter needs JS-level enrichment ────────────
-            // Divergências cannot be computed in SQL, so we must fetch ALL rows,
-            // enrich in JS, filter by statusEtapa, then paginate in JS.
+          if (q.statusEtapa || q.maiorSeveridade) {
+            // ── Slow path: divergência/severidade filters require JS-level enrichment ─
+            // Fetch ALL rows, enrich in JS, then filter and paginate.
             // This guarantees meta.total = count of filtered rows (consistent with pages).
             const allResult = await server.database.query<PainelRawRow>(
               `SELECT -- @painel-etapa-data-all
@@ -401,7 +444,11 @@ export function createOperacionalPainelRoutes(): FastifyPluginAsync {
               params
             );
             const allEnriched = allResult.rows.map(enrichPainelRow);
-            const filtered = allEnriched.filter((r) => r.statusEtapa === q.statusEtapa);
+            const filtered = allEnriched.filter((r) => {
+              if (q.statusEtapa && r.statusEtapa !== q.statusEtapa) return false;
+              if (q.maiorSeveridade && r.maiorSeveridade !== q.maiorSeveridade) return false;
+              return true;
+            });
             const total = filtered.length;
             const pageData = filtered.slice(offset, offset + limit);
             return reply.send({ data: pageData, meta: { page, limit, total } });

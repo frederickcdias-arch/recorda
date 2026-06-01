@@ -64,19 +64,56 @@ function StatusEtapaBadge({ status }: { status: PainelEtapaItem['statusEtapa'] }
   );
 }
 
+const SEVERIDADE_CORES: Record<string, string> = {
+  alta: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
+  media: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
+  baixa: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
+};
+
+const TIPO_LABELS: Record<string, string> = {
+  DIGITALIZACAO_SEM_IMAGENS: 'Sem imagens',
+  ETAPA_PULADA: 'Etapa pulada',
+  STATUS_ATRASADO: 'Status atrasado',
+  RESPONSAVEL_AUSENTE: 'Sem responsável',
+  QUANTIDADE_AUSENTE: 'Qtd. ausente',
+  POSSIVEL_DUPLICIDADE_HISTORICA: 'Duplicidade hist.',
+  DUPLICIDADE: 'Duplicidade',
+};
+
 function DivergenciasBadge({
   divergencias,
 }: {
   divergencias: PainelDivergencia[];
 }): JSX.Element | null {
   if (!divergencias.length) return null;
+
+  const ORDEM: PainelDivergencia['severidade'][] = ['alta', 'media', 'baixa'];
+  const sorted = [...divergencias].sort(
+    (a, b) => ORDEM.indexOf(a.severidade) - ORDEM.indexOf(b.severidade)
+  );
+  const principal = sorted[0]!;
+  const extras = sorted.length - 1;
+  const badgeCores = SEVERIDADE_CORES[principal.severidade] ?? SEVERIDADE_CORES['media'];
+
   return (
-    <span
+    <div
       title={divergencias.map((d) => d.mensagem).join('\n')}
-      className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 cursor-help"
+      className="flex flex-col gap-0.5 cursor-help"
     >
-      {divergencias.length} atenção
-    </span>
+      <span
+        className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${badgeCores}`}
+      >
+        Atenção
+      </span>
+      <span className="text-xs text-[var(--color-text-tertiary)]">
+        {TIPO_LABELS[principal.tipo] ?? principal.tipo}
+        {extras > 0 && (
+          <span className="ml-1 font-medium">
+            +{extras} {extras === 1 ? 'alerta' : 'alertas'}
+          </span>
+        )}
+      </span>
+    </div>
   );
 }
 
@@ -105,6 +142,7 @@ export function PainelEtapaPage(): JSX.Element {
   const [dataFim, setDataFim] = useState('');
   const [origem, setOrigem] = useState<'LANCADA' | 'LEGADA' | ''>('');
   const [statusEtapa, setStatusEtapa] = useState<'CONCLUIDA' | 'PENDENTE' | 'DIVERGENTE' | ''>('');
+  const [maiorSeveridade, setMaiorSeveridade] = useState<'alta' | 'media' | 'baixa' | ''>('');
   const [somentePendentes, setSomentePendentes] = useState(false);
 
   const buscaDebounced = useDebounce(busca, 400);
@@ -123,6 +161,7 @@ export function PainelEtapaPage(): JSX.Element {
     dataFim: dataFim || undefined,
     origem: origem || undefined,
     statusEtapa: statusEtapa || undefined,
+    maiorSeveridade: maiorSeveridade || undefined,
     somentePendentes,
   });
 
@@ -218,14 +257,32 @@ export function PainelEtapaPage(): JSX.Element {
             aria-label="Status da etapa"
             onChange={(e) => {
               setStatusEtapa(e.target.value as 'CONCLUIDA' | 'PENDENTE' | 'DIVERGENTE' | '');
+              setMaiorSeveridade('');
               handleFiltroChange();
             }}
             className="rounded-lg border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] px-3 py-2 text-sm text-[var(--color-text-primary)]"
           >
             <option value="">Todos os status</option>
-            <option value="CONCLUIDA">Concluída</option>
+            <option value="DIVERGENTE">Com alertas</option>
+            <option value="CONCLUIDA">Sem alertas</option>
             <option value="PENDENTE">Pendente</option>
-            <option value="DIVERGENTE">Com divergência</option>
+          </select>
+
+          <select
+            value={maiorSeveridade}
+            title="Severidade do alerta"
+            aria-label="Severidade do alerta"
+            onChange={(e) => {
+              setMaiorSeveridade(e.target.value as 'alta' | 'media' | 'baixa' | '');
+              setStatusEtapa('');
+              handleFiltroChange();
+            }}
+            className="rounded-lg border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] px-3 py-2 text-sm text-[var(--color-text-primary)]"
+          >
+            <option value="">Todas as severidades</option>
+            <option value="alta">Severidade alta</option>
+            <option value="media">Severidade média</option>
+            <option value="baixa">Severidade baixa</option>
           </select>
 
           <label className="flex items-center gap-2 text-sm text-[var(--color-text-secondary)] cursor-pointer">

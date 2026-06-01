@@ -217,6 +217,7 @@ export function ProducaoPage(): JSX.Element {
 
   const isAdmin = usuario?.perfil === 'administrador';
   const [exportando, setExportando] = useState(false);
+  const [exportandoCsv, setExportandoCsv] = useState(false);
 
   const handleExportarExcel = async () => {
     setExportando(true);
@@ -237,6 +238,28 @@ export function ProducaoPage(): JSX.Element {
       toast.error(extractErrorMessage(error, 'Erro ao exportar'));
     } finally {
       setExportando(false);
+    }
+  };
+
+  const handleExportarCsv = async () => {
+    setExportandoCsv(true);
+    try {
+      const params = new URLSearchParams();
+      if (dataInicio) params.set('dataInicio', dataInicio);
+      if (dataFim) params.set('dataFim', dataFim);
+      if (etapa) params.set('etapa', etapa);
+      if (colaborador) params.set('colaborador', colaborador);
+      if (buscaDebounced) params.set('busca', buscaDebounced);
+      params.set('formato', 'csv');
+      await api.download(
+        `/api/relatorios/operacional/export?${params.toString()}`,
+        `producao_${dataInicio || 'inicio'}_${dataFim || 'fim'}.csv`
+      );
+      toast.success('CSV exportado.');
+    } catch (error) {
+      toast.error(extractErrorMessage(error, 'Erro ao exportar CSV'));
+    } finally {
+      setExportandoCsv(false);
     }
   };
 
@@ -340,10 +363,20 @@ export function ProducaoPage(): JSX.Element {
                 icon="download"
                 onClick={() => void handleExportarExcel()}
                 loading={exportando}
-                disabled={exportando || !dataInicio || !dataFim}
+                disabled={exportando || exportandoCsv || !dataInicio || !dataFim}
                 title={!dataInicio || !dataFim ? 'Selecione um período para exportar' : undefined}
               >
-                Exportar
+                Exportar Excel
+              </Button>
+              <Button
+                variant="secondary"
+                icon="download"
+                onClick={() => void handleExportarCsv()}
+                loading={exportandoCsv}
+                disabled={exportando || exportandoCsv || !dataInicio || !dataFim}
+                title={!dataInicio || !dataFim ? 'Selecione um período para exportar' : undefined}
+              >
+                Exportar CSV
               </Button>
             </div>
           }

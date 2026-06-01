@@ -39,6 +39,8 @@ export function LancarProducaoPage(): JSX.Element {
   );
   const [salvando, setSalvando] = useState(false);
   const [novaCoordenadoriaInput, setNovaCoordenadoriaInput] = useState('');
+  const isAdmin = usuario?.perfil === 'administrador';
+
   const [formData, setFormData] = useState({
     data: new Date().toISOString().split('T')[0],
     repositorio: '',
@@ -110,7 +112,7 @@ export function LancarProducaoPage(): JSX.Element {
     setSalvando(true);
     try {
       await api.post('/producao/lancar-direto', {
-        data: formData.data,
+        ...(isAdmin && formData.data ? { data: formData.data } : {}),
         repositorio: formData.repositorio,
         etapa: formData.etapa,
         funcao: formData.funcao || undefined,
@@ -131,12 +133,19 @@ export function LancarProducaoPage(): JSX.Element {
       });
       await queryClient.invalidateQueries({ queryKey: ['meu-historico'] });
     } catch (error) {
-      const apiError = error as { message?: string; error?: string };
-      const texto =
-        apiError.message ||
-        apiError.error ||
-        (error instanceof Error ? error.message : null) ||
-        'Erro ao registrar produção';
+      const apiError = error as { message?: string; error?: string; code?: string };
+      let texto: string;
+      if (apiError.code === 'PRODUCAO_DUPLICADA') {
+        texto = formData.etapa.startsWith('DIGITALIZACAO')
+          ? 'Já existe lançamento de digitalização semelhante para este repositório hoje. Verifique antes de lançar novamente.'
+          : 'Já existe produção registrada para este repositório nesta etapa hoje. Verifique antes de lançar novamente.';
+      } else {
+        texto =
+          apiError.message ||
+          apiError.error ||
+          (error instanceof Error ? error.message : null) ||
+          'Erro ao registrar produção';
+      }
       setMensagem({ tipo: 'error', texto });
     } finally {
       setSalvando(false);
@@ -163,13 +172,23 @@ export function LancarProducaoPage(): JSX.Element {
         <Card padding="none">
           <div className="space-y-4 p-6">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Input
-                label="Data"
-                type="date"
-                value={formData.data}
-                max={new Date().toISOString().split('T')[0]}
-                onChange={(e) => setFormData((p) => ({ ...p, data: e.target.value }))}
-              />
+              {isAdmin ? (
+                <Input
+                  label="Data (ajuste administrativo)"
+                  type="date"
+                  value={formData.data}
+                  max={new Date().toISOString().split('T')[0]}
+                  onChange={(e) => setFormData((p) => ({ ...p, data: e.target.value }))}
+                  helperText="Somente administradores podem alterar a data."
+                />
+              ) : (
+                <div>
+                  <p className="mb-1 text-sm font-medium text-[var(--color-neutral-700)]">Data</p>
+                  <p className="rounded-md border border-[var(--color-neutral-300)] bg-[var(--color-neutral-100)] px-3 py-2 text-sm text-[var(--color-neutral-600)]">
+                    {new Date().toLocaleDateString('pt-BR')} — definida automaticamente
+                  </p>
+                </div>
+              )}
 
               <Input
                 label="Repositório"
@@ -293,7 +312,10 @@ export function LancarProducaoPage(): JSX.Element {
           <h3 className="mb-2 font-semibold text-[var(--color-primary-900)]">Instruções</h3>
           <ul className="space-y-1 text-sm text-[var(--color-primary-800)]">
             <li>
-              • <strong>Data:</strong> Data da produção (padrão: hoje)
+              • <strong>Data:</strong>{' '}
+              {isAdmin
+                ? 'Administradores podem informar data para correção administrativa. Padrão: hoje.'
+                : 'Definida automaticamente como hoje.'}
             </li>
             <li>
               • <strong>Repositório:</strong> ID do repositório trabalhado (obrigatório)

@@ -1231,7 +1231,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
             const raw = String(value ?? '');
             if (
               raw.includes('"') ||
-              raw.includes(',') ||
+              raw.includes(';') ||
               raw.includes('\n') ||
               raw.includes('\r')
             ) {
@@ -1250,7 +1250,7 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
             'data',
             'quantidade',
           ];
-          const lines = [header.join(',')];
+          const lines = [header.join(';')];
           for (const erroItem of errosAmostra) {
             const dados = (erroItem.dados as Record<string, unknown> | undefined) ?? {};
             lines.push(
@@ -1263,11 +1263,11 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
                 escapeCsv(dados.tipo),
                 escapeCsv(dados.data),
                 escapeCsv(dados.quantidade),
-              ].join(',')
+              ].join(';')
             );
           }
 
-          const csv = lines.join('\n');
+          const csv = '\uFEFF' + lines.join('\r\n');
           return reply
             .header('Content-Type', 'text/csv; charset=utf-8')
             .header('Content-Disposition', `attachment; filename="importacao-erros-${id}.csv"`)

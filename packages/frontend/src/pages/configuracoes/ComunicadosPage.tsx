@@ -529,8 +529,8 @@ export function ComunicadosPage(): JSX.Element {
 
     const csv = linhas
       .map((linha) => linha.map((coluna) => toCsvCell(coluna)).join(';'))
-      .join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      .join('\r\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
     const titulo = detalheQuery.data.comunicado.titulo

@@ -250,7 +250,7 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
           const producaoContabilizadaWhere = buildProducaoContabilizadaWhere('p');
           const result = await server.database.query(
             `
-            SELECT 
+            SELECT
               p.id,
               p.quantidade,
               p.data_producao,
@@ -385,6 +385,72 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
 
           const truncated = result.rows.length > 50000;
           const rows = truncated ? result.rows.slice(0, 50000) : result.rows;
+
+          const { formato } = request.query;
+
+          if (formato === 'csv') {
+            const csvEscapeProd = (value: unknown): string => {
+              const text = String(value ?? '');
+              if (
+                text.includes('"') ||
+                text.includes(';') ||
+                text.includes('\n') ||
+                text.includes('\r')
+              ) {
+                return '"' + text.replace(/"/g, '""') + '"';
+              }
+              return text;
+            };
+
+            const formatDatePt = (value: unknown): string => {
+              if (!value) return '';
+              const d = new Date(String(value));
+              return isNaN(d.getTime()) ? String(value) : d.toLocaleDateString('pt-BR');
+            };
+
+            const csvHeader = [
+              'data',
+              'colaborador',
+              'funcao',
+              'repositorio',
+              'coordenadoria',
+              'quantidade',
+              'tipo',
+              'etapa',
+              'origem',
+            ];
+            const csvLines = [
+              csvHeader.map(csvEscapeProd).join(';'),
+              ...rows.map((row) => {
+                const r = row as Record<string, unknown>;
+                return [
+                  formatDatePt(r.data_producao),
+                  r.colaborador ?? '',
+                  r.funcao ?? '',
+                  r.repositorio ?? '',
+                  r.coordenadoria ?? '',
+                  String(r.quantidade ?? ''),
+                  r.tipo ?? '',
+                  r.etapa ?? '',
+                  r.origem ?? '',
+                ]
+                  .map(csvEscapeProd)
+                  .join(';');
+              }),
+            ];
+
+            const dataInicioPtCsv = new Date(dataInicio)
+              .toLocaleDateString('pt-BR')
+              .replace(/\//g, '-');
+            const dataFimPtCsv = new Date(dataFim).toLocaleDateString('pt-BR').replace(/\//g, '-');
+            const filenameCsv = `producao_${dataInicioPtCsv}_a_${dataFimPtCsv}.csv`;
+
+            return reply
+              .header('Content-Type', 'text/csv; charset=utf-8')
+              .header('Content-Disposition', `attachment; filename="${filenameCsv}"`)
+              .header('X-Truncated', truncated ? 'true' : 'false')
+              .send('\uFEFF' + csvLines.join('\r\n'));
+          }
 
           const ExcelJS = (await import('exceljs')).default;
           const workbook = new ExcelJS.Workbook();
@@ -828,7 +894,7 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
           reply.header('Content-Type', 'text/csv; charset=utf-8');
           reply.header('Content-Disposition', `attachment; filename="ausencias-${today}.csv"`);
 
-          return reply.send(lines.join('\n'));
+          return reply.send('\uFEFF' + lines.join('\r\n'));
         } catch (error) {
           const message =
             error instanceof Error ? error.message : 'Erro ao exportar relatório de ausências';
@@ -1091,7 +1157,7 @@ async function gerarRelatorioCompleto(
   };
 
   const registrosQuery = `
-    SELECT 
+    SELECT
       p.id,
       p.etapa::text as etapa_sistema,
       p.quantidade,
@@ -1115,7 +1181,7 @@ async function gerarRelatorioCompleto(
       ${
         coordenadoriaId
           ? `AND (
-        u.coordenadoria_id = $3 
+        u.coordenadoria_id = $3
         OR LOWER(TRIM(p.marcadores->>'coordenadoria')) = LOWER(co_filtro.sigla)
         OR LOWER(TRIM(p.marcadores->>'coordenadoria')) = LOWER(co_filtro.nome)
       )`
