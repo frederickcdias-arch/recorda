@@ -9,7 +9,7 @@ import {
   importacaoLegadoProducaoSchema,
 } from '../schemas/operacional.js';
 import { type EtapaFluxo, type StatusRepositorio, getCurrentUser } from './operacional-helpers.js';
-import { normalizeIdRepositorioGed } from './operacional-repositorios.js';
+import { normalizeIdRepositorioGed } from '@recorda/shared';
 import {
   type ValidationResult,
   parseDataProducaoPlanilha,

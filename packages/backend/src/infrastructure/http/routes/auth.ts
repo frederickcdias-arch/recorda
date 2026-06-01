@@ -36,7 +36,6 @@ declare module '@fastify/jwt' {
 function perfilToPapel(perfil: string): 'ADMIN' | 'OPERADOR' | 'COLABORADOR' {
   if (perfil === 'administrador') return 'ADMIN';
   if (perfil === 'colaborador') return 'COLABORADOR';
-  if (perfil === 'supervisor') return 'OPERADOR';
   return 'OPERADOR';
 }
 
@@ -111,7 +110,7 @@ export const authRoutes = fp(async (server: FastifyInstance): Promise<void> => {
 
       try {
         const result = await server.database.query(
-          `SELECT id, nome, email, senha_hash, perfil, coordenadoria_id, ativo 
+          `SELECT id, nome, email, senha_hash, perfil, coordenadoria_id, ativo
            FROM usuarios WHERE email = $1`,
           [email.toLowerCase()]
         );
@@ -155,7 +154,7 @@ export const authRoutes = fp(async (server: FastifyInstance): Promise<void> => {
         const refreshTokenHash = await bcrypt.hash(refreshToken, 10);
 
         await server.database.query(
-          `INSERT INTO refresh_tokens (usuario_id, token_hash, expira_em) 
+          `INSERT INTO refresh_tokens (usuario_id, token_hash, expira_em)
            VALUES ($1, $2, CURRENT_TIMESTAMP + INTERVAL '7 days')`,
           [usuario.id, refreshTokenHash]
         );
@@ -219,7 +218,7 @@ export const authRoutes = fp(async (server: FastifyInstance): Promise<void> => {
 
         // Buscar tokens válidos do usuário
         const tokensResult = await server.database.query(
-          `SELECT id, token_hash FROM refresh_tokens 
+          `SELECT id, token_hash FROM refresh_tokens
            WHERE usuario_id = $1 AND revogado = false AND expira_em > CURRENT_TIMESTAMP`,
           [decoded.id]
         );
@@ -270,7 +269,7 @@ export const authRoutes = fp(async (server: FastifyInstance): Promise<void> => {
         const newRefreshTokenHash = await bcrypt.hash(newRefreshToken, 10);
 
         await server.database.query(
-          `INSERT INTO refresh_tokens (usuario_id, token_hash, expira_em) 
+          `INSERT INTO refresh_tokens (usuario_id, token_hash, expira_em)
            VALUES ($1, $2, CURRENT_TIMESTAMP + INTERVAL '7 days')`,
           [usuario.id, newRefreshTokenHash]
         );

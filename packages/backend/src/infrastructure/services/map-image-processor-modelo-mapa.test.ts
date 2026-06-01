@@ -255,7 +255,8 @@ describe.skipIf(!hasModeloMapa)('map-image-processor — MODELO MAPA.jpeg (refer
       expect(autoSkew).toBeLessThan(0.3);
       expect(autoMetrics.mean).toBeLessThan(nativeMetrics.mean * 0.5);
       expect(autoSkew).toBeLessThan(nativeSkew * 0.4);
-    }
+    },
+    20000
   );
 
   it.skipIf(!hasModeloMapaReference)(

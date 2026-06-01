@@ -19,7 +19,7 @@ import type {
 } from '@recorda/shared';
 import { authorize } from '../middleware/auth.js';
 import { validateBody, validateParams, validateQuery } from '../middleware/validate.js';
-import { getCurrentUser } from './operacional-helpers.js';
+import { getCurrentUser, toIsoDate } from './operacional-helpers.js';
 
 const prioridades = ['BAIXA', 'MEDIA', 'ALTA'] as const;
 const escoposDestino = ['TODOS', 'USUARIOS_ESPECIFICOS'] as const;
@@ -174,14 +174,6 @@ interface ComunicadoAdminResumoRow {
   prioridade_baixa: string | number;
 }
 
-function toIsoString(value: string | Date | null): string | null {
-  if (!value) {
-    return null;
-  }
-
-  return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
-}
-
 function mapComunicado(row: ComunicadoRow): Comunicado {
   return {
     id: row.id,
@@ -196,10 +188,10 @@ function mapComunicado(row: ComunicadoRow): Comunicado {
     leituraObrigatoria: row.leitura_obrigatoria,
     status: row.status,
     criadoPorUsuarioId: row.criado_por_usuario_id,
-    criadoEm: toIsoString(row.criado_em) ?? new Date().toISOString(),
-    publicadoEm: toIsoString(row.publicado_em),
-    encerradoEm: toIsoString(row.encerrado_em),
-    atualizadoEm: toIsoString(row.atualizado_em) ?? new Date().toISOString(),
+    criadoEm: toIsoDate(row.criado_em) ?? new Date().toISOString(),
+    publicadoEm: toIsoDate(row.publicado_em),
+    encerradoEm: toIsoDate(row.encerrado_em),
+    atualizadoEm: toIsoDate(row.atualizado_em) ?? new Date().toISOString(),
   };
 }
 
@@ -216,9 +208,9 @@ function mapDestinatario(row: ComunicadoDestinatarioRow): ComunicadoDestinatario
     id: row.destinatario_id,
     comunicadoId: row.destinatario_comunicado_id,
     usuarioId: row.destinatario_usuario_id,
-    lidoEm: toIsoString(row.destinatario_lido_em),
-    entregueEm: toIsoString(row.destinatario_entregue_em) ?? new Date().toISOString(),
-    criadoEm: toIsoString(row.destinatario_criado_em) ?? new Date().toISOString(),
+    lidoEm: toIsoDate(row.destinatario_lido_em),
+    entregueEm: toIsoDate(row.destinatario_entregue_em) ?? new Date().toISOString(),
+    criadoEm: toIsoDate(row.destinatario_criado_em) ?? new Date().toISOString(),
   };
 }
 
@@ -798,9 +790,9 @@ export function createComunicadosRoutes(): FastifyPluginAsync {
                 row.prioridade,
                 row.escopo_destino,
                 row.leitura_obrigatoria ? 'SIM' : 'NAO',
-                toIsoString(row.criado_em) ?? '',
-                toIsoString(row.publicado_em) ?? '',
-                toIsoString(row.encerrado_em) ?? '',
+                toIsoDate(row.criado_em) ?? '',
+                toIsoDate(row.publicado_em) ?? '',
+                toIsoDate(row.encerrado_em) ?? '',
                 Number(row.total_destinatarios),
                 Number(row.total_lidos),
                 pendentes,
@@ -1404,7 +1396,7 @@ export function createComunicadosRoutes(): FastifyPluginAsync {
           const response: MarcarComunicadoLidoResponse = {
             message: 'Comunicado marcado como lido',
             comunicadoId: destinatario.comunicado_id,
-            lidoEm: toIsoString(destinatario.lido_em) ?? new Date().toISOString(),
+            lidoEm: toIsoDate(destinatario.lido_em) ?? new Date().toISOString(),
           };
 
           return reply.send(response);

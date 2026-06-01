@@ -12,8 +12,8 @@ import type { ListarMinhasAusenciasParams, MinhaAusenciaItem } from '@recorda/sh
 
 const PERIODO_OPTIONS = [
   { value: 'dia_completo', label: 'Dia completo' },
-  { value: 'meio_periodo_manha', label: 'Meio periodo (manha)' },
-  { value: 'meio_periodo_tarde', label: 'Meio periodo (tarde)' },
+  { value: 'meio_periodo_manha', label: 'Meio período (manhã)' },
+  { value: 'meio_periodo_tarde', label: 'Meio período (tarde)' },
   { value: 'horas', label: 'Horas' },
 ];
 

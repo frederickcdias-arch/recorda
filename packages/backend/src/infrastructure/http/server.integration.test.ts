@@ -2832,6 +2832,60 @@ describe('HTTP server integration', () => {
     });
   });
 
+  it('rejeita query inválida em GET /colaboradores com 400', async () => {
+    const response = await server.inject({
+      method: 'GET',
+      url: '/colaboradores?pagina=abc&limite=-5',
+      headers: { authorization: `Bearer ${await authenticate()}` },
+    });
+
+    expect(response.statusCode).toBe(400);
+    const body = response.json();
+    expect(body).toHaveProperty('error');
+  });
+
+  it('rejeita body inválido em POST /colaboradores com 400', async () => {
+    const response = await server.inject({
+      method: 'POST',
+      url: '/colaboradores',
+      headers: { authorization: `Bearer ${await authenticate()}` },
+      payload: { email: 'sem-campos-obrigatorios@test.com' },
+    });
+
+    expect(response.statusCode).toBe(400);
+    const body = response.json();
+    expect(body).toHaveProperty('error');
+  });
+
+  it('rejeita body inválido em PUT /colaboradores/:id com 400', async () => {
+    const response = await server.inject({
+      method: 'PUT',
+      url: '/colaboradores/col-1',
+      headers: { authorization: `Bearer ${await authenticate()}` },
+      payload: { nome: '' },
+    });
+
+    expect(response.statusCode).toBe(400);
+    const body = response.json();
+    expect(body).toHaveProperty('error');
+  });
+
+  it('bloqueia operador sem admin em POST /colaboradores com 403', async () => {
+    const token = await authenticateCollaborator();
+    const response = await server.inject({
+      method: 'POST',
+      url: '/colaboradores',
+      headers: { authorization: `Bearer ${token}` },
+      payload: {
+        nome: 'Teste',
+        matricula: 'MAT-OP',
+        coordenadoriaId: 'coord-1',
+      },
+    });
+
+    expect(response.statusCode).toBe(403);
+  });
+
   // ═══════════════════════════════════════════════
   // Health & Metrics
   // ═══════════════════════════════════════════════

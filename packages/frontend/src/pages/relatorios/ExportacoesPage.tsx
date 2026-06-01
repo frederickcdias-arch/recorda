@@ -563,7 +563,7 @@ export function ExportacoesPage(): JSX.Element {
       <Card padding="none">
         <div className="p-4">
           <h2 className="mb-3 text-sm font-semibold text-[var(--color-text-primary)]">
-            Periodo da exportacao
+            Período da exportação
           </h2>
           <DateRangePicker
             startDate={dataInicio}

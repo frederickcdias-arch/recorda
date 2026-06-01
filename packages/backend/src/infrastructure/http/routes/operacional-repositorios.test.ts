@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { normalizeIdRepositorioGed } from './operacional-repositorios.js';
+import { normalizeIdRepositorioGed } from '@recorda/shared';
 
 describe('normalizeIdRepositorioGed', () => {
   it('normalizes "16/2025" to "000016/2025"', () => {

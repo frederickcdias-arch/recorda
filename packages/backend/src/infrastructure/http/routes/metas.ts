@@ -6,7 +6,7 @@ import { validateBody, validateParams, validateQuery } from '../middleware/valid
 import { lancarProducaoColaboradorSchema } from '../schemas/producao.js';
 import { criarMapeamentoSchema, criarMetaSchema, idParamSchema } from '../schemas/operacional.js';
 import type { EtapaFluxo, StatusRepositorio } from '@recorda/shared';
-import { normalizeIdRepositorioGed } from './operacional-repositorios.js';
+import { normalizeIdRepositorioGed } from '@recorda/shared';
 import {
   SYSTEM_TIMEZONE,
   LEGACY_PRODUCAO_ORIGEM,

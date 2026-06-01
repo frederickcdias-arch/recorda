@@ -1,5 +1,13 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
+import { z } from 'zod';
 import { authorize } from '../middleware/auth.js';
+import { validateQuery } from '../middleware/validate.js';
+
+const listarEtapasQuerySchema = z.object({
+  ativa: z.enum(['true', 'false']).optional(),
+  limite: z.coerce.number().int().min(1).max(200).default(50),
+  pagina: z.coerce.number().int().min(1).default(1),
+});
 
 interface CriarEtapaBody {
   nome: string;
@@ -28,21 +36,19 @@ export function createEtapasRoutes(): FastifyPluginAsync {
           },
           response: { 500: { type: 'object', properties: { error: { type: 'string' } } } },
         },
-        preHandler: [server.authenticate, authorize('operador', 'administrador')],
+        preHandler: [
+          server.authenticate,
+          authorize('operador', 'administrador'),
+          validateQuery(listarEtapasQuerySchema),
+        ],
       },
       async (request, reply) => {
         try {
-          const {
-            ativa,
-            limite = 50,
-            pagina = 1,
-          } = request.query as {
-            ativa?: string;
-            limite?: number;
-            pagina?: number;
-          };
+          const { ativa, limite, pagina } = request.query as z.infer<
+            typeof listarEtapasQuerySchema
+          >;
 
-          const offset = (Number(pagina) - 1) * Number(limite);
+          const offset = (pagina - 1) * limite;
 
           let baseQuery = `FROM etapas WHERE 1=1`;
           const params: (boolean | number)[] = [];
@@ -68,15 +74,15 @@ export function createEtapasRoutes(): FastifyPluginAsync {
           ORDER BY ordem, nome
           LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
         `;
-          params.push(Number(limite), offset);
+          params.push(limite, offset);
 
           const result = await server.database.query(dataQuery, params);
 
           return reply.send({
             etapas: result.rows,
             total,
-            pagina: Number(pagina),
-            totalPaginas: Math.ceil(total / Number(limite)),
+            pagina,
+            totalPaginas: Math.ceil(total / limite),
           });
         } catch (error) {
           const message = error instanceof Error ? error.message : 'Erro ao buscar etapas';

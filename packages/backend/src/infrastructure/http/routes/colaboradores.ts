@@ -1,12 +1,22 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
+import { z } from 'zod';
 import { authorize } from '../middleware/auth.js';
+import { validateBody, validateQuery } from '../middleware/validate.js';
 
-interface CriarColaboradorBody {
-  nome: string;
-  matricula: string;
-  email?: string;
-  coordenadoriaId: string;
-}
+const listarColaboradoresQuerySchema = z.object({
+  nome: z.string().trim().optional(),
+  coordenadoriaId: z.string().optional(),
+  ativo: z.enum(['true', 'false']).optional(),
+  limite: z.coerce.number().int().min(1).max(200).default(50),
+  pagina: z.coerce.number().int().min(1).default(1),
+});
+
+const colaboradorBodySchema = z.object({
+  nome: z.string().trim().min(1),
+  matricula: z.string().trim().min(1),
+  email: z.string().trim().optional(),
+  coordenadoriaId: z.string().min(1),
+});
 
 export function createColaboradoresRoutes(): FastifyPluginAsync {
   return async (server: FastifyInstance): Promise<void> => {
@@ -70,25 +80,15 @@ export function createColaboradoresRoutes(): FastifyPluginAsync {
             },
           },
         },
-        preHandler: [server.authenticate],
+        preHandler: [server.authenticate, validateQuery(listarColaboradoresQuerySchema)],
       },
       async (request, reply) => {
         try {
-          const {
-            nome,
-            coordenadoriaId,
-            ativo,
-            limite = 50,
-            pagina = 1,
-          } = request.query as {
-            nome?: string;
-            coordenadoriaId?: string;
-            ativo?: string;
-            limite?: number;
-            pagina?: number;
-          };
+          const { nome, coordenadoriaId, ativo, limite, pagina } = request.query as z.infer<
+            typeof listarColaboradoresQuerySchema
+          >;
 
-          const offset = (Number(pagina) - 1) * Number(limite);
+          const offset = (pagina - 1) * limite;
 
           let baseQuery = `
           FROM colaboradores c
@@ -131,15 +131,15 @@ export function createColaboradoresRoutes(): FastifyPluginAsync {
           ORDER BY c.nome
           LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
         `;
-          params.push(Number(limite), offset);
+          params.push(limite, offset);
 
           const result = await server.database.query(dataQuery, params);
 
           return reply.send({
             colaboradores: result.rows,
             total,
-            pagina: Number(pagina),
-            totalPaginas: Math.ceil(total / Number(limite)),
+            pagina,
+            totalPaginas: Math.ceil(total / limite),
           });
         } catch (error) {
           const message = error instanceof Error ? error.message : 'Erro ao buscar colaboradores';
@@ -149,20 +149,20 @@ export function createColaboradoresRoutes(): FastifyPluginAsync {
     );
 
     // POST /colaboradores - Criar colaborador (apenas admin)
-    server.post<{ Body: CriarColaboradorBody }>(
+    server.post(
       '/colaboradores',
       {
-        preHandler: [server.authenticate, authorize('administrador')],
+        preHandler: [
+          server.authenticate,
+          authorize('administrador'),
+          validateBody(colaboradorBodySchema),
+        ],
       },
       async (request, reply) => {
         try {
-          const { nome, matricula, email, coordenadoriaId } = request.body;
-
-          if (!nome || !matricula || !coordenadoriaId) {
-            return reply
-              .status(400)
-              .send({ error: 'Nome, matrícula e coordenadoria são obrigatórios' });
-          }
+          const { nome, matricula, email, coordenadoriaId } = request.body as z.infer<
+            typeof colaboradorBodySchema
+          >;
 
           // Verificar se matrícula já existe
           const existsResult = await server.database.query(
@@ -199,21 +199,21 @@ export function createColaboradoresRoutes(): FastifyPluginAsync {
     );
 
     // PUT /colaboradores/:id - Atualizar colaborador (apenas admin)
-    server.put<{ Params: { id: string }; Body: CriarColaboradorBody }>(
+    server.put<{ Params: { id: string } }>(
       '/colaboradores/:id',
       {
-        preHandler: [server.authenticate, authorize('administrador')],
+        preHandler: [
+          server.authenticate,
+          authorize('administrador'),
+          validateBody(colaboradorBodySchema),
+        ],
       },
       async (request, reply) => {
         try {
           const { id } = request.params;
-          const { nome, matricula, email, coordenadoriaId } = request.body;
-
-          if (!nome || !matricula || !coordenadoriaId) {
-            return reply
-              .status(400)
-              .send({ error: 'Nome, matrícula e coordenadoria são obrigatórios' });
-          }
+          const { nome, matricula, email, coordenadoriaId } = request.body as z.infer<
+            typeof colaboradorBodySchema
+          >;
 
           // Verificar se colaborador existe
           const existsResult = await server.database.query(

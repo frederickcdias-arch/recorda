@@ -6,7 +6,15 @@ const bcrypt = require('bcryptjs');
 dotenv.config();
 
 const EMAIL = process.env.ADMIN_EMAIL || 'admin@recorda.local';
-const PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
+const PASSWORD = process.env.ADMIN_PASSWORD;
+if (!PASSWORD) {
+  console.error(
+    'ERRO: ADMIN_PASSWORD não definido.\n' +
+    'Defina via variável de ambiente antes de executar este script.\n' +
+    'Exemplo: ADMIN_PASSWORD="senha_forte_aqui" node scripts/create-admin-user.js'
+  );
+  process.exit(1);
+}
 const NOME = process.env.ADMIN_NAME || 'Administrador';
 const PERFIL = process.env.ADMIN_ROLE || 'administrador';
 

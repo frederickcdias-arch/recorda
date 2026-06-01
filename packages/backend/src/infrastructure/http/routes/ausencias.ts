@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { serveAusenciaAnexo } from '../../services/file-storage.js';
 import { authorize } from '../middleware/auth.js';
 import { validateBody, validateParams, validateQuery } from '../middleware/validate.js';
-import { getCurrentUser } from './operacional-helpers.js';
+import { getCurrentUser, toIsoDate } from './operacional-helpers.js';
 import type {
   MinhaAusenciaItem,
   ListarMinhasAusenciasResponse,
@@ -61,11 +61,6 @@ interface MinhaAusenciaRow {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function toIso(value: string | Date | null | undefined): string | null {
-  if (!value) return null;
-  return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
-}
-
 function mapMinhaAusencia(row: MinhaAusenciaRow): MinhaAusenciaItem {
   const dataInicioValue = row.data_inicio ?? '';
   const dataFimValue = row.data_fim ?? '';
@@ -86,12 +81,12 @@ function mapMinhaAusencia(row: MinhaAusenciaRow): MinhaAusenciaItem {
     observacoes: row.observacoes ?? null,
     status: row.status,
     aprovadoPor: row.aprovado_por ?? null,
-    aprovadoEm: toIso(row.aprovado_em),
+    aprovadoEm: toIsoDate(row.aprovado_em),
     motivoRejeicao: row.motivo_rejeicao ?? null,
     documentoAnexo: row.documento_anexo ?? null,
     criadoPor: row.criado_por,
-    criadoEm: toIso(row.criado_em) ?? new Date().toISOString(),
-    atualizadoEm: toIso(row.atualizado_em) ?? new Date().toISOString(),
+    criadoEm: toIsoDate(row.criado_em) ?? new Date().toISOString(),
+    atualizadoEm: toIsoDate(row.atualizado_em) ?? new Date().toISOString(),
   };
 }
 

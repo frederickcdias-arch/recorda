@@ -509,8 +509,7 @@ export function RelatorioAusenciasPage(): JSX.Element {
       {!carregando && !relatorio && (
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-[var(--color-border-primary)] py-16 text-center">
           <p className="text-sm font-medium text-[var(--color-text-secondary)]">
-            Selecione os filtros e clique em <strong>Gerar relatório</strong> para visualizar os
-            dados.
+            Selecione os filtros e clique em <strong>Visualizar</strong> para carregar os dados.
           </p>
         </div>
       )}

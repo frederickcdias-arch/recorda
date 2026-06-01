@@ -1,7 +1,14 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { authorize } from '../middleware/auth.js';
 import { sendDatabaseError } from '../middleware/error-handler.js';
-import { validateBody } from '../middleware/validate.js';
+import { z } from 'zod';
+import { validateBody, validateQuery } from '../middleware/validate.js';
+
+const listarAvulsosQuerySchema = z.object({
+  busca: z.string().trim().optional(),
+  pagina: z.coerce.number().int().min(1).default(1),
+  limite: z.coerce.number().int().min(1).max(100).default(50),
+});
 import {
   ocrPreviewSchema,
   criarProcessoAvulsoSchema,
@@ -73,18 +80,20 @@ export function createOperacionalAvulsosRoutes(): FastifyPluginAsync {
             },
           },
         },
-        preHandler: [server.authenticate, authorize('operador', 'administrador')],
+        preHandler: [
+          server.authenticate,
+          authorize('operador', 'administrador'),
+          validateQuery(listarAvulsosQuerySchema),
+        ],
       },
       async (request, reply) => {
         try {
-          const query = request.query as {
-            busca?: string;
-            pagina?: string | number;
-            limite?: string | number;
-          };
-          const busca = query.busca?.trim() ?? '';
-          const limite = Math.min(Math.max(Number(query.limite ?? 50), 1), 100);
-          const pagina = Math.max(Number(query.pagina ?? 1), 1);
+          const {
+            busca: rawBusca,
+            limite,
+            pagina,
+          } = request.query as z.infer<typeof listarAvulsosQuerySchema>;
+          const busca = rawBusca?.trim() ?? '';
           const offset = (pagina - 1) * limite;
 
           let where = `WHERE rp.repositorio_id IS NULL`;

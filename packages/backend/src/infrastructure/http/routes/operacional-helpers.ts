@@ -55,6 +55,15 @@ export function getBrazilDateString(): string {
   return `${year}-${month}-${day}`;
 }
 
+/**
+ * Converts a database date/timestamp value (string or Date) to an ISO 8601 string,
+ * or returns null if the value is null/undefined.
+ */
+export function toIsoDate(value: string | Date | null | undefined): string | null {
+  if (!value) return null;
+  return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
+}
+
 export function normalizeText(value: string): string {
   return value.replace(/\s+/g, ' ').trim();
 }

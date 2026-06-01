@@ -13,6 +13,18 @@ const config = {
 };
 
 async function clearData() {
+  const confirm = process.env.CONFIRM_CLEAR;
+  if (confirm !== 'LIMPAR_OPERACIONAL') {
+    console.error(
+      'Operação cancelada: confirmação não fornecida.\n' +
+      'Para executar, defina CONFIRM_CLEAR=LIMPAR_OPERACIONAL:\n' +
+      '  CONFIRM_CLEAR=LIMPAR_OPERACIONAL node scripts/clear-operational-data.js\n' +
+      '\nATENÇÃO: este script executa TRUNCATE CASCADE nas tabelas operacionais.\n' +
+      'Use apenas em ambiente de desenvolvimento ou com aprovação formal.'
+    );
+    process.exit(1);
+  }
+
   const client = new pg.Client(config);
   try {
     await client.connect();

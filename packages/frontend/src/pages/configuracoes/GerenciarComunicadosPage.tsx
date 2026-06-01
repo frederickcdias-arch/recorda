@@ -158,7 +158,7 @@ function getResumoLista(comunicado: ComunicadoAdminResumo): string {
   return `${normalizado.slice(0, 140).trim()}...`;
 }
 
-export function ComunicadosPage(): JSX.Element {
+export function GerenciarComunicadosPage(): JSX.Element {
   const toast = useToastHelpers();
   const confirmDialog = useConfirmDialog();
 

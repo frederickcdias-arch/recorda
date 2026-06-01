@@ -2,6 +2,7 @@
 
 # Health check script for nginx
 # Returns 0 if healthy, 1 if unhealthy
+# Uses wget (available in nginx:alpine) instead of curl.
 
 # Check if nginx is running
 if ! pgrep nginx > /dev/null; then
@@ -9,9 +10,8 @@ if ! pgrep nginx > /dev/null; then
 fi
 
 # Check if the application is responding
-response=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/health)
-
-if [ "$response" = "200" ]; then
+# wget exits 0 on success, non-zero on failure; -q suppresses output.
+if wget -q -O /dev/null http://localhost:3000/health; then
     exit 0
 else
     exit 1

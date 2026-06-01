@@ -1,7 +1,8 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { authorize } from '../middleware/auth.js';
 import { sendDatabaseError } from '../middleware/error-handler.js';
-import { validateBody } from '../middleware/validate.js';
+import { z } from 'zod';
+import { validateBody, validateQuery } from '../middleware/validate.js';
 import {
   criarModeloChecklistSchema,
   atualizarModeloChecklistSchema,
@@ -26,6 +27,24 @@ import {
   validarTransicaoEtapaOperacional,
   getProximaEtapaOperacional,
 } from './operacional-helpers.js';
+
+const etapaFluxoValues = [
+  'RECEBIMENTO',
+  'PREPARACAO',
+  'DIGITALIZACAO',
+  'DIGITALIZACAO_COLORIDA',
+  'CONFERENCIA',
+  'RECONFERENCIA',
+  'MONTAGEM',
+  'ATENDIMENTO',
+  'CONTROLE_QUALIDADE',
+  'ENTREGA',
+] as const;
+
+const checklistModelosQuerySchema = z.object({
+  etapa: z.enum(etapaFluxoValues).optional(),
+  ativo: z.enum(['true', 'false']).optional(),
+});
 
 export function createOperacionalChecklistsRoutes(): FastifyPluginAsync {
   return async (server: FastifyInstance): Promise<void> => {
@@ -299,22 +318,26 @@ export function createOperacionalChecklistsRoutes(): FastifyPluginAsync {
             properties: { etapa: { type: 'string' }, ativo: { type: 'string' } },
           },
         },
-        preHandler: [server.authenticate, authorize('administrador')],
+        preHandler: [
+          server.authenticate,
+          authorize('administrador'),
+          validateQuery(checklistModelosQuerySchema),
+        ],
       },
       async (request, reply) => {
         try {
-          const query = request.query as { etapa?: EtapaFluxo; ativo?: string };
+          const { etapa, ativo } = request.query as z.infer<typeof checklistModelosQuerySchema>;
           const params: string[] = [];
           let where = 'WHERE 1=1';
           let p = 1;
 
-          if (query.etapa) {
+          if (etapa) {
             where += ` AND etapa = $${p++}`;
-            params.push(query.etapa);
+            params.push(etapa);
           }
-          if (query.ativo === 'true') {
+          if (ativo === 'true') {
             where += ` AND ativo = TRUE`;
-          } else if (query.ativo === 'false') {
+          } else if (ativo === 'false') {
             where += ` AND ativo = FALSE`;
           }
 
@@ -549,25 +572,29 @@ export function createOperacionalChecklistsRoutes(): FastifyPluginAsync {
           security: [{ bearerAuth: [] }],
           params: { type: 'object', properties: { id: { type: 'string' } }, required: ['id'] },
         },
-        preHandler: [server.authenticate, authorize('operador', 'administrador')],
+        preHandler: [
+          server.authenticate,
+          authorize('operador', 'administrador'),
+          validateQuery(checklistModelosQuerySchema),
+        ],
       },
       async (request, reply) => {
         try {
           const { id } = request.params as { id: string };
-          const query = request.query as { etapa?: EtapaFluxo; ativo?: string };
+          const { etapa, ativo } = request.query as z.infer<typeof checklistModelosQuerySchema>;
 
           let where = 'WHERE repositorio_id = $1';
           const params: Array<string> = [id];
           let p = 2;
 
-          if (query.etapa) {
+          if (etapa) {
             where += ` AND etapa = $${p++}`;
-            params.push(query.etapa);
+            params.push(etapa);
           }
 
-          if (query.ativo === 'true') {
+          if (ativo === 'true') {
             where += ` AND ativo = TRUE`;
-          } else if (query.ativo === 'false') {
+          } else if (ativo === 'false') {
             where += ` AND ativo = FALSE`;
           }
 

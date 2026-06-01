@@ -12,7 +12,7 @@ import type {
 } from '@recorda/shared';
 import { authorize } from '../middleware/auth.js';
 import { validateBody, validateParams, validateQuery } from '../middleware/validate.js';
-import { getCurrentUser } from './operacional-helpers.js';
+import { getCurrentUser, toIsoDate } from './operacional-helpers.js';
 import { buildLegacyProducaoWhere } from '../../../domain/producao/producao-metrics.js';
 import { z } from 'zod';
 
@@ -61,11 +61,6 @@ const cancelarAusenciaAdminSchema = z.object({
   observacoes: z.string().trim().min(3, 'Observações deve ter pelo menos 3 caracteres').max(1000),
 });
 
-function toIsoString(value: string | Date | null | undefined): string | null {
-  if (!value) return null;
-  return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
-}
-
 function mapAusenciaAdmin(row: AusenciaAdminRow): AusenciaAdminItem {
   const dataInicioValue = row.data_inicio ?? '';
   const dataFimValue = row.data_fim ?? '';
@@ -94,12 +89,12 @@ function mapAusenciaAdmin(row: AusenciaAdminRow): AusenciaAdminItem {
     observacoes: row.observacoes ?? null,
     status: row.status,
     aprovadoPor: row.aprovado_por ?? null,
-    aprovadoEm: toIsoString(row.aprovado_em),
+    aprovadoEm: toIsoDate(row.aprovado_em),
     motivoRejeicao: row.motivo_rejeicao ?? null,
     documentoAnexo: row.documento_anexo ?? null,
     criadoPor: row.criado_por,
-    criadoEm: toIsoString(row.criado_em) ?? new Date().toISOString(),
-    atualizadoEm: toIsoString(row.atualizado_em) ?? new Date().toISOString(),
+    criadoEm: toIsoDate(row.criado_em) ?? new Date().toISOString(),
+    atualizadoEm: toIsoDate(row.atualizado_em) ?? new Date().toISOString(),
   };
 }
 
@@ -241,7 +236,7 @@ export function createAdminRoutes(): FastifyPluginAsync {
       async (_request, reply) => {
         try {
           const result = await server.database.query(`
-            SELECT 
+            SELECT
               DISTINCT TRIM(marcadores->>'colaborador_nome') as nome,
               COUNT(*) as total_producoes,
               MIN(data_producao)::date as primeira_producao,
@@ -249,7 +244,7 @@ export function createAdminRoutes(): FastifyPluginAsync {
               COUNT(DISTINCT repositorio_id) as total_repositorios,
               ARRAY_AGG(DISTINCT etapa::text) as etapas
             FROM producao_repositorio
-            WHERE ${buildLegacyProducaoWhere()}
+            WHERE ${buildLegacyProducaoWhere('producao_repositorio')}
               AND TRIM(marcadores->>'colaborador_nome') != ''
             GROUP BY TRIM(marcadores->>'colaborador_nome')
             ORDER BY total_producoes DESC
@@ -278,7 +273,7 @@ export function createAdminRoutes(): FastifyPluginAsync {
       async (_request, reply) => {
         try {
           const result = await server.database.query(`
-            SELECT 
+            SELECT
               u.id,
               u.nome,
               u.email,
@@ -413,7 +408,7 @@ export function createAdminRoutes(): FastifyPluginAsync {
 
           const result = await server.database.query(
             `
-            SELECT 
+            SELECT
               pr.data_producao::date as data,
               pr.etapa,
               COUNT(*) as registros,
@@ -465,11 +460,11 @@ export function createAdminRoutes(): FastifyPluginAsync {
           const duplicatesResult = await server.database.query(`
           WITH duplicates AS (
             SELECT id, ROW_NUMBER() OVER (
-              PARTITION BY 
-                usuario_id, 
-                repositorio_id, 
+              PARTITION BY
+                usuario_id,
+                repositorio_id,
                 DATE(data_producao AT TIME ZONE 'America/Cuiaba'),
-                etapa, 
+                etapa,
                 quantidade,
                 COALESCE(marcadores->>'tipo', ''),
                 COALESCE(marcadores->>'funcao', ''),
@@ -595,7 +590,7 @@ export function createAdminRoutes(): FastifyPluginAsync {
 
           // Get current statistics
           const statsResult = await server.database.query(`
-          SELECT 
+          SELECT
             COUNT(*) as total_registros,
             COUNT(DISTINCT usuario_id) as usuarios_unicos,
             COUNT(DISTINCT repositorio_id) as repositorios_unicos,

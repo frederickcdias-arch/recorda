@@ -90,8 +90,8 @@ const VincularProducoesPage = lazy(() =>
   }))
 );
 const ComunicadosAdminPage = lazy(() =>
-  import('../pages/configuracoes/ComunicadosPage').then((m) => ({
-    default: m.ComunicadosPage,
+  import('../pages/configuracoes/GerenciarComunicadosPage').then((m) => ({
+    default: m.GerenciarComunicadosPage,
   }))
 );
 const AusenciasPage = lazy(() =>

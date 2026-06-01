@@ -251,6 +251,7 @@ describe('OpenAI image processor — Captura de Mapas POC', () => {
   it('OpenAI com local_correct gera corrigida guiada e preserva fluxo', async () => {
     process.env.OPENAI_IMAGE_ENABLED = 'true';
     process.env.OPENAI_API_KEY = 'test-key';
+    process.env.MAP_IMAGE_BLOCK_GENERATIVE_REPLACEMENT = 'false';
 
     setOpenAIFetchForTests(
       vi.fn(async () =>

@@ -938,7 +938,7 @@ export function CapturaMapaPage() {
           className="mt-0.5 h-4 w-4 flex-none text-[var(--color-text-tertiary)]"
         />
         <span>
-          Disponivel por <strong>30 dias</strong>.
+          Disponível por <strong>30 dias</strong>.
         </span>
       </div>
 
@@ -985,7 +985,7 @@ export function CapturaMapaPage() {
                 Arraste aqui ou escolha imagens.
               </p>
               <p className="text-sm text-[var(--color-text-secondary)]">
-                JPEG, PNG ou WEBP ate 10 MB.
+                JPEG, PNG ou WEBP até 10 MB.
               </p>
             </div>
             <div className="flex flex-wrap justify-center gap-2 text-xs text-[var(--color-text-secondary)]">

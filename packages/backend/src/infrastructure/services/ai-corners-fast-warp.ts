@@ -110,7 +110,7 @@ export async function applyPerspectiveFromCornersFast(
 
     const aiWarp: AIWarpMetadata = {
       attempted: true,
-      method: 'faithful-scan',
+      method: 'node-native-warp',
       success: true,
       timeout: false,
       durationMs,
@@ -155,7 +155,7 @@ export async function applyPerspectiveFromCornersFast(
       (partial) =>
         new FastWarpTimeoutError(timeoutMs, Date.now() - startedAt, {
           attempted: true,
-          method: 'faithful-scan',
+          method: 'node-native-warp',
           success: false,
           timeout: true,
           durationMs: Date.now() - startedAt,
@@ -172,7 +172,7 @@ export async function applyPerspectiveFromCornersFast(
       throw new FastWarpTimeoutError(timeoutMs, Date.now() - startedAt, {
         ...aiWarp,
         attempted: true,
-        method: 'faithful-scan',
+        method: 'node-native-warp',
         success: false,
         timeout: true,
         durationMs: Date.now() - startedAt,
@@ -184,7 +184,7 @@ export async function applyPerspectiveFromCornersFast(
       error,
       aiWarp ?? {
         attempted: true,
-        method: 'faithful-scan',
+        method: 'node-native-warp',
         success: false,
         durationMs: Date.now() - startedAt,
         error: error instanceof Error ? error.message : 'ai_warp_failed',

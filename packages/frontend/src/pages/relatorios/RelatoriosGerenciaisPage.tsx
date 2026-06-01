@@ -641,7 +641,7 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
             className="mx-auto mb-3 h-8 w-8 text-[var(--color-text-tertiary)]"
           />
           <p className="text-sm text-[var(--color-text-secondary)]">
-            Selecione o período e clique em <strong>Gerar visualização</strong>.
+            Selecione o período e clique em <strong>Visualizar</strong>.
           </p>
         </div>
       ) : null}

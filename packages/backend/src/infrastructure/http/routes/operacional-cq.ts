@@ -3,7 +3,14 @@ import { authorize } from '../middleware/auth.js';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { sendDatabaseError } from '../middleware/error-handler.js';
-import { validateBody } from '../middleware/validate.js';
+import { z } from 'zod';
+import { validateBody, validateQuery } from '../middleware/validate.js';
+
+const listarLotesCqQuerySchema = z.object({
+  pagina: z.coerce.number().int().min(1).default(1),
+  limite: z.coerce.number().int().min(1).max(100).default(20),
+  status: z.enum(['ABERTO', 'FECHADO']).optional(),
+});
 import { criarLoteCQSchema, auditarItemCQSchema } from '../schemas/operacional.js';
 import {
   type ResultadoCQ,
@@ -108,23 +115,23 @@ export function createOperacionalCQRoutes(): FastifyPluginAsync {
             },
           },
         },
-        preHandler: [server.authenticate, authorize('operador', 'administrador')],
+        preHandler: [
+          server.authenticate,
+          authorize('operador', 'administrador'),
+          validateQuery(listarLotesCqQuerySchema),
+        ],
       },
       async (request, reply) => {
         try {
-          const query = request.query as {
-            pagina?: string | number;
-            limite?: string | number;
-            status?: string;
-          };
-          const pagina = Math.max(Number(query.pagina ?? 1), 1);
-          const limite = Math.min(Math.max(Number(query.limite ?? 20), 1), 100);
+          const { pagina, limite, status } = request.query as z.infer<
+            typeof listarLotesCqQuerySchema
+          >;
           const offset = (pagina - 1) * limite;
 
           const params: (string | number)[] = [];
           let where = '';
-          if (query.status) {
-            params.push(query.status);
+          if (status) {
+            params.push(status);
             where = `WHERE l.status = $${params.length}`;
           }
 

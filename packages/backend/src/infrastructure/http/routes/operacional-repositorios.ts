@@ -16,8 +16,6 @@ import {
 } from './operacional-helpers.js';
 import { normalizeIdRepositorioGed } from '@recorda/shared';
 
-export { normalizeIdRepositorioGed };
-
 export function createOperacionalRepositoriosRoutes(): FastifyPluginAsync {
   return async (server: FastifyInstance): Promise<void> => {
     const ocrService = server.ocrService;
