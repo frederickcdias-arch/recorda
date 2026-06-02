@@ -80,7 +80,11 @@ export function createColaboradoresRoutes(): FastifyPluginAsync {
             },
           },
         },
-        preHandler: [server.authenticate, validateQuery(listarColaboradoresQuerySchema)],
+        preHandler: [
+          server.authenticate,
+          authorize('operador', 'administrador'),
+          validateQuery(listarColaboradoresQuerySchema),
+        ],
       },
       async (request, reply) => {
         try {
@@ -282,7 +286,7 @@ export function createColaboradoresRoutes(): FastifyPluginAsync {
     server.get<{ Params: { id: string } }>(
       '/colaboradores/:id',
       {
-        preHandler: [server.authenticate],
+        preHandler: [server.authenticate, authorize('operador', 'administrador')],
       },
       async (request, reply) => {
         try {
