@@ -19,28 +19,28 @@ Para navegacao rapida, consulte [INDICE.md](./INDICE.md).
 
 ## Indice mestre
 
-| Documento                                 | Finalidade                                     | Status           |
-| ----------------------------------------- | ---------------------------------------------- | ---------------- |
-| `INDICE.md`                               | Navegacao rapida por tema                      | Atual            |
-| `regras-de-negocio/DOMINIO.md`            | Conceitos centrais de dominio                  | Atual            |
-| `regras-de-negocio/NUMEROS_E_METRICAS.md` | Regras oficiais de numeros e metricas          | Atual            |
-| `regras-de-negocio/TIMEZONE.md`           | Timezone oficial do sistema                    | Atual            |
-| `regras-de-negocio/IMPORTACAO_LEGADO.md`  | Regras da importacao legada                    | Atual            |
-| `regras-de-negocio/AUSENCIAS.md`          | Regra de ausencias                             | Atual            |
-| `padroes/PADRAO_NUMEROS_RECORDA.md`       | Padrao obrigatorio para evolucao de numeros    | Atual            |
-| `arquitetura/VISAO_GERAL.md`              | Arquitetura geral do sistema                   | Atual            |
-| `arquitetura/API.md`                      | Referencia tecnica de rotas                    | Atual            |
-| `visual/DESIGN_SYSTEM.md`                 | Guia visual e padroes de interface             | Atual            |
-| `operacao/COMO_RODAR_LOCAL.md`            | Setup e execucao local                         | Atual            |
-| `operacao/TESTES.md`                      | Estrategia e comandos de teste                 | Atual            |
-| `operacao/TESTES_MANUAIS.md`              | Procedimentos manuais e guard-rails            | Atual            |
-| `operacao/DEPLOY.md`                      | Deploy e publicacao                            | Atual            |
-| `operacao/PROCESSAMENTO_DOCUMENTO.md`     | Fluxo e operacao do processamento fotografado  | Atual            |
-| `operacao/LIMITACOES.md`                  | Limitacoes conhecidas                          | Atual            |
-| `regras-de-negocio/PERFIL_COLABORADOR.md` | Fluxo funcional do colaborador                 | Atual            |
-| `seguranca/SEGURANCA_VIBECODING_RECORDA.md` | Baseline de seguranca para manutencao        | Atual            |
-| `CHANGELOG.md`                            | Historico de mudancas relevantes               | Atual            |
-| `auditorias/README.md`                    | Sumario das auditorias e relatorios historicos | Historico valido |
+| Documento                                   | Finalidade                                     | Status           |
+| ------------------------------------------- | ---------------------------------------------- | ---------------- |
+| `INDICE.md`                                 | Navegacao rapida por tema                      | Atual            |
+| `regras-de-negocio/DOMINIO.md`              | Conceitos centrais de dominio                  | Atual            |
+| `regras-de-negocio/NUMEROS_E_METRICAS.md`   | Regras oficiais de numeros e metricas          | Atual            |
+| `regras-de-negocio/TIMEZONE.md`             | Timezone oficial do sistema                    | Atual            |
+| `regras-de-negocio/IMPORTACAO_LEGADO.md`    | Regras da importacao legada                    | Atual            |
+| `regras-de-negocio/AUSENCIAS.md`            | Regra de ausencias                             | Atual            |
+| `padroes/PADRAO_NUMEROS_RECORDA.md`         | Padrao obrigatorio para evolucao de numeros    | Atual            |
+| `arquitetura/VISAO_GERAL.md`                | Arquitetura geral do sistema                   | Atual            |
+| `arquitetura/API.md`                        | Referencia tecnica de rotas                    | Atual            |
+| `visual/DESIGN_SYSTEM.md`                   | Guia visual e padroes de interface             | Atual            |
+| `operacao/COMO_RODAR_LOCAL.md`              | Setup e execucao local                         | Atual            |
+| `operacao/TESTES.md`                        | Estrategia e comandos de teste                 | Atual            |
+| `operacao/TESTES_MANUAIS.md`                | Procedimentos manuais e guard-rails            | Atual            |
+| `operacao/DEPLOY.md`                        | Deploy e publicacao                            | Atual            |
+| `operacao/PROCESSAMENTO_DOCUMENTO.md`       | Fluxo e operacao do processamento fotografado  | Atual            |
+| `operacao/LIMITACOES.md`                    | Limitacoes conhecidas                          | Atual            |
+| `regras-de-negocio/PERFIL_COLABORADOR.md`   | Fluxo funcional do colaborador                 | Atual            |
+| `seguranca/SEGURANCA_VIBECODING_RECORDA.md` | Baseline de seguranca para manutencao          | Atual            |
+| `CHANGELOG.md`                              | Historico de mudancas relevantes               | Atual            |
+| `auditorias/README.md`                      | Sumario das auditorias e relatorios historicos | Historico valido |
 
 ## Ordem recomendada de leitura
 
