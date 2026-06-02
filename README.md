@@ -38,9 +38,12 @@ recorda/
 |   |-- load/
 |   |-- manual/
 |   `-- security/
+|-- .env.example
+|-- .env.homologacao.example
 |-- docker-compose.yml
 |-- Dockerfile.backend
 |-- Dockerfile.frontend
+|-- healthcheck.sh
 |-- nginx.conf
 |-- nixpacks.toml
 |-- railway.json
@@ -48,6 +51,10 @@ recorda/
 |-- tsconfig.base.json
 `-- README.md
 ```
+
+## Organizacao do repositorio
+
+Os arquivos tecnicos soltos na raiz existem por exigencia de ferramenta ou deploy, nao por falta de organizacao. O monorepo vive em `packages/`, a documentacao em `docs/`, os scripts em `scripts/` e a infraestrutura compartilhada permanece na raiz quando Docker, Railway, Vercel ou `npm` dependem desses caminhos. O detalhamento dessa decisao esta em [docs/operacao/ESTRUTURA_RAIZ.md](docs/operacao/ESTRUTURA_RAIZ.md).
 
 ## Setup rapido
 

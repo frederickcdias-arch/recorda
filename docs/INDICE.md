@@ -13,6 +13,7 @@
 ## Operacao
 
 - [Como rodar local](./operacao/COMO_RODAR_LOCAL.md)
+- [Estrutura da raiz](./operacao/ESTRUTURA_RAIZ.md)
 - [Testes](./operacao/TESTES.md)
 - [Testes manuais](./operacao/TESTES_MANUAIS.md)
 - [Scripts administrativos e manuais](./operacao/SCRIPTS_ADMINISTRATIVOS.md)
