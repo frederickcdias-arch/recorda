@@ -1,5 +1,6 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { Analytics } from '@vercel/analytics/react';
 import { App } from './App';
 import { setupPwaUpdateRegistration } from './hooks/usePwaUpdate';
 import './services/api';
@@ -23,6 +24,9 @@ if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
 
 createRoot(rootElement).render(
   <StrictMode>
-    <App />
+    <>
+      <App />
+      <Analytics />
+    </>
   </StrictMode>
 );
