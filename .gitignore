@@ -12,6 +12,25 @@ coverage
 uploads/
 logs/
 tools/
+packages/backend/uploads/
+
+# Documentos e backups operacionais gerados
+*.pdf
+*.dump
+*.backup
+*.zip
+*.rar
+*.7z
+*.xlsx
+*.xls
+
+# Diretórios de exportações/geração temporária
+temp/
+exports/
+downloads/
+storage/
+generated/
+backups/
 
 # Certificados e chaves privadas
 *.pem

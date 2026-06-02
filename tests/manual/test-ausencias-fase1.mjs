@@ -54,7 +54,7 @@ try {
 for (const cred of [
   { email: 'teste@recorda.local', senha: 'Recorda@2024' },
   { email: 'push.teste@recorda.local', senha: 'admin123' },
-  { email: 'thiagoliandro@gmail.com', senha: 'admin123' },
+  { email: 'colaborador@recorda.local', senha: 'admin123' },
   { email: 'teste@recorda.local', senha: 'admin123' },
 ]) {
   try {

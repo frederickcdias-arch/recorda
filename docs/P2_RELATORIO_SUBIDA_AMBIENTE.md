@@ -104,7 +104,7 @@ Template completo e seguro de variáveis de ambiente para o ambiente de homologa
 
 ```bash
 ADMIN_EMAIL=admin@minhaorg.com \
-ADMIN_PASSWORD=SenhaForte123! \
+ADMIN_PASSWORD=[PREENCHER_SENHA_FORTE] \
 ADMIN_NAME="Administrador" \
 ADMIN_ROLE=admin \
 node scripts/create-admin-user.js
