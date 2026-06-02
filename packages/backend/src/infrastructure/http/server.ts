@@ -35,6 +35,44 @@ export interface ServerDependencies {
   ocrService?: OCRService;
 }
 
+type CorsOriginResolver =
+  | true
+  | string
+  | ((origin: string | undefined, callback: (error: Error | null, allow: boolean) => void) => void);
+
+function resolveCorsOrigin(isProduction: boolean): CorsOriginResolver {
+  if (!isProduction) {
+    return true;
+  }
+
+  const configuredOrigin = process.env.CORS_ORIGIN?.trim();
+  if (!configuredOrigin) {
+    throw new Error('CORS_ORIGIN environment variable is required in production.');
+  }
+
+  const allowedOrigins = configuredOrigin
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+  if (allowedOrigins.length === 0) {
+    throw new Error('CORS_ORIGIN must contain at least one valid origin in production.');
+  }
+
+  if (allowedOrigins.length === 1) {
+    return allowedOrigins[0] as string;
+  }
+
+  return (origin, callback) => {
+    if (!origin) {
+      callback(null, true);
+      return;
+    }
+
+    callback(null, allowedOrigins.includes(origin));
+  };
+}
+
 export async function createServer(dependencies: ServerDependencies): Promise<FastifyInstance> {
   const server = Fastify({
     logger: true,
@@ -61,14 +99,7 @@ export async function createServer(dependencies: ServerDependencies): Promise<Fa
   });
 
   // Segurança: CORS
-  const corsOrigin = (() => {
-    if (!isProduction) return true;
-    const configuredOrigin = process.env.CORS_ORIGIN?.trim();
-    if (!configuredOrigin) {
-      throw new Error('CORS_ORIGIN environment variable is required in production.');
-    }
-    return configuredOrigin;
-  })();
+  const corsOrigin = resolveCorsOrigin(isProduction);
   await server.register(cors, {
     origin: corsOrigin,
     credentials: true,

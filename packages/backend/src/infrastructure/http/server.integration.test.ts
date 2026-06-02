@@ -4019,3 +4019,96 @@ describe('HTTP server integration', () => {
     expect(Array.isArray(body.retrabalhoCQ)).toBe(true);
   });
 });
+
+describe('HTTP server CORS configuration', () => {
+  const originalNodeEnv = process.env.NODE_ENV;
+  const originalCorsOrigin = process.env.CORS_ORIGIN;
+  const originalJwtSecret = process.env.JWT_SECRET;
+
+  afterAll(() => {
+    if (originalNodeEnv === undefined) {
+      delete process.env.NODE_ENV;
+    } else {
+      process.env.NODE_ENV = originalNodeEnv;
+    }
+
+    if (originalCorsOrigin === undefined) {
+      delete process.env.CORS_ORIGIN;
+    } else {
+      process.env.CORS_ORIGIN = originalCorsOrigin;
+    }
+
+    if (originalJwtSecret === undefined) {
+      delete process.env.JWT_SECRET;
+    } else {
+      process.env.JWT_SECRET = originalJwtSecret;
+    }
+  });
+
+  it('accepts a comma-separated allowlist in production CORS_ORIGIN', async () => {
+    process.env.NODE_ENV = 'production';
+    process.env.CORS_ORIGIN = 'https://recorda.company, https://recorda-six.vercel.app';
+    process.env.JWT_SECRET = 'integration-production-secret-with-32-plus-chars';
+
+    const server = await createServer({
+      database: createMockDatabase(),
+      config: {
+        host: '127.0.0.1',
+        port: 0,
+      },
+    });
+
+    try {
+      const primaryOriginResponse = await server.inject({
+        method: 'GET',
+        url: '/health',
+        headers: {
+          origin: 'https://recorda.company',
+        },
+      });
+      expect(primaryOriginResponse.headers['access-control-allow-origin']).toBe(
+        'https://recorda.company'
+      );
+
+      const legacyOriginResponse = await server.inject({
+        method: 'GET',
+        url: '/health',
+        headers: {
+          origin: 'https://recorda-six.vercel.app',
+        },
+      });
+      expect(legacyOriginResponse.headers['access-control-allow-origin']).toBe(
+        'https://recorda-six.vercel.app'
+      );
+    } finally {
+      await server.close();
+    }
+  });
+
+  it('rejects origins outside the configured production allowlist', async () => {
+    process.env.NODE_ENV = 'production';
+    process.env.CORS_ORIGIN = 'https://recorda.company,https://recorda-six.vercel.app';
+    process.env.JWT_SECRET = 'integration-production-secret-with-32-plus-chars';
+
+    const server = await createServer({
+      database: createMockDatabase(),
+      config: {
+        host: '127.0.0.1',
+        port: 0,
+      },
+    });
+
+    try {
+      const response = await server.inject({
+        method: 'GET',
+        url: '/health',
+        headers: {
+          origin: 'https://malicioso.example',
+        },
+      });
+      expect(response.headers['access-control-allow-origin']).toBeUndefined();
+    } finally {
+      await server.close();
+    }
+  });
+});

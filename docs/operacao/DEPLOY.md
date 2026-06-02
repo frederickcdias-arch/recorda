@@ -32,8 +32,8 @@ git push
 - `PORT`
 - `HOST=0.0.0.0`
 - `JWT_SECRET`
-- `CORS_ORIGIN=https://<seu-front>`
-- `APP_URL=https://<seu-front>`
+- `CORS_ORIGIN=https://recorda.company`
+- `APP_URL=https://recorda.company`
 - `DATABASE_URL`
 
 ## 3. Frontend (Docker / Nginx)
@@ -47,7 +47,8 @@ docker run -p 80:80 recorda-frontend
 
 A variável de build obrigatória é:
 
-- `VITE_API_BASE=https://<seu-backend>.up.railway.app`
+- Preferencial: `VITE_API_BASE=https://api.recorda.company`
+- Temporário até o domínio customizado da API ficar pronto: `VITE_API_BASE=https://<seu-backend>.up.railway.app`
 
 ## 4. Ordem recomendada de publicação
 

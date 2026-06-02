@@ -81,13 +81,13 @@ Template completo e seguro de variáveis de ambiente para o ambiente de homologa
 | `PORT`         | `3001`                                | Já definido no Dockerfile                 |
 | `DATABASE_URL` | `postgresql://user:pass@host:5432/db` | Preferido sobre DB\_\* individuais        |
 | `JWT_SECRET`   | string aleatória ≥32 chars            | Servidor recusa boot sem isso             |
-| `CORS_ORIGIN`  | `https://recorda-homolog.vercel.app`  | Servidor recusa boot sem isso em produção |
+| `CORS_ORIGIN`  | `https://recorda.company`  | Servidor recusa boot sem isso em produção; aceita lista separada por vírgula durante migração |
 
 ### Variáveis obrigatórias para o frontend funcionar
 
 | Variável        | Valor de exemplo                     | Observação                                       |
 | --------------- | ------------------------------------ | ------------------------------------------------ |
-| `VITE_API_BASE` | `https://recorda-api.up.railway.app` | Se ausente, todos os calls de API falham com 404 |
+| `VITE_API_BASE` | `https://api.recorda.company` | Se ausente, todos os calls de API falham com 404; usar Railway apenas temporariamente |
 
 ### Variáveis opcionais importantes
 

@@ -50,7 +50,7 @@ Definir no painel de variáveis do serviço Railway:
 | `NODE_ENV`     | **Sim**               | `production`                                                                                 |
 | `DATABASE_URL` | **Sim** (recomendado) | Alternativa: definir `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` separadamente |
 | `JWT_SECRET`   | **Sim**               | Min. 32 chars. Gerar: `openssl rand -base64 48`                                              |
-| `CORS_ORIGIN`  | **Sim**               | URL exata do frontend Vercel (ex.: `https://recorda.vercel.app`)                             |
+| `CORS_ORIGIN`  | **Sim**               | URL exata do frontend oficial (preferencial: `https://recorda.company`)                      |
 | `APP_URL`      | **Sim**               | URL pública do frontend (usado em links de e-mail de reset de senha)                         |
 | `TZ`           | Recomendada           | `America/Sao_Paulo`                                                                          |
 | `PORT`         | Não                   | Dockerfile já define `PORT=3001`; Railway sobrescreve automaticamente                        |
@@ -67,7 +67,7 @@ Definir no painel de variáveis do serviço Railway:
 
 | Variável                | Obrigatória | Observação                                                                 |
 | ----------------------- | ----------- | -------------------------------------------------------------------------- |
-| `VITE_API_BASE`         | **Sim**     | URL pública do backend Railway (ex.: `https://recorda-api.up.railway.app`) |
+| `VITE_API_BASE`         | **Sim**     | URL pública da API (preferencial: `https://api.recorda.company`; temporário: Railway) |
 | `VITE_VAPID_PUBLIC_KEY` | Condicional | Obrigatória se push notifications estiver ativo                            |
 | `VITE_APP_VERSION`      | Não         | Exibida na AdminPage; padrão `'dev'` se ausente                            |
 
@@ -85,9 +85,9 @@ Definir no painel de variáveis do serviço Railway:
 
 ### 4. CORS
 
-- **Código**: `packages/backend/src/infrastructure/http/server.ts` — em produção, usa `process.env.CORS_ORIGIN` exato; sem ela, lança exceção.
+- **Código**: `packages/backend/src/infrastructure/http/server.ts` — em produção, exige `process.env.CORS_ORIGIN`; aceita 1 origin ou uma lista separada por vírgula.
 - **Em dev**: `origin: true` (qualquer origem).
-- **Ação**: definir `CORS_ORIGIN` com a URL Vercel do frontend, incluindo protocolo e sem barra final.
+- **Ação**: definir `CORS_ORIGIN=https://recorda.company`; durante migração, pode usar `https://recorda.company,https://recorda-six.vercel.app`.
 
 ---
 
@@ -353,9 +353,9 @@ Executadas em 2026-06-01:
 - [ ] **Railway — Backend**: definir `NODE_ENV=production`
 - [ ] **Railway — Backend**: definir `DATABASE_URL` (ou variáveis `DB_*`)
 - [ ] **Railway — Backend**: gerar e definir `JWT_SECRET` (`openssl rand -base64 48`)
-- [ ] **Railway — Backend**: definir `CORS_ORIGIN` com URL do frontend Vercel
-- [ ] **Railway — Backend**: definir `APP_URL` com URL do frontend Vercel
-- [ ] **Vercel — Frontend**: definir `VITE_API_BASE` com URL do backend Railway
+- [ ] **Railway — Backend**: definir `CORS_ORIGIN=https://recorda.company`
+- [ ] **Railway — Backend**: definir `APP_URL=https://recorda.company`
+- [ ] **Vercel — Frontend**: definir `VITE_API_BASE=https://api.recorda.company` ou, temporariamente, a URL Railway da API
 - [ ] **Banco**: executar `scripts/create-admin-user.js` com `ADMIN_PASSWORD` forte
 
 ### Recomendadas
@@ -380,14 +380,14 @@ Internet
     │
     ├─── HTTPS ──► Vercel (Frontend)
     │               Vite build / nginx CDN
-    │               VITE_API_BASE → Railway backend
+    │               VITE_API_BASE → api.recorda.company (ou Railway temporariamente)
     │
     └─── HTTPS ──► Railway (Backend)
                     Dockerfile.backend
                     PORT=3001 (Railway sobrescreve)
                     NODE_ENV=production
                     DATABASE_URL → PostgreSQL Railway
-                    CORS_ORIGIN → Vercel URL
+                    CORS_ORIGIN → https://recorda.company
 ```
 
 **Fluxo de inicialização do backend (container):**
