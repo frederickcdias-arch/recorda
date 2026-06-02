@@ -1207,8 +1207,8 @@ export function CapturaMapaPage() {
                     {captureQueueFeedback}
                   </p>
                   <p className="mt-1 text-xs text-[var(--color-text-secondary)]">
-                    {plural(queue.length, 'foto na fila', 'fotos na fila')}.
-                    Continue capturando ou revise quando quiser.
+                    {plural(queue.length, 'foto na fila', 'fotos na fila')}. Continue capturando ou
+                    revise quando quiser.
                   </p>
                 </div>
                 <div className="grid w-full grid-cols-1 gap-2 sm:w-auto sm:grid-cols-2 lg:grid-cols-4">
