@@ -10,8 +10,14 @@ import { warpPerspectiveNative } from './node-perspective-warp.js';
 import { decodeImageDataUrl, type DocumentImagePoint } from './document-image-processor.js';
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../../..');
-const MODELO_MAPA_PATH = path.join(REPO_ROOT, 'MODELO MAPA.jpeg');
-const MODELO_MAPA_REFERENCE_PATH = path.join(REPO_ROOT, 'MODELO_MAPA_perspectiva_corrigida.jpg');
+const MODELO_MAPA_PATH = path.join(
+  REPO_ROOT,
+  'packages/backend/test/fixtures/captura-mapas/MODELO_MAPA.jpeg'
+);
+const MODELO_MAPA_REFERENCE_PATH = path.join(
+  REPO_ROOT,
+  'packages/backend/test/fixtures/captura-mapas/MODELO_MAPA_perspectiva_corrigida.jpg'
+);
 const hasModeloMapa = fs.existsSync(MODELO_MAPA_PATH);
 const hasModeloMapaReference = fs.existsSync(MODELO_MAPA_REFERENCE_PATH);
 

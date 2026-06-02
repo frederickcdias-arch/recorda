@@ -55,6 +55,9 @@ credentials/
 
 .vercel
 .claude/
+.zencoder/
+.zenflow/
+.codex-logs/
 
 # Playwright MCP artifacts
 .playwright-mcp/
@@ -71,4 +74,6 @@ phase*.png
 .tmp-*.png
 MODELO*.jpg
 MODELO*.jpeg
+!packages/backend/test/fixtures/captura-mapas/*.jpeg
+!packages/backend/test/fixtures/captura-mapas/*.jpg
 packages/backend/.tmp/

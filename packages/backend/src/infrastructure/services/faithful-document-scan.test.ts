@@ -7,7 +7,10 @@ import { processFaithfulDocumentScan, orderDocumentCorners } from './faithful-do
 import { A1_HEIGHT_MM, A1_WIDTH_MM } from './node-perspective-warp.js';
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../../..');
-const MODELO_MAPA_PATH = path.join(REPO_ROOT, 'MODELO MAPA.jpeg');
+const MODELO_MAPA_PATH = path.join(
+  REPO_ROOT,
+  'packages/backend/test/fixtures/captura-mapas/MODELO_MAPA.jpeg'
+);
 const hasModeloMapa = fs.existsSync(MODELO_MAPA_PATH);
 
 /** Cantos validados manualmente para MODELO MAPA.jpeg (900×1600). */
