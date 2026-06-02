@@ -571,11 +571,6 @@ export function CapturaMapaPage() {
       toast.error('Posicione as bordas sobre a folha antes de aplicar a correcao.');
       return;
     }
-    if (isLikelyFullSceneCrop(editorCorners, editorImageSize)) {
-      toast.error('As bordas ainda estao pegando a cena inteira. Ajuste somente a folha.');
-      return;
-    }
-
     setEditorSaving(true);
     try {
       const { correctPerspectiveWithCorners, validateCorrectedDocument } =
@@ -1732,6 +1727,13 @@ export function CapturaMapaPage() {
                 Não foi possível detectar as bordas. Ajuste os pontos manualmente.
               </p>
             )}
+            {editorDetectionStatus !== 'detecting' &&
+              editorCorners.length === 4 &&
+              isLikelyFullSceneCrop(editorCorners, editorImageSize) && (
+                <p className="text-xs text-warning-600 dark:text-warning-400">
+                  Bordas amplas detectadas. Ajuste os pontos até contornar somente a folha.
+                </p>
+              )}
             <div
               className={`relative mx-auto w-full max-w-[760px] overflow-hidden rounded-xl bg-[var(--color-gray-900)] ${editorAspectClass}`}
             >
