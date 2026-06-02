@@ -6,12 +6,14 @@ Esta pasta concentra a documentacao oficial, historica e operacional do sistema.
 
 Organizacao:
 
-- `arquitetura/`: visao tecnica do sistema, API e design system.
+- `arquitetura/`: visao tecnica do sistema e referencia de API.
 - `regras-de-negocio/`: regras oficiais que afetam comportamento funcional.
 - `operacao/`: setup local, testes, deploy, dominio e limitacoes conhecidas.
+- `visual/`: diretrizes visuais e documentacao de interface ainda ativa.
+- `seguranca/`: documentos ativos de seguranca e hardening.
 - `auditorias/`: registros historicos de seguranca, homologacao, diagnostico e validacao.
 - `padroes/`: convencoes tecnicas obrigatorias para evolucoes futuras.
-- `arquivo/`: materiais antigos preservados por rastreabilidade.
+- `arquivo/`: materiais historicos preservados por rastreabilidade.
 
 Para navegacao rapida, consulte [INDICE.md](./INDICE.md).
 
@@ -28,13 +30,16 @@ Para navegacao rapida, consulte [INDICE.md](./INDICE.md).
 | `padroes/PADRAO_NUMEROS_RECORDA.md`       | Padrao obrigatorio para evolucao de numeros    | Atual            |
 | `arquitetura/VISAO_GERAL.md`              | Arquitetura geral do sistema                   | Atual            |
 | `arquitetura/API.md`                      | Referencia tecnica de rotas                    | Atual            |
-| `arquitetura/DESIGN_SYSTEM.md`            | Guia visual e padroes de interface             | Atual            |
+| `visual/DESIGN_SYSTEM.md`                 | Guia visual e padroes de interface             | Atual            |
 | `operacao/COMO_RODAR_LOCAL.md`            | Setup e execucao local                         | Atual            |
 | `operacao/TESTES.md`                      | Estrategia e comandos de teste                 | Atual            |
+| `operacao/TESTES_MANUAIS.md`              | Procedimentos manuais e guard-rails            | Atual            |
 | `operacao/DEPLOY.md`                      | Deploy e publicacao                            | Atual            |
-| `operacao/PRE_PRODUCAO.md`                | Checklist pre-producao                         | Atual            |
+| `operacao/PROCESSAMENTO_DOCUMENTO.md`     | Fluxo e operacao do processamento fotografado  | Atual            |
 | `operacao/LIMITACOES.md`                  | Limitacoes conhecidas                          | Atual            |
-| `operacao/PERFIL_COLABORADOR.md`          | Fluxo funcional do colaborador                 | Atual            |
+| `regras-de-negocio/PERFIL_COLABORADOR.md` | Fluxo funcional do colaborador                 | Atual            |
+| `seguranca/SEGURANCA_VIBECODING_RECORDA.md` | Baseline de seguranca para manutencao        | Atual            |
+| `CHANGELOG.md`                            | Historico de mudancas relevantes               | Atual            |
 | `auditorias/README.md`                    | Sumario das auditorias e relatorios historicos | Historico valido |
 
 ## Ordem recomendada de leitura
@@ -46,6 +51,7 @@ Se o objetivo for entender o sistema:
 3. `regras-de-negocio/TIMEZONE.md`
 4. `arquitetura/VISAO_GERAL.md`
 5. `arquitetura/API.md`
+6. `visual/DESIGN_SYSTEM.md`
 
 Se o objetivo for rodar ou operar localmente:
 
@@ -53,6 +59,7 @@ Se o objetivo for rodar ou operar localmente:
 2. `operacao/TESTES.md`
 3. `operacao/LIMITACOES.md`
 4. `operacao/DEPLOY.md`
+5. `operacao/PROCESSAMENTO_DOCUMENTO.md`
 
 Se o objetivo for revisar historico de decisoes:
 

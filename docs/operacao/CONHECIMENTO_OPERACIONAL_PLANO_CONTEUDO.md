@@ -143,7 +143,7 @@ Padrao por item:
 
 ## 5) Arquivo seed
 
-Use o arquivo [conhecimento-operacional-seed.json](/c:/projects/recorda/docs/conhecimento-operacional-seed.json) para cadastro inicial via API/tela administrativa.
+Use o arquivo [conhecimento-operacional-seed.json](../artefatos/conhecimento-operacional-seed.json) para cadastro inicial via API/tela administrativa.
 
 ## 6) Aplicacao via API (admin)
 

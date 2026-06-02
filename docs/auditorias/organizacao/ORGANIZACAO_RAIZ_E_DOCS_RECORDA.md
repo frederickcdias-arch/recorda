@@ -93,7 +93,7 @@ Classificação `B — Documentação atual oficial`:
 
 - `docs/arquitetura/VISAO_GERAL.md`
 - `docs/arquitetura/API.md`
-- `docs/arquitetura/DESIGN_SYSTEM.md`
+- `docs/visual/DESIGN_SYSTEM.md`
 - `docs/regras-de-negocio/DOMINIO.md`
 - `docs/regras-de-negocio/NUMEROS_E_METRICAS.md`
 - `docs/regras-de-negocio/TIMEZONE.md`
@@ -101,9 +101,9 @@ Classificação `B — Documentação atual oficial`:
 - `docs/operacao/COMO_RODAR_LOCAL.md`
 - `docs/operacao/DEPLOY.md`
 - `docs/operacao/TESTES.md`
-- `docs/operacao/PRE_PRODUCAO.md`
+- `docs/arquivo/historico/ambiente/PRE_PRODUCAO.md`
 - `docs/operacao/LIMITACOES.md`
-- `docs/operacao/PERFIL_COLABORADOR.md`
+- `docs/regras-de-negocio/PERFIL_COLABORADOR.md`
 - `docs/operacao/CONHECIMENTO_OPERACIONAL_PLANO_CONTEUDO.md`
 - `docs/CHANGELOG.md`
 - `docs/README.md`
@@ -116,7 +116,7 @@ Classificação `C — Relatório válido de auditoria/correção`:
 - `docs/auditorias/numeros/CORRECAO_NUMEROS_RECORDA.md`
 - `docs/auditorias/numeros/VALIDACAO_NUMEROS_RECORDA.md`
 - `docs/auditorias/numeros/FECHAMENTO_RESSALVAS_NUMEROS_RECORDA.md`
-- `docs/auditorias/seguranca/AUDITORIA_SEGURANCA_PRODUCAO.md`
+- `docs/seguranca/AUDITORIA_SEGURANCA_PRODUCAO.md`
 - `docs/auditorias/seguranca/SECURITY_REVIEW.md`
 
 ## 8. Arquivos movidos para docs/archive/

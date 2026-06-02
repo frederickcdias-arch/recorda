@@ -334,7 +334,7 @@ packages/frontend/src/contexts/ThemeContext.tsx
 packages/frontend/src/components/layout/Header.tsx
 packages/frontend/src/components/ui/ActionMenu.tsx
 packages/frontend/src/components/ui/ConfirmDialog.tsx
-docs/arquivo/PLANO_VISUAL_RECORDA_JOURNEY.md
+docs/visual/PLANO_VISUAL_RECORDA_JOURNEY.md
 ```
 
 ---
@@ -401,7 +401,7 @@ docs/arquivo/PLANO_VISUAL_RECORDA_JOURNEY.md
 **Arquivos alterados:**
 
 - `pages/colaborador/CapturaMapaPage.tsx`
-- `docs/arquivo/PLANO_VISUAL_RECORDA_JOURNEY.md`
+- `docs/visual/PLANO_VISUAL_RECORDA_JOURNEY.md`
 
 **Principais mudanças visuais:**
 
@@ -450,7 +450,7 @@ docs/arquivo/PLANO_VISUAL_RECORDA_JOURNEY.md
 
 - `pages/producao/ImportarProducaoPage.tsx`
 - `pages/producao/PreviewImportacaoModal.tsx`
-- `docs/arquivo/PLANO_VISUAL_RECORDA_JOURNEY.md`
+- `docs/visual/PLANO_VISUAL_RECORDA_JOURNEY.md`
 
 **Principais mudanças visuais:**
 
@@ -512,7 +512,7 @@ docs/arquivo/PLANO_VISUAL_RECORDA_JOURNEY.md
 - `components/ui/LoadingSpinner.tsx`
 - `pages/relatorios/RelatoriosGerenciaisPage.tsx`
 - `pages/colaborador/MeuHistoricoPage.tsx`
-- `docs/arquivo/PLANO_VISUAL_RECORDA_JOURNEY.md`
+- `docs/visual/PLANO_VISUAL_RECORDA_JOURNEY.md`
 
 **Ajustes aplicados:**
 
@@ -553,7 +553,7 @@ docs/arquivo/PLANO_VISUAL_RECORDA_JOURNEY.md
 - `pages/Login.tsx`
 - `pages/ForgotPassword.tsx`
 - `pages/ResetPassword.tsx`
-- `docs/arquivo/PLANO_VISUAL_RECORDA_JOURNEY.md`
+- `docs/visual/PLANO_VISUAL_RECORDA_JOURNEY.md`
 
 **Mudanças em Login:**
 
@@ -610,7 +610,7 @@ docs/arquivo/PLANO_VISUAL_RECORDA_JOURNEY.md
 - `components/layout/Sidebar.tsx`
 - `components/layout/MobileBottomNav.tsx`
 - `pages/auth/AuthShell.tsx`
-- `docs/arquivo/PLANO_VISUAL_RECORDA_JOURNEY.md`
+- `docs/visual/PLANO_VISUAL_RECORDA_JOURNEY.md`
 
 **Tokens criados/ajustados:**
 
@@ -709,7 +709,7 @@ docs/arquivo/PLANO_VISUAL_RECORDA_JOURNEY.md
 - `components/layout/Header.tsx`
 - `components/ui/ActionMenu.tsx`
 - `components/ui/ConfirmDialog.tsx`
-- `docs/arquivo/PLANO_VISUAL_RECORDA_JOURNEY.md`
+- `docs/visual/PLANO_VISUAL_RECORDA_JOURNEY.md`
 
 **Ajustes feitos:**
 
