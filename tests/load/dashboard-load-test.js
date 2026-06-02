@@ -16,7 +16,13 @@ export const options = {
 
 const BASE_URL = __ENV.BASE_URL ?? 'http://localhost:3000';
 const ADMIN_EMAIL = __ENV.ADMIN_EMAIL ?? 'admin@recorda.local';
-const ADMIN_PASSWORD = __ENV.ADMIN_PASSWORD ?? 'admin123';
+const ADMIN_PASSWORD = requireEnv('ADMIN_PASSWORD');
+
+function requireEnv(name) {
+  const value = __ENV[name];
+  if (value) return value;
+  throw new Error(`Defina ${name} para executar o teste de carga.`);
+}
 
 function login() {
   const response = http.post(

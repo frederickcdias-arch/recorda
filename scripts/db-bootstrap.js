@@ -7,12 +7,34 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const DB_HOST = process.env.DB_HOST || 'localhost';
+const DB_PASSWORD = requireEnv('DB_PASSWORD');
+
+ensureSafeDbHost(DB_HOST);
+
+function requireEnv(name) {
+  const value = process.env[name]?.trim();
+  if (value) return value;
+  throw new Error(`Defina ${name} antes de executar este script.`);
+}
+
+function ensureSafeDbHost(hostname) {
+  const normalized = hostname.trim().toLowerCase();
+  const isLocalHost =
+    normalized === 'localhost' || normalized === '127.0.0.1' || normalized === '::1';
+  const allowRemote = (process.env.DB_ALLOW_REMOTE || '').trim().toLowerCase() === 'true';
+  if (!isLocalHost && !allowRemote) {
+    throw new Error(
+      'Este script parece apontar para banco remoto. Defina DB_ALLOW_REMOTE=true se tiver certeza.'
+    );
+  }
+}
 
 const config = {
-  host: process.env.DB_HOST || 'localhost',
+  host: DB_HOST,
   port: parseInt(process.env.DB_PORT || '5433', 10),
   user: process.env.DB_USER || 'recorda',
-  password: process.env.DB_PASSWORD || 'recorda',
+  password: DB_PASSWORD,
   database: 'postgres',
 };
 
@@ -25,10 +47,9 @@ async function bootstrap() {
     await client.connect();
     console.log('Connected to PostgreSQL');
 
-    const result = await client.query(
-      `SELECT 1 FROM pg_database WHERE datname = $1`,
-      [targetDatabase]
-    );
+    const result = await client.query(`SELECT 1 FROM pg_database WHERE datname = $1`, [
+      targetDatabase,
+    ]);
 
     if (result.rows.length === 0) {
       console.log(`Creating database: ${targetDatabase}`);
@@ -48,7 +69,6 @@ async function bootstrap() {
     await dbClient.connect();
     console.log(`Connected to ${targetDatabase}`);
 
-    // Garantir infraestrutura mínima de migrações antes de checar versões aplicadas.
     await dbClient.query(`
       CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
       CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -61,10 +81,7 @@ async function bootstrap() {
     const appliedMigrations = new Set(appliedResult.rows.map((row) => row.version));
 
     const migrationsDir = path.join(__dirname, '..', 'db', 'migrations');
-    const migrationFiles = fs
-      .readdirSync(migrationsDir)
-      .filter((f) => f.endsWith('.sql'))
-      .sort();
+    const migrationFiles = fs.readdirSync(migrationsDir).filter((f) => f.endsWith('.sql')).sort();
 
     for (const file of migrationFiles) {
       const version = file.replace(/\.sql$/i, '');

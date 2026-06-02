@@ -62,9 +62,60 @@ Variaveis:
 ```bash
 ADMIN_EMAIL=admin@recorda.local
 ADMIN_PASSWORD=defina_uma_senha_local
+DB_PASSWORD=defina_uma_senha_local
 ADMIN_NAME=Administrador
 ADMIN_ROLE=administrador
 ADMIN_SCRIPT_ALLOW_REMOTE_DB=true
+```
+
+### `scripts/apply-migration.js`
+
+Variaveis:
+
+```bash
+DB_HOST=localhost
+DB_PORT=5433
+DB_USER=recorda
+DB_PASSWORD=defina_uma_senha_local
+DB_NAME=recorda
+DB_ALLOW_REMOTE=true
+```
+
+### `scripts/clear-operational-data.js`
+
+Variaveis:
+
+```bash
+DB_HOST=localhost
+DB_PORT=5433
+DB_USER=recorda
+DB_PASSWORD=defina_uma_senha_local
+DB_NAME=recorda
+DB_ALLOW_REMOTE=true
+CONFIRM_CLEAR=LIMPAR_OPERACIONAL
+```
+
+### `scripts/db-bootstrap.js`
+
+Variaveis:
+
+```bash
+DB_HOST=localhost
+DB_PORT=5433
+DB_USER=recorda
+DB_PASSWORD=defina_uma_senha_local
+DB_NAME=recorda
+DB_ALLOW_REMOTE=true
+```
+
+### `tests/load/dashboard-load-test.js`
+
+Variaveis:
+
+```bash
+BASE_URL=http://localhost:3000
+ADMIN_EMAIL=admin@recorda.local
+ADMIN_PASSWORD=defina_uma_senha_local
 ```
 
 ### `tests/manual/setup-test-users.sql`

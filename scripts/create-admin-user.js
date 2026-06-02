@@ -7,11 +7,12 @@ dotenv.config();
 
 const EMAIL = process.env.ADMIN_EMAIL || 'admin@recorda.local';
 const PASSWORD = process.env.ADMIN_PASSWORD;
+const DB_PASSWORD = requireEnv('DB_PASSWORD');
 if (!PASSWORD) {
   console.error(
     'ERRO: ADMIN_PASSWORD não definido.\n' +
-    'Defina via variável de ambiente antes de executar este script.\n' +
-    'Exemplo: ADMIN_PASSWORD="senha_forte_aqui" node scripts/create-admin-user.js'
+      'Defina via variável de ambiente antes de executar este script.\n' +
+      'Exemplo: ADMIN_PASSWORD="senha_forte_aqui" node scripts/create-admin-user.js'
   );
   process.exit(1);
 }
@@ -21,6 +22,13 @@ const DB_HOST = process.env.DB_HOST || 'localhost';
 
 ensureSafeDbHost(DB_HOST);
 
+function requireEnv(name) {
+  const value = process.env[name]?.trim();
+  if (value) return value;
+  console.error(`ERRO: Defina ${name} antes de executar este script.`);
+  process.exit(1);
+}
+
 function ensureSafeDbHost(hostname) {
   const normalized = hostname.trim().toLowerCase();
   const isLocalHost =
@@ -28,7 +36,8 @@ function ensureSafeDbHost(hostname) {
     normalized === '127.0.0.1' ||
     normalized === '::1' ||
     normalized === 'recorda-db';
-  const allowRemote = (process.env.ADMIN_SCRIPT_ALLOW_REMOTE_DB || '').trim().toLowerCase() === 'true';
+  const allowRemote =
+    (process.env.ADMIN_SCRIPT_ALLOW_REMOTE_DB || '').trim().toLowerCase() === 'true';
   if (!isLocalHost && !allowRemote) {
     console.error(
       'ERRO: este script parece apontar para banco remoto. Defina ADMIN_SCRIPT_ALLOW_REMOTE_DB=true se tiver certeza.'
@@ -41,7 +50,7 @@ const client = new Client({
   host: DB_HOST,
   port: Number(process.env.DB_PORT || 5433),
   user: process.env.DB_USER || 'recorda',
-  password: process.env.DB_PASSWORD || 'recorda',
+  password: DB_PASSWORD,
   database: process.env.DB_NAME || 'recorda',
 });
 
@@ -50,10 +59,14 @@ const client = new Client({
     await client.connect();
     console.log('Connected to database');
 
-    const existing = await client.query('SELECT id FROM usuarios WHERE email = $1', [EMAIL.toLowerCase()]);
+    const existing = await client.query('SELECT id FROM usuarios WHERE email = $1', [
+      EMAIL.toLowerCase(),
+    ]);
 
     if (existing.rows.length > 0) {
-      console.log(`Usuário com e-mail ${EMAIL} já existe (id: ${existing.rows[0].id}). Nada a fazer.`);
+      console.log(
+        `Usuário com e-mail ${EMAIL} já existe (id: ${existing.rows[0].id}). Nada a fazer.`
+      );
       process.exit(0);
     }
 
