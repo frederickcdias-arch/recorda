@@ -3,6 +3,8 @@ import fs from 'fs';
 import path from 'path';
 
 const API_BASE = process.env.IMPORT_API_BASE || 'http://localhost:3000';
+const IMPORT_EMAIL = process.env.IMPORT_EMAIL || 'admin@recorda.local';
+const IMPORT_PASSWORD = requireEnv('IMPORT_PASSWORD');
 const FILES = [
   '1 - Recebimento - Produção.csv',
   '2 - Preparação.xlsx',
@@ -22,8 +24,28 @@ const MAP = {
   observacao: 'Tipo',
 };
 
+ensureSafeBaseUrl(API_BASE, 'IMPORT_ALLOW_REMOTE');
+
+function requireEnv(name) {
+  const value = process.env[name]?.trim();
+  if (value) return value;
+  throw new Error(`Defina ${name} antes de executar este script.`);
+}
+
+function ensureSafeBaseUrl(baseUrl, allowRemoteEnv) {
+  const parsed = new URL(baseUrl);
+  const host = parsed.hostname.toLowerCase();
+  const isLocalHost = host === 'localhost' || host === '127.0.0.1' || host === '::1';
+  const allowRemote = process.env[allowRemoteEnv]?.trim().toLowerCase() === 'true';
+  if (!isLocalHost && !allowRemote) {
+    throw new Error(
+      `Este script parece apontar para ambiente remoto. Defina ${allowRemoteEnv}=true se tiver certeza.`
+    );
+  }
+}
+
 async function login() {
-  const body = { email: process.env.IMPORT_EMAIL || 'admin@recorda.local', senha: process.env.IMPORT_PASSWORD || 'admin123' };
+  const body = { email: IMPORT_EMAIL, senha: IMPORT_PASSWORD };
   const res = await fetch(`${API_BASE}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

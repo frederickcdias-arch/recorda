@@ -1,3 +1,7 @@
+-- Script manual para ambiente local/controlado.
+-- Contas @recorda.local sao ficticias e destinadas apenas a teste.
+-- Nao executar em producao real.
+
 UPDATE usuarios 
 SET senha_hash = '$2b$10$IlzdtJwRyl5cjRnnJ4wLuOsNhhgpWsQsuU8rKi8TqQDcvjESP87k.'
 WHERE email = 'teste@recorda.local'

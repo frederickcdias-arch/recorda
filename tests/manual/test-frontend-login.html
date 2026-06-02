@@ -5,35 +5,74 @@
 </head>
 <body>
     <h1>Test Login</h1>
+    <label>
+        Base URL
+        <input id="baseUrl" value="http://localhost:3000" style="width: 320px;" />
+    </label>
+    <br /><br />
+    <label>
+        E-mail
+        <input id="email" value="admin@recorda.local" style="width: 320px;" />
+    </label>
+    <br /><br />
+    <label>
+        Senha
+        <input id="password" type="password" style="width: 320px;" />
+    </label>
+    <br /><br />
+    <label>
+        <input id="allowRemote" type="checkbox" />
+        Permitir ambiente remoto
+    </label>
+    <br /><br />
     <button onclick="testLogin()">Test Login</button>
     <pre id="result"></pre>
 
     <script>
+        function ensureSafeBaseUrl(baseUrl, allowRemote) {
+            const parsed = new URL(baseUrl);
+            const host = parsed.hostname.toLowerCase();
+            const isLocalHost = host === 'localhost' || host === '127.0.0.1' || host === '::1';
+            if (!isLocalHost && !allowRemote) {
+                throw new Error('Este teste manual parece apontar para ambiente remoto. Marque "Permitir ambiente remoto" se tiver certeza.');
+            }
+        }
+
         async function testLogin() {
             const result = document.getElementById('result');
+            const baseUrl = document.getElementById('baseUrl').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const allowRemote = document.getElementById('allowRemote').checked;
             result.textContent = 'Testing...';
 
             try {
-                const response = await fetch('http://localhost:3000/auth/login', {
+                if (!password) {
+                    throw new Error('Informe a senha antes de executar o teste.');
+                }
+
+                ensureSafeBaseUrl(baseUrl, allowRemote);
+
+                const response = await fetch(`${baseUrl}/auth/login`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        email: 'admin@recorda.com',
-                        senha: 'password123'
+                        email,
+                        senha: password
                     })
                 });
 
                 const data = await response.json();
-                
-                result.textContent = `Status: ${response.status}\n\n` + 
+
+                result.textContent = `Status: ${response.status}\n\n` +
                                     `Response:\n${JSON.stringify(data, null, 2)}`;
 
                 if (response.ok) {
-                    result.textContent += '\n\n✅ Login successful!';
+                    result.textContent += '\n\nLogin successful.';
                 } else {
-                    result.textContent += '\n\n❌ Login failed!';
+                    result.textContent += '\n\nLogin failed.';
                 }
             } catch (error) {
                 result.textContent = `Error: ${error.message}`;

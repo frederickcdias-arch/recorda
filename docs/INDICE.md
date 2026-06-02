@@ -15,6 +15,7 @@
 - [Como rodar local](./operacao/COMO_RODAR_LOCAL.md)
 - [Testes](./operacao/TESTES.md)
 - [Testes manuais](./operacao/TESTES_MANUAIS.md)
+- [Scripts administrativos e manuais](./operacao/SCRIPTS_ADMINISTRATIVOS.md)
 - [Deploy](./operacao/DEPLOY.md)
 - [Promocao de ambiente](./operacao/PROMOCAO_AMBIENTE_RECORDA.md)
 - [Relatorio de subida do ambiente](./operacao/P2_RELATORIO_SUBIDA_AMBIENTE.md)

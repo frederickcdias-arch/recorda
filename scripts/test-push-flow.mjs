@@ -10,9 +10,9 @@ dotenv.config();
 const frontendUrl = (process.env.PUSH_TEST_FRONTEND_URL || 'http://localhost:4173').trim();
 const backendUrl = (process.env.PUSH_TEST_BACKEND_URL || 'http://localhost:3000').trim();
 const adminEmail = (process.env.PUSH_TEST_ADMIN_EMAIL || 'admin@recorda.local').trim();
-const adminPassword = (process.env.PUSH_TEST_ADMIN_PASSWORD || 'admin123').trim();
+const adminPassword = requireEnv('PUSH_TEST_ADMIN_PASSWORD');
 const userEmail = (process.env.PUSH_TEST_USER_EMAIL || 'push.teste@recorda.local').trim();
-const userPassword = (process.env.PUSH_TEST_USER_PASSWORD || 'push12345').trim();
+const userPassword = requireEnv('PUSH_TEST_USER_PASSWORD');
 const userName = (process.env.PUSH_TEST_USER_NAME || 'Push Teste').trim();
 const userProfile = (process.env.PUSH_TEST_USER_PROFILE || 'colaborador').trim();
 const waitMs = Number(process.env.PUSH_TEST_WAIT_MS || 12_000);
@@ -25,6 +25,27 @@ const vapidPublicKey = (
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
 const userDataDir = path.join(repoRoot, '.tmp', 'playwright-push-profile');
+
+ensureSafeBaseUrl(frontendUrl, 'PUSH_TEST_ALLOW_REMOTE');
+ensureSafeBaseUrl(backendUrl, 'PUSH_TEST_ALLOW_REMOTE');
+
+function requireEnv(name) {
+  const value = process.env[name]?.trim();
+  if (value) return value;
+  throw new Error(`Defina ${name} antes de executar este script.`);
+}
+
+function ensureSafeBaseUrl(baseUrl, allowRemoteEnv) {
+  const parsed = new URL(baseUrl);
+  const host = parsed.hostname.toLowerCase();
+  const isLocalHost = host === 'localhost' || host === '127.0.0.1' || host === '::1';
+  const allowRemote = process.env[allowRemoteEnv]?.trim().toLowerCase() === 'true';
+  if (!isLocalHost && !allowRemote) {
+    throw new Error(
+      `Este script parece apontar para ambiente remoto. Defina ${allowRemoteEnv}=true se tiver certeza.`
+    );
+  }
+}
 
 function createDatabaseClient() {
   return new Client({

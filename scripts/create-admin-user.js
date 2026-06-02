@@ -17,9 +17,28 @@ if (!PASSWORD) {
 }
 const NOME = process.env.ADMIN_NAME || 'Administrador';
 const PERFIL = process.env.ADMIN_ROLE || 'administrador';
+const DB_HOST = process.env.DB_HOST || 'localhost';
+
+ensureSafeDbHost(DB_HOST);
+
+function ensureSafeDbHost(hostname) {
+  const normalized = hostname.trim().toLowerCase();
+  const isLocalHost =
+    normalized === 'localhost' ||
+    normalized === '127.0.0.1' ||
+    normalized === '::1' ||
+    normalized === 'recorda-db';
+  const allowRemote = (process.env.ADMIN_SCRIPT_ALLOW_REMOTE_DB || '').trim().toLowerCase() === 'true';
+  if (!isLocalHost && !allowRemote) {
+    console.error(
+      'ERRO: este script parece apontar para banco remoto. Defina ADMIN_SCRIPT_ALLOW_REMOTE_DB=true se tiver certeza.'
+    );
+    process.exit(1);
+  }
+}
 
 const client = new Client({
-  host: process.env.DB_HOST || 'localhost',
+  host: DB_HOST,
   port: Number(process.env.DB_PORT || 5433),
   user: process.env.DB_USER || 'recorda',
   password: process.env.DB_PASSWORD || 'recorda',
