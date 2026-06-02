@@ -334,6 +334,12 @@ export function CapturaMapaPage() {
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
   const [, setProcessingTick] = useState(0);
 
+  // ── Estado da detecção automática de bordas (feature C2) ──────────────────
+  const [editorDetectionStatus, setEditorDetectionStatus] = useState<
+    'detecting' | 'detected' | 'failed' | null
+  >(null);
+  const editorSessionRef = useRef(0);
+
   // ── Estado da revisão em série (feature C1) ────────────────────────────────
   const [revisaoSerieAtiva, setRevisaoSerieAtiva] = useState(false);
   const [revisaoSerieTotal, setRevisaoSerieTotal] = useState(0);
@@ -500,13 +506,33 @@ export function CapturaMapaPage() {
 
   const handleOpenEditor = useCallback(async (item: QueueItem) => {
     const size = await getImageSize(item.originalSrc);
-    const corners =
-      item.corners && !isLikelyFullSceneCrop(item.corners, size)
-        ? item.corners
-        : defaultCorners(size);
+    const existingCorners =
+      item.corners && !isLikelyFullSceneCrop(item.corners, size) ? item.corners : null;
     setEditorImageSize(size);
-    setEditorCorners(corners);
+    setEditorCorners(existingCorners ?? defaultCorners(size));
     setEditorItemId(item.localId);
+
+    // Se o item já tem bordas manuais válidas, não rodar auto-detecção
+    if (existingCorners) {
+      setEditorDetectionStatus(null);
+      return;
+    }
+
+    const sessionId = ++editorSessionRef.current;
+    setEditorDetectionStatus('detecting');
+    try {
+      const { detectPerspective } = await loadPerspectiveUtils();
+      const detection = await detectPerspective(item.originalSrc);
+      if (editorSessionRef.current !== sessionId) return; // editor foi fechado ou avançou
+      if (detection.corners) {
+        setEditorCorners(detection.corners);
+        setEditorDetectionStatus('detected');
+      } else {
+        setEditorDetectionStatus('failed');
+      }
+    } catch {
+      if (editorSessionRef.current === sessionId) setEditorDetectionStatus('failed');
+    }
   }, []);
 
   const handleRetry = useCallback(
@@ -524,6 +550,8 @@ export function CapturaMapaPage() {
 
   const handleCloseEditor = useCallback(() => {
     if (editorSaving) return;
+    editorSessionRef.current++; // invalida qualquer detecção pendente
+    setEditorDetectionStatus(null);
     setEditorItemId(null);
     setEditorCorners([]);
     setEditorImageSize(null);
@@ -535,7 +563,11 @@ export function CapturaMapaPage() {
     if (!item || editorCorners.length !== 4 || !editorImageSize) return;
 
     const suggestedCorners = item.corners ?? defaultCorners(editorImageSize);
-    if (!item.corners && pointsEqual(editorCorners, suggestedCorners)) {
+    if (
+      editorDetectionStatus !== 'detected' &&
+      !item.corners &&
+      pointsEqual(editorCorners, suggestedCorners)
+    ) {
       toast.error('Posicione as bordas sobre a folha antes de aplicar a correcao.');
       return;
     }
@@ -583,13 +615,32 @@ export function CapturaMapaPage() {
           setRevisaoAtualIdx((prev) => prev + 1);
           const next = proximos[0]!;
           const size = await getImageSize(next.originalSrc);
-          const nextCorners =
-            next.corners && !isLikelyFullSceneCrop(next.corners, size)
-              ? next.corners
-              : defaultCorners(size);
+          const nextExisting =
+            next.corners && !isLikelyFullSceneCrop(next.corners, size) ? next.corners : null;
           setEditorImageSize(size);
-          setEditorCorners(nextCorners);
+          setEditorCorners(nextExisting ?? defaultCorners(size));
           setEditorItemId(next.localId);
+          if (nextExisting) {
+            setEditorDetectionStatus(null);
+          } else {
+            const nextSession = ++editorSessionRef.current;
+            setEditorDetectionStatus('detecting');
+            void (async () => {
+              try {
+                const { detectPerspective } = await loadPerspectiveUtils();
+                const detection = await detectPerspective(next.originalSrc);
+                if (editorSessionRef.current !== nextSession) return;
+                if (detection.corners) {
+                  setEditorCorners(detection.corners);
+                  setEditorDetectionStatus('detected');
+                } else {
+                  setEditorDetectionStatus('failed');
+                }
+              } catch {
+                if (editorSessionRef.current === nextSession) setEditorDetectionStatus('failed');
+              }
+            })();
+          }
         } else {
           setRevisaoSerieAtiva(false);
           handleCloseEditor();
@@ -605,6 +656,7 @@ export function CapturaMapaPage() {
     }
   }, [
     editorCorners,
+    editorDetectionStatus,
     editorImageSize,
     editorItemId,
     handleCloseEditor,
@@ -913,13 +965,34 @@ export function CapturaMapaPage() {
       setRevisaoAtualIdx(1);
       setRevisaoSerieAtiva(true);
       const size = await getImageSize(primeiro.originalSrc);
-      const corners =
+      const existingCorners =
         primeiro.corners && !isLikelyFullSceneCrop(primeiro.corners, size)
           ? primeiro.corners
-          : defaultCorners(size);
+          : null;
       setEditorImageSize(size);
-      setEditorCorners(corners);
+      setEditorCorners(existingCorners ?? defaultCorners(size));
       setEditorItemId(primeiro.localId);
+      if (existingCorners) {
+        setEditorDetectionStatus(null);
+      } else {
+        const sessionId = ++editorSessionRef.current;
+        setEditorDetectionStatus('detecting');
+        void (async () => {
+          try {
+            const { detectPerspective } = await loadPerspectiveUtils();
+            const detection = await detectPerspective(primeiro.originalSrc);
+            if (editorSessionRef.current !== sessionId) return;
+            if (detection.corners) {
+              setEditorCorners(detection.corners);
+              setEditorDetectionStatus('detected');
+            } else {
+              setEditorDetectionStatus('failed');
+            }
+          } catch {
+            if (editorSessionRef.current === sessionId) setEditorDetectionStatus('failed');
+          }
+        })();
+      }
     },
     [toast]
   );
@@ -935,18 +1008,38 @@ export function CapturaMapaPage() {
       setRevisaoAtualIdx((idx) => idx + 1);
       const next = proximos[0]!;
       const size = await getImageSize(next.originalSrc);
-      const nextCorners =
-        next.corners && !isLikelyFullSceneCrop(next.corners, size)
-          ? next.corners
-          : defaultCorners(size);
+      const nextExisting =
+        next.corners && !isLikelyFullSceneCrop(next.corners, size) ? next.corners : null;
       setEditorImageSize(size);
-      setEditorCorners(nextCorners);
+      setEditorCorners(nextExisting ?? defaultCorners(size));
       setEditorItemId(next.localId);
+      if (nextExisting) {
+        setEditorDetectionStatus(null);
+      } else {
+        const sessionId = ++editorSessionRef.current;
+        setEditorDetectionStatus('detecting');
+        void (async () => {
+          try {
+            const { detectPerspective } = await loadPerspectiveUtils();
+            const detection = await detectPerspective(next.originalSrc);
+            if (editorSessionRef.current !== sessionId) return;
+            if (detection.corners) {
+              setEditorCorners(detection.corners);
+              setEditorDetectionStatus('detected');
+            } else {
+              setEditorDetectionStatus('failed');
+            }
+          } catch {
+            if (editorSessionRef.current === sessionId) setEditorDetectionStatus('failed');
+          }
+        })();
+      }
     } else {
       setRevisaoSerieAtiva(false);
       setEditorItemId(null);
       setEditorCorners([]);
       setEditorImageSize(null);
+      setEditorDetectionStatus(null);
       toast.info('Foto removida. Nenhuma outra aguarda revisão de bordas.');
     }
   }, [editorItemId, editorSaving, setQueue, toast]);
@@ -1626,6 +1719,19 @@ export function CapturaMapaPage() {
             <p className="text-sm text-[var(--color-text-secondary)]">
               Arraste os 4 cantos ate alinhar a folha sem cortar informacao.
             </p>
+            {editorDetectionStatus === 'detecting' && (
+              <p className="text-xs text-[var(--color-text-secondary)]">Detectando bordas...</p>
+            )}
+            {editorDetectionStatus === 'detected' && (
+              <p className="text-xs text-success-600 dark:text-success-400">
+                Bordas sugeridas. Confira antes de aplicar.
+              </p>
+            )}
+            {editorDetectionStatus === 'failed' && (
+              <p className="text-xs text-[var(--color-text-tertiary)]">
+                Não foi possível detectar as bordas. Ajuste os pontos manualmente.
+              </p>
+            )}
             <div
               className={`relative mx-auto w-full max-w-[760px] overflow-hidden rounded-xl bg-[var(--color-gray-900)] ${editorAspectClass}`}
             >
