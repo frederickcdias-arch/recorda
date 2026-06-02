@@ -1172,7 +1172,7 @@ Não foram encontrados problemas que tornem o sistema completamente inoperante o
 **[A-02] Feature de criação de Lote CQ incompleta no frontend (diagnóstico anterior desatualizado)**
 
 - **Descrição:** O diagnóstico anterior afirmava que `ControleQualidadePanel` exibia um botão "Criar Lote" sem verificação de perfil, causando 403 para operadores. Análise do código atual (2026-05-25) mostra que isso não ocorre: o botão de criação de Lote CQ **não existe** em nenhum componente renderizado. O hook `useCriarLoteCQ` está implementado e exportado em `useQueries.ts`, mas não é consumido por nenhuma página ou componente. Não há rota frontend dedicada ao gerenciamento de Lotes CQ.
-- **Estado atual das regras de negócio:** `administrador` cria e fecha Lotes CQ (`POST /operacional/lotes-cq` e `POST /operacional/lotes-cq/:id/fechar`); `operador` e `administrador` consultam e auditam itens (`GET /operacional/lotes-cq` e `PATCH /operacional/lotes-cq/:id/itens/:itemId`). Essa divisão está corretamente implementada no backend e alinhada com `docs/DIAGNOSTICO_TECNICO.md`.
+- **Estado atual das regras de negócio:** `administrador` cria e fecha Lotes CQ (`POST /operacional/lotes-cq` e `POST /operacional/lotes-cq/:id/fechar`); `operador` e `administrador` consultam e auditam itens (`GET /operacional/lotes-cq` e `PATCH /operacional/lotes-cq/:id/itens/:itemId`). Essa divisão está corretamente implementada no backend e alinhada com `docs/auditorias/tecnica/DIAGNOSTICO_TECNICO.md`.
 - **Impacto real:** Não há bug ativo de permissão nem UX confusa. A funcionalidade de criação de Lote CQ simplesmente não foi exposta na interface. Repositórios em `AGUARDANDO_CQ_LOTE` não podem ser agrupados em lotes pela UI.
 - **Arquivos relevantes:** `packages/backend/src/infrastructure/http/routes/operacional-cq.ts` (backend correto), `packages/frontend/src/hooks/useQueries.ts` (hook pronto, não conectado), `packages/frontend/src/pages/operacao/ControleQualidadePanel.tsx` (sem botão de criação)
 - **Implementação futura:** Criar UI admin-only em `ControleQualidadePanel` (ou página dedicada) para criação de Lote CQ, usando `useCriarLoteCQ` já existente e protegendo a ação com verificação `isAdmin`. O backend não precisa de alteração.
@@ -1372,7 +1372,7 @@ npm run build        → PASSOU (469 módulos, sem warnings de TS ou Vite)
 ### ✅ CONFIRMAÇÃO FORMAL
 
 **Nenhum arquivo do projeto foi criado, modificado ou excluído durante esta análise.**  
-O único arquivo criado foi o presente relatório de diagnóstico, em `docs/DIAGNOSTICO_COMPLETO_SISTEMA_RECORDA.md`.
+O unico arquivo criado foi o presente relatorio de diagnostico, em `docs/auditorias/tecnica/DIAGNOSTICO_COMPLETO_SISTEMA_RECORDA.md`.
 
 ---
 

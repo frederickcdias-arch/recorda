@@ -8,31 +8,34 @@ Organizacao:
 
 - `arquitetura/`: visao tecnica do sistema, API e design system.
 - `regras-de-negocio/`: regras oficiais que afetam comportamento funcional.
-- `operacao/`: setup local, testes, deploy e limitacoes conhecidas.
-- `auditorias/`: registros historicos de auditoria, revisao e validacao.
+- `operacao/`: setup local, testes, deploy, dominio e limitacoes conhecidas.
+- `auditorias/`: registros historicos de seguranca, homologacao, diagnostico e validacao.
 - `padroes/`: convencoes tecnicas obrigatorias para evolucoes futuras.
-- `archive/`: materiais antigos preservados por rastreabilidade.
+- `arquivo/`: materiais antigos preservados por rastreabilidade.
+
+Para navegacao rapida, consulte [INDICE.md](./INDICE.md).
 
 ## Indice mestre
 
-| Documento                                 | Finalidade                                             | Status           |
-| ----------------------------------------- | ------------------------------------------------------ | ---------------- |
-| `regras-de-negocio/DOMINIO.md`            | Conceitos centrais de dominio                          | Atual            |
-| `regras-de-negocio/NUMEROS_E_METRICAS.md` | Regras oficiais de numeros e metricas                  | Atual            |
-| `regras-de-negocio/TIMEZONE.md`           | Timezone oficial do sistema                            | Atual            |
-| `regras-de-negocio/IMPORTACAO_LEGADO.md`  | Regras da importacao legada                            | Atual            |
-| `regras-de-negocio/AUSENCIAS.md`          | Regra de ausencias (admin lança, colaborador consulta) | Atual            |
-| `padroes/PADRAO_NUMEROS_RECORDA.md`       | Padrao obrigatorio para evolucao de numeros            | Atual            |
-| `arquitetura/VISAO_GERAL.md`              | Arquitetura geral do sistema                           | Atual            |
-| `arquitetura/API.md`                      | Referencia tecnica de rotas                            | Atual            |
-| `arquitetura/DESIGN_SYSTEM.md`            | Guia visual e padroes de interface                     | Atual            |
-| `operacao/COMO_RODAR_LOCAL.md`            | Setup e execucao local                                 | Atual            |
-| `operacao/TESTES.md`                      | Estrategia e comandos de teste                         | Atual            |
-| `operacao/DEPLOY.md`                      | Deploy e publicacao                                    | Atual            |
-| `operacao/PRE_PRODUCAO.md`                | Checklist pre-producao                                 | Atual            |
-| `operacao/LIMITACOES.md`                  | Limitacoes conhecidas                                  | Atual            |
-| `operacao/PERFIL_COLABORADOR.md`          | Fluxo funcional do colaborador                         | Atual            |
-| `auditorias/`                             | Registros historicos validos                           | Historico valido |
+| Documento                                 | Finalidade                                     | Status           |
+| ----------------------------------------- | ---------------------------------------------- | ---------------- |
+| `INDICE.md`                               | Navegacao rapida por tema                      | Atual            |
+| `regras-de-negocio/DOMINIO.md`            | Conceitos centrais de dominio                  | Atual            |
+| `regras-de-negocio/NUMEROS_E_METRICAS.md` | Regras oficiais de numeros e metricas          | Atual            |
+| `regras-de-negocio/TIMEZONE.md`           | Timezone oficial do sistema                    | Atual            |
+| `regras-de-negocio/IMPORTACAO_LEGADO.md`  | Regras da importacao legada                    | Atual            |
+| `regras-de-negocio/AUSENCIAS.md`          | Regra de ausencias                             | Atual            |
+| `padroes/PADRAO_NUMEROS_RECORDA.md`       | Padrao obrigatorio para evolucao de numeros    | Atual            |
+| `arquitetura/VISAO_GERAL.md`              | Arquitetura geral do sistema                   | Atual            |
+| `arquitetura/API.md`                      | Referencia tecnica de rotas                    | Atual            |
+| `arquitetura/DESIGN_SYSTEM.md`            | Guia visual e padroes de interface             | Atual            |
+| `operacao/COMO_RODAR_LOCAL.md`            | Setup e execucao local                         | Atual            |
+| `operacao/TESTES.md`                      | Estrategia e comandos de teste                 | Atual            |
+| `operacao/DEPLOY.md`                      | Deploy e publicacao                            | Atual            |
+| `operacao/PRE_PRODUCAO.md`                | Checklist pre-producao                         | Atual            |
+| `operacao/LIMITACOES.md`                  | Limitacoes conhecidas                          | Atual            |
+| `operacao/PERFIL_COLABORADOR.md`          | Fluxo funcional do colaborador                 | Atual            |
+| `auditorias/README.md`                    | Sumario das auditorias e relatorios historicos | Historico valido |
 
 ## Ordem recomendada de leitura
 
@@ -53,9 +56,9 @@ Se o objetivo for rodar ou operar localmente:
 
 Se o objetivo for revisar historico de decisoes:
 
-1. `auditorias/`
-2. `archive/`
+1. `auditorias/README.md`
+2. `arquivo/`
 
 ## Importante sobre documentos antigos
 
-Arquivos em `archive/` e parte de `auditorias/` podem descrever estados anteriores do sistema. Eles devem ser lidos como referencia historica, nao como fonte primaria para novas alteracoes.
+Arquivos em `arquivo/` e parte de `auditorias/` podem descrever estados anteriores do sistema. Eles devem ser lidos como referencia historica, nao como fonte primaria para novas alteracoes.

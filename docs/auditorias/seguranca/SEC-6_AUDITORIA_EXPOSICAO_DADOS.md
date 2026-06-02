@@ -90,14 +90,14 @@ Padrões verificados e resultado:
 
 ### ⚪ INFO — SEC-6-I3: Exemplo de malpráctica em doc de segurança
 
-**Arquivo:** `docs/SEGURANCA_VIBECODING_RECORDA.md:50`  
+**Arquivo:** `docs/auditorias/seguranca/SEGURANCA_VIBECODING_RECORDA.md:50`  
 **Linha:** `JWT_SECRET=abc123realkey`  
 **Contexto:** Este valor aparece **intencionalmente** como exemplo do que **NÃO fazer**, dentro da seção de boas práticas de segurança do projeto. Não é um secret real.  
 **Ação:** Nenhuma (correto no contexto pedagógico)
 
 ### 🔵 BAIXO — SEC-6-B2: Exemplo de senha em documentação
 
-**Arquivo:** `docs/P2_RELATORIO_SUBIDA_AMBIENTE.md:107`  
+**Arquivo:** `docs/operacao/P2_RELATORIO_SUBIDA_AMBIENTE.md:107`  
 **Linha:** `ADMIN_PASSWORD=SenhaForte123!`  
 **Contexto:** Exemplo em bloco bash de como executar `scripts/create-admin-user.js`. Não é uma senha real.  
 **Risco:** Operador poderia usar este valor sem trocar.  
@@ -152,7 +152,7 @@ gitleaks detect --source . --report-format json --report-path sec6-gitleaks.json
 
 ### 🟡 MÉDIO — SEC-6-M2: URLs de infraestrutura real em docs
 
-**Arquivos:** `docs/P2_RELATORIO_SUBIDA_AMBIENTE.md`, `docs/DIAGNOSTICO_TECNICO.md`  
+**Arquivos:** `docs/operacao/P2_RELATORIO_SUBIDA_AMBIENTE.md`, `docs/auditorias/tecnica/DIAGNOSTICO_TECNICO.md`  
 **URLs encontradas:**
 
 - `https://recorda-api.up.railway.app` (backend Railway)
@@ -267,7 +267,7 @@ git rm --cached "packages/backend/uploads/relatorios/recebimento/0000000___2026-
 ### Prioridade 3 — Médio prazo
 
 **[SEC-6-I1] Complementar .gitignore** (ver gaps na Seção 7)  
-**[SEC-6-B2] Sanitizar exemplo de senha** em `docs/P2_RELATORIO_SUBIDA_AMBIENTE.md`  
+**[SEC-6-B2] Sanitizar exemplo de senha** em `docs/operacao/P2_RELATORIO_SUBIDA_AMBIENTE.md`  
 **[SEC-6-M2] Avaliar visibilidade do repositório** — se for público, sanitizar URLs de infra dos docs
 
 ### Não requer ação

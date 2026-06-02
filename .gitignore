@@ -6,6 +6,7 @@ build
 .env.production
 .env.*.local
 *.log
+.tmp*
 .DS_Store
 coverage
 .turbo
@@ -13,6 +14,10 @@ uploads/
 logs/
 tools/
 packages/backend/uploads/
+playwright-report/
+test-results/
+packages/frontend/vite.config.ts.timestamp-*.mjs
+*.tsbuildinfo
 
 # Documentos e backups operacionais gerados
 *.pdf
@@ -23,6 +28,11 @@ packages/backend/uploads/
 *.7z
 *.xlsx
 *.xls
+*.csv
+
+# Excecoes versionadas intencionais
+!docs/operacao/MODELO_PADRAO_RELATORIO.pdf
+!packages/backend/test/fixtures/csv/*.csv
 
 # Diretórios de exportações/geração temporária
 temp/

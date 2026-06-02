@@ -65,11 +65,11 @@ Definir no painel de variáveis do serviço Railway:
 
 ### 2. Variáveis de Ambiente — Frontend (Vercel)
 
-| Variável                | Obrigatória | Observação                                                                 |
-| ----------------------- | ----------- | -------------------------------------------------------------------------- |
+| Variável                | Obrigatória | Observação                                                                            |
+| ----------------------- | ----------- | ------------------------------------------------------------------------------------- |
 | `VITE_API_BASE`         | **Sim**     | URL pública da API (preferencial: `https://api.recorda.company`; temporário: Railway) |
-| `VITE_VAPID_PUBLIC_KEY` | Condicional | Obrigatória se push notifications estiver ativo                            |
-| `VITE_APP_VERSION`      | Não         | Exibida na AdminPage; padrão `'dev'` se ausente                            |
+| `VITE_VAPID_PUBLIC_KEY` | Condicional | Obrigatória se push notifications estiver ativo                                       |
+| `VITE_APP_VERSION`      | Não         | Exibida na AdminPage; padrão `'dev'` se ausente                                       |
 
 **Comportamento sem `VITE_API_BASE`:** frontend usa `/api` como base, que no Vercel (sem proxy) aponta para o próprio servidor de arquivos estáticos e todos os chamados de API falharão com 404.
 

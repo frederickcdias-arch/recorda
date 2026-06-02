@@ -1,15 +1,17 @@
 # Auditorias do Sistema Recorda
 
-Esta pasta reúne auditorias técnicas e relatórios de correção, validação e organização preservados como histórico confiável.
+Esta pasta reune auditorias tecnicas e relatorios de correcao, validacao e organizacao preservados como historico confiavel.
 
 Estrutura:
 
-- `numeros/`: auditoria, correção, validação e fechamento do fluxo de números.
-- `seguranca/`: auditorias e revisões de segurança.
-- `organizacao/`: relatórios de reorganização documental e estrutural.
+- `numeros/`: auditoria, correcao, validacao e fechamento do fluxo de numeros.
+- `seguranca/`: auditorias e revisoes de seguranca.
+- `homologacao/`: registros de homologacao funcional e visual.
+- `tecnica/`: diagnosticos, checklists e planos tecnicos.
+- `organizacao/`: relatorios de reorganizacao documental e estrutural.
 
 Uso recomendado:
 
-- use esses arquivos para entender decisões tomadas;
-- não use auditorias antigas arquivadas como fonte principal do estado atual;
+- use esses arquivos para entender decisoes tomadas;
+- nao use auditorias antigas arquivadas como fonte principal do estado atual;
 - para regras vigentes, consulte `../regras-de-negocio/` e `../padroes/`.
