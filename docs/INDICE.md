@@ -45,6 +45,7 @@
 - [Auditoria de seguranca de producao](./seguranca/AUDITORIA_SEGURANCA_PRODUCAO.md)
 - [SEC-6 Exposicao de dados](./seguranca/SEC-6_AUDITORIA_EXPOSICAO_DADOS.md)
 - [SEC-7 IDOR e autorizacao](./seguranca/SEC-7_AUDITORIA_IDOR_AUTORIZACAO.md)
+- [SEC-11 Headers de seguranca HTTP](./seguranca/HEADERS_SEGURANCA.md)
 
 ## Auditorias e historico
 
