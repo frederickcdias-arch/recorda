@@ -1131,6 +1131,16 @@ export function CapturaMapaPage() {
   const capturePrimaryLabel = hasQueue ? 'Tirar próxima' : 'Tirar foto';
   const captureQueueFeedback =
     queue.length === 1 ? 'Foto adicionada à fila.' : `${queue.length} fotos adicionadas à fila.`;
+  const mobileQueueStatusText =
+    itemsSemBordas.length > 0
+      ? `${plural(itemsSemBordas.length, 'foto aguardando revisão', 'fotos aguardando revisão')}.`
+      : `${plural(queue.length, 'foto pronta para processar', 'fotos prontas para processar')}.`;
+  const mobileBatchStatusText =
+    itemsSemBordas.length > 0
+      ? `${plural(itemsSemBordas.length, 'foto aguardando revisão', 'fotos aguardando revisão')}. Revise as bordas antes de processar.`
+      : podeProcessarLote
+        ? `${plural(aguardandoComBordas, 'foto pronta para processar', 'fotos prontas para processar')}.`
+        : `${plural(queue.length, 'foto na fila', 'fotos na fila')}.`;
 
   // ── Renderizacao ──────────────────────────────────────────────────────────
 
@@ -1207,8 +1217,7 @@ export function CapturaMapaPage() {
                     {captureQueueFeedback}
                   </p>
                   <p className="mt-1 text-xs text-[var(--color-text-secondary)]">
-                    {plural(queue.length, 'foto na fila', 'fotos na fila')}. Continue capturando ou
-                    revise quando quiser.
+                    {mobileQueueStatusText}
                   </p>
                 </div>
                 <div className="grid w-full grid-cols-1 gap-2 sm:w-auto sm:grid-cols-2 lg:grid-cols-4">
@@ -1248,7 +1257,7 @@ export function CapturaMapaPage() {
                     size="md"
                     icon="image"
                     fullWidth
-                    className="sm:min-w-[11rem]"
+                    className="hidden sm:inline-flex sm:min-w-[11rem]"
                     onClick={handleAbrirSeletorArquivos}
                   >
                     Escolher arquivos
@@ -1312,7 +1321,7 @@ export function CapturaMapaPage() {
           {queue.length > 0 && (
             <>
               {/* Barra de captura em série (feature C1) */}
-              <div className="mb-4 rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-4">
+              <div className="mb-4 hidden rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-4 sm:block">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="space-y-0.5">
                     <p className="text-sm font-semibold text-[var(--color-text-primary)]">
@@ -1373,10 +1382,18 @@ export function CapturaMapaPage() {
               <div className="mb-4 rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-4">
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                   <div className="space-y-2">
-                    <p className="text-sm font-medium text-[var(--color-text-primary)]">
+                    <div className="space-y-1 sm:hidden">
+                      <p className="text-sm font-medium text-[var(--color-text-primary)]">
+                        {mobileBatchStatusText}
+                      </p>
+                      <p className="text-xs text-[var(--color-text-tertiary)]">
+                        O processamento fica liberado depois da revisão.
+                      </p>
+                    </div>
+                    <p className="hidden text-sm font-medium text-[var(--color-text-primary)] sm:block">
                       {plural(queue.length, 'imagem', 'imagens')}
                     </p>
-                    <div className="flex flex-wrap gap-2 text-xs text-[var(--color-text-secondary)]">
+                    <div className="hidden flex-wrap gap-2 text-xs text-[var(--color-text-secondary)] sm:flex">
                       {batchSummary && (
                         <span className="rounded-full bg-[var(--color-bg-primary)] px-3 py-1 font-medium">
                           {batchSummary}
@@ -1400,7 +1417,7 @@ export function CapturaMapaPage() {
                     </div>
                     <button
                       type="button"
-                      className="text-xs text-[var(--color-text-tertiary)] underline-offset-2 hover:underline"
+                      className="hidden text-xs text-[var(--color-text-tertiary)] underline-offset-2 hover:underline sm:inline-flex"
                       onClick={() => setShowAdvancedOptions((open) => !open)}
                     >
                       {showAdvancedOptions ? 'Ocultar opções avançadas' : 'Opções avançadas'}
@@ -1436,16 +1453,21 @@ export function CapturaMapaPage() {
                       </Button>
                     )}
                     {!podeProcessarLote && aguardando > 0 && (
-                      <Button
-                        variant="secondary"
-                        size="md"
-                        icon="alert-triangle"
-                        fullWidth
-                        className="xl:w-auto"
-                        disabled
-                      >
-                        Ajuste as bordas antes de processar
-                      </Button>
+                      <>
+                        <p className="text-xs text-[var(--color-text-tertiary)] sm:hidden">
+                          Revise as bordas antes de processar o lote.
+                        </p>
+                        <Button
+                          variant="secondary"
+                          size="md"
+                          icon="alert-triangle"
+                          fullWidth
+                          className="hidden sm:inline-flex xl:w-auto"
+                          disabled
+                        >
+                          Ajuste as bordas antes de processar
+                        </Button>
+                      </>
                     )}
                     {temErro && (
                       <Button
@@ -1465,13 +1487,22 @@ export function CapturaMapaPage() {
                     )}
                   </div>
                 </div>
-                <p className="mt-3 text-xs text-[var(--color-text-tertiary)]">
+                <p className="mt-3 hidden text-xs text-[var(--color-text-tertiary)] sm:block">
                   O lote so e liberado quando todas as imagens estiverem prontas ou revisadas.
                 </p>
               </div>
 
               {/* Grade de miniaturas */}
-              <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+              {itemsSemBordas.length > 0 && (
+                <div className="mb-3 rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] px-4 py-3 text-xs text-[var(--color-text-secondary)] sm:hidden">
+                  As prévias completas aparecem depois da revisão das bordas.
+                </div>
+              )}
+              <div
+                className={`gap-3 min-[420px]:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 ${
+                  itemsSemBordas.length > 0 ? 'hidden sm:grid' : 'grid grid-cols-1'
+                }`}
+              >
                 {queue.map((item, queueIndex) => (
                   <div
                     key={item.localId}
