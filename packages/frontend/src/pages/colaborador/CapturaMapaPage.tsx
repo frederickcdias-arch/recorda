@@ -334,6 +334,12 @@ export function CapturaMapaPage() {
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
   const [, setProcessingTick] = useState(0);
 
+  // ── Estado da revisão em série (feature C1) ────────────────────────────────
+  const [revisaoSerieAtiva, setRevisaoSerieAtiva] = useState(false);
+  const [revisaoSerieTotal, setRevisaoSerieTotal] = useState(0);
+  const [revisaoAtualIdx, setRevisaoAtualIdx] = useState(1);
+  const [confirmLimparFila, setConfirmLimparFila] = useState(false);
+
   const processandoAlgum = queue.some((it) => it.status === 'processando');
 
   useEffect(() => {
@@ -341,6 +347,16 @@ export function CapturaMapaPage() {
     const interval = window.setInterval(() => setProcessingTick((tick) => tick + 1), 500);
     return () => window.clearInterval(interval);
   }, [processandoAlgum]);
+
+  // Avisa o usuário antes de sair da página se há fotos na fila temporária
+  useEffect(() => {
+    if (queue.length === 0) return;
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [queue.length]);
 
   const setQueue = useCallback((updater: (prev: QueueItem[]) => QueueItem[]) => {
     setQueueState((prev) => {
@@ -511,6 +527,7 @@ export function CapturaMapaPage() {
     setEditorItemId(null);
     setEditorCorners([]);
     setEditorImageSize(null);
+    setRevisaoSerieAtiva(false);
   }, [editorSaving]);
 
   const handleSaveEditor = useCallback(async () => {
@@ -557,13 +574,44 @@ export function CapturaMapaPage() {
             : it
         )
       );
-      handleCloseEditor();
+      if (revisaoSerieAtiva) {
+        const proximos = queueRef.current.filter(
+          (it) =>
+            it.localId !== item.localId && it.status === 'aguardando' && !hasManualGeometry(it)
+        );
+        if (proximos.length > 0) {
+          setRevisaoAtualIdx((prev) => prev + 1);
+          const next = proximos[0]!;
+          const size = await getImageSize(next.originalSrc);
+          const nextCorners =
+            next.corners && !isLikelyFullSceneCrop(next.corners, size)
+              ? next.corners
+              : defaultCorners(size);
+          setEditorImageSize(size);
+          setEditorCorners(nextCorners);
+          setEditorItemId(next.localId);
+        } else {
+          setRevisaoSerieAtiva(false);
+          handleCloseEditor();
+          toast.success('Todas as fotos revisadas. Processe o lote quando estiver pronto.');
+        }
+      } else {
+        handleCloseEditor();
+      }
     } catch {
       toast.error('Não foi possível aplicar as bordas ajustadas.');
     } finally {
       setEditorSaving(false);
     }
-  }, [editorCorners, editorImageSize, editorItemId, handleCloseEditor, setQueue, toast]);
+  }, [
+    editorCorners,
+    editorImageSize,
+    editorItemId,
+    handleCloseEditor,
+    revisaoSerieAtiva,
+    setQueue,
+    toast,
+  ]);
 
   const handleCornerPointerMove = useCallback(
     (index: number, e: React.PointerEvent<HTMLButtonElement>) => {
@@ -844,7 +892,64 @@ export function CapturaMapaPage() {
 
   const handleLimparFila = useCallback(() => {
     setQueue(() => []);
+    setRevisaoSerieAtiva(false);
+    setConfirmLimparFila(false);
   }, [setQueue]);
+
+  // ── Revisão em série (feature C1) ────────────────────────────────────────
+
+  const handleIniciarRevisao = useCallback(
+    async (startIndex?: number) => {
+      const paraBordar = queueRef.current.filter(
+        (it) => it.status === 'aguardando' && !hasManualGeometry(it)
+      );
+      if (paraBordar.length === 0) {
+        toast.info('Todas as fotos já têm bordas ajustadas.');
+        return;
+      }
+      const primeiro =
+        startIndex != null ? (paraBordar[startIndex] ?? paraBordar[0]!) : paraBordar[0]!;
+      setRevisaoSerieTotal(paraBordar.length);
+      setRevisaoAtualIdx(1);
+      setRevisaoSerieAtiva(true);
+      const size = await getImageSize(primeiro.originalSrc);
+      const corners =
+        primeiro.corners && !isLikelyFullSceneCrop(primeiro.corners, size)
+          ? primeiro.corners
+          : defaultCorners(size);
+      setEditorImageSize(size);
+      setEditorCorners(corners);
+      setEditorItemId(primeiro.localId);
+    },
+    [toast]
+  );
+
+  const handleRemoverEmRevisao = useCallback(async () => {
+    if (!editorItemId || editorSaving) return;
+    const removedId = editorItemId;
+    const proximos = queueRef.current.filter(
+      (it) => it.localId !== removedId && it.status === 'aguardando' && !hasManualGeometry(it)
+    );
+    setQueue((prev) => prev.filter((it) => it.localId !== removedId));
+    if (proximos.length > 0) {
+      setRevisaoAtualIdx((idx) => idx + 1);
+      const next = proximos[0]!;
+      const size = await getImageSize(next.originalSrc);
+      const nextCorners =
+        next.corners && !isLikelyFullSceneCrop(next.corners, size)
+          ? next.corners
+          : defaultCorners(size);
+      setEditorImageSize(size);
+      setEditorCorners(nextCorners);
+      setEditorItemId(next.localId);
+    } else {
+      setRevisaoSerieAtiva(false);
+      setEditorItemId(null);
+      setEditorCorners([]);
+      setEditorImageSize(null);
+      toast.info('Foto removida. Nenhuma outra aguarda revisão de bordas.');
+    }
+  }, [editorItemId, editorSaving, setQueue, toast]);
 
   // ── Capturas recentes (servidor) ──────────────────────────────────────────
 
@@ -924,6 +1029,7 @@ export function CapturaMapaPage() {
   );
   const editorItem = queue.find((it) => it.localId === editorItemId) ?? null;
   const previewItem = queue.find((it) => it.localId === previewItemId) ?? null;
+  const itemsSemBordas = queue.filter((it) => it.status === 'aguardando' && !hasManualGeometry(it));
 
   // ── Renderizacao ──────────────────────────────────────────────────────────
 
@@ -1050,6 +1156,72 @@ export function CapturaMapaPage() {
           {/* Grade de itens da fila */}
           {queue.length > 0 && (
             <>
+              {/* Barra de captura em série (feature C1) */}
+              <div className="mb-4 rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="space-y-0.5">
+                    <p className="text-sm font-semibold text-[var(--color-text-primary)]">
+                      {plural(queue.length, 'foto na fila', 'fotos na fila')}
+                      {itemsSemBordas.length > 0 && (
+                        <span className="ml-1.5 font-normal text-[var(--color-text-secondary)]">
+                          — {itemsSemBordas.length} sem bordas
+                        </span>
+                      )}
+                    </p>
+                    <p className="text-xs text-[var(--color-text-tertiary)]">
+                      Fila temporária — será perdida ao sair da página.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      icon="camera"
+                      onClick={() => {
+                        cameraInputRef.current?.setAttribute('capture', 'environment');
+                        cameraInputRef.current?.click();
+                      }}
+                    >
+                      Tirar outra foto
+                    </Button>
+                    {itemsSemBordas.length > 0 && (
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        icon="check-square"
+                        onClick={() => void handleIniciarRevisao()}
+                        disabled={revisaoSerieAtiva}
+                      >
+                        Revisar fotos ({itemsSemBordas.length})
+                      </Button>
+                    )}
+                    {confirmLimparFila ? (
+                      <>
+                        <Button variant="secondary" size="sm" onClick={handleLimparFila}>
+                          Sim, limpar
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setConfirmLimparFila(false)}
+                        >
+                          Cancelar
+                        </Button>
+                      </>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        icon="trash-2"
+                        onClick={() => setConfirmLimparFila(true)}
+                      >
+                        Limpar fila
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               {/* Barra de acoes do lote */}
               <div className="mb-4 rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-4">
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -1144,16 +1316,6 @@ export function CapturaMapaPage() {
                         Tentar de novo
                       </Button>
                     )}
-                    <Button
-                      variant="ghost"
-                      size="md"
-                      icon="trash-2"
-                      fullWidth
-                      className="xl:w-auto"
-                      onClick={handleLimparFila}
-                    >
-                      Limpar fila
-                    </Button>
                   </div>
                 </div>
                 <p className="mt-3 text-xs text-[var(--color-text-tertiary)]">
@@ -1419,24 +1581,43 @@ export function CapturaMapaPage() {
       <Modal
         open={!!editorItem && !!editorImageSize}
         onClose={handleCloseEditor}
-        title="Ajustar Bordas"
-        subtitle="Enquadre apenas a folha."
+        title={revisaoSerieAtiva ? 'Revisar Fotos' : 'Ajustar Bordas'}
+        subtitle={
+          revisaoSerieAtiva
+            ? `Foto ${revisaoAtualIdx} de ${revisaoSerieTotal} — Enquadre apenas a folha.`
+            : 'Enquadre apenas a folha.'
+        }
         size="xl"
         scrollable
         footer={
-          <div className="flex flex-col gap-2 p-4 sm:flex-row sm:flex-wrap sm:justify-end">
-            <Button variant="ghost" size="sm" onClick={handleCloseEditor} disabled={editorSaving}>
-              Cancelar
-            </Button>
-            <Button
-              variant="primary"
-              size="sm"
-              icon="check"
-              loading={editorSaving}
-              onClick={handleSaveEditor}
-            >
-              Aplicar bordas
-            </Button>
+          <div className="flex flex-col gap-2 p-4 sm:flex-row sm:flex-wrap sm:justify-between">
+            <div className="flex flex-wrap gap-2">
+              {revisaoSerieAtiva && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  icon="trash-2"
+                  onClick={() => void handleRemoverEmRevisao()}
+                  disabled={editorSaving}
+                >
+                  Remover esta
+                </Button>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="ghost" size="sm" onClick={handleCloseEditor} disabled={editorSaving}>
+                {revisaoSerieAtiva ? 'Cancelar revisão' : 'Cancelar'}
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                icon="check"
+                loading={editorSaving}
+                onClick={handleSaveEditor}
+              >
+                {revisaoSerieAtiva ? 'Aplicar e avançar' : 'Aplicar bordas'}
+              </Button>
+            </div>
           </div>
         }
       >
