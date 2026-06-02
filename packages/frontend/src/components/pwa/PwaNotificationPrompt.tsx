@@ -30,8 +30,8 @@ export function PwaNotificationPrompt({
 
     if (status === 'not-configured') {
       toast.warning(
-        'Notificações indisponíveis',
-        'O serviço de push ainda não está configurado corretamente.'
+        'Push não configurado no ambiente',
+        'Defina VITE_VAPID_PUBLIC_KEY no frontend para habilitar as notificações push.'
       );
       return;
     }

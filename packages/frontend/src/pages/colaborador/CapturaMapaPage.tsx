@@ -472,6 +472,15 @@ export function CapturaMapaPage() {
     [addFiles]
   );
 
+  const handleAbrirCamera = useCallback(() => {
+    cameraInputRef.current?.setAttribute('capture', 'environment');
+    cameraInputRef.current?.click();
+  }, []);
+
+  const handleAbrirSeletorArquivos = useCallback(() => {
+    batchInputRef.current?.click();
+  }, []);
+
   const editorAspectClass = editorImageSize
     ? editorImageSize.width >= editorImageSize.height
       ? 'aspect-[4/3]'
@@ -1118,6 +1127,10 @@ export function CapturaMapaPage() {
   const editorItem = queue.find((it) => it.localId === editorItemId) ?? null;
   const previewItem = queue.find((it) => it.localId === previewItemId) ?? null;
   const itemsSemBordas = queue.filter((it) => it.status === 'aguardando' && !hasManualGeometry(it));
+  const hasQueue = queue.length > 0;
+  const capturePrimaryLabel = hasQueue ? 'Tirar próxima' : 'Tirar foto';
+  const captureQueueFeedback =
+    queue.length === 1 ? 'Foto adicionada à fila.' : `${queue.length} fotos adicionadas à fila.`;
 
   // ── Renderizacao ──────────────────────────────────────────────────────────
 
@@ -1187,31 +1200,85 @@ export function CapturaMapaPage() {
                 Ajuste antes de salvar
               </span>
             </div>
-            <div className="grid w-full grid-cols-1 gap-2 sm:w-auto sm:grid-cols-2">
-              <Button
-                variant="primary"
-                size="md"
-                icon="camera"
-                fullWidth
-                className="sm:min-w-[11rem]"
-                onClick={() => {
-                  cameraInputRef.current?.setAttribute('capture', 'environment');
-                  cameraInputRef.current?.click();
-                }}
-              >
-                Usar camera
-              </Button>
-              <Button
-                variant="secondary"
-                size="md"
-                icon="image"
-                fullWidth
-                className="sm:min-w-[11rem]"
-                onClick={() => batchInputRef.current?.click()}
-              >
-                Escolher arquivos
-              </Button>
-            </div>
+            {hasQueue ? (
+              <div className="w-full space-y-3">
+                <div className="rounded-xl border border-[var(--color-success-200)] bg-[var(--color-success-50)] px-4 py-3 text-left">
+                  <p className="text-sm font-semibold text-[var(--color-text-primary)]">
+                    {captureQueueFeedback}
+                  </p>
+                  <p className="mt-1 text-xs text-[var(--color-text-secondary)]">
+                    {plural(queue.length, 'foto na fila', 'fotos na fila')}.
+                    Continue capturando ou revise quando quiser.
+                  </p>
+                </div>
+                <div className="grid w-full grid-cols-1 gap-2 sm:w-auto sm:grid-cols-2 lg:grid-cols-4">
+                  <Button
+                    variant="primary"
+                    size="md"
+                    icon="camera"
+                    fullWidth
+                    className="sm:min-w-[11rem]"
+                    onClick={handleAbrirCamera}
+                  >
+                    {capturePrimaryLabel}
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="md"
+                    icon="check-square"
+                    fullWidth
+                    className="sm:min-w-[11rem]"
+                    onClick={() => void handleIniciarRevisao()}
+                    disabled={revisaoSerieAtiva}
+                  >
+                    Revisar fotos
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="md"
+                    icon="trash-2"
+                    fullWidth
+                    className="sm:min-w-[11rem]"
+                    onClick={() => setConfirmLimparFila(true)}
+                  >
+                    Limpar fila
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="md"
+                    icon="image"
+                    fullWidth
+                    className="sm:min-w-[11rem]"
+                    onClick={handleAbrirSeletorArquivos}
+                  >
+                    Escolher arquivos
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="grid w-full grid-cols-1 gap-2 sm:w-auto sm:grid-cols-2">
+                <Button
+                  variant="primary"
+                  size="md"
+                  icon="camera"
+                  fullWidth
+                  className="sm:min-w-[11rem]"
+                  onClick={handleAbrirCamera}
+                >
+                  {capturePrimaryLabel}
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="md"
+                  icon="image"
+                  fullWidth
+                  className="sm:min-w-[11rem]"
+                  onClick={handleAbrirSeletorArquivos}
+                >
+                  Escolher arquivos
+                </Button>
+              </div>
+            )}
             <p className="text-xs text-[var(--color-text-tertiary)]">
               No celular, fotografe a folha inteira.
             </p>
@@ -1261,28 +1328,20 @@ export function CapturaMapaPage() {
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
+                    <Button variant="primary" size="sm" icon="camera" onClick={handleAbrirCamera}>
+                      {capturePrimaryLabel}
+                    </Button>
                     <Button
                       variant="secondary"
                       size="sm"
-                      icon="camera"
-                      onClick={() => {
-                        cameraInputRef.current?.setAttribute('capture', 'environment');
-                        cameraInputRef.current?.click();
-                      }}
+                      icon="check-square"
+                      onClick={() => void handleIniciarRevisao()}
+                      disabled={revisaoSerieAtiva}
                     >
-                      Tirar outra foto
+                      {itemsSemBordas.length > 0
+                        ? `Revisar fotos (${itemsSemBordas.length})`
+                        : 'Revisar fotos'}
                     </Button>
-                    {itemsSemBordas.length > 0 && (
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        icon="check-square"
-                        onClick={() => void handleIniciarRevisao()}
-                        disabled={revisaoSerieAtiva}
-                      >
-                        Revisar fotos ({itemsSemBordas.length})
-                      </Button>
-                    )}
                     {confirmLimparFila ? (
                       <>
                         <Button variant="secondary" size="sm" onClick={handleLimparFila}>
