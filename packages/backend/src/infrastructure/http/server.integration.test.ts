@@ -2914,6 +2914,15 @@ describe('HTTP server integration', () => {
   // Health & Metrics
   // ═══════════════════════════════════════════════
 
+  it('returns root status with a simple API response', async () => {
+    const response = await server.inject({ method: 'GET', url: '/' });
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      name: 'Recorda API',
+      status: 'online',
+    });
+  });
+
   it('returns health status with database check', async () => {
     const response = await server.inject({ method: 'GET', url: '/health' });
     expect(response.statusCode).toBe(200);

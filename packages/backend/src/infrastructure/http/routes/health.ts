@@ -13,7 +13,39 @@ interface HealthResponse {
   };
 }
 
+interface RootResponse {
+  name: 'Recorda API';
+  status: 'online';
+}
+
 export const healthRoutes: FastifyPluginAsync = async (server: FastifyInstance): Promise<void> => {
+  server.get<{ Reply: RootResponse }>(
+    '/',
+    {
+      schema: {
+        tags: ['health'],
+        summary: 'Root status da API',
+        response: {
+          200: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+              status: { type: 'string' },
+            },
+            required: ['name', 'status'],
+            additionalProperties: false,
+          },
+        },
+      },
+    },
+    async (_request, reply) => {
+      return reply.status(200).send({
+        name: 'Recorda API',
+        status: 'online',
+      });
+    }
+  );
+
   server.get<{ Reply: HealthResponse }>(
     '/health',
     {
