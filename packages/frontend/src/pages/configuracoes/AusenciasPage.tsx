@@ -32,6 +32,7 @@ import {
   useTiposAusencia,
   useCriarAusenciaAdmin,
   useCancelarAusenciaAdmin,
+  useEditarAusenciaAdmin,
 } from '../../hooks/useQueries';
 import type { AusenciaAdminItem, ListarAusenciasAdminParams, TipoAusencia } from '@recorda/shared';
 
@@ -130,6 +131,7 @@ interface LancarAusenciaModalProps {
   onClose: () => void;
   colaboradores: { id: string; nome: string; email: string; perfil?: string }[];
   tipos: TipoAusencia[];
+  initialData?: AusenciaAdminItem | null;
   onSuccess: (msg: string) => void;
   onError: (msg: string) => void;
 }
@@ -139,10 +141,12 @@ function LancarAusenciaModal({
   onClose,
   colaboradores,
   tipos,
+  initialData,
   onSuccess,
   onError,
 }: LancarAusenciaModalProps): JSX.Element {
   const criarMutation = useCriarAusenciaAdmin();
+  const editarMutation = useEditarAusenciaAdmin();
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [usuarioId, setUsuarioId] = useState('');
@@ -161,6 +165,28 @@ function LancarAusenciaModal({
   const [erros, setErros] = useState<Record<string, string>>({});
 
   const tipoSelecionado = tipos.find((t) => t.id === tipoAusenciaId) ?? null;
+  useEffect(() => {
+    if (!open) return;
+
+    if (initialData) {
+      setUsuarioId(initialData.usuarioId);
+      setTipoAusenciaId(initialData.tipoAusenciaId);
+      setDataInicio(initialData.dataInicio);
+      setDataFim(initialData.dataFim);
+      setPeriodo(initialData.periodo);
+      setHorasAusencia(initialData.horasAusencia ? String(initialData.horasAusencia) : '');
+      setStatusInicial(initialData.status === 'aprovado' ? 'aprovado' : 'pendente');
+      setJustificativa(initialData.justificativa ?? '');
+      setObservacoes(initialData.observacoes ?? '');
+      setArquivo(null);
+      setArquivoErro('');
+      setErros({});
+      if (fileRef.current) fileRef.current.value = '';
+      return;
+    }
+
+    resetForm();
+  }, [open, initialData]);
 
   function resetForm(): void {
     setUsuarioId('');
@@ -223,7 +249,7 @@ function LancarAusenciaModal({
       e.justificativa = 'Este tipo exige justificativa.';
     }
     if (tipoSelecionado?.requerDocumento && !arquivo) {
-      if (!observacoes.trim()) {
+      if (!observacoes.trim() && !initialData?.documentoAnexo) {
         e.observacoes =
           'Este tipo exige documento. Sem anexo, forneça observação explicando o motivo.';
       }
@@ -249,9 +275,14 @@ function LancarAusenciaModal({
     if (arquivo) payload.set('documento', arquivo, arquivo.name);
 
     try {
-      await criarMutation.mutateAsync(payload);
-      const label = statusInicial === 'aprovado' ? 'aprovada' : 'registrada como pendente';
+      if (initialData) {
+        await editarMutation.mutateAsync({ id: initialData.id, payload });
+        onSuccess('Ausencia atualizada com sucesso.');
+      } else {
+        await criarMutation.mutateAsync(payload);
+        const label = statusInicial === 'aprovado' ? 'aprovada' : 'registrada como pendente';
       onSuccess(`Ausência ${label} com sucesso.`);
+      }
       handleClose();
     } catch (err: unknown) {
       const msg =
@@ -262,7 +293,7 @@ function LancarAusenciaModal({
     }
   }
 
-  const isSaving = criarMutation.status === 'pending';
+  const isSaving = criarMutation.status === 'pending' || editarMutation.status === 'pending';
 
   return (
     <Modal
@@ -497,6 +528,7 @@ export function AusenciasPage(): JSX.Element {
   const [motivoRejeicao, setMotivoRejeicao] = useState('');
   const [rejeicaoAberta, setRejeicaoAberta] = useState(false);
   const [lancamentoAberto, setLancamentoAberto] = useState(false);
+  const [edicaoAberta, setEdicaoAberta] = useState(false);
   const [cancelamentoAberto, setCancelamentoAberto] = useState(false);
   const [motivoCancelamento, setMotivoCancelamento] = useState('');
   const [selecionada, setSelecionada] = useState<AusenciaAdminItem | null>(null);
@@ -620,6 +652,16 @@ export function AusenciasPage(): JSX.Element {
     setSelecionada(ausencia);
     setMotivoCancelamento('');
     setCancelamentoAberto(true);
+  };
+
+  const handleAbrirEdicao = (ausencia: AusenciaAdminItem): void => {
+    setSelecionada(ausencia);
+    setEdicaoAberta(true);
+  };
+
+  const handleFecharEdicao = (): void => {
+    setEdicaoAberta(false);
+    setSelecionada(null);
   };
 
   const handleFecharCancelamento = (): void => {
@@ -859,6 +901,13 @@ export function AusenciasPage(): JSX.Element {
                         {ausencia.status === 'pendente' ? (
                           <>
                             <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => handleAbrirEdicao(ausencia)}
+                            >
+                              Editar
+                            </Button>
+                            <Button
                               variant="success"
                               size="sm"
                               onClick={() => handleAprovar(ausencia)}
@@ -881,13 +930,22 @@ export function AusenciasPage(): JSX.Element {
                             </Button>
                           </>
                         ) : ausencia.status === 'aprovado' ? (
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => handleAbrirCancelamento(ausencia)}
-                          >
-                            Cancelar
-                          </Button>
+                          <>
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => handleAbrirEdicao(ausencia)}
+                            >
+                              Editar
+                            </Button>
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => handleAbrirCancelamento(ausencia)}
+                            >
+                              Cancelar
+                            </Button>
+                          </>
                         ) : (
                           <span className="text-xs text-[var(--color-text-secondary)]">
                             Sem ações disponíveis
@@ -988,6 +1046,16 @@ export function AusenciasPage(): JSX.Element {
           onClose={() => setLancamentoAberto(false)}
           colaboradores={usuariosQuery.data ?? []}
           tipos={(tiposQuery.data?.tipos ?? []).filter((t) => t.ativo)}
+          onSuccess={(msg) => setMensagemAcao({ tipo: 'success', texto: msg })}
+          onError={(msg) => setMensagemAcao({ tipo: 'error', texto: msg })}
+        />
+
+        <LancarAusenciaModal
+          open={edicaoAberta}
+          onClose={handleFecharEdicao}
+          colaboradores={usuariosQuery.data ?? []}
+          tipos={(tiposQuery.data?.tipos ?? []).filter((t) => t.ativo)}
+          initialData={selecionada}
           onSuccess={(msg) => setMensagemAcao({ tipo: 'success', texto: msg })}
           onError={(msg) => setMensagemAcao({ tipo: 'error', texto: msg })}
         />

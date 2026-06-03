@@ -19,6 +19,7 @@ import type {
   AprovarAusenciaDTO,
   RejeitarAusenciaDTO,
   CriarAusenciaAdminDTO,
+  EditarAusenciaAdminDTO,
   CancelarAusenciaAdminDTO,
   ListarMinhasAusenciasParams,
   ListarMinhasAusenciasResponse,
@@ -1359,6 +1360,17 @@ export function useCriarAusenciaAdmin() {
   return useMutation({
     mutationFn: (payload: FormData | CriarAusenciaAdminDTO) =>
       api.post<{ ausencia: { id: string; status: string } }>('/admin/ausencias', payload),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['ausencias-admin'] });
+    },
+  });
+}
+
+export function useEditarAusenciaAdmin() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: FormData | EditarAusenciaAdminDTO }) =>
+      api.put<{ ausencia: { id: string; status: string } }>(`/admin/ausencias/${id}`, payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['ausencias-admin'] });
     },

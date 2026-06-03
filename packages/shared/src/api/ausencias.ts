@@ -67,6 +67,8 @@ export interface CriarAusenciaAdminDTO {
   status?: 'pendente' | 'aprovado';
 }
 
+export interface EditarAusenciaAdminDTO extends CriarAusenciaAdminDTO {}
+
 export interface CancelarAusenciaAdminDTO {
   observacoes: string;
 }
