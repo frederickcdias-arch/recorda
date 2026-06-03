@@ -61,20 +61,23 @@ interface MinhaAusenciaRow {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+function toDateOnlyString(value: string | Date | null | undefined): string {
+  if (!value) return '';
+  if (typeof value === 'string') return value;
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, '0');
+  const day = String(value.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 function mapMinhaAusencia(row: MinhaAusenciaRow): MinhaAusenciaItem {
-  const dataInicioValue = row.data_inicio ?? '';
-  const dataFimValue = row.data_fim ?? '';
   return {
     id: row.id,
     tipoAusenciaId: row.tipo_ausencia_id,
     tipoAusenciaNome: row.tipo_ausencia_nome,
     tipoAusenciaCor: row.tipo_ausencia_cor,
-    dataInicio: (dataInicioValue instanceof Date
-      ? dataInicioValue.toISOString().split('T')[0]
-      : String(dataInicioValue)) as string,
-    dataFim: (dataFimValue instanceof Date
-      ? dataFimValue.toISOString().split('T')[0]
-      : String(dataFimValue)) as string,
+    dataInicio: toDateOnlyString(row.data_inicio),
+    dataFim: toDateOnlyString(row.data_fim),
     periodo: row.periodo as MinhaAusenciaItem['periodo'],
     horasAusencia: row.horas_ausencia ?? null,
     justificativa: row.justificativa ?? null,

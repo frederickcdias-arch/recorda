@@ -61,10 +61,16 @@ const cancelarAusenciaAdminSchema = z.object({
   observacoes: z.string().trim().min(3, 'Observações deve ter pelo menos 3 caracteres').max(1000),
 });
 
-function mapAusenciaAdmin(row: AusenciaAdminRow): AusenciaAdminItem {
-  const dataInicioValue = row.data_inicio ?? '';
-  const dataFimValue = row.data_fim ?? '';
+function toDateOnlyString(value: string | Date | null | undefined): string {
+  if (!value) return '';
+  if (typeof value === 'string') return value;
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, '0');
+  const day = String(value.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 
+function mapAusenciaAdmin(row: AusenciaAdminRow): AusenciaAdminItem {
   return {
     id: row.id,
     usuarioId: row.usuario_id,
@@ -73,12 +79,8 @@ function mapAusenciaAdmin(row: AusenciaAdminRow): AusenciaAdminItem {
     tipoAusenciaId: row.tipo_ausencia_id,
     tipoAusenciaNome: row.tipo_ausencia_nome,
     tipoAusenciaCor: row.tipo_ausencia_cor,
-    dataInicio: (dataInicioValue instanceof Date
-      ? dataInicioValue.toISOString().split('T')[0]
-      : String(dataInicioValue)) as string,
-    dataFim: (dataFimValue instanceof Date
-      ? dataFimValue.toISOString().split('T')[0]
-      : String(dataFimValue)) as string,
+    dataInicio: toDateOnlyString(row.data_inicio),
+    dataFim: toDateOnlyString(row.data_fim),
     periodo: row.periodo as unknown as
       | 'dia_completo'
       | 'meio_periodo_manha'
@@ -277,6 +279,7 @@ export function createAdminRoutes(): FastifyPluginAsync {
               u.id,
               u.nome,
               u.email,
+              u.perfil,
               u.ativo,
               COUNT(pr.id) as total_producoes_vinculadas,
               c.nome as coordenadoria_nome,
@@ -284,8 +287,8 @@ export function createAdminRoutes(): FastifyPluginAsync {
             FROM usuarios u
             LEFT JOIN producao_repositorio pr ON pr.usuario_id = u.id
             LEFT JOIN coordenadorias c ON c.id = u.coordenadoria_id
-            WHERE u.perfil = 'colaborador'
-            GROUP BY u.id, u.nome, u.email, u.ativo, c.nome, c.sigla
+            WHERE u.perfil IN ('colaborador', 'operador', 'administrador')
+            GROUP BY u.id, u.nome, u.email, u.perfil, u.ativo, c.nome, c.sigla
             ORDER BY u.nome
           `);
 
@@ -1103,7 +1106,7 @@ export function createAdminRoutes(): FastifyPluginAsync {
             return reply.status(404).send({ error: 'Usuário não encontrado' });
           }
           const targetUser = userCheck.rows[0]!;
-          if (targetUser.perfil !== 'colaborador') {
+          if (targetUser.perfil === 'visualizador') {
             await client.query('ROLLBACK');
             return reply
               .status(400)

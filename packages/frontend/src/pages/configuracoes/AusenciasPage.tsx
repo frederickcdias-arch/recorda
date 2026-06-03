@@ -22,6 +22,7 @@ import { Pagination } from '../../components/ui/Pagination';
 import { useToastHelpers } from '../../components/ui/Toast';
 import { useConfirmDialog } from '../../hooks/useConfirmDialog';
 import { useDebounce } from '../../hooks/useDebounce';
+import { formatDateBR } from '../../utils/date';
 import {
   useAusenciasAdmin,
   useAprovarAusencia,
@@ -104,8 +105,7 @@ function getAusenciaColorClass(cor: string): string {
 }
 
 function formatDate(value: string | undefined | null): string {
-  if (!value) return '-';
-  return new Date(value).toLocaleDateString('pt-BR');
+  return formatDateBR(value);
 }
 
 function getPeriodoLabel(periodo: string): string {
@@ -128,7 +128,7 @@ function getPeriodoLabel(periodo: string): string {
 interface LancarAusenciaModalProps {
   open: boolean;
   onClose: () => void;
-  colaboradores: { id: string; nome: string; email: string }[];
+  colaboradores: { id: string; nome: string; email: string; perfil?: string }[];
   tipos: TipoAusencia[];
   onSuccess: (msg: string) => void;
   onError: (msg: string) => void;
@@ -285,7 +285,7 @@ function LancarAusenciaModal({
                 { value: '', label: 'Selecione um colaborador' },
                 ...colaboradores.map((u) => ({
                   value: u.id,
-                  label: `${u.nome} (${u.email})`,
+                  label: `${u.nome} (${u.email})${u.perfil ? ` • ${u.perfil}` : ''}`,
                 })),
               ]}
             />
@@ -710,7 +710,7 @@ export function AusenciasPage(): JSX.Element {
             options={[{ value: '', label: 'Todos' }].concat(
               usuariosQuery.data?.map((usuario) => ({
                 value: usuario.id,
-                label: `${usuario.nome} (${usuario.email})`,
+                label: `${usuario.nome} (${usuario.email})${usuario.perfil ? ` • ${usuario.perfil}` : ''}`,
               })) ?? []
             )}
             disabled={usuariosQuery.isLoading}
@@ -748,7 +748,7 @@ export function AusenciasPage(): JSX.Element {
                 <TableHeader>Tipo</TableHeader>
                 <TableHeader>Período</TableHeader>
                 <TableHeader>Status</TableHeader>
-                <TableHeader>Justificativa / Motivo</TableHeader>
+                <TableHeader className="hidden sm:table-cell">Justificativa / Motivo</TableHeader>
                 <TableHeader align="right">Ações</TableHeader>
               </tr>
             </TableHead>
@@ -804,7 +804,7 @@ export function AusenciasPage(): JSX.Element {
                         {(ausencia.status === 'aprovado' || ausencia.status === 'rejeitado') &&
                         ausencia.aprovadoEm ? (
                           <p className="text-xs text-[var(--color-text-tertiary)]">
-                            {formatDate(ausencia.aprovadoEm)}
+                            {formatDateBR(ausencia.aprovadoEm)}
                           </p>
                         ) : null}
                         {ausencia.documentoAnexo ? (
@@ -818,6 +818,23 @@ export function AusenciasPage(): JSX.Element {
                             📎 Ver anexo
                           </button>
                         ) : null}
+                        <div className="sm:hidden">
+                          {ausencia.status === 'rejeitado' ? (
+                            <p
+                              className="mt-2 text-xs text-[var(--color-error-600)]"
+                              title={ausencia.motivoRejeicao ?? undefined}
+                            >
+                              {ausencia.motivoRejeicao ?? '-'}
+                            </p>
+                          ) : (
+                            <p
+                              className="mt-2 text-xs text-[var(--color-text-secondary)]"
+                              title={ausencia.justificativa ?? ausencia.observacoes ?? undefined}
+                            >
+                              {ausencia.justificativa ?? ausencia.observacoes ?? '-'}
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell hideOnMobile>

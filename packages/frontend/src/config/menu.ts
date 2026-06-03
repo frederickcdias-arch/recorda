@@ -221,11 +221,12 @@ const mobileSheetNavMap: Record<PerfilUsuario, string[]> = {
     'operacao-devolucoes',
     'operacao-kb',
     'operacao-cq',
+    'ausencias',
     'empresa',
     'auditoria',
   ],
   operador: ['comunicados', 'operacao-devolucoes', 'operacao-kb', 'operacao-cq', 'auditoria'],
-  colaborador: ['comunicados'],
+  colaborador: ['comunicados', 'minhas-ausencias'],
   visualizador: [],
 };
 

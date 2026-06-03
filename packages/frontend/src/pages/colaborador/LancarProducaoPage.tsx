@@ -14,6 +14,7 @@ import {
 } from '../../hooks/useQueries';
 import { useToastHelpers } from '../../components/ui/Toast';
 import { normalizeIdRepositorioGed } from '@recorda/shared';
+import { getCurrentDateInputValue } from '../../utils/date';
 
 function validarQuantidade(value: string): number | null {
   const trimmed = value.trim();
@@ -42,7 +43,7 @@ export function LancarProducaoPage(): JSX.Element {
   const isAdmin = usuario?.perfil === 'administrador';
 
   const [formData, setFormData] = useState({
-    data: new Date().toISOString().split('T')[0],
+    data: getCurrentDateInputValue(),
     repositorio: '',
     etapa: '',
     funcao: '',
@@ -123,7 +124,7 @@ export function LancarProducaoPage(): JSX.Element {
 
       setMensagem({ tipo: 'success', texto: 'Produção registrada com sucesso!' });
       setFormData({
-        data: new Date().toISOString().split('T')[0],
+        data: getCurrentDateInputValue(),
         repositorio: '',
         etapa: '',
         funcao: '',
@@ -177,7 +178,7 @@ export function LancarProducaoPage(): JSX.Element {
                   label="Data (ajuste administrativo)"
                   type="date"
                   value={formData.data}
-                  max={new Date().toISOString().split('T')[0]}
+                  max={getCurrentDateInputValue()}
                   onChange={(e) => setFormData((p) => ({ ...p, data: e.target.value }))}
                   helperText="Somente administradores podem alterar a data."
                 />

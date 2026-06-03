@@ -8,6 +8,7 @@ import { useToastHelpers } from '../../components/ui/Toast';
 import { useConfirmDialog } from '../../hooks/useConfirmDialog';
 import { useCancelarMinhaAusencia, useMinhasAusencias } from '../../hooks/useQueries';
 import { api } from '../../services/api';
+import { formatDateBR } from '../../utils/date';
 import type { ListarMinhasAusenciasParams, MinhaAusenciaItem } from '@recorda/shared';
 
 const PERIODO_OPTIONS = [
@@ -30,12 +31,6 @@ const STATUS_BADGE: Record<string, string> = {
   rejeitado: 'bg-[var(--color-error-50)] text-[var(--color-error-700)]',
   cancelado: 'bg-[var(--color-gray-100)] text-[var(--color-text-secondary)]',
 };
-
-function formatDate(value: string | undefined | null): string {
-  if (!value) return '-';
-  const d = new Date(value);
-  return d.toLocaleDateString('pt-BR');
-}
 
 function getPeriodoLabel(periodo: string): string {
   return PERIODO_OPTIONS.find((item) => item.value === periodo)?.label ?? periodo;
@@ -73,8 +68,8 @@ function AusenciaCard({
 
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-[var(--color-text-secondary)]">
             <span>
-              {formatDate(item.dataInicio)}
-              {item.dataFim !== item.dataInicio ? ` - ${formatDate(item.dataFim)}` : ''}
+              {formatDateBR(item.dataInicio)}
+              {item.dataFim !== item.dataInicio ? ` - ${formatDateBR(item.dataFim)}` : ''}
             </span>
             <span>{getPeriodoLabel(item.periodo)}</span>
             {item.horasAusencia ? <span>{item.horasAusencia}h</span> : null}
@@ -104,7 +99,7 @@ function AusenciaCard({
           ) : null}
 
           <p className="text-xs text-[var(--color-text-tertiary)]">
-            Registrado em {formatDate(item.criadoEm)}
+            Registrado em {formatDateBR(item.criadoEm)}
           </p>
         </div>
 

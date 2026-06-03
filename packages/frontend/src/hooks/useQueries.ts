@@ -1315,6 +1315,7 @@ interface UsuarioColaborador {
   nome: string;
   email: string;
   ativo: boolean;
+  perfil?: string;
 }
 
 export function useUsuariosColaboradores() {

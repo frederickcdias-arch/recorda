@@ -35,3 +35,9 @@ export function toDateInputValue(value: Date): string {
   const day = String(value.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 }
+
+export function getCurrentDateInputValue(): string {
+  const now = new Date();
+  const zonedNow = new Date(now.toLocaleString('en-US', { timeZone: SYSTEM_TIMEZONE }));
+  return toDateInputValue(zonedNow);
+}

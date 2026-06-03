@@ -16,6 +16,15 @@ import {
   sqlDateInSystemTimezone,
 } from '../../../domain/producao/producao-metrics.js';
 
+function toDateOnlyString(value: string | Date | null | undefined): string {
+  if (!value) return '';
+  if (typeof value === 'string') return value;
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, '0');
+  const day = String(value.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 interface RelatorioQuery {
   dataInicio: string;
   dataFim: string;
@@ -999,14 +1008,8 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
             tipoAusenciaId: r.tipo_ausencia_id as string,
             tipoAusenciaNome: r.tipo_ausencia_nome as string,
             tipoAusenciaCor: r.tipo_ausencia_cor as string,
-            dataInicio:
-              r.data_inicio instanceof Date
-                ? (r.data_inicio as Date).toISOString().split('T')[0]!
-                : String(r.data_inicio ?? ''),
-            dataFim:
-              r.data_fim instanceof Date
-                ? (r.data_fim as Date).toISOString().split('T')[0]!
-                : String(r.data_fim ?? ''),
+            dataInicio: toDateOnlyString(r.data_inicio as string | Date | null | undefined),
+            dataFim: toDateOnlyString(r.data_fim as string | Date | null | undefined),
             periodo: r.periodo as string,
             horasAusencia: r.horas_ausencia != null ? String(r.horas_ausencia) : null,
             status: r.status as string,
