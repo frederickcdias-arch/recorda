@@ -14,7 +14,7 @@ interface RegisterBody {
   nome: string;
   email: string;
   senha: string;
-  perfil?: 'colaborador' | 'operador' | 'administrador';
+  perfil?: 'colaborador' | 'operador' | 'administrador' | 'visualizador';
   coordenadoriaId?: string;
 }
 
@@ -33,9 +33,12 @@ declare module '@fastify/jwt' {
   }
 }
 
-function perfilToPapel(perfil: string): 'ADMIN' | 'OPERADOR' | 'COLABORADOR' {
+function perfilToPapel(
+  perfil: string
+): 'ADMIN' | 'OPERADOR' | 'COLABORADOR' | 'VISUALIZADOR' {
   if (perfil === 'administrador') return 'ADMIN';
   if (perfil === 'colaborador') return 'COLABORADOR';
+  if (perfil === 'visualizador') return 'VISUALIZADOR';
   return 'OPERADOR';
 }
 
@@ -374,10 +377,12 @@ export const authRoutes = fp(async (server: FastifyInstance): Promise<void> => {
         return reply.status(400).send({ error: 'Senha deve ter no mínimo 8 caracteres' });
       }
 
-      if (!['colaborador', 'operador', 'administrador'].includes(perfil)) {
+      if (!['colaborador', 'operador', 'administrador', 'visualizador'].includes(perfil)) {
         return reply
           .status(400)
-          .send({ error: 'Perfil inválido. Use colaborador, operador ou administrador.' });
+          .send({
+            error: 'Perfil inválido. Use colaborador, operador, visualizador ou administrador.',
+          });
       }
 
       try {
@@ -520,7 +525,7 @@ export const authRoutes = fp(async (server: FastifyInstance): Promise<void> => {
         }
 
         if (perfil) {
-          if (!['colaborador', 'operador', 'administrador'].includes(perfil)) {
+          if (!['colaborador', 'operador', 'administrador', 'visualizador'].includes(perfil)) {
             return reply.status(400).send({ error: 'Perfil inválido' });
           }
           updates.push(`perfil = $${paramIndex++}`);

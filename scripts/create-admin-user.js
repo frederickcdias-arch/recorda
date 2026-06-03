@@ -19,8 +19,10 @@ if (!PASSWORD) {
 const NOME = process.env.ADMIN_NAME || 'Administrador';
 const PERFIL = process.env.ADMIN_ROLE || 'administrador';
 const DB_HOST = process.env.DB_HOST || 'localhost';
+const PERFIS_VALIDOS = new Set(['administrador', 'operador', 'colaborador', 'visualizador']);
 
 ensureSafeDbHost(DB_HOST);
+ensureValidRole(PERFIL);
 
 function requireEnv(name) {
   const value = process.env[name]?.trim();
@@ -44,6 +46,14 @@ function ensureSafeDbHost(hostname) {
     );
     process.exit(1);
   }
+}
+
+function ensureValidRole(role) {
+  if (PERFIS_VALIDOS.has(role)) return;
+  console.error(
+    `ERRO: ADMIN_ROLE invalido (${role}). Use um dos perfis: ${[...PERFIS_VALIDOS].join(', ')}.`
+  );
+  process.exit(1);
 }
 
 const client = new Client({

@@ -1365,6 +1365,13 @@ export function createComunicadosRoutes(): FastifyPluginAsync {
       async (request, reply) => {
         const user = getCurrentUser(request);
         const { id } = request.params;
+
+        if (user.perfil === 'visualizador') {
+          return reply.status(403).send({
+            error: 'Perfil visualizador não pode alterar o estado de leitura dos comunicados',
+          });
+        }
+
         const client = await server.database.pool.connect();
 
         try {

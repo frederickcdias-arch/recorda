@@ -70,6 +70,47 @@ describe('AuthContext', () => {
     expect(sessionStorage.getItem('recorda_refresh_token')).toBe('refresh-456');
   });
 
+  it('aceita login com perfil visualizador', async () => {
+    const user = userEvent.setup();
+
+    const mockFetch = vi.fn(async (input: RequestInfo | URL) => {
+      if (typeof input === 'string' && input.includes('/api/auth/login')) {
+        return new Response(
+          JSON.stringify({
+            accessToken: 'token-visualizador',
+            refreshToken: 'refresh-visualizador',
+            usuario: {
+              id: 'user-visualizador',
+              nome: 'Infra Visualização',
+              email: 'infra.visualizacao@recorda.local',
+              perfil: 'visualizador',
+            },
+          }),
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        );
+      }
+
+      return new Response(null, { status: 404 });
+    });
+
+    vi.stubGlobal('fetch', mockFetch);
+
+    render(
+      <AuthProvider>
+        <TestConsumer />
+      </AuthProvider>
+    );
+
+    await user.click(screen.getByText('login'));
+
+    await waitFor(() => expect(screen.getByTestId('autenticado')).toHaveTextContent('yes'));
+    expect(screen.getByTestId('usuario')).toHaveTextContent('Infra Visualização');
+    expect(sessionStorage.getItem('recorda_access_token')).toBe('token-visualizador');
+  });
+
   it('executa logout limpando tokens de armazenamento', async () => {
     sessionStorage.setItem('recorda_access_token', 'token-abc');
     sessionStorage.setItem('recorda_refresh_token', 'refresh-def');

@@ -2,7 +2,7 @@
  * Tipos relacionados a usuários
  */
 
-export type PerfilUsuario = 'colaborador' | 'operador' | 'administrador';
+export type PerfilUsuario = 'colaborador' | 'operador' | 'administrador' | 'visualizador';
 
 export type PermissaoTipo =
   | 'visualizar_dashboard'
@@ -13,6 +13,7 @@ export type PermissaoTipo =
   | 'gerenciar_usuarios';
 
 export const PERMISSOES_POR_PERFIL: Record<PerfilUsuario, PermissaoTipo[]> = {
+  visualizador: ['visualizar_dashboard'],
   colaborador: ['visualizar_dashboard'],
   operador: [
     'visualizar_dashboard',

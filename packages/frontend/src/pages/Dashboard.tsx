@@ -466,8 +466,15 @@ function DashboardColaborador(): JSX.Element {
   );
 }
 
-function DashboardContent({ data }: { data: DashboardData }): JSX.Element {
+function DashboardContent({
+  data,
+  readOnly = false,
+}: {
+  data: DashboardData;
+  readOnly?: boolean;
+}): JSX.Element {
   const navigate = useNavigate();
+  const goToProducao = readOnly ? undefined : () => navigate('/producao');
 
   const producaoPorEtapa = Array.isArray(data.producaoPorEtapa) ? data.producaoPorEtapa : [];
   const statusProducao = Array.isArray(data.statusRecebimento) ? data.statusRecebimento : [];
@@ -489,7 +496,7 @@ function DashboardContent({ data }: { data: DashboardData }): JSX.Element {
           icon="bar-chart"
           subtitle={data.stats.producaoTrend !== '0%' ? data.stats.producaoTrend : undefined}
           tone="primary"
-          onClick={() => navigate('/producao')}
+          onClick={goToProducao}
         />
         <StatCard
           title="Repositórios com Produção"
@@ -502,7 +509,7 @@ function DashboardContent({ data }: { data: DashboardData }): JSX.Element {
               : undefined
           }
           tone="success"
-          onClick={() => navigate('/producao')}
+          onClick={goToProducao}
         />
         <StatCard
           title="Usuários Ativos"
@@ -510,7 +517,7 @@ function DashboardContent({ data }: { data: DashboardData }): JSX.Element {
           rawValue={colaboradoresAtivos ?? 0}
           icon="users"
           tone="warning"
-          onClick={() => navigate('/producao')}
+          onClick={goToProducao}
         />
       </section>
 
@@ -528,12 +535,7 @@ function DashboardContent({ data }: { data: DashboardData }): JSX.Element {
                 const percentual = ((valor ?? 0) / maxProducao) * 100;
 
                 return (
-                  <button
-                    key={item.etapa}
-                    type="button"
-                    onClick={() => navigate('/producao')}
-                    className="w-full text-left"
-                  >
+                  <div key={item.etapa} className="w-full text-left">
                     <div className="mb-1.5 flex items-center justify-between gap-3 text-sm">
                       <span className="text-[var(--color-text-secondary)]">{item.etapa}</span>
                       <span className="font-semibold text-[var(--color-text-primary)]">
@@ -545,7 +547,7 @@ function DashboardContent({ data }: { data: DashboardData }): JSX.Element {
                       value={Math.max(percentual, 2)}
                       max={100}
                     />
-                  </button>
+                  </div>
                 );
               })
             )}
@@ -556,11 +558,9 @@ function DashboardContent({ data }: { data: DashboardData }): JSX.Element {
           <CardHeader title="Status da Produção" />
           <div className="space-y-3">
             {statusProducao.map((item) => (
-              <button
+              <div
                 key={item.status}
-                type="button"
-                onClick={() => navigate('/producao')}
-                className="flex w-full items-center justify-between rounded-2xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-3 text-left transition-colors hover:bg-[var(--color-primary-50)]"
+                className="flex w-full items-center justify-between rounded-2xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-3 text-left"
               >
                 <div className="flex items-center gap-3">
                   <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--color-gray-100)] text-[var(--color-text-secondary)]">
@@ -571,7 +571,7 @@ function DashboardContent({ data }: { data: DashboardData }): JSX.Element {
                 <span className="font-semibold text-[var(--color-text-primary)]">
                   {formatCriticalNumber(item?.valor)}
                 </span>
-              </button>
+              </div>
             ))}
           </div>
         </Card>
@@ -615,7 +615,7 @@ function DashboardContent({ data }: { data: DashboardData }): JSX.Element {
   );
 }
 
-function DashboardAdminPage(): JSX.Element {
+function DashboardAdminPage({ readOnly = false }: { readOnly?: boolean }): JSX.Element {
   const { data, isLoading, error, refetch } = useDashboard();
 
   const errorObj = error
@@ -639,7 +639,7 @@ function DashboardAdminPage(): JSX.Element {
 
   return (
     <PageState loading={false} error={errorObj}>
-      {data ? <DashboardContent data={data} /> : null}
+      {data ? <DashboardContent data={data} readOnly={readOnly} /> : null}
     </PageState>
   );
 }
@@ -649,6 +649,10 @@ export function DashboardPage(): JSX.Element {
 
   if (usuario?.perfil === 'colaborador') {
     return <DashboardColaborador />;
+  }
+
+  if (usuario?.perfil === 'visualizador') {
+    return <DashboardAdminPage readOnly />;
   }
 
   return <DashboardAdminPage />;

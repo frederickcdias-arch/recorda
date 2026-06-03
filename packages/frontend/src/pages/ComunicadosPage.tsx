@@ -7,6 +7,7 @@ import { PageHeader } from '../components/ui/PageHeader';
 import { PageState } from '../components/ui/PageState';
 import { useToastHelpers } from '../components/ui/Toast';
 import { useComunicadosUsuario, useMarcarComunicadoLido } from '../hooks/useQueries';
+import { useAuth } from '../contexts/AuthContext';
 import { formatDateTimeBR } from '../utils/date';
 import { extractErrorMessage } from '../utils/errors';
 
@@ -157,9 +158,11 @@ function ListaCompacta({
 }
 
 export function ComunicadosPage(): JSX.Element {
+  const { usuario } = useAuth();
   const toast = useToastHelpers();
   const comunicadosQuery = useComunicadosUsuario();
   const marcarComoLido = useMarcarComunicadoLido();
+  const isVisualizador = usuario?.perfil === 'visualizador';
 
   const [caixaAberta, setCaixaAberta] = useState(false);
   const [buscaCaixa, setBuscaCaixa] = useState('');
@@ -347,15 +350,17 @@ export function ComunicadosPage(): JSX.Element {
                   </p>
                 </div>
 
-                <div className="flex justify-end">
-                  <Button
-                    variant="primary"
-                    loading={marcarComoLido.isPending}
-                    onClick={() => void handleMarcarComoLido(comunicadoPrincipal.id)}
-                  >
-                    Marcar como lido
-                  </Button>
-                </div>
+                {!isVisualizador ? (
+                  <div className="flex justify-end">
+                    <Button
+                      variant="primary"
+                      loading={marcarComoLido.isPending}
+                      onClick={() => void handleMarcarComoLido(comunicadoPrincipal.id)}
+                    >
+                      Marcar como lido
+                    </Button>
+                  </div>
+                ) : null}
               </div>
             </Card>
 

@@ -16,6 +16,7 @@ const PERFIL_LABELS: Record<string, string> = {
   administrador: 'Administrador',
   operador: 'Operador',
   colaborador: 'Colaborador',
+  visualizador: 'Visualizador',
   supervisor: 'Supervisor',
 };
 

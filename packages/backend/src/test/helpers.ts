@@ -853,7 +853,7 @@ export async function buildTestServer(): Promise<FastifyInstance> {
 
 export async function getTestToken(
   app: FastifyInstance,
-  perfil: 'colaborador' | 'operador' | 'administrador' = 'colaborador'
+  perfil: 'colaborador' | 'operador' | 'administrador' | 'visualizador' = 'colaborador'
 ): Promise<string> {
   const payload = {
     id: `test-${perfil}-id`,

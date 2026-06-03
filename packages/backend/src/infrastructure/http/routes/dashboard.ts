@@ -113,7 +113,7 @@ export function createDashboardRoutes(): FastifyPluginAsync {
             500: { type: 'object', properties: { error: { type: 'string' } } },
           },
         },
-        preHandler: [server.authenticate, authorize('operador', 'administrador')],
+        preHandler: [server.authenticate, authorize('operador', 'administrador', 'visualizador')],
       },
       async (_request, reply) => {
         try {

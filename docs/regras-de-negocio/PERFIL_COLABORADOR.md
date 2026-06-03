@@ -368,3 +368,32 @@ Para dúvidas ou problemas, consulte:
 - Documentação completa: `/docs`
 - Logs do sistema: `/logs`
 - API Swagger: `http://localhost:3000/documentation`
+
+---
+
+## Perfil Visualizador
+
+Uso:
+
+- acesso temporario e controlado para validacao externa
+- suporte, auditoria tecnica ou infraestrutura
+
+Permissoes:
+
+- autenticar no sistema
+- acessar dashboard
+- acessar comunicados em modo leitura
+
+Restricoes:
+
+- nao cria, edita, exclui, importa, exporta, aprova, cancela ou reprocessa
+- nao acessa configuracoes administrativas
+- nao altera usuarios, perfis ou permissoes
+- nao marca comunicado como lido
+
+Indicacao operacional:
+
+- criar usuario temporario com `ADMIN_ROLE=visualizador`
+- usar email tecnico como `infra.visualizacao@recorda.local`
+- definir senha forte por variavel de ambiente
+- remover ou desativar o usuario apos a validacao

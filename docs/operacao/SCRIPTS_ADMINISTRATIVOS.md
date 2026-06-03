@@ -68,6 +68,24 @@ ADMIN_ROLE=administrador
 ADMIN_SCRIPT_ALLOW_REMOTE_DB=true
 ```
 
+Uso para acesso temporario de visualizacao:
+
+```bash
+ADMIN_EMAIL=infra.visualizacao@recorda.local
+ADMIN_NAME="Infra Visualizacao"
+ADMIN_ROLE=visualizador
+ADMIN_PASSWORD=gere_uma_senha_forte_e_temporaria
+DB_PASSWORD=defina_uma_senha_local
+node scripts/create-admin-user.js
+```
+
+Regras:
+
+- prefira dominio ficticio `@recorda.local`
+- nao commite senha em arquivo
+- desative ou remova o usuario apos a validacao externa
+- se o ambiente suportar, force troca de senha no primeiro acesso por processo operacional
+
 ### `scripts/apply-migration.js`
 
 Variaveis:

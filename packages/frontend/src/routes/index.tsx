@@ -178,9 +178,11 @@ export const router = createBrowserRouter([
       {
         path: 'comunicados',
         element: (
-          <PageSuspense>
-            <ComunicadosPage />
-          </PageSuspense>
+          <RoleRoute allowedProfiles={['visualizador', 'colaborador', 'operador', 'administrador']}>
+            <PageSuspense>
+              <ComunicadosPage />
+            </PageSuspense>
+          </RoleRoute>
         ),
       },
       {

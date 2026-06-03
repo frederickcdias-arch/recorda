@@ -74,6 +74,7 @@ export const menuSections: MenuSection[] = [
     label: 'Comunicados',
     icon: 'mail',
     basePath: '/comunicados',
+    allowedProfiles: ['visualizador', 'colaborador', 'operador', 'administrador'],
     items: [],
   },
   {
@@ -211,6 +212,7 @@ const mobilePrimaryNavMap: Record<PerfilUsuario, string[]> = {
   administrador: ['dashboard', 'operacao-recebimento', 'producao-painel', 'relatorios-gerenciais'],
   operador: ['dashboard', 'operacao-recebimento', 'producao-painel', 'relatorios-gerenciais'],
   colaborador: ['dashboard', 'lancar-producao', 'meu-historico', 'captura-mapa'],
+  visualizador: ['dashboard', 'comunicados'],
 };
 
 const mobileSheetNavMap: Record<PerfilUsuario, string[]> = {
@@ -224,6 +226,7 @@ const mobileSheetNavMap: Record<PerfilUsuario, string[]> = {
   ],
   operador: ['comunicados', 'operacao-devolucoes', 'operacao-kb', 'operacao-cq', 'auditoria'],
   colaborador: ['comunicados'],
+  visualizador: [],
 };
 
 export interface MenuLinkItem {
