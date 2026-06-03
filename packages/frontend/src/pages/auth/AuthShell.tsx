@@ -3,11 +3,12 @@ import { Card } from '../../components/ui/Card';
 interface AuthShellProps {
   title: string;
   subtitle?: string;
+  brandSubtitle?: string;
   children: React.ReactNode;
   footer?: React.ReactNode;
 }
 
-export function AuthShell({ title, subtitle, children, footer }: AuthShellProps): JSX.Element {
+export function AuthShell({ title, subtitle, brandSubtitle, children, footer }: AuthShellProps): JSX.Element {
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[var(--color-bg-secondary)] px-4 py-8 sm:px-6 sm:py-12">
       <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -26,7 +27,7 @@ export function AuthShell({ title, subtitle, children, footer }: AuthShellProps)
           </div>
           <p className="text-sm font-medium text-[var(--color-text-primary)]">Recorda</p>
           <p className="mt-1 text-sm text-[var(--color-text-tertiary)]">
-            Gestão documental e operacional
+            {brandSubtitle ?? 'Gestão documental e operacional'}
           </p>
         </div>
 

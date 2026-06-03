@@ -16,7 +16,7 @@ test.describe('Fluxo de autenticacao e dashboard', () => {
 
     await page.getByRole('button', { name: /sair/i }).click();
     await page.waitForURL('**/login');
-    await expect(page.getByRole('heading', { name: /Acesse sua conta/i })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Acesso restrito/i })).toBeVisible();
   });
 
   test('exibe mensagem de erro para credenciais invalidas', async ({ page }) => {

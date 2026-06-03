@@ -58,9 +58,10 @@ export function LoginPage(): JSX.Element {
 
   return (
     <AuthShell
-      title="Acesse sua conta"
-      subtitle="Entre para continuar."
-      footer="Ambiente seguro do Recorda"
+      title="Acesso restrito"
+      subtitle="Entre com suas credenciais corporativas para continuar."
+      brandSubtitle="Plataforma interna de operação e controle de produção"
+      footer="Uso exclusivo de usuários autorizados"
     >
       {erro ? (
         <div className="mb-4">
@@ -124,13 +125,13 @@ export function LoginPage(): JSX.Element {
             >
               {lembrarMe ? <Icon name="check" className="h-2.5 w-2.5 text-white" /> : null}
             </span>
-            Manter acesso
+            Manter sessão ativa
           </label>
           <Link
             to="/forgot-password"
             className="font-medium text-[var(--color-primary-600)] transition-colors duration-200 hover:text-[var(--color-primary-700)]"
           >
-            Esqueci a senha
+            Recuperar acesso
           </Link>
         </div>
 

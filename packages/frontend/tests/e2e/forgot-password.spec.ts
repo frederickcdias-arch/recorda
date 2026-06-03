@@ -9,7 +9,7 @@ test.describe('Fluxo de recuperacao de senha', () => {
   test('exibe pagina de esqueci minha senha com formulario disponivel', async ({ page }) => {
     await page.goto('/login');
 
-    await page.getByRole('link', { name: /Esqueci a senha/i }).click();
+    await page.getByRole('link', { name: /Recuperar acesso/i }).click();
     await expect(page).toHaveURL(/\/forgot-password$/);
 
     await page.getByLabel(/E-mail/i).fill('usuario@recorda.local');
