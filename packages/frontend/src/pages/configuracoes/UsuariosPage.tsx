@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import type { PerfilUsuario } from '@recorda/shared';
 import { Button } from '../../components/ui/Button';
 import { Card, CardHeader } from '../../components/ui/Card';
 import { Icon } from '../../components/ui/Icon';
@@ -37,17 +38,23 @@ interface Usuario {
 const PERFIL_OPTIONS = [
   { value: 'colaborador', label: 'Colaborador' },
   { value: 'operador', label: 'Operador' },
+  { value: 'visualizador', label: 'Visualizador' },
   { value: 'administrador', label: 'Administrador' },
-] as const;
+] as const satisfies ReadonlyArray<{ value: PerfilUsuario; label: string }>;
 
 function formatarPapel(papel: string): string {
   if (papel === 'ADMIN') return 'Administrador';
+  if (papel === 'VISUALIZADOR') return 'Visualizador';
   return papel.charAt(0).toUpperCase() + papel.slice(1).toLowerCase();
 }
 
 function getPerfilBadgeClass(papel: string): string {
   if (papel === 'ADMIN') {
     return 'bg-[var(--color-primary-100)] text-[var(--color-primary-700)]';
+  }
+
+  if (papel === 'VISUALIZADOR') {
+    return 'bg-[var(--color-warning-50)] text-[var(--color-warning-700)]';
   }
 
   return 'bg-[var(--color-gray-100)] text-[var(--color-text-secondary)]';
@@ -77,7 +84,7 @@ export function UsuariosPage(): JSX.Element {
     email: '',
     nome: '',
     senha: '',
-    perfil: 'operador' as 'colaborador' | 'operador' | 'administrador',
+    perfil: 'operador' as PerfilUsuario,
   });
   const [salvando, setSalvando] = useState(false);
 
@@ -108,7 +115,7 @@ export function UsuariosPage(): JSX.Element {
       perfil:
         usuario.papel === 'ADMIN'
           ? 'administrador'
-          : (usuario.papel.toLowerCase() as 'colaborador' | 'operador' | 'administrador'),
+          : (usuario.papel.toLowerCase() as PerfilUsuario),
     });
     setModalAberto(true);
   };
@@ -352,7 +359,7 @@ export function UsuariosPage(): JSX.Element {
               onChange={(e) =>
                 setFormData((p) => ({
                   ...p,
-                  perfil: e.target.value as 'colaborador' | 'operador' | 'administrador',
+                  perfil: e.target.value as PerfilUsuario,
                 }))
               }
             >

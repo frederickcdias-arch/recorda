@@ -243,6 +243,25 @@ describe('useRegisterUsuario', () => {
       perfil: 'operador',
     });
   });
+
+  it('posts register with visualizador profile', async () => {
+    mockPost.mockResolvedValueOnce({});
+
+    const { result } = renderHook(() => useRegisterUsuario(), { wrapper });
+    await result.current.mutateAsync({
+      email: 'visualizador@recorda.local',
+      nome: 'Visualizador',
+      senha: '12345678',
+      perfil: 'visualizador',
+    });
+
+    expect(mockPost).toHaveBeenCalledWith('/auth/register', {
+      email: 'visualizador@recorda.local',
+      nome: 'Visualizador',
+      senha: '12345678',
+      perfil: 'visualizador',
+    });
+  });
 });
 
 describe('useDeleteProducao', () => {

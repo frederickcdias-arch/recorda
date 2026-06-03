@@ -2188,6 +2188,51 @@ describe('HTTP server integration', () => {
     expect(String(duplicateResponse.json().error)).toContain('E-mail');
   });
 
+  it('allows admin to create and list a visualizador user', async () => {
+    const accessToken = await authenticate();
+    const payload = {
+      nome: 'Infra Visualização',
+      email: 'infra.visualizacao@recorda.local',
+      senha: 'SenhaNova123',
+      perfil: 'visualizador',
+      coordenadoriaId: 'coord-1',
+    };
+
+    const createResponse = await server.inject({
+      method: 'POST',
+      url: '/auth/register',
+      headers: {
+        authorization: `Bearer ${accessToken}`,
+      },
+      payload,
+    });
+
+    expect(createResponse.statusCode).toBe(201);
+    expect(createResponse.json()).toMatchObject({
+      email: 'infra.visualizacao@recorda.local',
+      perfil: 'visualizador',
+    });
+
+    const listResponse = await server.inject({
+      method: 'GET',
+      url: '/auth/usuarios',
+      headers: {
+        authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    expect(listResponse.statusCode).toBe(200);
+    expect(listResponse.json()).toMatchObject({
+      usuarios: expect.arrayContaining([
+        expect.objectContaining({
+          email: 'infra.visualizacao@recorda.local',
+          perfil: 'visualizador',
+          papel: 'VISUALIZADOR',
+        }),
+      ]),
+    });
+  });
+
   it('blocks register for non-admin users', async () => {
     database.usuarios.set('user-op', {
       id: 'user-op',
