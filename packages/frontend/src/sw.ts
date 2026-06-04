@@ -56,8 +56,8 @@ self.addEventListener('push', (event) => {
 
   event.waitUntil(
     self.registration
-      .showNotification(payload.title ?? 'Recorda', {
-        body: payload.body ?? 'Voce recebeu um novo comunicado interno.',
+      .showNotification(payload.title ?? 'Recorda | Comunicado', {
+        body: payload.body ?? 'Novo comunicado disponível. Toque para ver os detalhes.',
         icon: '/pwa-192x192.png',
         badge: '/pwa-192x192.png',
         tag: payload.tag ?? 'recorda-comunicados',

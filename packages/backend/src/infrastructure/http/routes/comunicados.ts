@@ -850,6 +850,8 @@ export function createComunicadosRoutes(): FastifyPluginAsync {
                conteudo,
                prioridade,
                escopo_destino,
+               categoria,
+               resumo,
                status,
                criado_por_usuario_id,
                criado_em,
@@ -958,6 +960,8 @@ export function createComunicadosRoutes(): FastifyPluginAsync {
                 titulo: comunicado.titulo,
                 conteudo: comunicado.conteudo,
                 prioridade: comunicado.prioridade,
+                categoria: comunicado.categoria,
+                resumo: comunicado.resumo,
                 usuarioIds,
               })
               .catch((error) => {

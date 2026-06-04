@@ -20,6 +20,8 @@ interface ComunicadoPushPayload {
   titulo: string;
   conteudo: string;
   prioridade: 'BAIXA' | 'MEDIA' | 'ALTA';
+  categoria?: string | null;
+  resumo?: string | null;
   usuarioIds: string[];
 }
 
@@ -28,12 +30,159 @@ export interface WebPushService {
   sendComunicadoPublicado: (payload: ComunicadoPushPayload) => Promise<void>;
 }
 
-function truncateBody(conteudo: string): string {
-  const normalized = conteudo.trim().replace(/\s+/g, ' ');
-  if (normalized.length <= 140) {
-    return normalized;
+interface PushNotificationPayload {
+  title: string;
+  body: string;
+  tag: string;
+  url: string;
+  data: {
+    comunicadoId: string;
+    prioridade: 'BAIXA' | 'MEDIA' | 'ALTA';
+  };
+}
+
+const PUSH_TITLE_DEFAULT = 'Recorda | Comunicado';
+const PUSH_TITLE_ATENCAO = 'Recorda | Atenção';
+const PUSH_BODY_FALLBACK = 'Novo comunicado disponível. Toque para ver os detalhes.';
+const PUSH_BODY_SUFFIX = ' Toque para ver os detalhes.';
+const PUSH_BODY_MAX_LENGTH = 110;
+
+const categoriaPushLabels: Record<string, string> = {
+  ADMINISTRATIVO: 'Administrativo',
+  CONFERENCIA: 'Conferência',
+  DIGITALIZACAO: 'Digitalização',
+  GERAL: 'Comunicado',
+  PRODUCAO: 'Produção',
+  QUALIDADE: 'Qualidade',
+  RECONFERENCIA: 'Reconferência',
+  SISTEMA: 'Sistema',
+};
+
+function normalizeText(value: string | null | undefined): string {
+  return (value ?? '').replace(/\s+/g, ' ').trim();
+}
+
+function truncateText(value: string, maxLength: number): string {
+  if (value.length <= maxLength) {
+    return value;
   }
-  return `${normalized.slice(0, 137)}...`;
+
+  const slice = value.slice(0, Math.max(0, maxLength - 3)).trimEnd();
+  return `${slice}...`;
+}
+
+function removeBrandMention(value: string): string {
+  return value
+    .replace(/\bfrom\s+recorda\b/gi, '')
+    .replace(/\brecorda\b[\s:|,-]*/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function stripLeadingCategoryPrefix(title: string): string {
+  const normalizedTitle = normalizeText(title);
+  const match = normalizedTitle.match(/^([^|:-]{3,30})\s*[|:-]\s*(.+)$/);
+
+  if (!match) {
+    return normalizedTitle;
+  }
+
+  const [, possiblePrefix, remainder] = match;
+  const prefix = normalizeText(possiblePrefix).toUpperCase();
+  const knownPrefixes = new Set([
+    'ADMINISTRATIVO',
+    'ATENCAO',
+    'ATENÇÃO',
+    'COMUNICADO',
+    'COMUNIDADE',
+    'CONFERENCIA',
+    'CONFERÊNCIA',
+    'DIGITALIZACAO',
+    'DIGITALIZAÇÃO',
+    'GERAL',
+    'PRODUCAO',
+    'PRODUÇÃO',
+    'QUALIDADE',
+    'RECONFERENCIA',
+    'RECONFERÊNCIA',
+    'SISTEMA',
+  ]);
+
+  if (!knownPrefixes.has(prefix)) {
+    return normalizedTitle;
+  }
+
+  return normalizeText(remainder);
+}
+
+function firstSentence(value: string): string {
+  const normalized = normalizeText(value);
+  if (!normalized) {
+    return '';
+  }
+
+  const match = normalized.match(/^(.+?[.!?])(?:\s|$)/);
+  return normalizeText(match?.[1] ?? normalized);
+}
+
+function buildPushTitle({
+  categoria,
+  prioridade,
+}: Pick<ComunicadoPushPayload, 'categoria' | 'prioridade'>): string {
+  const normalizedCategory = normalizeText(categoria).toUpperCase();
+
+  if (normalizedCategory && normalizedCategory !== 'GERAL') {
+    const label = categoriaPushLabels[normalizedCategory];
+    if (label) {
+      return `Recorda | ${label}`;
+    }
+  }
+
+  if (prioridade === 'ALTA') {
+    return PUSH_TITLE_ATENCAO;
+  }
+
+  return PUSH_TITLE_DEFAULT;
+}
+
+function buildPushBody({
+  titulo,
+  conteudo,
+  resumo,
+}: Pick<ComunicadoPushPayload, 'titulo' | 'conteudo' | 'resumo'>): string {
+  const candidates = [
+    normalizeText(resumo),
+    stripLeadingCategoryPrefix(titulo),
+    firstSentence(conteudo),
+    normalizeText(titulo),
+    normalizeText(conteudo),
+  ]
+    .map(removeBrandMention)
+    .filter(Boolean);
+
+  const availableLength = PUSH_BODY_MAX_LENGTH - PUSH_BODY_SUFFIX.length;
+  const mainText = candidates[0] ? truncateText(candidates[0], availableLength) : '';
+
+  if (!mainText) {
+    return PUSH_BODY_FALLBACK;
+  }
+
+  return `${mainText.replace(/[.!?\s]+$/g, '')}.${PUSH_BODY_SUFFIX}`;
+}
+
+export function buildComunicadoPushNotification(
+  payload: ComunicadoPushPayload
+): PushNotificationPayload {
+  return {
+    title: buildPushTitle(payload),
+    body: buildPushBody(payload),
+    tag: `comunicado-${payload.comunicadoId}`,
+    url: '/comunicados',
+    data: {
+      comunicadoId: payload.comunicadoId,
+      prioridade: payload.prioridade,
+    },
+  };
 }
 
 export function createWebPushService(database: DatabaseConnection): WebPushService {
@@ -68,12 +217,25 @@ export function createWebPushService(database: DatabaseConnection): WebPushServi
       titulo,
       conteudo,
       prioridade,
+      categoria,
+      resumo,
       usuarioIds,
     }: ComunicadoPushPayload): Promise<void> => {
       const destinatarios = Array.from(new Set(usuarioIds));
+      const notificationPayload = buildComunicadoPushNotification({
+        comunicadoId,
+        titulo,
+        conteudo,
+        prioridade,
+        categoria,
+        resumo,
+        usuarioIds: destinatarios,
+      });
       console.debug('[WebPush][diagnostic] sendComunicadoPublicado', {
         comunicadoId,
         destinatariosCount: destinatarios.length,
+        pushTitle: notificationPayload.title,
+        pushBody: notificationPayload.body,
       });
 
       if (destinatarios.length === 0) {
@@ -103,16 +265,7 @@ export function createWebPushService(database: DatabaseConnection): WebPushServi
                   auth: subscription.auth,
                 },
               },
-              JSON.stringify({
-                title: titulo,
-                body: truncateBody(conteudo),
-                tag: `comunicado-${comunicadoId}`,
-                url: '/comunicados',
-                data: {
-                  comunicadoId,
-                  prioridade,
-                },
-              })
+              JSON.stringify(notificationPayload)
             );
             console.debug('[WebPush][diagnostic] sendNotification success', {
               subscriptionId: subscription.id,
