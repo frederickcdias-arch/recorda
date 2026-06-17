@@ -1,4 +1,4 @@
-import { promises as fs } from 'fs';
+﻿import { promises as fs } from 'fs';
 import path from 'path';
 import PDFDocument from 'pdfkit';
 import {
@@ -224,11 +224,11 @@ export class AusenciasPdfService {
     this.renderSectionHeader(doc, 'REGISTROS', COLORS.primary);
 
     const columns = [
-      { label: 'Data', width: 78 },
-      { label: 'Colaborador', width: 150 },
-      { label: 'Tipo', width: 128 },
-      { label: 'Status', width: 60 },
-      { label: 'Anexo', width: 44 },
+      { label: 'Início', width: 72 },
+      { label: 'Fim', width: 72 },
+      { label: 'Colaborador', width: 142 },
+      { label: 'Tipo', width: 150 },
+      { label: 'Anexo', width: 68 },
     ];
     const rowHeight = 20;
     const headerHeight = 18;
@@ -251,18 +251,18 @@ export class AusenciasPdfService {
 
     const drawRow = (row: RelatorioAusenciasRow, y: number): void => {
       const values = [
-        this.formatRange(row.dataInicio, row.dataFim),
+        this.formatDateBR(row.dataInicio),
+        this.formatDateBR(row.dataFim),
         row.colaboradorNome,
         row.tipoAusenciaNome,
-        this.statusLabel(row.status),
-        row.documentoAnexo ? 'Sim' : 'Não',
+        row.documentoAnexo ? 'Com anexo' : 'Sem anexo',
       ];
 
       let x = MARGIN;
       doc.font('Helvetica').fontSize(8.5).fillColor('#111827');
       values.forEach((value, index) => {
         const width = columns[index]!.width;
-        const align = index >= 3 ? 'center' : 'left';
+        const align = index <= 1 || index === 4 ? 'center' : 'left';
         doc.text(value, x, y + 4, { width: width - 4, height: rowHeight - 6, align, ellipsis: true });
         x += width;
       });
@@ -390,7 +390,7 @@ export class AusenciasPdfService {
       font: regularFont,
       color: rgb(0.3, 0.32, 0.37),
     });
-    page.drawText('Os arquivos anexados no período seguem nas páginas seguintes.', {
+    page.drawText('Os anexos seguem nas páginas seguintes.', {
       x: MARGIN,
       y: page.getHeight() - 106,
       size: 9,
@@ -398,17 +398,7 @@ export class AusenciasPdfService {
       color: rgb(0.3, 0.32, 0.37),
     });
 
-    const listTop = page.getHeight() - 136;
-
-    page.drawText('Anexos disponíveis', {
-      x: MARGIN,
-      y: listTop,
-      size: 10,
-      font: boldFont,
-      color: rgb(0.07, 0.09, 0.16),
-    });
-
-    let cursorY = listTop - 10;
+    const cursorY = page.getHeight() - 136;
     if (anexos.length === 0) {
       page.drawText('Nenhum anexo disponível para este período.', {
         x: MARGIN,
@@ -417,37 +407,16 @@ export class AusenciasPdfService {
         font: regularFont,
         color: rgb(0.33, 0.35, 0.39),
       });
-      cursorY -= 26;
-    } else {
-      page.drawLine({
-        start: { x: MARGIN, y: cursorY },
-        end: { x: page.getWidth() - MARGIN, y: cursorY },
-        thickness: 0.7,
-        color: rgb(0.87, 0.89, 0.91),
-      });
-      cursorY -= 16;
-
-      const rows = anexos.map((anexo) => [
-        anexo.colaboradorNome,
-        anexo.tipoAusenciaNome,
-        anexo.filename,
-      ]);
-      this.drawSimpleList(page, regularFont, boldFont, ['Colaborador', 'Tipo', 'Arquivo'], rows, cursorY);
-      cursorY -= 18 + rows.length * 16;
     }
 
     if (anexosIgnorados.length > 0) {
-      page.drawText('Arquivos não localizados no servidor', {
+      page.drawText(`Arquivos não localizados no servidor: ${anexosIgnorados.length}`, {
         x: MARGIN,
-        y: cursorY - 4,
-        size: 10,
-        font: boldFont,
-        color: rgb(0.07, 0.09, 0.16),
+        y: cursorY - 34,
+        size: 9,
+        font: regularFont,
+        color: rgb(0.33, 0.35, 0.39),
       });
-      cursorY -= 14;
-
-      const rows = anexosIgnorados.map((item) => [item.filename, item.motivo]);
-      this.drawSimpleList(page, regularFont, boldFont, ['Arquivo', 'Motivo'], rows, cursorY);
     }
   }
 
@@ -469,66 +438,6 @@ export class AusenciasPdfService {
     const y = MARGIN + (maxHeight - drawHeight) / 2;
 
     page.drawImage(image, { x, y, width: drawWidth, height: drawHeight });
-  }
-
-  private drawSimpleList(
-    page: PDFPage,
-    regularFont: PDFFont,
-    boldFont: PDFFont,
-    headers: string[],
-    rows: string[][],
-    startY: number
-  ): void {
-    const pageWidth = page.getWidth() - MARGIN * 2;
-    const colWidths =
-      headers.length === 3
-        ? [pageWidth * 0.32, pageWidth * 0.28, pageWidth * 0.4]
-        : [pageWidth * 0.34, pageWidth * 0.66];
-    let y = startY;
-
-    page.drawLine({
-      start: { x: MARGIN, y },
-      end: { x: page.getWidth() - MARGIN, y },
-      thickness: 0.7,
-      color: rgb(0.87, 0.89, 0.91),
-    });
-    y -= 2;
-
-    let x = MARGIN;
-    headers.forEach((header, index) => {
-      page.drawText(header, {
-        x: x + 2,
-        y: y - 12,
-        size: 8.5,
-        font: boldFont,
-        color: rgb(0.13, 0.15, 0.18),
-        maxWidth: colWidths[index]! - 4,
-      });
-      x += colWidths[index]!;
-    });
-
-    y -= 18;
-    rows.forEach((row, rowIndex) => {
-      const rowY = y - rowIndex * 16;
-      page.drawLine({
-        start: { x: MARGIN, y: rowY + 12 },
-        end: { x: page.getWidth() - MARGIN, y: rowY + 12 },
-        thickness: 0.4,
-        color: rgb(0.91, 0.92, 0.94),
-      });
-      let rx = MARGIN;
-      row.forEach((value, index) => {
-        page.drawText(value, {
-          x: rx + 2,
-          y: rowY,
-          size: 8,
-          font: regularFont,
-          color: rgb(0.2, 0.22, 0.25),
-          maxWidth: colWidths[index]! - 4,
-        });
-        rx += colWidths[index]!;
-      });
-    });
   }
 
   private drawAttachmentTitle(
@@ -558,7 +467,7 @@ export class AusenciasPdfService {
       font: regularFont,
       color: rgb(0.25, 0.28, 0.32),
     });
-    page.drawText(`Período: ${this.formatRange(anexo.dataInicio, anexo.dataFim)}`, {
+    page.drawText(`Período: ${this.formatDateBR(anexo.dataInicio)} a ${this.formatDateBR(anexo.dataFim)}`, {
       x: MARGIN,
       y: page.getHeight() - 116,
       size: 10,
@@ -673,10 +582,6 @@ export class AusenciasPdfService {
     return partes.join(' | ');
   }
 
-  private formatRange(inicio: string, fim: string): string {
-    return `${this.formatDateBR(inicio)} a ${this.formatDateBR(fim)}`;
-  }
-
   private formatDateBR(value: string): string {
     const date = new Date(`${value}T00:00:00`);
     return date.toLocaleDateString('pt-BR');
@@ -746,6 +651,7 @@ export class AusenciasPdfService {
     return null;
   }
 }
+
 
 
 
