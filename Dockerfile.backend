@@ -58,6 +58,7 @@ RUN mkdir -p /app/uploads/planilhas \
 # Set environment variables
 ENV NODE_ENV=production
 ENV PORT=3001
+ENV UPLOADS_DIR=/app/uploads
 
 # Switch to non-root user
 USER nodejs

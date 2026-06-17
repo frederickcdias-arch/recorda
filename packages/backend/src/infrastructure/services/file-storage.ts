@@ -9,7 +9,7 @@ export interface FileStorageOptions {
 }
 
 export class FileStorageService {
-  private readonly uploadsDir = 'uploads';
+  private readonly uploadsDir = path.resolve(process.env.UPLOADS_DIR ?? 'uploads');
   private readonly maxSize: number;
   private readonly allowedTypes: Set<string>;
 
@@ -105,7 +105,7 @@ export async function saveAusenciaAnexo(file: {
 
   const timestamp = Date.now();
   const safeFilename = `${timestamp}_${file.filename.replace(/[^a-zA-Z0-9.\-]/g, '_')}`;
-  const absDir = path.resolve(process.cwd(), 'uploads', 'ausencias');
+  const absDir = path.resolve(process.env.UPLOADS_DIR ?? path.join(process.cwd(), 'uploads'), 'ausencias');
 
   // Path traversal guard
   const destPath = path.resolve(absDir, safeFilename);
@@ -168,11 +168,13 @@ export async function serveAusenciaAnexo(relativePath: string): Promise<{
   }
 
   // Canonicalise to an absolute path and verify it stays inside uploads/ausencias/
-  const allowedBase = path.resolve(process.cwd(), 'uploads', 'ausencias');
+  const uploadsRoot = path.resolve(process.env.UPLOADS_DIR ?? path.join(process.cwd(), 'uploads'));
+  const allowedBase = path.resolve(uploadsRoot, 'ausencias');
   const candidatePath = relativePath.startsWith('/uploads/') || relativePath.startsWith('\\uploads\\')
     ? relativePath.slice(1)
     : relativePath;
-  const fullPath = path.resolve(process.cwd(), candidatePath);
+  const rootRelativePath = candidatePath.replace(/^uploads[\\/]/i, '');
+  const fullPath = path.resolve(uploadsRoot, rootRelativePath);
   const basename = path.basename(fullPath);
 
   if (!fullPath.startsWith(allowedBase + path.sep)) {
@@ -189,7 +191,6 @@ export async function serveAusenciaAnexo(relativePath: string): Promise<{
   try {
     await fs.access(resolvedPath);
   } catch {
-    const uploadsRoot = path.resolve(process.cwd(), 'uploads');
     try {
       const matches: string[] = [];
       const walk = async (dir: string): Promise<void> => {
