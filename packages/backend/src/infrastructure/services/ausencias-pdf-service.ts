@@ -58,8 +58,6 @@ const COLORS = {
   secondary: '#1d4ed8',
   accent: '#2563eb',
   grayText: '#4B5563',
-  headerBg: '#DBEAFE',
-  zebraBg: '#F8FAFC',
   divider: '#E2E8F0',
 };
 
@@ -72,13 +70,13 @@ export class AusenciasPdfService {
     const regularFont = await finalDoc.embedFont(StandardFonts.Helvetica);
     const boldFont = await finalDoc.embedFont(StandardFonts.HelveticaBold);
 
-    if (input.anexos.length > 0) {
-      const introPage = finalDoc.addPage(A4);
-      this.drawAttachmentIntroPage(
-        introPage,
+    if (input.anexos.length > 0 || (input.anexosIgnorados?.length ?? 0) > 0) {
+      const appendixPage = finalDoc.addPage(A4);
+      this.renderAttachmentIndex(
+        appendixPage,
         regularFont,
         boldFont,
-        input.anexos.length,
+        input.anexos,
         input.anexosIgnorados ?? []
       );
 
@@ -144,7 +142,7 @@ export class AusenciasPdfService {
 
     if (logoBuffer) {
       const logoSpaceWidth = 4 * 28.35;
-      const logoSpaceHeight = 10 * 28.35;
+      const logoSpaceHeight = 9 * 28.35;
       const imageWidth = Math.min(
         logoSpaceWidth - 10,
         this.normalizeLogoWidth(empresa?.logoLarguraRelatorio)
@@ -163,39 +161,36 @@ export class AusenciasPdfService {
         // fallback
       }
       doc.image(logoBuffer, imageX, imageY, { width: imageWidth });
-      doc.y = imageY + Math.max(imgHeight, 60) + 8;
+      doc.y = imageY + Math.max(imgHeight, 52) + 6;
     }
 
     if (empresa?.nome) {
-      doc.font('Helvetica-Bold').fontSize(11).fillColor(COLORS.grayText);
+      doc.font('Helvetica').fontSize(9).fillColor(COLORS.grayText);
       doc.text(empresa.nome, MARGIN, doc.y, { width: w, align: 'center' });
-      doc.moveDown(0.15);
+      doc.moveDown(0.1);
     }
 
     doc.font('Helvetica-Bold').fontSize(16).fillColor('#111827');
     doc.text('RELATÓRIO DE AUSÊNCIAS', MARGIN, doc.y, { width: w, align: 'center' });
-    doc.moveDown(0.5);
-
-    const boxW = 260;
-    const boxH = 42;
-    const boxX = MARGIN + (w - boxW) / 2;
-    const boxY = doc.y;
-
-    doc.roundedRect(boxX, boxY, boxW, boxH, 8).fill(COLORS.headerBg);
-    doc.fillColor('#1e3a5f').fontSize(9);
+    doc.moveDown(0.25);
 
     const periodoInicio = input.filtros.dataInicio ? this.formatDateBR(input.filtros.dataInicio) : '';
     const periodoFim = input.filtros.dataFim ? this.formatDateBR(input.filtros.dataFim) : '';
     const periodoTexto = [periodoInicio, periodoFim].filter(Boolean).join(' até ') || 'Todos os períodos';
     const dataGeracao = new Date().toLocaleString('pt-BR');
 
-    doc.font('Helvetica-Bold').text('Período:', boxX + 14, boxY + 9);
-    doc.font('Helvetica').text(periodoTexto, boxX + 68, boxY + 9);
-    doc.font('Helvetica-Bold').text('Emitido em:', boxX + 14, boxY + 23);
-    doc.font('Helvetica').text(dataGeracao, boxX + 82, boxY + 23);
+    const metaY = doc.y;
+    doc.font('Helvetica-Bold').fontSize(9).fillColor('#374151');
+    doc.text('Período', MARGIN, metaY, { width: 72 });
+    doc.font('Helvetica').fillColor('#111827');
+    doc.text(periodoTexto, MARGIN + 72, metaY, { width: w - 72 - 120 });
+    doc.font('Helvetica-Bold').fillColor('#374151');
+    doc.text('Emitido em', MARGIN + w - 120, metaY, { width: 60, align: 'right' });
+    doc.font('Helvetica').fillColor('#111827');
+    doc.text(dataGeracao, MARGIN + w - 58, metaY, { width: 58, align: 'right' });
 
-    doc.y = boxY + boxH + 6;
-    doc.moveTo(MARGIN, doc.y).lineWidth(1.5).strokeColor(COLORS.primary).lineTo(MARGIN + w, doc.y).stroke();
+    doc.y = metaY + 18;
+    doc.moveTo(MARGIN, doc.y).lineWidth(1.25).strokeColor(COLORS.primary).lineTo(MARGIN + w, doc.y).stroke();
     doc.y += 10;
     doc.fillColor('#000000');
   }
@@ -235,20 +230,23 @@ export class AusenciasPdfService {
       { label: 'Status', width: 60 },
       { label: 'Anexo', width: 44 },
     ];
-    const rowHeight = 22;
-    const headerHeight = 20;
+    const rowHeight = 20;
+    const headerHeight = 18;
     const topY = doc.y;
 
     const drawHeader = (y: number): void => {
       let x = MARGIN;
-      doc.save();
-      doc.roundedRect(MARGIN, y, CONTENT_WIDTH, headerHeight, 6).fill(COLORS.headerBg);
-      doc.restore();
-      doc.font('Helvetica-Bold').fontSize(9).fillColor('#1F2937');
+      doc.font('Helvetica-Bold').fontSize(9).fillColor('#374151');
       for (const column of columns) {
-        doc.text(column.label, x + 6, y + 6, { width: column.width - 12 });
+        doc.text(column.label, x, y + 3, { width: column.width - 4 });
         x += column.width;
       }
+      doc
+        .moveTo(MARGIN, y + headerHeight)
+        .lineWidth(0.75)
+        .strokeColor(COLORS.divider)
+        .lineTo(MARGIN + CONTENT_WIDTH, y + headerHeight)
+        .stroke();
     };
 
     const drawRow = (row: RelatorioAusenciasRow, y: number): void => {
@@ -260,23 +258,24 @@ export class AusenciasPdfService {
         row.documentoAnexo ? 'Sim' : 'Não',
       ];
 
-      const bg = relatorio.registros.indexOf(row) % 2 === 0 ? '#FFFFFF' : COLORS.zebraBg;
-      doc.save();
-      doc.roundedRect(MARGIN, y, CONTENT_WIDTH, rowHeight, 6).fillAndStroke(bg, COLORS.divider);
-      doc.restore();
-
       let x = MARGIN;
       doc.font('Helvetica').fontSize(8.5).fillColor('#111827');
       values.forEach((value, index) => {
         const width = columns[index]!.width;
         const align = index >= 3 ? 'center' : 'left';
-        doc.text(value, x + 6, y + 5, { width: width - 12, height: rowHeight - 8, align, ellipsis: true });
+        doc.text(value, x, y + 4, { width: width - 4, height: rowHeight - 6, align, ellipsis: true });
         x += width;
       });
+      doc
+        .moveTo(MARGIN, y + rowHeight)
+        .lineWidth(0.5)
+        .strokeColor(COLORS.divider)
+        .lineTo(MARGIN + CONTENT_WIDTH, y + rowHeight)
+        .stroke();
     };
 
     drawHeader(topY);
-    let y = topY + headerHeight + 2;
+    let y = topY + headerHeight + 4;
 
     if (relatorio.registros.length === 0) {
       doc.font('Helvetica').fontSize(9).fillColor(COLORS.grayText);
@@ -293,10 +292,10 @@ export class AusenciasPdfService {
         doc.addPage();
         this.renderSectionHeader(doc, 'REGISTROS (continuação)', COLORS.primary);
         drawHeader(doc.y);
-        y = doc.y + headerHeight + 2;
+        y = doc.y + headerHeight + 4;
       }
       drawRow(row, y);
-      y += rowHeight + 2;
+      y += rowHeight;
     }
 
     doc.y = y + 2;
@@ -304,111 +303,151 @@ export class AusenciasPdfService {
 
   private renderSectionHeader(doc: PDFKit.PDFDocument, title: string, color: string): void {
     const y = doc.y;
-    doc.save();
-    doc.rect(MARGIN, y, CONTENT_WIDTH, 22).fill(color);
-    doc.restore();
-    doc.font('Helvetica-Bold').fontSize(10).fillColor('#FFFFFF');
-    doc.text(title, MARGIN + 12, y + 6, { width: CONTENT_WIDTH - 24 });
-    doc.y = y + 26;
+    doc.font('Helvetica-Bold').fontSize(10).fillColor(color);
+    doc.text(title, MARGIN, y, { width: CONTENT_WIDTH });
+    doc
+      .moveTo(MARGIN, y + 14)
+      .lineWidth(1)
+      .strokeColor(COLORS.divider)
+      .lineTo(MARGIN + CONTENT_WIDTH, y + 14)
+      .stroke();
+    doc.y = y + 20;
   }
 
   private renderKeyValueTable(doc: PDFKit.PDFDocument, rows: Array<[string, string]>): void {
-    const rowHeight = 18;
+    const rowHeight = 20;
     const labelWidth = Math.floor(CONTENT_WIDTH * 0.65);
     const valueWidth = CONTENT_WIDTH - labelWidth;
 
     rows.forEach(([label, value], index) => {
-      const y = doc.y + (index > 0 ? 2 : 0);
-      const bg = index % 2 === 0 ? COLORS.zebraBg : '#FFFFFF';
-      doc.save();
-      doc.roundedRect(MARGIN, y, CONTENT_WIDTH, rowHeight, 4).fillAndStroke(bg, COLORS.divider);
-      doc.restore();
+      const y = doc.y + (index > 0 ? 1 : 0);
       doc.font('Helvetica-Bold').fontSize(9).fillColor('#1F2937');
-      doc.text(label, MARGIN + 10, y + 5, { width: labelWidth - 16 });
+      doc.text(label, MARGIN, y + 5, { width: labelWidth - 8 });
       doc.font('Helvetica').fontSize(9).fillColor('#111827');
-      doc.text(value, MARGIN + labelWidth, y + 5, { width: valueWidth - 12, align: 'right' });
+      doc.text(value, MARGIN + labelWidth, y + 5, { width: valueWidth, align: 'right' });
+      doc
+        .moveTo(MARGIN, y + rowHeight - 1)
+        .lineWidth(0.5)
+        .strokeColor(COLORS.divider)
+        .lineTo(MARGIN + CONTENT_WIDTH, y + rowHeight - 1)
+        .stroke();
       doc.y = y + rowHeight;
     });
 
-    doc.moveDown(0.5);
+    doc.moveDown(0.25);
   }
 
   private renderTypeTable(doc: PDFKit.PDFDocument, relatorio: RelatorioAusenciasResponse): void {
     const items = relatorio.totais.totalPorTipo.slice().sort((a, b) => b.quantidade - a.quantidade);
     const headerY = doc.y;
 
-    doc.save();
-    doc.rect(MARGIN, headerY, CONTENT_WIDTH, 22).fill(COLORS.headerBg);
-    doc.restore();
-    doc.font('Helvetica-Bold').fontSize(9).fillColor('#1E3A8A');
-    doc.text('Tipo', MARGIN + 10, headerY + 6, { width: CONTENT_WIDTH - 120 });
-    doc.text('Qtd.', MARGIN + CONTENT_WIDTH - 70, headerY + 6, { width: 60, align: 'right' });
-    doc.y = headerY + 24;
+    doc.font('Helvetica-Bold').fontSize(9).fillColor('#374151');
+    doc.text('Tipo', MARGIN, headerY, { width: CONTENT_WIDTH - 80 });
+    doc.text('Qtd.', MARGIN + CONTENT_WIDTH - 50, headerY, { width: 50, align: 'right' });
+    doc
+      .moveTo(MARGIN, headerY + 14)
+      .lineWidth(0.75)
+      .strokeColor(COLORS.divider)
+      .lineTo(MARGIN + CONTENT_WIDTH, headerY + 14)
+      .stroke();
+    doc.y = headerY + 18;
 
     items.forEach((item, index) => {
-      const y = doc.y + (index > 0 ? 2 : 0);
-      const bg = index % 2 === 0 ? '#FFFFFF' : COLORS.zebraBg;
-      doc.save();
-      doc.roundedRect(MARGIN, y, CONTENT_WIDTH, 18, 4).fillAndStroke(bg, COLORS.divider);
-      doc.restore();
+      const y = doc.y + (index > 0 ? 1 : 0);
       doc.font('Helvetica').fontSize(9).fillColor('#111827');
-      doc.text(item.nome, MARGIN + 10, y + 5, { width: CONTENT_WIDTH - 120 });
-      doc.text(String(item.quantidade), MARGIN + CONTENT_WIDTH - 70, y + 5, { width: 60, align: 'right' });
+      doc.text(item.nome, MARGIN, y + 4, { width: CONTENT_WIDTH - 80 });
+      doc.text(String(item.quantidade), MARGIN + CONTENT_WIDTH - 50, y + 4, { width: 50, align: 'right' });
+      doc
+        .moveTo(MARGIN, y + 17)
+        .lineWidth(0.5)
+        .strokeColor(COLORS.divider)
+        .lineTo(MARGIN + CONTENT_WIDTH, y + 17)
+        .stroke();
       doc.y = y + 18;
     });
 
-    doc.moveDown(0.5);
+    doc.moveDown(0.25);
   }
 
-  private drawAttachmentIntroPage(
+  private renderAttachmentIndex(
     page: PDFPage,
     regularFont: PDFFont,
     boldFont: PDFFont,
-    total: number,
+    anexos: AusenciaAnexo[],
     anexosIgnorados: Array<{ filename: string; motivo: string }>
   ): void {
-    page.drawText('ANEXOS DAS AUSÊNCIAS', {
+    page.drawText('ANEXOS DO PERÍODO', {
       x: MARGIN,
-      y: page.getHeight() - 70,
-      size: 20,
+      y: page.getHeight() - 68,
+      size: 14,
       font: boldFont,
       color: rgb(0.07, 0.09, 0.16),
     });
-    page.drawText(`Quantidade de anexos: ${total}`, {
+    page.drawText(`Arquivos incluídos: ${anexos.length}`, {
       x: MARGIN,
-      y: page.getHeight() - 98,
-      size: 11,
+      y: page.getHeight() - 90,
+      size: 10,
       font: regularFont,
       color: rgb(0.3, 0.32, 0.37),
     });
     page.drawText('Os arquivos anexados no período seguem nas páginas seguintes.', {
       x: MARGIN,
-      y: page.getHeight() - 118,
-      size: 10,
+      y: page.getHeight() - 106,
+      size: 9,
       font: regularFont,
       color: rgb(0.3, 0.32, 0.37),
     });
 
-    if (anexosIgnorados.length > 0) {
-      page.drawText('Alguns anexos não foram incluídos porque não estavam disponíveis no servidor.', {
+    const listTop = page.getHeight() - 136;
+
+    page.drawText('Anexos disponíveis', {
+      x: MARGIN,
+      y: listTop,
+      size: 10,
+      font: boldFont,
+      color: rgb(0.07, 0.09, 0.16),
+    });
+
+    let cursorY = listTop - 10;
+    if (anexos.length === 0) {
+      page.drawText('Nenhum anexo disponível para este período.', {
         x: MARGIN,
-        y: page.getHeight() - 138,
+        y: cursorY - 14,
         size: 9,
         font: regularFont,
-        color: rgb(0.55, 0.09, 0.09),
+        color: rgb(0.33, 0.35, 0.39),
       });
+      cursorY -= 26;
+    } else {
+      page.drawLine({
+        start: { x: MARGIN, y: cursorY },
+        end: { x: page.getWidth() - MARGIN, y: cursorY },
+        thickness: 0.7,
+        color: rgb(0.87, 0.89, 0.91),
+      });
+      cursorY -= 16;
 
-      const lista = anexosIgnorados
-        .slice(0, 5)
-        .map((item) => `- ${item.filename}: ${item.motivo}`)
-        .join('\n');
-      page.drawText(lista, {
+      const rows = anexos.map((anexo) => [
+        anexo.colaboradorNome,
+        anexo.tipoAusenciaNome,
+        anexo.filename,
+      ]);
+      this.drawSimpleList(page, regularFont, boldFont, ['Colaborador', 'Tipo', 'Arquivo'], rows, cursorY);
+      cursorY -= 18 + rows.length * 16;
+    }
+
+    if (anexosIgnorados.length > 0) {
+      page.drawText('Arquivos não localizados no servidor', {
         x: MARGIN,
-        y: page.getHeight() - 154,
-        size: 8,
-        font: regularFont,
-        color: rgb(0.43, 0.09, 0.09),
+        y: cursorY - 4,
+        size: 10,
+        font: boldFont,
+        color: rgb(0.07, 0.09, 0.16),
       });
+      cursorY -= 14;
+
+      const rows = anexosIgnorados.map((item) => [item.filename, item.motivo]);
+      this.drawSimpleList(page, regularFont, boldFont, ['Arquivo', 'Motivo'], rows, cursorY);
     }
   }
 
@@ -432,16 +471,76 @@ export class AusenciasPdfService {
     page.drawImage(image, { x, y, width: drawWidth, height: drawHeight });
   }
 
+  private drawSimpleList(
+    page: PDFPage,
+    regularFont: PDFFont,
+    boldFont: PDFFont,
+    headers: string[],
+    rows: string[][],
+    startY: number
+  ): void {
+    const pageWidth = page.getWidth() - MARGIN * 2;
+    const colWidths =
+      headers.length === 3
+        ? [pageWidth * 0.32, pageWidth * 0.28, pageWidth * 0.4]
+        : [pageWidth * 0.34, pageWidth * 0.66];
+    let y = startY;
+
+    page.drawLine({
+      start: { x: MARGIN, y },
+      end: { x: page.getWidth() - MARGIN, y },
+      thickness: 0.7,
+      color: rgb(0.87, 0.89, 0.91),
+    });
+    y -= 2;
+
+    let x = MARGIN;
+    headers.forEach((header, index) => {
+      page.drawText(header, {
+        x: x + 2,
+        y: y - 12,
+        size: 8.5,
+        font: boldFont,
+        color: rgb(0.13, 0.15, 0.18),
+        maxWidth: colWidths[index]! - 4,
+      });
+      x += colWidths[index]!;
+    });
+
+    y -= 18;
+    rows.forEach((row, rowIndex) => {
+      const rowY = y - rowIndex * 16;
+      page.drawLine({
+        start: { x: MARGIN, y: rowY + 12 },
+        end: { x: page.getWidth() - MARGIN, y: rowY + 12 },
+        thickness: 0.4,
+        color: rgb(0.91, 0.92, 0.94),
+      });
+      let rx = MARGIN;
+      row.forEach((value, index) => {
+        page.drawText(value, {
+          x: rx + 2,
+          y: rowY,
+          size: 8,
+          font: regularFont,
+          color: rgb(0.2, 0.22, 0.25),
+          maxWidth: colWidths[index]! - 4,
+        });
+        rx += colWidths[index]!;
+      });
+    });
+  }
+
   private drawAttachmentTitle(
     page: PDFPage,
     regularFont: PDFFont,
     boldFont: PDFFont,
     anexo: AusenciaAnexo
   ): void {
-    page.drawText('Anexo da ausência', {
+    page.drawText('ANEXO DA AUSÊNCIA', {
       x: MARGIN,
       y: page.getHeight() - 58,
-      size: 18,
+      size: 13,
       font: boldFont,
       color: rgb(0.07, 0.09, 0.16),
     });
@@ -493,7 +592,7 @@ export class AusenciasPdfService {
       if (contato.length > 0) footerParts.push(contato.join(' | '));
     }
 
-    const footerText = footerParts.join('  •  ');
+    const footerText = footerParts.join('  |  ');
     const footerColor = rgb(0.61, 0.64, 0.68);
 
     pages.forEach((page, index) => {
@@ -504,7 +603,7 @@ export class AusenciasPdfService {
       page.drawLine({
         start: { x: MARGIN, y: pageHeight - MARGIN - 8 },
         end: { x: pageWidth - MARGIN, y: pageHeight - MARGIN - 8 },
-        thickness: 0.5,
+        thickness: 0.45,
         color: rgb(0.82, 0.83, 0.85),
       });
       page.drawText(footerText, {
@@ -647,3 +746,7 @@ export class AusenciasPdfService {
     return null;
   }
 }
+
+
+
+

@@ -137,6 +137,7 @@ export async function serveAusenciaAnexo(relativePath: string): Promise<{
   // Canonicalise to an absolute path and verify it stays inside uploads/ausencias/
   const allowedBase = path.resolve(process.cwd(), 'uploads', 'ausencias');
   const fullPath = path.resolve(process.cwd(), relativePath);
+  const basename = path.basename(fullPath);
 
   if (!fullPath.startsWith(allowedBase + path.sep)) {
     throw Object.assign(new Error('Caminho de arquivo inválido.'), { code: 'INVALID_PATH' });
@@ -156,7 +157,36 @@ export async function serveAusenciaAnexo(relativePath: string): Promise<{
     throw Object.assign(new Error('Tipo de arquivo não suportado.'), { code: 'INVALID_TYPE' });
   }
 
-  const buffer = await fs.readFile(fullPath);
-  const filename = path.basename(fullPath);
+  let resolvedPath = fullPath;
+  try {
+    await fs.access(resolvedPath);
+  } catch {
+    const uploadsRoot = path.resolve(process.cwd(), 'uploads');
+    try {
+      const matches: string[] = [];
+      const walk = async (dir: string): Promise<void> => {
+        const entries = await fs.readdir(dir, { withFileTypes: true });
+        for (const entry of entries) {
+          const candidate = path.join(dir, entry.name);
+          if (entry.isDirectory()) {
+            await walk(candidate);
+            continue;
+          }
+          if (entry.isFile() && entry.name === basename) {
+            matches.push(candidate);
+          }
+        }
+      };
+      await walk(uploadsRoot);
+      if (matches.length > 0) {
+        resolvedPath = matches[0]!;
+      }
+    } catch {
+      // ignore and fail below
+    }
+  }
+
+  const buffer = await fs.readFile(resolvedPath);
+  const filename = path.basename(resolvedPath);
   return { buffer, mimeType, filename };
 }
