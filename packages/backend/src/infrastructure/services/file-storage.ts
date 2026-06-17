@@ -134,24 +134,51 @@ export async function serveAusenciaAnexo(relativePath: string): Promise<{
   mimeType: string;
   filename: string;
 }> {
+  const normalizeMimeType = (value: string | null | undefined, fallbackPath: string): string | null => {
+    const normalized = (value ?? '').toLowerCase();
+    if (normalized.includes('pdf')) return 'application/pdf';
+    if (normalized.includes('png')) return 'image/png';
+    if (normalized.includes('jpeg') || normalized.includes('jpg')) return 'image/jpeg';
+
+    const ext = path.extname(fallbackPath).toLowerCase();
+    if (ext === '.pdf') return 'application/pdf';
+    if (ext === '.png') return 'image/png';
+    if (ext === '.jpg' || ext === '.jpeg') return 'image/jpeg';
+    return null;
+  };
+
+  const isHttpUrl = /^https?:\/\//i.test(relativePath);
+  if (isHttpUrl) {
+    const response = await fetch(relativePath);
+    if (!response.ok) {
+      throw Object.assign(new Error('Arquivo de anexo não encontrado no servidor.'), {
+        code: 'ENOENT',
+      });
+    }
+
+    const buffer = Buffer.from(await response.arrayBuffer());
+    const filename = path.basename(new URL(relativePath).pathname) || 'anexo';
+    const mimeType = normalizeMimeType(response.headers.get('content-type'), filename);
+    if (!mimeType) {
+      throw Object.assign(new Error('Tipo de arquivo não suportado.'), { code: 'INVALID_TYPE' });
+    }
+
+    return { buffer, mimeType, filename };
+  }
+
   // Canonicalise to an absolute path and verify it stays inside uploads/ausencias/
   const allowedBase = path.resolve(process.cwd(), 'uploads', 'ausencias');
-  const fullPath = path.resolve(process.cwd(), relativePath);
+  const candidatePath = relativePath.startsWith('/uploads/') || relativePath.startsWith('\\uploads\\')
+    ? relativePath.slice(1)
+    : relativePath;
+  const fullPath = path.resolve(process.cwd(), candidatePath);
   const basename = path.basename(fullPath);
 
   if (!fullPath.startsWith(allowedBase + path.sep)) {
     throw Object.assign(new Error('Caminho de arquivo inválido.'), { code: 'INVALID_PATH' });
   }
 
-  const ext = path.extname(fullPath).toLowerCase();
-  const mimeType =
-    ext === '.pdf'
-      ? 'application/pdf'
-      : ext === '.png'
-        ? 'image/png'
-        : ext === '.jpg' || ext === '.jpeg'
-          ? 'image/jpeg'
-          : null;
+  const mimeType = normalizeMimeType(null, fullPath);
 
   if (!mimeType) {
     throw Object.assign(new Error('Tipo de arquivo não suportado.'), { code: 'INVALID_TYPE' });
