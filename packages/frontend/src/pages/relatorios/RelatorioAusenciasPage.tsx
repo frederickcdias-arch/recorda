@@ -140,7 +140,8 @@ export function RelatorioAusenciasPage(): JSX.Element {
     []
   );
 
-  const [exportando, setExportando] = useState(false);
+  const [exportandoCsv, setExportandoCsv] = useState(false);
+  const [exportandoPdf, setExportandoPdf] = useState(false);
   const lastParamsRef = useRef<string>('');
 
   // Pre-load filter options on mount (empty query)
@@ -203,7 +204,7 @@ export function RelatorioAusenciasPage(): JSX.Element {
     void qc.invalidateQueries({ queryKey: ['relatorio-ausencias'] });
   }, [buildParams, relatorio, qc]);
 
-  const handleExportar = useCallback(async (): Promise<void> => {
+  const handleExportarCsv = useCallback(async (): Promise<void> => {
     const params = buildParams();
     const qs = new URLSearchParams();
     for (const [k, v] of Object.entries(params)) {
@@ -211,7 +212,7 @@ export function RelatorioAusenciasPage(): JSX.Element {
     }
     const suffix = qs.toString() ? `?${qs.toString()}` : '';
     const today = new Date().toISOString().slice(0, 10);
-    setExportando(true);
+    setExportandoCsv(true);
     setMensagem(null);
     try {
       await api.download(`/relatorios/ausencias/exportar${suffix}`, `ausencias-${today}.csv`);
@@ -219,7 +220,27 @@ export function RelatorioAusenciasPage(): JSX.Element {
       const msg = error instanceof Error ? error.message : 'Erro ao exportar relatório';
       setMensagem({ tipo: 'error', texto: 'Erro ao exportar', detalhes: msg });
     } finally {
-      setExportando(false);
+      setExportandoCsv(false);
+    }
+  }, [buildParams]);
+
+  const handleExportarPdf = useCallback(async (): Promise<void> => {
+    const params = buildParams();
+    const qs = new URLSearchParams();
+    for (const [k, v] of Object.entries(params)) {
+      if (v !== undefined && v !== null && v !== '') qs.set(k, String(v));
+    }
+    const suffix = qs.toString() ? `?${qs.toString()}` : '';
+    const today = new Date().toISOString().slice(0, 10);
+    setExportandoPdf(true);
+    setMensagem(null);
+    try {
+      await api.download(`/relatorios/ausencias/exportar/pdf${suffix}`, `ausencias-${today}.pdf`);
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : 'Erro ao exportar relatório';
+      setMensagem({ tipo: 'error', texto: 'Erro ao exportar', detalhes: msg });
+    } finally {
+      setExportandoPdf(false);
     }
   }, [buildParams]);
 
@@ -254,9 +275,17 @@ export function RelatorioAusenciasPage(): JSX.Element {
             </Button>
             <Button
               variant="secondary"
-              onClick={() => void handleExportar()}
-              loading={exportando}
-              disabled={exportando || carregando}
+              onClick={() => void handleExportarPdf()}
+              loading={exportandoPdf}
+              disabled={exportandoPdf || carregando || exportandoCsv}
+            >
+              Exportar PDF
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => void handleExportarCsv()}
+              loading={exportandoCsv}
+              disabled={exportandoCsv || carregando || exportandoPdf}
             >
               Exportar CSV
             </Button>

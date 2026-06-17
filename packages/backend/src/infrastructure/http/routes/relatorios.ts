@@ -1,7 +1,9 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { authorize } from '../middleware/auth.js';
 import { PDFExportService } from '../../services/pdf-export-service.js';
+import { AusenciasPdfService } from '../../services/ausencias-pdf-service.js';
 import { ExcelExportService } from '../../services/excel-export-service.js';
+import { serveAusenciaAnexo } from '../../services/file-storage.js';
 import type {
   ProducaoEtapa,
   ProducaoColaborador,
@@ -9,6 +11,9 @@ import type {
   ResumoEtapa,
   RelatorioCompleto,
 } from '../../../application/use-cases/gerar-relatorio-completo.js';
+import type {
+  RelatorioAusenciasRow,
+} from '@recorda/shared';
 import {
   buildProducaoContabilizadaWhere,
   buildProducaoOrigemWhere,
@@ -38,6 +43,30 @@ interface ImportacaoLegadoDetalheRow {
   detalhes_erros: Record<string, unknown> | null;
 }
 
+interface AusenciaRelatorioQuery {
+  dataInicio?: string;
+  dataFim?: string;
+  colaboradorId?: string;
+  tipoAusenciaId?: string;
+  status?: string;
+}
+
+interface AusenciaRelatorioData {
+  registros: RelatorioAusenciasRow[];
+  totais: {
+    totalRegistros: number;
+    totalPorStatus: Record<string, number>;
+    totalPorTipo: Array<{ id: string; nome: string; cor: string; quantidade: number }>;
+    totalPorColaborador: Array<{ id: string; nome: string; quantidade: number }>;
+    diasAprovados: number;
+    horasAprovadas: number;
+  };
+  filtros: {
+    colaboradores: Array<{ id: string; nome: string }>;
+    tipos: Array<{ id: string; nome: string; cor: string }>;
+  };
+}
+
 function collectLegacySourceHashes(
   importacoes: ImportacaoLegadoDetalheRow[]
 ): Map<string, Set<string>> {
@@ -61,6 +90,166 @@ function collectLegacySourceHashes(
   }
 
   return hashesPorFonte;
+}
+
+function buildAusenciasWhere(filters: AusenciaRelatorioQuery): { where: string; params: unknown[] } {
+  const conditions: string[] = [];
+  const params: unknown[] = [];
+  let p = 1;
+
+  if (filters.dataInicio) {
+    conditions.push(`a.data_inicio >= $${p++}::date`);
+    params.push(filters.dataInicio);
+  }
+  if (filters.dataFim) {
+    conditions.push(`a.data_fim <= $${p++}::date`);
+    params.push(filters.dataFim);
+  }
+  if (filters.colaboradorId) {
+    conditions.push(`a.usuario_id = $${p++}`);
+    params.push(filters.colaboradorId);
+  }
+  if (filters.tipoAusenciaId) {
+    conditions.push(`a.tipo_ausencia_id = $${p++}`);
+    params.push(filters.tipoAusenciaId);
+  }
+  if (filters.status && filters.status !== 'TODOS') {
+    conditions.push(`a.status = $${p++}`);
+    params.push(filters.status);
+  }
+
+  return {
+    where: conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '',
+    params,
+  };
+}
+
+async function carregarRelatorioAusencias(
+  server: FastifyInstance,
+  filters: AusenciaRelatorioQuery
+): Promise<AusenciaRelatorioData> {
+  const { where, params } = buildAusenciasWhere(filters);
+
+  const result = await server.database.query(
+    `SELECT
+       a.id,
+       a.usuario_id,
+       u.nome AS colaborador_nome,
+       a.tipo_ausencia_id,
+       ta.nome AS tipo_ausencia_nome,
+       ta.cor AS tipo_ausencia_cor,
+       a.data_inicio,
+       a.data_fim,
+       a.periodo,
+       a.horas_ausencia,
+       a.status,
+       a.justificativa,
+       a.observacoes,
+       a.documento_anexo,
+       a.aprovado_em,
+       a.motivo_rejeicao,
+       a.criado_em,
+       (a.data_fim - a.data_inicio + 1) AS dias_ausencia
+     FROM ausencias a
+     JOIN usuarios u ON u.id = a.usuario_id
+     JOIN tipos_ausencia ta ON ta.id = a.tipo_ausencia_id
+     ${where}
+     ORDER BY a.data_inicio DESC, u.nome`,
+    params
+  );
+
+  const rows = result.rows as Array<Record<string, unknown>>;
+
+  const registros = rows.map((r) => ({
+    id: r.id as string,
+    usuarioId: r.usuario_id as string,
+    colaboradorNome: r.colaborador_nome as string,
+    tipoAusenciaId: r.tipo_ausencia_id as string,
+    tipoAusenciaNome: r.tipo_ausencia_nome as string,
+    tipoAusenciaCor: r.tipo_ausencia_cor as string,
+    dataInicio: toDateOnlyString(r.data_inicio as string | Date | null | undefined),
+    dataFim: toDateOnlyString(r.data_fim as string | Date | null | undefined),
+    periodo: r.periodo as RelatorioAusenciasRow['periodo'],
+    horasAusencia: r.horas_ausencia != null ? String(r.horas_ausencia) : null,
+    status: r.status as RelatorioAusenciasRow['status'],
+    justificativa: r.justificativa as string | null,
+    observacoes: r.observacoes as string | null,
+    documentoAnexo: r.documento_anexo as string | null,
+    aprovadoEm:
+      r.aprovado_em instanceof Date
+        ? (r.aprovado_em as Date).toISOString()
+        : (r.aprovado_em as string | null),
+    motivoRejeicao: r.motivo_rejeicao as string | null,
+    criadoEm:
+      r.criado_em instanceof Date ? (r.criado_em as Date).toISOString() : String(r.criado_em ?? ''),
+    diasAusencia: Number(r.dias_ausencia ?? 0),
+  })) satisfies RelatorioAusenciasRow[];
+
+  const totalPorStatus = registros.reduce<Record<string, number>>((acc, row) => {
+    acc[row.status] = (acc[row.status] ?? 0) + 1;
+    return acc;
+  }, {});
+
+  const totalPorTipoMap = registros.reduce<
+    Record<string, { nome: string; cor: string; quantidade: number }>
+  >((acc, row) => {
+    const existing = acc[row.tipoAusenciaId];
+    if (existing) {
+      existing.quantidade += 1;
+    } else {
+      acc[row.tipoAusenciaId] = {
+        nome: row.tipoAusenciaNome,
+        cor: row.tipoAusenciaCor,
+        quantidade: 1,
+      };
+    }
+    return acc;
+  }, {});
+
+  const totalPorColaboradorMap = registros.reduce<Record<string, { nome: string; quantidade: number }>>(
+    (acc, row) => {
+      const existing = acc[row.usuarioId];
+      if (existing) {
+        existing.quantidade += 1;
+      } else {
+        acc[row.usuarioId] = { nome: row.colaboradorNome, quantidade: 1 };
+      }
+      return acc;
+    },
+    {}
+  );
+
+  const diasAprovados = registros.filter((r) => r.status === 'aprovado').reduce((sum, r) => sum + r.diasAusencia, 0);
+  const horasAprovadas = registros
+    .filter((r) => r.status === 'aprovado' && r.horasAusencia)
+    .reduce((sum, r) => sum + Number(r.horasAusencia ?? 0), 0);
+
+  const colaboradoresResult = await server.database.query<{ id: string; nome: string }>(
+    `SELECT DISTINCT u.id, u.nome
+     FROM ausencias a
+     JOIN usuarios u ON u.id = a.usuario_id
+     ORDER BY u.nome`
+  );
+
+  const tiposResult = await server.database.query<{ id: string; nome: string; cor: string }>(
+    `SELECT id, nome, cor FROM tipos_ausencia ORDER BY nome`
+  );
+
+  return {
+    registros,
+    totais: {
+      totalRegistros: registros.length,
+      totalPorStatus,
+      totalPorTipo: Object.entries(totalPorTipoMap).map(([id, v]) => ({ id, ...v })),
+      totalPorColaborador: Object.entries(totalPorColaboradorMap).map(([id, v]) => ({ id, ...v })),
+      diasAprovados,
+      horasAprovadas,
+    },
+    filtros: {
+      colaboradores: colaboradoresResult.rows,
+      tipos: tiposResult.rows,
+    },
+  };
 }
 
 export function createRelatorioRoutes(): FastifyPluginAsync {
@@ -799,57 +988,8 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
         },
       },
       async (request, reply) => {
-        const { dataInicio, dataFim, colaboradorId, tipoAusenciaId, status } = request.query;
-
         try {
-          const conditions: string[] = [];
-          const params: string[] = [];
-          let p = 1;
-
-          if (dataInicio) {
-            conditions.push(`a.data_inicio >= $${p++}::date`);
-            params.push(dataInicio);
-          }
-          if (dataFim) {
-            conditions.push(`a.data_fim <= $${p++}::date`);
-            params.push(dataFim);
-          }
-          if (colaboradorId) {
-            conditions.push(`a.usuario_id = $${p++}`);
-            params.push(colaboradorId);
-          }
-          if (tipoAusenciaId) {
-            conditions.push(`a.tipo_ausencia_id = $${p++}`);
-            params.push(tipoAusenciaId);
-          }
-          if (status && status !== 'TODOS') {
-            conditions.push(`a.status = $${p++}`);
-            params.push(status);
-          }
-
-          const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
-
-          const result = await server.database.query(
-            `SELECT
-               u.nome AS colaborador_nome,
-               ta.nome AS tipo_ausencia_nome,
-               a.data_inicio,
-               a.data_fim,
-               (a.data_fim - a.data_inicio + 1) AS dias_ausencia,
-               a.periodo,
-               a.horas_ausencia,
-               a.status,
-               a.justificativa,
-               a.observacoes,
-               a.motivo_rejeicao,
-               a.criado_em
-             FROM ausencias a
-             JOIN usuarios u ON u.id = a.usuario_id
-             JOIN tipos_ausencia ta ON ta.id = a.tipo_ausencia_id
-             ${where}
-             ORDER BY a.data_inicio DESC, u.nome`,
-            params
-          );
+          const relatorio = await carregarRelatorioAusencias(server, request.query);
 
           const csvEscape = (value: unknown): string =>
             `"${String(value ?? '').replace(/"/g, '""')}"`;
@@ -875,24 +1015,24 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
             'Solicitado em',
           ];
 
-          const rows = result.rows as Array<Record<string, unknown>>;
+          const rows = relatorio.registros;
 
           const lines = [
             header.map(csvEscape).join(';'),
             ...rows.map((r) =>
               [
-                r.colaborador_nome,
-                r.tipo_ausencia_nome,
-                formatDate(r.data_inicio),
-                formatDate(r.data_fim),
-                Number(r.dias_ausencia ?? 0),
+                r.colaboradorNome,
+                r.tipoAusenciaNome,
+                formatDate(r.dataInicio),
+                formatDate(r.dataFim),
+                Number(r.diasAusencia ?? 0),
                 r.periodo,
-                r.horas_ausencia ?? '',
+                r.horasAusencia ?? '',
                 r.status,
                 r.justificativa ?? '',
                 r.observacoes ?? '',
-                r.motivo_rejeicao ?? '',
-                formatDate(r.criado_em),
+                r.motivoRejeicao ?? '',
+                formatDate(r.criadoEm),
               ]
                 .map(csvEscape)
                 .join(';')
@@ -905,6 +1045,79 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
 
           return reply.send('\uFEFF' + lines.join('\r\n'));
         } catch (error) {
+          const message =
+            error instanceof Error ? error.message : 'Erro ao exportar relatório de ausências';
+          return reply.status(500).send({ error: message });
+        }
+      }
+    );
+
+    // GET /relatorios/ausencias/exportar/pdf - Exportar relatório de ausências como PDF (admin only)
+    server.get<{
+      Querystring: {
+        dataInicio?: string;
+        dataFim?: string;
+        colaboradorId?: string;
+        tipoAusenciaId?: string;
+        status?: string;
+      };
+    }>(
+      '/relatorios/ausencias/exportar/pdf',
+      {
+        preHandler: [server.authenticate, authorize('administrador')],
+        schema: {
+          querystring: {
+            type: 'object',
+            properties: {
+              dataInicio: { type: 'string' },
+              dataFim: { type: 'string' },
+              colaboradorId: { type: 'string' },
+              tipoAusenciaId: { type: 'string' },
+              status: { type: 'string' },
+            },
+          },
+        },
+      },
+      async (request, reply) => {
+        try {
+          const relatorio = await carregarRelatorioAusencias(server, request.query);
+          const pdfService = new AusenciasPdfService();
+          const anexos = await Promise.all(
+            relatorio.registros
+              .filter((row) => Boolean(row.documentoAnexo))
+              .map(async (row) => {
+                const { buffer, mimeType, filename } = await serveAusenciaAnexo(
+                  row.documentoAnexo as string
+                );
+                return {
+                  ...row,
+                  buffer,
+                  mimeType: mimeType as 'application/pdf' | 'image/jpeg' | 'image/png',
+                  filename,
+                };
+              })
+          );
+
+          const pdfBuffer = await pdfService.exportar({
+            relatorio,
+            filtros: request.query,
+            anexos,
+          });
+
+          const today = new Date().toISOString().slice(0, 10);
+          reply.header('Content-Type', 'application/pdf');
+          reply.header(
+            'Content-Disposition',
+            `attachment; filename="ausencias-${today}.pdf"`
+          );
+          return reply.send(pdfBuffer);
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+            return reply.status(404).send({ error: 'Arquivo de anexo não encontrado no servidor' });
+          }
+          if ((error as { code?: string }).code === 'INVALID_PATH') {
+            return reply.status(400).send({ error: 'Caminho de arquivo inválido' });
+          }
           const message =
             error instanceof Error ? error.message : 'Erro ao exportar relatório de ausências';
           return reply.status(500).send({ error: message });
@@ -1010,9 +1223,9 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
             tipoAusenciaCor: r.tipo_ausencia_cor as string,
             dataInicio: toDateOnlyString(r.data_inicio as string | Date | null | undefined),
             dataFim: toDateOnlyString(r.data_fim as string | Date | null | undefined),
-            periodo: r.periodo as string,
+            periodo: r.periodo as RelatorioAusenciasRow['periodo'],
             horasAusencia: r.horas_ausencia != null ? String(r.horas_ausencia) : null,
-            status: r.status as string,
+            status: r.status as RelatorioAusenciasRow['status'],
             justificativa: r.justificativa as string | null,
             observacoes: r.observacoes as string | null,
             documentoAnexo: r.documento_anexo as string | null,
