@@ -1081,28 +1081,92 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
       async (request, reply) => {
         try {
           const relatorio = await carregarRelatorioAusencias(server, request.query);
-          const pdfService = new AusenciasPdfService();
-          const anexos = await Promise.all(
-            relatorio.registros
-              .filter((row) => Boolean(row.documentoAnexo))
-              .map(async (row) => {
-                const { buffer, mimeType, filename } = await serveAusenciaAnexo(
-                  row.documentoAnexo as string
-                );
-                return {
-                  ...row,
-                  buffer,
-                  mimeType: mimeType as 'application/pdf' | 'image/jpeg' | 'image/png',
-                  filename,
-                };
-              })
+          const empresaResult = await server.database.query(
+            `SELECT nome, endereco, telefone, email, logo_url, logo_data,
+                    exibir_logo_relatorio, exibir_endereco_relatorio, exibir_contato_relatorio,
+                    logo_largura_relatorio, logo_alinhamento_relatorio, logo_deslocamento_y_relatorio
+             FROM configuracao_empresa LIMIT 1`
           );
+          const empresaRow = empresaResult.rows[0] as Record<string, unknown> | undefined;
+          const empresaConfig = empresaRow
+            ? {
+                nome: (empresaRow.nome as string) || '',
+                endereco: (empresaRow.endereco as string) || '',
+                telefone: (empresaRow.telefone as string) || '',
+                email: (empresaRow.email as string) || '',
+                logoUrl: (empresaRow.logo_url as string) || '',
+                logoData: (empresaRow.logo_data as Buffer | null) ?? null,
+                exibirLogoRelatorio: empresaRow.exibir_logo_relatorio !== false,
+                exibirEnderecoRelatorio: empresaRow.exibir_endereco_relatorio !== false,
+                exibirContatoRelatorio: empresaRow.exibir_contato_relatorio === true,
+                logoLarguraRelatorio: Number(empresaRow.logo_largura_relatorio ?? 120),
+                logoAlinhamentoRelatorio:
+                  (empresaRow.logo_alinhamento_relatorio as string) || 'CENTRO',
+                logoDeslocamentoYRelatorio: Number(empresaRow.logo_deslocamento_y_relatorio ?? 0),
+              }
+            : null;
+
+          const pdfService = new AusenciasPdfService();
+          const anexos: Array<{
+            id: string;
+            usuarioId: string;
+            colaboradorNome: string;
+            tipoAusenciaId: string;
+            tipoAusenciaNome: string;
+            tipoAusenciaCor: string;
+            dataInicio: string;
+            dataFim: string;
+            periodo: RelatorioAusenciasRow['periodo'];
+            horasAusencia: string | null;
+            status: RelatorioAusenciasRow['status'];
+            justificativa?: string | null;
+            observacoes?: string | null;
+            documentoAnexo?: string | null;
+            aprovadoEm?: string | null;
+            motivoRejeicao?: string | null;
+            criadoEm: string;
+            diasAusencia: number;
+            filename: string;
+            mimeType: 'application/pdf' | 'image/jpeg' | 'image/png';
+            buffer: Buffer;
+          }> = [];
+          const anexosIgnorados: Array<{ filename: string; motivo: string }> = [];
+
+          for (const row of relatorio.registros) {
+            if (!row.documentoAnexo) continue;
+            try {
+              const { buffer, mimeType, filename } = await serveAusenciaAnexo(row.documentoAnexo);
+              anexos.push({
+                ...row,
+                buffer,
+                mimeType: mimeType as 'application/pdf' | 'image/jpeg' | 'image/png',
+                filename,
+                horasAusencia: row.horasAusencia ?? null,
+              });
+            } catch (error) {
+              const motivo =
+                error instanceof Error ? error.message : 'Arquivo indisponível no servidor';
+              anexosIgnorados.push({
+                filename: row.documentoAnexo.split('/').pop() ?? row.documentoAnexo,
+                motivo,
+              });
+              server.log.warn(
+                {
+                  ausenciaId: row.id,
+                  documentoAnexo: row.documentoAnexo,
+                  motivo,
+                },
+                'Anexo de ausência ignorado durante exportação do PDF'
+              );
+            }
+          }
 
           const pdfBuffer = await pdfService.exportar({
             relatorio,
             filtros: request.query,
             anexos,
-          });
+            anexosIgnorados,
+          }, empresaConfig);
 
           const today = new Date().toISOString().slice(0, 10);
           reply.header('Content-Type', 'application/pdf');
@@ -1112,9 +1176,6 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
           );
           return reply.send(pdfBuffer);
         } catch (error) {
-          if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-            return reply.status(404).send({ error: 'Arquivo de anexo não encontrado no servidor' });
-          }
           if ((error as { code?: string }).code === 'INVALID_PATH') {
             return reply.status(400).send({ error: 'Caminho de arquivo inválido' });
           }

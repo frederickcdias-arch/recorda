@@ -249,7 +249,10 @@ export function RelatorioAusenciasPage(): JSX.Element {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Relatório de Ausências" subtitle="Fechamento de ausências." />
+      <PageHeader
+        title="Relatório de Ausências"
+        subtitle="Fechamento de ausências e exportação em PDF com anexos do período."
+      />
 
       {mensagem && (
         <ActionFeedback
@@ -279,7 +282,7 @@ export function RelatorioAusenciasPage(): JSX.Element {
               loading={exportandoPdf}
               disabled={exportandoPdf || carregando || exportandoCsv}
             >
-              Exportar PDF
+              Exportar PDF com anexos
             </Button>
             <Button
               variant="secondary"
@@ -538,7 +541,8 @@ export function RelatorioAusenciasPage(): JSX.Element {
       {!carregando && !relatorio && (
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-[var(--color-border-primary)] py-16 text-center">
           <p className="text-sm font-medium text-[var(--color-text-secondary)]">
-            Selecione os filtros e clique em <strong>Visualizar</strong> para carregar os dados.
+            Selecione os filtros e clique em <strong>Visualizar</strong> para carregar os dados e
+            liberar a exportação em PDF com anexos.
           </p>
         </div>
       )}
