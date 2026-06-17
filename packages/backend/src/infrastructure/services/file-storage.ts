@@ -147,9 +147,10 @@ export async function serveAusenciaAnexo(relativePath: string): Promise<{
     return null;
   };
 
-  const isHttpUrl = /^https?:\/\//i.test(relativePath);
-  if (isHttpUrl) {
-    const response = await fetch(relativePath);
+  const looksLikeUrl = /^https?:\/\//i.test(relativePath) || /^[a-z0-9.-]+\.[a-z]{2,}(\/|$)/i.test(relativePath);
+  if (looksLikeUrl) {
+    const normalizedUrl = /^https?:\/\//i.test(relativePath) ? relativePath : `https://${relativePath}`;
+    const response = await fetch(normalizedUrl);
     if (!response.ok) {
       throw Object.assign(new Error('Arquivo de anexo não encontrado no servidor.'), {
         code: 'ENOENT',
@@ -157,7 +158,7 @@ export async function serveAusenciaAnexo(relativePath: string): Promise<{
     }
 
     const buffer = Buffer.from(await response.arrayBuffer());
-    const filename = path.basename(new URL(relativePath).pathname) || 'anexo';
+    const filename = path.basename(new URL(normalizedUrl).pathname) || 'anexo';
     const mimeType = normalizeMimeType(response.headers.get('content-type'), filename);
     if (!mimeType) {
       throw Object.assign(new Error('Tipo de arquivo não suportado.'), { code: 'INVALID_TYPE' });
