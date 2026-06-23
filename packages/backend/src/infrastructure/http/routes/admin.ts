@@ -2,6 +2,8 @@ import { randomUUID } from 'node:crypto';
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import '@fastify/multipart';
 import { saveAusenciaAnexo, serveAusenciaAnexo } from '../../services/file-storage.js';
+import { backfillAusenciasAnexos } from '../../services/ausencias-anexos-backfill.js';
+import { buildContentDisposition } from '../content-disposition.js';
 import type {
   ListarAusenciasAdminParams,
   ListarAusenciasAdminResponse,
@@ -61,6 +63,10 @@ const editarAusenciaAdminSchema = criarAusenciaAdminSchema;
 
 const cancelarAusenciaAdminSchema = z.object({
   observacoes: z.string().trim().min(3, 'Observações deve ter pelo menos 3 caracteres').max(1000),
+});
+
+const backfillAusenciasAnexosSchema = z.object({
+  confirmar: z.literal(true),
 });
 
 function toDateOnlyString(value: string | Date | null | undefined): string {
@@ -1579,7 +1585,7 @@ export function createAdminRoutes(): FastifyPluginAsync {
           const { buffer, mimeType, filename } = await serveAusenciaAnexo(documento_anexo);
           return reply
             .header('Content-Type', mimeType)
-            .header('Content-Disposition', `inline; filename="${filename}"`)
+            .header('Content-Disposition', buildContentDisposition('inline', filename))
             .header('Cache-Control', 'private, max-age=3600')
             .send(buffer);
         } catch (error) {
@@ -1591,6 +1597,54 @@ export function createAdminRoutes(): FastifyPluginAsync {
           }
           const message = error instanceof Error ? error.message : 'Erro ao servir anexo';
           return reply.status(500).send({ error: message });
+        }
+      }
+    );
+
+    // POST /admin/ausencias/backfill-anexos — converter anexos legados para data URL
+    server.post(
+      '/admin/ausencias/backfill-anexos',
+      {
+        schema: {
+          tags: ['admin'],
+          summary: 'Converter anexos legados de ausências para data URL (administrador)',
+          security: [{ bearerAuth: [] }],
+        },
+        preHandler: [server.authenticate, authorize('administrador')],
+      },
+      async (request, reply) => {
+        const adminUser = getCurrentUser(request);
+        const bodyParse = backfillAusenciasAnexosSchema.safeParse(request.body ?? {});
+        if (!bodyParse.success) {
+          return reply.status(400).send({
+            error: 'Confirmação obrigatória',
+            details: bodyParse.error.issues.map((issue) => issue.message),
+          });
+        }
+
+        const client = await server.database.pool.connect();
+        try {
+          await client.query('BEGIN');
+          await setAuditUser(client, adminUser.id);
+
+          const result = await backfillAusenciasAnexos(client, {
+            log: (line) => server.log.info({ line }, 'Backfill de anexos de ausências'),
+          });
+
+          await client.query('COMMIT');
+
+          return reply.send({
+            total: result.total,
+            atualizados: result.updated,
+            ignorados: result.skipped,
+            erros: result.errors,
+          });
+        } catch (error) {
+          await client.query('ROLLBACK');
+          const message = error instanceof Error ? error.message : 'Erro ao executar backfill de anexos';
+          return reply.status(500).send({ error: message });
+        } finally {
+          client.release();
         }
       }
     );

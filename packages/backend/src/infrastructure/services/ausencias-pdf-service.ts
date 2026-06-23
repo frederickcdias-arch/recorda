@@ -55,8 +55,6 @@ export interface RelatorioAusenciasPdfInput {
 
 const COLORS = {
   primary: '#1e40af',
-  secondary: '#1d4ed8',
-  accent: '#2563eb',
   grayText: '#4B5563',
   divider: '#E2E8F0',
 };
@@ -99,7 +97,7 @@ export class AusenciasPdfService {
       }
     }
 
-    await this.stampFooter(finalDoc, empresa);
+    await this.stampFooter(finalDoc);
     return Buffer.from(await finalDoc.save());
   }
 
@@ -122,8 +120,6 @@ export class AusenciasPdfService {
 
       try {
         this.drawHeader(doc, input, empresa, logoBuffer);
-        this.renderResumoGeral(doc, input.relatorio);
-        this.renderFiltros(doc, input);
         this.renderRegistros(doc, input.relatorio);
         doc.end();
       } catch (error) {
@@ -161,13 +157,13 @@ export class AusenciasPdfService {
         // fallback
       }
       doc.image(logoBuffer, imageX, imageY, { width: imageWidth });
-      doc.y = imageY + Math.max(imgHeight, 52) + 6;
+      doc.y = imageY + Math.max(imgHeight, 48) + 2;
     }
 
     if (empresa?.nome) {
       doc.font('Helvetica').fontSize(9).fillColor(COLORS.grayText);
       doc.text(empresa.nome, MARGIN, doc.y, { width: w, align: 'center' });
-      doc.moveDown(0.1);
+      doc.moveDown(0.05);
     }
 
     doc.font('Helvetica-Bold').fontSize(16).fillColor('#111827');
@@ -189,35 +185,10 @@ export class AusenciasPdfService {
     doc.font('Helvetica').fillColor('#111827');
     doc.text(dataGeracao, MARGIN + w - 58, metaY, { width: 58, align: 'right' });
 
-    doc.y = metaY + 18;
+    doc.y = metaY + 16;
     doc.moveTo(MARGIN, doc.y).lineWidth(1.25).strokeColor(COLORS.primary).lineTo(MARGIN + w, doc.y).stroke();
-    doc.y += 10;
+    doc.y += 6;
     doc.fillColor('#000000');
-  }
-
-  private renderResumoGeral(doc: PDFKit.PDFDocument, relatorio: RelatorioAusenciasResponse): void {
-    this.renderSectionHeader(doc, 'RESUMO GERAL', COLORS.primary);
-    this.renderKeyValueTable(doc, [
-      ['Total de registros', String(relatorio.totais.totalRegistros)],
-      ['Aprovados', String(relatorio.totais.totalPorStatus['aprovado'] ?? 0)],
-      ['Pendentes', String(relatorio.totais.totalPorStatus['pendente'] ?? 0)],
-      ['Rejeitados', String(relatorio.totais.totalPorStatus['rejeitado'] ?? 0)],
-      ['Cancelados', String(relatorio.totais.totalPorStatus['cancelado'] ?? 0)],
-      ['Dias aprovados', String(relatorio.totais.diasAprovados)],
-      ['Horas aprovadas', String(relatorio.totais.horasAprovadas)],
-    ]);
-
-    if (relatorio.totais.totalPorTipo.length > 0) {
-      this.renderSectionHeader(doc, 'TOTAL POR TIPO', COLORS.secondary);
-      this.renderTypeTable(doc, relatorio);
-    }
-  }
-
-  private renderFiltros(doc: PDFKit.PDFDocument, input: RelatorioAusenciasPdfInput): void {
-    this.renderSectionHeader(doc, 'FILTROS APLICADOS', COLORS.accent);
-    doc.font('Helvetica').fontSize(9).fillColor(COLORS.grayText);
-    doc.text(this.buildFiltrosText(input), { width: CONTENT_WIDTH });
-    doc.moveDown(0.5);
   }
 
   private renderRegistros(doc: PDFKit.PDFDocument, relatorio: RelatorioAusenciasResponse): void {
@@ -306,67 +277,12 @@ export class AusenciasPdfService {
     doc.font('Helvetica-Bold').fontSize(10).fillColor(color);
     doc.text(title, MARGIN, y, { width: CONTENT_WIDTH });
     doc
-      .moveTo(MARGIN, y + 14)
+      .moveTo(MARGIN, y + 12)
       .lineWidth(1)
       .strokeColor(COLORS.divider)
-      .lineTo(MARGIN + CONTENT_WIDTH, y + 14)
+      .lineTo(MARGIN + CONTENT_WIDTH, y + 12)
       .stroke();
-    doc.y = y + 20;
-  }
-
-  private renderKeyValueTable(doc: PDFKit.PDFDocument, rows: Array<[string, string]>): void {
-    const rowHeight = 20;
-    const labelWidth = Math.floor(CONTENT_WIDTH * 0.65);
-    const valueWidth = CONTENT_WIDTH - labelWidth;
-
-    rows.forEach(([label, value], index) => {
-      const y = doc.y + (index > 0 ? 1 : 0);
-      doc.font('Helvetica-Bold').fontSize(9).fillColor('#1F2937');
-      doc.text(label, MARGIN, y + 5, { width: labelWidth - 8 });
-      doc.font('Helvetica').fontSize(9).fillColor('#111827');
-      doc.text(value, MARGIN + labelWidth, y + 5, { width: valueWidth, align: 'right' });
-      doc
-        .moveTo(MARGIN, y + rowHeight - 1)
-        .lineWidth(0.5)
-        .strokeColor(COLORS.divider)
-        .lineTo(MARGIN + CONTENT_WIDTH, y + rowHeight - 1)
-        .stroke();
-      doc.y = y + rowHeight;
-    });
-
-    doc.moveDown(0.25);
-  }
-
-  private renderTypeTable(doc: PDFKit.PDFDocument, relatorio: RelatorioAusenciasResponse): void {
-    const items = relatorio.totais.totalPorTipo.slice().sort((a, b) => b.quantidade - a.quantidade);
-    const headerY = doc.y;
-
-    doc.font('Helvetica-Bold').fontSize(9).fillColor('#374151');
-    doc.text('Tipo', MARGIN, headerY, { width: CONTENT_WIDTH - 80 });
-    doc.text('Qtd.', MARGIN + CONTENT_WIDTH - 50, headerY, { width: 50, align: 'right' });
-    doc
-      .moveTo(MARGIN, headerY + 14)
-      .lineWidth(0.75)
-      .strokeColor(COLORS.divider)
-      .lineTo(MARGIN + CONTENT_WIDTH, headerY + 14)
-      .stroke();
-    doc.y = headerY + 18;
-
-    items.forEach((item, index) => {
-      const y = doc.y + (index > 0 ? 1 : 0);
-      doc.font('Helvetica').fontSize(9).fillColor('#111827');
-      doc.text(item.nome, MARGIN, y + 4, { width: CONTENT_WIDTH - 80 });
-      doc.text(String(item.quantidade), MARGIN + CONTENT_WIDTH - 50, y + 4, { width: 50, align: 'right' });
-      doc
-        .moveTo(MARGIN, y + 17)
-        .lineWidth(0.5)
-        .strokeColor(COLORS.divider)
-        .lineTo(MARGIN + CONTENT_WIDTH, y + 17)
-        .stroke();
-      doc.y = y + 18;
-    });
-
-    doc.moveDown(0.25);
+    doc.y = y + 16;
   }
 
   private renderAttachmentIndex(
@@ -483,53 +399,18 @@ export class AusenciasPdfService {
     });
   }
 
-  private async stampFooter(doc: PdfLibDocument, empresa?: EmpresaConfig | null): Promise<void> {
-    const font = await doc.embedFont(StandardFonts.Helvetica);
+  private async stampFooter(doc: PdfLibDocument): Promise<void> {
     const pages = doc.getPages();
-    const footerParts: string[] = [];
 
-    const nome = empresa?.nome || 'Recorda';
-    footerParts.push(nome);
-
-    if (empresa?.exibirEnderecoRelatorio && empresa.endereco) {
-      footerParts.push(empresa.endereco);
-    }
-    if (empresa?.exibirContatoRelatorio) {
-      const contato: string[] = [];
-      if (empresa.telefone) contato.push(empresa.telefone);
-      if (empresa.email) contato.push(empresa.email);
-      if (contato.length > 0) footerParts.push(contato.join(' | '));
-    }
-
-    const footerText = footerParts.join('  |  ');
-    const footerColor = rgb(0.61, 0.64, 0.68);
-
-    pages.forEach((page, index) => {
+    pages.forEach((page) => {
       const pageWidth = page.getWidth();
       const pageHeight = page.getHeight();
-      const pageNumber = `Página ${index + 1} de ${pages.length}`;
 
       page.drawLine({
         start: { x: MARGIN, y: pageHeight - MARGIN - 8 },
         end: { x: pageWidth - MARGIN, y: pageHeight - MARGIN - 8 },
         thickness: 0.45,
         color: rgb(0.82, 0.83, 0.85),
-      });
-      page.drawText(footerText, {
-        x: MARGIN,
-        y: pageHeight - MARGIN - 24,
-        size: 7,
-        font,
-        color: footerColor,
-        maxWidth: pageWidth - MARGIN * 2,
-      });
-      page.drawText(pageNumber, {
-        x: pageWidth - MARGIN - 90,
-        y: pageHeight - MARGIN - 24,
-        size: 7,
-        font,
-        color: footerColor,
-        maxWidth: 90,
       });
     });
   }
@@ -553,53 +434,9 @@ export class AusenciasPdfService {
     return left + (totalWidth - imageWidth) / 2;
   }
 
-  private buildFiltrosText(input: RelatorioAusenciasPdfInput): string {
-    const relatorio = input.relatorio;
-    const partes: string[] = [];
-
-    if (input.filtros.dataInicio || input.filtros.dataFim) {
-      const inicio = input.filtros.dataInicio ? this.formatDateBR(input.filtros.dataInicio) : '';
-      const fim = input.filtros.dataFim ? this.formatDateBR(input.filtros.dataFim) : '';
-      partes.push(`Período: ${[inicio, fim].filter(Boolean).join(' até ')}`);
-    } else {
-      partes.push('Período: todos os registros');
-    }
-
-    const colaborador = input.filtros.colaboradorId
-      ? relatorio.filtros.colaboradores.find((c) => c.id === input.filtros.colaboradorId)?.nome
-      : '';
-    if (colaborador) partes.push(`Colaborador: ${colaborador}`);
-
-    const tipo = input.filtros.tipoAusenciaId
-      ? relatorio.filtros.tipos.find((t) => t.id === input.filtros.tipoAusenciaId)?.nome
-      : '';
-    if (tipo) partes.push(`Tipo: ${tipo}`);
-
-    if (input.filtros.status && input.filtros.status !== 'TODOS') {
-      partes.push(`Status: ${this.statusLabel(String(input.filtros.status))}`);
-    }
-
-    return partes.join(' | ');
-  }
-
   private formatDateBR(value: string): string {
     const date = new Date(`${value}T00:00:00`);
     return date.toLocaleDateString('pt-BR');
-  }
-
-  private statusLabel(status: string): string {
-    switch (status) {
-      case 'pendente':
-        return 'Pendente';
-      case 'aprovado':
-        return 'Aprovado';
-      case 'rejeitado':
-        return 'Rejeitado';
-      case 'cancelado':
-        return 'Cancelado';
-      default:
-        return status;
-    }
   }
 
   private async loadLogoBuffer(empresa?: EmpresaConfig | null): Promise<Buffer | null> {

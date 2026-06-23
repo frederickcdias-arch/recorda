@@ -1391,6 +1391,22 @@ export function useCancelarAusenciaAdmin() {
   });
 }
 
+export function useBackfillAusenciasAnexos() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      api.post<{
+        total: number;
+        atualizados: number;
+        ignorados: number;
+        erros: Array<{ id: string; motivo: string }>;
+      }>('/admin/ausencias/backfill-anexos', { confirmar: true }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['ausencias-admin'] });
+    },
+  });
+}
+
 export function useCriarComunicado() {
   const qc = useQueryClient();
 

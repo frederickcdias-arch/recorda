@@ -33,6 +33,7 @@ import {
   useCriarAusenciaAdmin,
   useCancelarAusenciaAdmin,
   useEditarAusenciaAdmin,
+  useBackfillAusenciasAnexos,
 } from '../../hooks/useQueries';
 import type { AusenciaAdminItem, ListarAusenciasAdminParams, TipoAusencia } from '@recorda/shared';
 
@@ -73,6 +74,13 @@ const statusBadgeClass: Record<string, string> = {
   rejeitado: 'bg-[var(--color-error-50)] text-[var(--color-error-700)]',
   cancelado: 'bg-[var(--color-gray-100)] text-[var(--color-text-secondary)]',
 };
+
+interface BackfillResumo {
+  total: number;
+  atualizados: number;
+  ignorados: number;
+  erros: Array<{ id: string; motivo: string }>;
+}
 
 function getAusenciaColorClass(cor: string): string {
   switch (cor.toUpperCase()) {
@@ -533,9 +541,10 @@ export function AusenciasPage(): JSX.Element {
   const [motivoCancelamento, setMotivoCancelamento] = useState('');
   const [selecionada, setSelecionada] = useState<AusenciaAdminItem | null>(null);
   const [mensagemAcao, setMensagemAcao] = useState<{
-    tipo: 'success' | 'error';
+    tipo: 'success' | 'error' | 'warning';
     texto: string;
   } | null>(null);
+  const [backfillResumo, setBackfillResumo] = useState<BackfillResumo | null>(null);
 
   const queryClient = useQueryClient();
   const toast = useToastHelpers();
@@ -546,6 +555,7 @@ export function AusenciasPage(): JSX.Element {
   const aprovarAusencia = useAprovarAusencia();
   const rejeitarAusencia = useRejeitarAusencia();
   const cancelarAusencia = useCancelarAusenciaAdmin();
+  const backfillAnexos = useBackfillAusenciasAnexos();
 
   const ausencias = useMemo<AusenciaAdminItem[]>(
     () => ausenciasQuery.data?.itens ?? [],
@@ -659,6 +669,31 @@ export function AusenciasPage(): JSX.Element {
     setEdicaoAberta(true);
   };
 
+  const handleBackfillAnexos = (): void => {
+    confirmDialog.confirm({
+      title: 'Converter anexos legados',
+      message:
+        'Esta ação converte anexos antigos para o formato persistido no banco. Registros já convertidos serão ignorados. Deseja continuar?',
+      confirmLabel: 'Converter',
+      variant: 'default',
+      onConfirm: async () => {
+        try {
+          const result = await backfillAnexos.mutateAsync();
+          setBackfillResumo(result);
+          setMensagemAcao({
+            tipo: result.erros.length > 0 ? 'warning' : 'success',
+            texto: `Backfill concluído: ${result.atualizados} atualizados, ${result.ignorados} ignorados.`,
+          });
+          await invalidarAusencias();
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : 'Erro ao converter anexos legados';
+          setMensagemAcao({ tipo: 'error', texto: message });
+        }
+      },
+    });
+  };
+
   const handleFecharEdicao = (): void => {
     setEdicaoAberta(false);
     setSelecionada(null);
@@ -697,9 +732,19 @@ export function AusenciasPage(): JSX.Element {
           title="Ausências"
           subtitle="Lançamentos da equipe."
           actions={
-            <Button variant="primary" onClick={() => setLancamentoAberto(true)}>
-              Lançar Ausência
-            </Button>
+            <>
+              <Button
+                variant="secondary"
+                onClick={() => void handleBackfillAnexos()}
+                loading={backfillAnexos.isPending}
+                disabled={backfillAnexos.isPending || carregando}
+              >
+                Converter anexos
+              </Button>
+              <Button variant="primary" onClick={() => setLancamentoAberto(true)}>
+                Lançar Ausência
+              </Button>
+            </>
           }
         />
 
@@ -710,6 +755,56 @@ export function AusenciasPage(): JSX.Element {
             message={mensagemAcao.texto}
             onDismiss={() => setMensagemAcao(null)}
           />
+        ) : null}
+
+        {backfillResumo ? (
+          <Card padding="md" className="border-[var(--color-primary-200)] bg-[var(--color-primary-50)]">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0">
+                <h2 className="text-sm font-semibold text-[var(--color-primary-900)]">
+                  Último backfill de anexos
+                </h2>
+                <p className="mt-1 text-sm text-[var(--color-primary-700)]">
+                  Total processado: {backfillResumo.total}. Atualizados: {backfillResumo.atualizados}.
+                  Ignorados: {backfillResumo.ignorados}.
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="secondary" size="sm" onClick={() => setBackfillResumo(null)}>
+                  Limpar resumo
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => void handleBackfillAnexos()}
+                  loading={backfillAnexos.isPending}
+                  disabled={backfillAnexos.isPending || carregando}
+                >
+                  Reexecutar
+                </Button>
+              </div>
+            </div>
+
+            {backfillResumo.erros.length > 0 ? (
+              <div className="mt-4 rounded-xl border border-[var(--color-warning-200)] bg-[var(--color-warning-50)] p-4">
+                <p className="text-sm font-semibold text-[var(--color-warning-800)]">
+                  Registros ignorados
+                </p>
+                <ul className="mt-2 space-y-2 text-sm text-[var(--color-warning-700)]">
+                  {backfillResumo.erros.slice(0, 5).map((erro) => (
+                    <li key={erro.id} className="break-words">
+                      <strong className="font-medium">{erro.id}</strong>: {erro.motivo}
+                    </li>
+                  ))}
+                </ul>
+                {backfillResumo.erros.length > 5 ? (
+                  <p className="mt-2 text-xs text-[var(--color-warning-700)]">
+                    Exibindo 5 de {backfillResumo.erros.length} erros.
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+          </Card>
         ) : null}
 
         <Card padding="sm" className="bg-[var(--color-bg-secondary)]">

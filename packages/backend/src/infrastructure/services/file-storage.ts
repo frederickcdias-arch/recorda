@@ -88,8 +88,7 @@ export const AUSENCIA_MAX_SIZE = 5 * 1024 * 1024; // 5 MB
 
 /**
  * Validates and persists a file attachment for an ausência.
- * Returns a forward-slash relative path (e.g. uploads/ausencias/<filename>)
- * suitable for storage in the `documento_anexo` column.
+ * Returns a `data:` URL suitable for storage in the `documento_anexo` column.
  */
 export async function saveAusenciaAnexo(file: {
   filename: string;
@@ -103,21 +102,8 @@ export async function saveAusenciaAnexo(file: {
     throw new Error('Arquivo muito grande. Máximo permitido: 5 MB.');
   }
 
-  const timestamp = Date.now();
-  const safeFilename = `${timestamp}_${file.filename.replace(/[^a-zA-Z0-9.\-]/g, '_')}`;
-  const absDir = path.resolve(process.env.UPLOADS_DIR ?? path.join(process.cwd(), 'uploads'), 'ausencias');
-
-  // Path traversal guard
-  const destPath = path.resolve(absDir, safeFilename);
-  if (!destPath.startsWith(absDir + path.sep)) {
-    throw new Error('Nome de arquivo inválido.');
-  }
-
-  await fs.mkdir(absDir, { recursive: true });
-  await fs.writeFile(destPath, file.buffer);
-
-  // Return portable relative path using forward slashes
-  return `uploads/ausencias/${safeFilename}`;
+  const encodedName = encodeURIComponent(file.filename);
+  return `data:${file.mimetype};name=${encodedName};base64,${file.buffer.toString('base64')}`;
 }
 
 /**
@@ -134,6 +120,13 @@ export async function serveAusenciaAnexo(relativePath: string): Promise<{
   mimeType: string;
   filename: string;
 }> {
+  const extensionFromMimeType = (mimeType: string): string => {
+    if (mimeType === 'application/pdf') return '.pdf';
+    if (mimeType === 'image/png') return '.png';
+    if (mimeType === 'image/jpeg') return '.jpg';
+    return '';
+  };
+
   const normalizeMimeType = (value: string | null | undefined, fallbackPath: string): string | null => {
     const normalized = (value ?? '').toLowerCase();
     if (normalized.includes('pdf')) return 'application/pdf';
@@ -164,6 +157,23 @@ export async function serveAusenciaAnexo(relativePath: string): Promise<{
       throw Object.assign(new Error('Tipo de arquivo não suportado.'), { code: 'INVALID_TYPE' });
     }
 
+    return { buffer, mimeType, filename };
+  }
+
+  const dataUrlMatch = /^data:([^;,]+)((?:;[^;,=]+=[^;,]+)*)?;base64,(.*)$/is.exec(relativePath);
+  if (dataUrlMatch) {
+    const mimeType = normalizeMimeType(dataUrlMatch[1], 'anexo');
+    if (!mimeType) {
+      throw Object.assign(new Error('Tipo de arquivo não suportado.'), { code: 'INVALID_TYPE' });
+    }
+
+    const params = (dataUrlMatch[2] ?? '').split(';').filter(Boolean);
+    const rawName = params
+      .map((part) => part.match(/^name=(.+)$/i)?.[1] ?? part.match(/^filename=(.+)$/i)?.[1] ?? '')
+      .find(Boolean);
+    const filenameFromData = rawName ? path.basename(decodeURIComponent(rawName)) : '';
+    const buffer = Buffer.from(dataUrlMatch[3] ?? '', 'base64');
+    const filename = filenameFromData || `anexo${extensionFromMimeType(mimeType) || ''}`;
     return { buffer, mimeType, filename };
   }
 

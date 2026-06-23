@@ -126,5 +126,12 @@ describe('PDF — /relatorios/ausencias/exportar/pdf', () => {
     const pdf = await PDFDocument.load(payload);
 
     expect(pdf.getPageCount()).toBeGreaterThan(1);
+
+    const rawText = payload.toString('latin1');
+    expect(rawText).not.toContain('RESUMO GERAL');
+    expect(rawText).not.toContain('TOTAL POR TIPO');
+    expect(rawText).not.toContain('FILTROS APLICADOS');
+    expect(rawText).not.toContain('Precisa Sistematização & Tecnologia');
+    expect(rawText).not.toContain('Página 1 de 4');
   });
 });

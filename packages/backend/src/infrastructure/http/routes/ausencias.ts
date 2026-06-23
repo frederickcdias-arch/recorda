@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import '@fastify/multipart';
 import { z } from 'zod';
 import { serveAusenciaAnexo } from '../../services/file-storage.js';
+import { buildContentDisposition } from '../content-disposition.js';
 import { authorize } from '../middleware/auth.js';
 import { validateBody, validateParams, validateQuery } from '../middleware/validate.js';
 import { getCurrentUser, toIsoDate } from './operacional-helpers.js';
@@ -288,7 +289,7 @@ export function createAusenciasRoutes(): FastifyPluginAsync {
           const { buffer, mimeType, filename } = await serveAusenciaAnexo(documento_anexo);
           return reply
             .header('Content-Type', mimeType)
-            .header('Content-Disposition', `inline; filename="${filename}"`)
+            .header('Content-Disposition', buildContentDisposition('inline', filename))
             .header('Cache-Control', 'private, max-age=3600')
             .send(buffer);
         } catch (error) {

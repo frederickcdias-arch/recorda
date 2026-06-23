@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit",
     "migrate": "tsx src/infrastructure/database/migrate.ts",
     "evaluate:documents": "tsx scripts/evaluate-document-pipeline.ts",
+    "backfill:ausencias-anexos": "tsx scripts/backfill-ausencias-anexos.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:integration": "vitest run --reporter=verbose src/**/*.integration.test.ts"
