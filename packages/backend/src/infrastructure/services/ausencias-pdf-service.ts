@@ -11,6 +11,7 @@ import {
   type PDFPage,
 } from 'pdf-lib';
 import type { RelatorioAusenciasResponse, RelatorioAusenciasRow } from '@recorda/shared';
+import { getUploadsPath } from './uploads-runtime.js';
 
 const A4 = PageSizes.A4;
 const MARGIN = 40;
@@ -194,15 +195,30 @@ export class AusenciasPdfService {
   private renderRegistros(doc: PDFKit.PDFDocument, relatorio: RelatorioAusenciasResponse): void {
     this.renderSectionHeader(doc, 'REGISTROS', COLORS.primary);
 
+    const registrosOrdenados = [...relatorio.registros].sort((a, b) => {
+      const byName = a.colaboradorNome.localeCompare(b.colaboradorNome, 'pt-BR', {
+        sensitivity: 'base',
+      });
+      if (byName !== 0) return byName;
+
+      const byInicio = a.dataInicio.localeCompare(b.dataInicio);
+      if (byInicio !== 0) return byInicio;
+
+      const byFim = a.dataFim.localeCompare(b.dataFim);
+      if (byFim !== 0) return byFim;
+
+      return a.criadoEm.localeCompare(b.criadoEm);
+    });
+
     const columns = [
-      { label: 'Início', width: 72 },
-      { label: 'Fim', width: 72 },
-      { label: 'Colaborador', width: 142 },
-      { label: 'Tipo', width: 150 },
-      { label: 'Anexo', width: 68 },
+      { label: 'Início', width: 60 },
+      { label: 'Fim', width: 60 },
+      { label: 'Tipo', width: 128 },
+      { label: 'Observação', width: 267 },
     ];
     const rowHeight = 20;
     const headerHeight = 18;
+    const groupHeight = 18;
     const topY = doc.y;
 
     const drawHeader = (y: number): void => {
@@ -220,20 +236,36 @@ export class AusenciasPdfService {
         .stroke();
     };
 
+    const drawGroupHeader = (colaboradorNome: string, y: number): void => {
+      doc.rect(MARGIN, y, CONTENT_WIDTH, groupHeight).fill('#EFF6FF');
+      doc.font('Helvetica-Bold').fontSize(8.5).fillColor(COLORS.primary);
+      doc.text(colaboradorNome, MARGIN + 6, y + 4, {
+        width: CONTENT_WIDTH - 12,
+        ellipsis: true,
+      });
+      doc
+        .moveTo(MARGIN, y + groupHeight)
+        .lineWidth(0.5)
+        .strokeColor('#BFDBFE')
+        .lineTo(MARGIN + CONTENT_WIDTH, y + groupHeight)
+        .stroke();
+      doc.fillColor('#111827');
+    };
+
     const drawRow = (row: RelatorioAusenciasRow, y: number): void => {
+      const observacao = row.observacoes?.trim() || row.justificativa?.trim() || '-';
       const values = [
         this.formatDateBR(row.dataInicio),
         this.formatDateBR(row.dataFim),
-        row.colaboradorNome,
         row.tipoAusenciaNome,
-        row.documentoAnexo ? 'Com anexo' : 'Sem anexo',
+        observacao,
       ];
 
       let x = MARGIN;
       doc.font('Helvetica').fontSize(8.5).fillColor('#111827');
       values.forEach((value, index) => {
         const width = columns[index]!.width;
-        const align = index <= 1 || index === 4 ? 'center' : 'left';
+        const align = index <= 1 ? 'center' : 'left';
         doc.text(value, x, y + 4, { width: width - 4, height: rowHeight - 6, align, ellipsis: true });
         x += width;
       });
@@ -248,7 +280,7 @@ export class AusenciasPdfService {
     drawHeader(topY);
     let y = topY + headerHeight + 4;
 
-    if (relatorio.registros.length === 0) {
+    if (registrosOrdenados.length === 0) {
       doc.font('Helvetica').fontSize(9).fillColor(COLORS.grayText);
       doc.text('Nenhum registro encontrado para os filtros informados.', MARGIN, y + 8, {
         width: CONTENT_WIDTH,
@@ -258,12 +290,29 @@ export class AusenciasPdfService {
       return;
     }
 
-    for (const row of relatorio.registros) {
+    let colaboradorAtual = '';
+    for (const row of registrosOrdenados) {
+      const mudouColaborador = row.colaboradorNome !== colaboradorAtual;
+
+      if (mudouColaborador) {
+        if (y + groupHeight > PAGE_HEIGHT - MARGIN - FOOTER_SPACE) {
+          doc.addPage();
+          this.renderSectionHeader(doc, 'REGISTROS (continuação)', COLORS.primary);
+          drawHeader(doc.y);
+          y = doc.y + headerHeight + 4;
+        }
+        drawGroupHeader(row.colaboradorNome, y);
+        y += groupHeight;
+        colaboradorAtual = row.colaboradorNome;
+      }
+
       if (y + rowHeight > PAGE_HEIGHT - MARGIN - FOOTER_SPACE) {
         doc.addPage();
         this.renderSectionHeader(doc, 'REGISTROS (continuação)', COLORS.primary);
         drawHeader(doc.y);
         y = doc.y + headerHeight + 4;
+        drawGroupHeader(row.colaboradorNome, y);
+        y += groupHeight;
       }
       drawRow(row, y);
       y += rowHeight;
@@ -453,7 +502,7 @@ export class AusenciasPdfService {
     }
 
     try {
-      const uploadsDir = path.resolve('uploads', 'logos');
+      const uploadsDir = getUploadsPath('logos');
       try {
         const files = await fs.readdir(uploadsDir);
         const logoFile = files.find((f) => f.startsWith('logo_empresa'));

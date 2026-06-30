@@ -2,6 +2,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import type { FastifyRequest } from 'fastify';
 import '@fastify/multipart';
+import { getUploadsRoot } from './uploads-runtime.js';
 
 export interface FileStorageOptions {
   maxSize?: number; // bytes
@@ -9,7 +10,7 @@ export interface FileStorageOptions {
 }
 
 export class FileStorageService {
-  private readonly uploadsDir = path.resolve(process.env.UPLOADS_DIR ?? 'uploads');
+  private readonly uploadsDir = getUploadsRoot();
   private readonly maxSize: number;
   private readonly allowedTypes: Set<string>;
 
@@ -35,12 +36,12 @@ export class FileStorageService {
     category: 'planilhas' | 'ocr'
   ): Promise<string> {
     if (!this.allowedTypes.has(file.mimetype)) {
-      throw new Error(`Tipo de arquivo não permitido: ${file.mimetype}`);
+      throw new Error(`Tipo de arquivo nÃ£o permitido: ${file.mimetype}`);
     }
 
     const buffer = await file.toBuffer();
     if (buffer.length > this.maxSize) {
-      throw new Error(`Arquivo muito grande. Máximo permitido: ${this.maxSize} bytes`);
+      throw new Error(`Arquivo muito grande. MÃ¡ximo permitido: ${this.maxSize} bytes`);
     }
 
     await this.ensureDirs();
@@ -59,7 +60,7 @@ export class FileStorageService {
       const fullPath = path.resolve(filePath);
       await fs.unlink(fullPath);
     } catch {
-      // Ignorar erro se arquivo não existir
+      // Ignorar erro se arquivo nÃ£o existir
     }
   }
 
@@ -80,14 +81,14 @@ export class FileStorageService {
   }
 }
 
-// ─── Ausências attachment helpers ─────────────────────────────────────────────
+// â”€â”€â”€ AusÃªncias attachment helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const AUSENCIA_ALLOWED_MIME_TYPES = new Set(['application/pdf', 'image/jpeg', 'image/png']);
 
 export const AUSENCIA_MAX_SIZE = 5 * 1024 * 1024; // 5 MB
 
 /**
- * Validates and persists a file attachment for an ausência.
+ * Validates and persists a file attachment for an ausÃªncia.
  * Returns a `data:` URL suitable for storage in the `documento_anexo` column.
  */
 export async function saveAusenciaAnexo(file: {
@@ -96,10 +97,10 @@ export async function saveAusenciaAnexo(file: {
   buffer: Buffer;
 }): Promise<string> {
   if (!AUSENCIA_ALLOWED_MIME_TYPES.has(file.mimetype)) {
-    throw new Error('Tipo de arquivo não permitido. Formatos aceitos: PDF, JPG, PNG.');
+    throw new Error('Tipo de arquivo nÃ£o permitido. Formatos aceitos: PDF, JPG, PNG.');
   }
   if (file.buffer.length > AUSENCIA_MAX_SIZE) {
-    throw new Error('Arquivo muito grande. Máximo permitido: 5 MB.');
+    throw new Error('Arquivo muito grande. MÃ¡ximo permitido: 5 MB.');
   }
 
   const encodedName = encodeURIComponent(file.filename);
@@ -127,7 +128,10 @@ export async function serveAusenciaAnexo(relativePath: string): Promise<{
     return '';
   };
 
-  const normalizeMimeType = (value: string | null | undefined, fallbackPath: string): string | null => {
+  const normalizeMimeType = (
+    value: string | null | undefined,
+    fallbackPath: string
+  ): string | null => {
     const normalized = (value ?? '').toLowerCase();
     if (normalized.includes('pdf')) return 'application/pdf';
     if (normalized.includes('png')) return 'image/png';
@@ -140,31 +144,123 @@ export async function serveAusenciaAnexo(relativePath: string): Promise<{
     return null;
   };
 
-  const looksLikeUrl = /^https?:\/\//i.test(relativePath) || /^[a-z0-9.-]+\.[a-z]{2,}(\/|$)/i.test(relativePath);
-  if (looksLikeUrl) {
-    const normalizedUrl = /^https?:\/\//i.test(relativePath) ? relativePath : `https://${relativePath}`;
-    const response = await fetch(normalizedUrl);
-    if (!response.ok) {
-      throw Object.assign(new Error('Arquivo de anexo não encontrado no servidor.'), {
-        code: 'ENOENT',
-      });
+  const uploadsRoot = getUploadsRoot();
+  const allowedBase = path.resolve(uploadsRoot, 'ausencias');
+
+  const extractUploadsSegment = (value: string): string | null => {
+    const normalized = value.replace(/\\/g, '/');
+    const match = normalized.match(/(?:^|\/)(uploads\/ausencias\/.+)$/i);
+    return match?.[1] ?? null;
+  };
+
+  const normalizeLegacyReference = (value: string): string => {
+    const trimmed = value.trim();
+    if (!trimmed) return trimmed;
+
+    if (/^file:\/\//i.test(trimmed)) {
+      try {
+        const fileUrl = new URL(trimmed);
+        const filePath = decodeURIComponent(fileUrl.pathname).replace(/^\/([a-zA-Z]:\/)/, '$1');
+        return extractUploadsSegment(filePath) ?? filePath;
+      } catch {
+        return trimmed;
+      }
     }
 
-    const buffer = Buffer.from(await response.arrayBuffer());
-    const filename = path.basename(new URL(normalizedUrl).pathname) || 'anexo';
-    const mimeType = normalizeMimeType(response.headers.get('content-type'), filename);
+    if (/^https?:\/\//i.test(trimmed)) {
+      try {
+        const url = new URL(trimmed);
+        return extractUploadsSegment(decodeURIComponent(url.pathname)) ?? trimmed;
+      } catch {
+        return trimmed;
+      }
+    }
+
+    const uploadsSegment = extractUploadsSegment(trimmed);
+    if (uploadsSegment) {
+      return uploadsSegment;
+    }
+
+    if (!/[\\/]/.test(trimmed) && path.extname(trimmed)) {
+      return path.join('uploads', 'ausencias', trimmed);
+    }
+
+    return trimmed;
+  };
+
+  const toAllowedPath = (value: string): string => {
+    const normalizedReference = normalizeLegacyReference(value);
+
+    if (path.isAbsolute(normalizedReference)) {
+      return path.resolve(normalizedReference);
+    }
+
+    if (/^ausencias[\\/]/i.test(normalizedReference)) {
+      return path.resolve(uploadsRoot, normalizedReference);
+    }
+
+    const candidatePath =
+      normalizedReference.startsWith('/uploads/') || normalizedReference.startsWith('\\uploads\\')
+        ? normalizedReference.slice(1)
+        : normalizedReference;
+    const rootRelativePath = candidatePath.replace(/^uploads[\\/]/i, '');
+    return path.resolve(uploadsRoot, rootRelativePath);
+  };
+
+  const tryReadLocal = async (
+    value: string
+  ): Promise<{ buffer: Buffer; mimeType: string; filename: string } | null> => {
+    const fullPath = toAllowedPath(value);
+    const basename = path.basename(fullPath);
+    const mimeType = normalizeMimeType(null, fullPath);
+
     if (!mimeType) {
-      throw Object.assign(new Error('Tipo de arquivo não suportado.'), { code: 'INVALID_TYPE' });
+      throw Object.assign(new Error('Tipo de arquivo nÃ£o suportado.'), { code: 'INVALID_TYPE' });
     }
 
-    return { buffer, mimeType, filename };
-  }
+    if (!fullPath.startsWith(allowedBase + path.sep)) {
+      return null;
+    }
+
+    let resolvedPath = fullPath;
+    try {
+      await fs.access(resolvedPath);
+    } catch {
+      try {
+        const matches: string[] = [];
+        const walk = async (dir: string): Promise<void> => {
+          const entries = await fs.readdir(dir, { withFileTypes: true });
+          for (const entry of entries) {
+            const candidate = path.join(dir, entry.name);
+            if (entry.isDirectory()) {
+              await walk(candidate);
+              continue;
+            }
+            if (entry.isFile() && entry.name === basename) {
+              matches.push(candidate);
+            }
+          }
+        };
+        await walk(allowedBase);
+        if (matches.length > 0) {
+          resolvedPath = matches[0]!;
+        } else {
+          return null;
+        }
+      } catch {
+        return null;
+      }
+    }
+
+    const buffer = await fs.readFile(resolvedPath);
+    return { buffer, mimeType, filename: path.basename(resolvedPath) };
+  };
 
   const dataUrlMatch = /^data:([^;,]+)((?:;[^;,=]+=[^;,]+)*)?;base64,(.*)$/is.exec(relativePath);
   if (dataUrlMatch) {
     const mimeType = normalizeMimeType(dataUrlMatch[1], 'anexo');
     if (!mimeType) {
-      throw Object.assign(new Error('Tipo de arquivo não suportado.'), { code: 'INVALID_TYPE' });
+      throw Object.assign(new Error('Tipo de arquivo nÃ£o suportado.'), { code: 'INVALID_TYPE' });
     }
 
     const params = (dataUrlMatch[2] ?? '').split(';').filter(Boolean);
@@ -177,55 +273,33 @@ export async function serveAusenciaAnexo(relativePath: string): Promise<{
     return { buffer, mimeType, filename };
   }
 
-  // Canonicalise to an absolute path and verify it stays inside uploads/ausencias/
-  const uploadsRoot = path.resolve(process.env.UPLOADS_DIR ?? path.join(process.cwd(), 'uploads'));
-  const allowedBase = path.resolve(uploadsRoot, 'ausencias');
-  const candidatePath = relativePath.startsWith('/uploads/') || relativePath.startsWith('\\uploads\\')
-    ? relativePath.slice(1)
-    : relativePath;
-  const rootRelativePath = candidatePath.replace(/^uploads[\\/]/i, '');
-  const fullPath = path.resolve(uploadsRoot, rootRelativePath);
-  const basename = path.basename(fullPath);
-
-  if (!fullPath.startsWith(allowedBase + path.sep)) {
-    throw Object.assign(new Error('Caminho de arquivo inválido.'), { code: 'INVALID_PATH' });
+  const localResult = await tryReadLocal(relativePath);
+  if (localResult) {
+    return localResult;
   }
 
-  const mimeType = normalizeMimeType(null, fullPath);
-
-  if (!mimeType) {
-    throw Object.assign(new Error('Tipo de arquivo não suportado.'), { code: 'INVALID_TYPE' });
-  }
-
-  let resolvedPath = fullPath;
-  try {
-    await fs.access(resolvedPath);
-  } catch {
-    try {
-      const matches: string[] = [];
-      const walk = async (dir: string): Promise<void> => {
-        const entries = await fs.readdir(dir, { withFileTypes: true });
-        for (const entry of entries) {
-          const candidate = path.join(dir, entry.name);
-          if (entry.isDirectory()) {
-            await walk(candidate);
-            continue;
-          }
-          if (entry.isFile() && entry.name === basename) {
-            matches.push(candidate);
-          }
-        }
-      };
-      await walk(uploadsRoot);
-      if (matches.length > 0) {
-        resolvedPath = matches[0]!;
-      }
-    } catch {
-      // ignore and fail below
+  const looksLikeUrl =
+    /^https?:\/\//i.test(relativePath) || /^[a-z0-9.-]+\.[a-z]{2,}(\/|$)/i.test(relativePath);
+  if (looksLikeUrl) {
+    const normalizedUrl = /^https?:\/\//i.test(relativePath) ? relativePath : `https://${relativePath}`;
+    const response = await fetch(normalizedUrl);
+    if (!response.ok) {
+      throw Object.assign(new Error('Arquivo de anexo nÃ£o encontrado no servidor.'), {
+        code: 'ENOENT',
+      });
     }
+
+    const buffer = Buffer.from(await response.arrayBuffer());
+    const filename = path.basename(new URL(normalizedUrl).pathname) || 'anexo';
+    const mimeType = normalizeMimeType(response.headers.get('content-type'), filename);
+    if (!mimeType) {
+      throw Object.assign(new Error('Tipo de arquivo nÃ£o suportado.'), { code: 'INVALID_TYPE' });
+    }
+
+    return { buffer, mimeType, filename };
   }
 
-  const buffer = await fs.readFile(resolvedPath);
-  const filename = path.basename(resolvedPath);
-  return { buffer, mimeType, filename };
+  throw Object.assign(new Error('Arquivo de anexo nÃ£o encontrado no servidor.'), {
+    code: 'ENOENT',
+  });
 }

@@ -3,6 +3,7 @@ import { createServer } from './infrastructure/http/server.js';
 import { createDatabaseConnection } from './infrastructure/database/connection.js';
 import { config } from './infrastructure/config/index.js';
 import { logger } from './infrastructure/logging/logger.js';
+import { validateUploadsRuntime } from './infrastructure/services/uploads-runtime.js';
 
 dotenv.config();
 
@@ -46,6 +47,22 @@ async function cleanupOldAuditLogs(
 }
 
 async function bootstrap(): Promise<void> {
+  const uploadsRuntime = await validateUploadsRuntime();
+  logger.info('Uploads runtime configured', {
+    component: 'uploads',
+    root: uploadsRuntime.root,
+    mode: uploadsRuntime.mode,
+    persistent: uploadsRuntime.persistent,
+    requirePersistent: uploadsRuntime.requirePersistent,
+  });
+  if (!uploadsRuntime.persistent) {
+    logger.warn('Uploads storage is running in ephemeral mode; files can be lost on redeploy.', {
+      component: 'uploads',
+      root: uploadsRuntime.root,
+      mode: uploadsRuntime.mode,
+    });
+  }
+
   const database = await createDatabaseConnection(config.database, {
     error: (msg, err) => logger.error(msg, { component: 'pg-pool', error: String(err) }),
   });

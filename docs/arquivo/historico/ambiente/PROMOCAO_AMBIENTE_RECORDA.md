@@ -175,7 +175,7 @@ DB_SSL_REJECT_UNAUTHORIZED=false → aceita certs autoassinados
 
 **Ação recomendada (pré-produção real, não para esta promoção):**
 
-- Montar volume persistente no Railway para `/app/uploads`, ou
+- Montar volume persistente no Railway para `/app/uploads`, definir `UPLOADS_DIR` para o mount path e usar `UPLOADS_STORAGE_MODE=railway-volume`, ou
 - Migrar uploads para armazenamento externo (S3-compatible: Cloudflare R2, AWS S3).
 - Para este ambiente de homologação interna: documentar a limitação e evitar uploads críticos que não possam ser recriados.
 

@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { authorize } from '../middleware/auth.js';
 import { promises as fs } from 'fs';
 import path from 'path';
+import { getUploadsPath } from '../../services/uploads-runtime.js';
 
 interface ConfiguracaoEmpresaInput {
   nome: string;
@@ -285,7 +286,7 @@ export function createConfiguracaoRoutes(): FastifyPluginAsync {
 
           // Fallback: tenta ler do filesystem (compatibilidade com uploads anteriores)
           try {
-            const uploadsDir = path.resolve('uploads', 'logos');
+            const uploadsDir = getUploadsPath('logos');
             const files = await fs.readdir(uploadsDir);
             const logoFile = files.find((f) => f.startsWith('logo_empresa'));
 

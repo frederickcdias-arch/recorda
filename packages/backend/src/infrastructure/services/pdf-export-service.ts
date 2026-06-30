@@ -2,6 +2,7 @@ import PDFDocument from 'pdfkit';
 import type { RelatorioCompleto } from '../../application/use-cases/gerar-relatorio-completo.js';
 import { promises as fs } from 'fs';
 import path from 'path';
+import { getUploadsPath } from './uploads-runtime.js';
 
 export interface EmpresaConfig {
   nome?: string;
@@ -95,7 +96,7 @@ export class PDFExportService {
     }
 
     try {
-      const uploadsDir = path.resolve('uploads', 'logos');
+      const uploadsDir = getUploadsPath('logos');
       try {
         const files = await fs.readdir(uploadsDir);
         const logoFile = files.find((f) => f.startsWith('logo_empresa'));
