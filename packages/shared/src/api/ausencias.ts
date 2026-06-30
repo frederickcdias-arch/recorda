@@ -45,6 +45,32 @@ export interface AusenciaAdminItem {
 
 export interface ListarAusenciasAdminResponse extends PaginatedResponse<AusenciaAdminItem> {}
 
+export interface JustificativaColetivaItem {
+  id: string;
+  dataInicio: string;
+  dataFim: string;
+  descricao: string;
+  criadoPor: string;
+  criadoPorNome: string;
+  criadoEm: string;
+  atualizadoEm: string;
+}
+
+export interface ListarJustificativasColetivasParams {
+  dataInicio?: string;
+  dataFim?: string;
+}
+
+export interface ListarJustificativasColetivasResponse {
+  itens: JustificativaColetivaItem[];
+}
+
+export interface CriarJustificativaColetivaDTO {
+  dataInicio: string;
+  dataFim: string;
+  descricao: string;
+}
+
 export interface AprovarAusenciaDTO {
   justificativa?: string;
 }
@@ -162,6 +188,7 @@ export interface RelatorioAusenciasRow {
 
 export interface RelatorioAusenciasResponse {
   registros: RelatorioAusenciasRow[];
+  justificativasColetivas: JustificativaColetivaItem[];
   totais: {
     totalRegistros: number;
     totalPorStatus: Record<string, number>;

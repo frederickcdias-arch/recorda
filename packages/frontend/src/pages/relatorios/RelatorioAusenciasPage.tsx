@@ -251,7 +251,7 @@ export function RelatorioAusenciasPage(): JSX.Element {
     <div className="space-y-6">
       <PageHeader
         title="Relatório de Ausências"
-        subtitle="Fechamento de ausências e exportação em PDF com anexos do período."
+        subtitle="Fechamento de ausências com justificativas coletivas destacadas no topo do relatório."
       />
 
       {mensagem && (
@@ -282,7 +282,7 @@ export function RelatorioAusenciasPage(): JSX.Element {
               loading={exportandoPdf}
               disabled={exportandoPdf || carregando || exportandoCsv}
             >
-              Exportar PDF com anexos
+              Exportar PDF
             </Button>
             <Button
               variant="secondary"
@@ -345,6 +345,30 @@ export function RelatorioAusenciasPage(): JSX.Element {
       {/* ── Totais ── */}
       {!carregando && totais && (
         <>
+          {relatorio && relatorio.justificativasColetivas.length > 0 ? (
+            <div className="rounded-xl border border-[var(--color-primary-200)] bg-[var(--color-primary-50)] overflow-hidden">
+              <div className="flex items-center gap-2 px-5 py-3 border-b border-[var(--color-primary-200)]">
+                <span className="text-sm font-semibold text-[var(--color-primary-900)]">
+                  Justificativas Coletivas do Período
+                </span>
+              </div>
+              <div className="space-y-2 p-4">
+                {relatorio.justificativasColetivas.map((item) => (
+                  <div
+                    key={item.id}
+                    className="rounded-lg border border-[var(--color-primary-200)] bg-white/80 px-3 py-2"
+                  >
+                    <p className="text-sm font-medium text-[var(--color-primary-950)]">
+                      {formatDateBR(item.dataInicio)}
+                      {item.dataInicio !== item.dataFim ? ` até ${formatDateBR(item.dataFim)}` : ''}
+                    </p>
+                    <p className="mt-1 text-sm text-[var(--color-primary-900)]">{item.descricao}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
             <SummaryCard label="Total de Registros" value={totais.totalRegistros} />
             <SummaryCard

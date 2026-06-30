@@ -76,6 +76,7 @@ export class AusenciasPdfService {
 
       try {
         this.drawHeader(doc, input, empresa, logoBuffer);
+        this.renderJustificativasColetivas(doc, input.relatorio);
         this.renderRegistros(doc, input.relatorio);
         doc.end();
       } catch (error) {
@@ -274,6 +275,48 @@ export class AusenciasPdfService {
     }
 
     doc.y = y + 2;
+  }
+
+  private renderJustificativasColetivas(
+    doc: PDFKit.PDFDocument,
+    relatorio: RelatorioAusenciasResponse
+  ): void {
+    if (relatorio.justificativasColetivas.length === 0) {
+      return;
+    }
+
+    this.renderSectionHeader(doc, 'JUSTIFICATIVAS COLETIVAS DO PERÍODO', COLORS.primary);
+
+    const items = [...relatorio.justificativasColetivas].sort((a, b) => {
+      const byInicio = a.dataInicio.localeCompare(b.dataInicio);
+      if (byInicio !== 0) return byInicio;
+      return a.criadoEm.localeCompare(b.criadoEm);
+    });
+
+    for (const item of items) {
+      const periodo =
+        item.dataInicio === item.dataFim
+          ? this.formatDateBR(item.dataInicio)
+          : `${this.formatDateBR(item.dataInicio)} até ${this.formatDateBR(item.dataFim)}`;
+
+      const line = `${periodo} — ${item.descricao}`;
+      const height = doc.heightOfString(line, { width: CONTENT_WIDTH - 24, align: 'left' }) + 8;
+
+      if (doc.y + height > PAGE_HEIGHT - MARGIN - FOOTER_SPACE) {
+        doc.addPage();
+        this.renderSectionHeader(doc, 'JUSTIFICATIVAS COLETIVAS (continuação)', COLORS.primary);
+      }
+
+      doc.circle(MARGIN + 4, doc.y + 7, 2.2).fill(COLORS.primary);
+      doc.font('Helvetica').fontSize(8.8).fillColor('#111827');
+      doc.text(line, MARGIN + 12, doc.y, {
+        width: CONTENT_WIDTH - 12,
+        align: 'left',
+      });
+      doc.moveDown(0.35);
+    }
+
+    doc.moveDown(0.4);
   }
 
   private renderSectionHeader(doc: PDFKit.PDFDocument, title: string, color: string): void {

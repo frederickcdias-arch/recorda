@@ -21,6 +21,9 @@ import type {
   CriarAusenciaAdminDTO,
   EditarAusenciaAdminDTO,
   CancelarAusenciaAdminDTO,
+  CriarJustificativaColetivaDTO,
+  ListarJustificativasColetivasParams,
+  ListarJustificativasColetivasResponse,
   ListarMinhasAusenciasParams,
   ListarMinhasAusenciasResponse,
   ListarTiposAusenciaResponse,
@@ -83,6 +86,8 @@ export const queryKeys = {
   comunicadosUsuario: ['comunicados-usuario'] as const,
   comunicadosNaoLidos: ['comunicados-nao-lidos'] as const,
   ausenciasAdmin: (params: ListarAusenciasAdminParams) => ['ausencias-admin', params] as const,
+  justificativasColetivasAdmin: (params: ListarJustificativasColetivasParams) =>
+    ['justificativas-coletivas-admin', params] as const,
   usuariosColaboradores: ['usuarios-colaboradores'] as const,
   importacoesHistorico: ['importacoes-historico'] as const,
   fontesImportacao: ['fontes-importacao'] as const,
@@ -1311,6 +1316,24 @@ export function useAusenciasAdmin(params: ListarAusenciasAdminParams) {
   });
 }
 
+export function useJustificativasColetivasAdmin(params: ListarJustificativasColetivasParams = {}) {
+  return useQuery<ListarJustificativasColetivasResponse>({
+    queryKey: queryKeys.justificativasColetivasAdmin(params),
+    queryFn: () => {
+      const qs = new URLSearchParams();
+      for (const [key, value] of Object.entries(params)) {
+        if (value === undefined || value === null || value === '') continue;
+        qs.set(key, String(value));
+      }
+
+      const suffix = qs.toString() ? `?${qs.toString()}` : '';
+      return api.get<ListarJustificativasColetivasResponse>(
+        `/admin/justificativas-coletivas${suffix}`
+      );
+    },
+  });
+}
+
 interface UsuarioColaborador {
   id: string;
   nome: string;
@@ -1362,6 +1385,17 @@ export function useCriarAusenciaAdmin() {
       api.post<{ ausencia: { id: string; status: string } }>('/admin/ausencias', payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['ausencias-admin'] });
+    },
+  });
+}
+
+export function useCriarJustificativaColetivaAdmin() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: CriarJustificativaColetivaDTO) =>
+      api.post('/admin/justificativas-coletivas', payload),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['justificativas-coletivas-admin'] });
     },
   });
 }

@@ -11,6 +11,9 @@ import type {
   AprovarAusenciaDTO,
   RejeitarAusenciaDTO,
   CancelarAusenciaAdminDTO,
+  CriarJustificativaColetivaDTO,
+  JustificativaColetivaItem,
+  ListarJustificativasColetivasResponse,
 } from '@recorda/shared';
 import { authorize } from '../middleware/auth.js';
 import { validateBody, validateParams, validateQuery } from '../middleware/validate.js';
@@ -67,6 +70,17 @@ const cancelarAusenciaAdminSchema = z.object({
 
 const backfillAusenciasAnexosSchema = z.object({
   confirmar: z.literal(true),
+});
+
+const criarJustificativaColetivaSchema = z.object({
+  dataInicio: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'dataInicio inválida (YYYY-MM-DD)'),
+  dataFim: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'dataFim inválida (YYYY-MM-DD)'),
+  descricao: z.string().trim().min(3).max(2000),
+});
+
+const listarJustificativasColetivasQuerySchema = z.object({
+  dataInicio: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  dataFim: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
 });
 
 function toDateOnlyString(value: string | Date | null | undefined): string {
@@ -130,6 +144,30 @@ interface AusenciaAdminRow {
   criado_por: string;
   criado_em: string | Date;
   atualizado_em: string | Date;
+}
+
+interface JustificativaColetivaRow {
+  id: string;
+  data_inicio: string | Date;
+  data_fim: string | Date;
+  descricao: string;
+  criado_por: string;
+  criado_por_nome: string;
+  criado_em: string | Date;
+  atualizado_em: string | Date;
+}
+
+function mapJustificativaColetiva(row: JustificativaColetivaRow): JustificativaColetivaItem {
+  return {
+    id: row.id,
+    dataInicio: toDateOnlyString(row.data_inicio),
+    dataFim: toDateOnlyString(row.data_fim),
+    descricao: row.descricao,
+    criadoPor: row.criado_por,
+    criadoPorNome: row.criado_por_nome,
+    criadoEm: toIsoDate(row.criado_em) ?? new Date().toISOString(),
+    atualizadoEm: toIsoDate(row.atualizado_em) ?? new Date().toISOString(),
+  };
 }
 
 function buildAusenciasAdminFilters(query: z.infer<typeof listarAusenciasAdminQuerySchema>): {
@@ -717,6 +755,108 @@ export function createAdminRoutes(): FastifyPluginAsync {
           const message = error instanceof Error ? error.message : 'Erro ao otimizar banco';
           return reply.status(500).send({ error: message });
         }
+      }
+    );
+
+    // GET /admin/justificativas-coletivas - Listar justificativas coletivas
+    server.get<{ Querystring: { dataInicio?: string; dataFim?: string } }>(
+      '/admin/justificativas-coletivas',
+      {
+        preHandler: [authorize('administrador'), validateQuery(listarJustificativasColetivasQuerySchema)],
+      },
+      async (request, reply) => {
+        const query = request.query as z.infer<typeof listarJustificativasColetivasQuerySchema>;
+        const result = await server.database.query<JustificativaColetivaRow>(
+          `SELECT
+             jc.id,
+             jc.data_inicio,
+             jc.data_fim,
+             jc.descricao,
+             jc.criado_por,
+             u.nome AS criado_por_nome,
+             jc.criado_em,
+             jc.atualizado_em
+           FROM justificativas_coletivas jc
+           JOIN usuarios u ON u.id = jc.criado_por
+           WHERE ($1::date IS NULL OR jc.data_fim >= $1::date)
+             AND ($2::date IS NULL OR jc.data_inicio <= $2::date)
+           ORDER BY jc.data_inicio DESC, jc.criado_em DESC`,
+          [query.dataInicio ?? null, query.dataFim ?? null]
+        );
+
+        return reply.send({
+          itens: result.rows.map(mapJustificativaColetiva),
+        } as ListarJustificativasColetivasResponse);
+      }
+    );
+
+    // POST /admin/justificativas-coletivas - Criar justificativa coletiva
+    server.post<{ Body: CriarJustificativaColetivaDTO }>(
+      '/admin/justificativas-coletivas',
+      {
+        preHandler: [authorize('administrador'), validateBody(criarJustificativaColetivaSchema)],
+      },
+      async (request, reply) => {
+        const body = request.body as CriarJustificativaColetivaDTO;
+        const adminUser = getCurrentUser(request);
+
+        if (body.dataFim < body.dataInicio) {
+          return reply.status(400).send({ error: 'dataFim não pode ser anterior à dataInicio' });
+        }
+
+        const id = randomUUID();
+        const result = await server.database.query<JustificativaColetivaRow>(
+          `INSERT INTO justificativas_coletivas
+             (id, data_inicio, data_fim, descricao, criado_por)
+           VALUES ($1, $2, $3, $4, $5)
+           RETURNING
+             id,
+             data_inicio,
+             data_fim,
+             descricao,
+             criado_por,
+             criado_em,
+             atualizado_em`,
+          [id, body.dataInicio, body.dataFim, body.descricao.trim(), adminUser.id]
+        );
+
+        const inserted = result.rows[0];
+        if (!inserted) {
+          return reply.status(500).send({ error: 'Erro ao criar justificativa coletiva' });
+        }
+
+        const hydrated = await server.database.query<JustificativaColetivaRow>(
+          `SELECT
+             jc.id,
+             jc.data_inicio,
+             jc.data_fim,
+             jc.descricao,
+             jc.criado_por,
+             u.nome AS criado_por_nome,
+             jc.criado_em,
+             jc.atualizado_em
+           FROM justificativas_coletivas jc
+           JOIN usuarios u ON u.id = jc.criado_por
+          WHERE jc.id = $1`,
+          [inserted.id]
+        );
+
+        const justificativaColetiva = hydrated.rows[0]
+          ? mapJustificativaColetiva(hydrated.rows[0])
+          : {
+              id: inserted.id,
+              dataInicio: toDateOnlyString(inserted.data_inicio),
+              dataFim: toDateOnlyString(inserted.data_fim),
+              descricao: inserted.descricao,
+              criadoPor: inserted.criado_por,
+              criadoPorNome: 'Administrador',
+              criadoEm: toIsoDate(inserted.criado_em) ?? new Date().toISOString(),
+              atualizadoEm: toIsoDate(inserted.atualizado_em) ?? new Date().toISOString(),
+            };
+
+        return reply.status(201).send({
+          justificativaColetiva,
+        });
       }
     );
 

@@ -12,6 +12,7 @@ import type {
 } from '../../../application/use-cases/gerar-relatorio-completo.js';
 import type {
   RelatorioAusenciasRow,
+  JustificativaColetivaItem,
 } from '@recorda/shared';
 import {
   buildProducaoContabilizadaWhere,
@@ -52,6 +53,7 @@ interface AusenciaRelatorioQuery {
 
 interface AusenciaRelatorioData {
   registros: RelatorioAusenciasRow[];
+  justificativasColetivas: JustificativaColetivaItem[];
   totais: {
     totalRegistros: number;
     totalPorStatus: Record<string, number>;
@@ -64,6 +66,17 @@ interface AusenciaRelatorioData {
     colaboradores: Array<{ id: string; nome: string }>;
     tipos: Array<{ id: string; nome: string; cor: string }>;
   };
+}
+
+interface JustificativaColetivaRow {
+  id: string;
+  data_inicio: string | Date;
+  data_fim: string | Date;
+  descricao: string;
+  criado_por: string;
+  criado_por_nome: string;
+  criado_em: string | Date;
+  atualizado_em: string | Date;
 }
 
 function collectLegacySourceHashes(
@@ -234,8 +247,37 @@ async function carregarRelatorioAusencias(
     `SELECT id, nome, cor FROM tipos_ausencia ORDER BY nome`
   );
 
+  const justificativasColetivasResult = await server.database.query<JustificativaColetivaRow>(
+    `SELECT
+       jc.id,
+       jc.data_inicio,
+       jc.data_fim,
+       jc.descricao,
+       jc.criado_por,
+       u.nome AS criado_por_nome,
+       jc.criado_em,
+       jc.atualizado_em
+     FROM justificativas_coletivas jc
+     JOIN usuarios u ON u.id = jc.criado_por
+     WHERE ($1::date IS NULL OR jc.data_fim >= $1::date)
+       AND ($2::date IS NULL OR jc.data_inicio <= $2::date)
+     ORDER BY jc.data_inicio DESC, jc.criado_em DESC`,
+    [filters.dataInicio ?? null, filters.dataFim ?? null]
+  );
+
   return {
     registros,
+    justificativasColetivas: justificativasColetivasResult.rows.map((row) => ({
+      id: row.id,
+      dataInicio: toDateOnlyString(row.data_inicio),
+      dataFim: toDateOnlyString(row.data_fim),
+      descricao: row.descricao,
+      criadoPor: row.criado_por,
+      criadoPorNome: row.criado_por_nome,
+      criadoEm: row.criado_em instanceof Date ? row.criado_em.toISOString() : String(row.criado_em),
+      atualizadoEm:
+        row.atualizado_em instanceof Date ? row.atualizado_em.toISOString() : String(row.atualizado_em),
+    })),
     totais: {
       totalRegistros: registros.length,
       totalPorStatus,

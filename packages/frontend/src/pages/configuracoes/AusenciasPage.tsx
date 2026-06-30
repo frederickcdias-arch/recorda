@@ -34,8 +34,15 @@ import {
   useCancelarAusenciaAdmin,
   useEditarAusenciaAdmin,
   useBackfillAusenciasAnexos,
+  useCriarJustificativaColetivaAdmin,
+  useJustificativasColetivasAdmin,
 } from '../../hooks/useQueries';
-import type { AusenciaAdminItem, ListarAusenciasAdminParams, TipoAusencia } from '@recorda/shared';
+import type {
+  AusenciaAdminItem,
+  JustificativaColetivaItem,
+  ListarAusenciasAdminParams,
+  TipoAusencia,
+} from '@recorda/shared';
 
 const STATUS_OPTIONS = [
   { value: 'TODOS', label: 'Todos' },
@@ -46,20 +53,20 @@ const STATUS_OPTIONS = [
 ] as const;
 
 const STATUS_LANCAMENTO_OPTIONS = [
-  { value: 'pendente', label: 'Pendente (aguarda aprovação)' },
-  { value: 'aprovado', label: 'Aprovado (lançamento direto)' },
+  { value: 'pendente', label: 'Pendente (aguarda aprovaÃ§Ã£o)' },
+  { value: 'aprovado', label: 'Aprovado (lanÃ§amento direto)' },
 ] as const;
 
 const PERIODO_OPTIONS = [
   { value: 'dia_completo', label: 'Dia completo' },
-  { value: 'meio_periodo_manha', label: 'Meio período (manhã)' },
-  { value: 'meio_periodo_tarde', label: 'Meio período (tarde)' },
+  { value: 'meio_periodo_manha', label: 'Meio perÃ­odo (manhÃ£)' },
+  { value: 'meio_periodo_tarde', label: 'Meio perÃ­odo (tarde)' },
   { value: 'horas', label: 'Por horas' },
 ] as const;
 
 const ALLOWED_MIME = ['application/pdf', 'image/jpeg', 'image/png'];
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
-const ALLOWED_EXT_LABEL = 'PDF, JPG ou PNG — máx. 5 MB';
+const ALLOWED_EXT_LABEL = 'PDF, JPG ou PNG â€” mÃ¡x. 5 MB';
 
 const STATUS_LABELS: Record<string, string> = {
   pendente: 'Pendente',
@@ -122,9 +129,9 @@ function getPeriodoLabel(periodo: string): string {
     case 'dia_completo':
       return 'Dia completo';
     case 'meio_periodo_manha':
-      return 'Meio período (manhã)';
+      return 'Meio perÃ­odo (manhÃ£)';
     case 'meio_periodo_tarde':
-      return 'Meio período (tarde)';
+      return 'Meio perÃ­odo (tarde)';
     case 'horas':
       return 'Horas';
     default:
@@ -132,7 +139,7 @@ function getPeriodoLabel(periodo: string): string {
   }
 }
 
-// ─── Lançar Ausência Modal ────────────────────────────────────────────────────
+// â”€â”€â”€ LanÃ§ar AusÃªncia Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface LancarAusenciaModalProps {
   open: boolean;
@@ -226,13 +233,13 @@ function LancarAusenciaModal({
     }
     if (!ALLOWED_MIME.includes(file.type)) {
       setArquivo(null);
-      setArquivoErro(`Formato inválido. Aceito: ${ALLOWED_EXT_LABEL}`);
+      setArquivoErro(`Formato invÃ¡lido. Aceito: ${ALLOWED_EXT_LABEL}`);
       if (fileRef.current) fileRef.current.value = '';
       return;
     }
     if (file.size > MAX_FILE_SIZE) {
       setArquivo(null);
-      setArquivoErro('Arquivo muito grande. Máximo permitido: 5 MB.');
+      setArquivoErro('Arquivo muito grande. MÃ¡ximo permitido: 5 MB.');
       if (fileRef.current) fileRef.current.value = '';
       return;
     }
@@ -243,11 +250,11 @@ function LancarAusenciaModal({
   function validate(): boolean {
     const e: Record<string, string> = {};
     if (!usuarioId) e.usuarioId = 'Selecione um colaborador.';
-    if (!tipoAusenciaId) e.tipoAusenciaId = 'Selecione o tipo de ausência.';
-    if (!dataInicio) e.dataInicio = 'Informe a data de início.';
+    if (!tipoAusenciaId) e.tipoAusenciaId = 'Selecione o tipo de ausÃªncia.';
+    if (!dataInicio) e.dataInicio = 'Informe a data de inÃ­cio.';
     if (!dataFim) e.dataFim = 'Informe a data de fim.';
     if (dataInicio && dataFim && dataFim < dataInicio)
-      e.dataFim = 'Data fim não pode ser anterior à data início.';
+      e.dataFim = 'Data fim nÃ£o pode ser anterior Ã  data inÃ­cio.';
     if (periodo === 'horas') {
       const h = Number(horasAusencia);
       if (!horasAusencia || isNaN(h) || h <= 0 || h > 24)
@@ -259,7 +266,7 @@ function LancarAusenciaModal({
     if (tipoSelecionado?.requerDocumento && !arquivo) {
       if (!observacoes.trim() && !initialData?.documentoAnexo) {
         e.observacoes =
-          'Este tipo exige documento. Sem anexo, forneça observação explicando o motivo.';
+          'Este tipo exige documento. Sem anexo, forneÃ§a observaÃ§Ã£o explicando o motivo.';
       }
     }
     setErros(e);
@@ -289,14 +296,14 @@ function LancarAusenciaModal({
       } else {
         await criarMutation.mutateAsync(payload);
         const label = statusInicial === 'aprovado' ? 'aprovada' : 'registrada como pendente';
-      onSuccess(`Ausência ${label} com sucesso.`);
+      onSuccess(`AusÃªncia ${label} com sucesso.`);
       }
       handleClose();
     } catch (err: unknown) {
       const msg =
         err && typeof err === 'object' && 'error' in err
           ? String((err as { error: string }).error)
-          : 'Erro ao registrar ausência.';
+          : 'Erro ao registrar ausÃªncia.';
       onError(msg);
     }
   }
@@ -307,8 +314,8 @@ function LancarAusenciaModal({
     <Modal
       open={open}
       onClose={handleClose}
-      title="Lançar Ausência"
-      subtitle="Registre uma ausência."
+      title="LanÃ§ar AusÃªncia"
+      subtitle="Registre uma ausÃªncia."
       size="lg"
       scrollable
     >
@@ -324,7 +331,7 @@ function LancarAusenciaModal({
                 { value: '', label: 'Selecione um colaborador' },
                 ...colaboradores.map((u) => ({
                   value: u.id,
-                  label: `${u.nome} (${u.email})${u.perfil ? ` • ${u.perfil}` : ''}`,
+                  label: `${u.nome} (${u.email})${u.perfil ? ` â€¢ ${u.perfil}` : ''}`,
                 })),
               ]}
             />
@@ -333,10 +340,10 @@ function LancarAusenciaModal({
             ) : null}
           </div>
 
-          {/* Tipo de ausência */}
+          {/* Tipo de ausÃªncia */}
           <div>
             <Select
-              label="Tipo de Ausência *"
+              label="Tipo de AusÃªncia *"
               value={tipoAusenciaId}
               onChange={(e) => setTipoAusenciaId(e.target.value)}
               options={[
@@ -349,9 +356,9 @@ function LancarAusenciaModal({
             ) : null}
             {tipoSelecionado ? (
               <p className="mt-1 text-xs text-[var(--color-text-tertiary)]">
-                {tipoSelecionado.requerJustificativa ? '⚠ Exige justificativa. ' : ''}
-                {tipoSelecionado.requerDocumento ? '⚠ Exige documento. ' : ''}
-                {tipoSelecionado.descontaSalario ? '⚠ Desconta salário.' : ''}
+                {tipoSelecionado.requerJustificativa ? 'âš  Exige justificativa. ' : ''}
+                {tipoSelecionado.requerDocumento ? 'âš  Exige documento. ' : ''}
+                {tipoSelecionado.descontaSalario ? 'âš  Desconta salÃ¡rio.' : ''}
               </p>
             ) : null}
           </div>
@@ -360,7 +367,7 @@ function LancarAusenciaModal({
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <Input
-                label="Data de Início *"
+                label="Data de InÃ­cio *"
                 type="date"
                 value={dataInicio}
                 onChange={(e) => setDataInicio(e.target.value)}
@@ -382,11 +389,11 @@ function LancarAusenciaModal({
             </div>
           </div>
 
-          {/* Período + Horas */}
+          {/* PerÃ­odo + Horas */}
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <Select
-                label="Período *"
+                label="PerÃ­odo *"
                 value={periodo}
                 onChange={(e) =>
                   setPeriodo(
@@ -403,7 +410,7 @@ function LancarAusenciaModal({
             {periodo === 'horas' ? (
               <div>
                 <Input
-                  label="Horas de Ausência *"
+                  label="Horas de AusÃªncia *"
                   type="number"
                   min={0.5}
                   max={24}
@@ -431,7 +438,7 @@ function LancarAusenciaModal({
             />
             {statusInicial === 'aprovado' ? (
               <p className="mt-1 text-xs font-medium text-[var(--color-success-700)]">
-                A ausência será registrada como já aprovada.
+                A ausÃªncia serÃ¡ registrada como jÃ¡ aprovada.
               </p>
             ) : null}
           </div>
@@ -450,7 +457,7 @@ function LancarAusenciaModal({
               onChange={(e) => setJustificativa(e.target.value)}
               rows={3}
               className="w-full rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-3 text-sm text-[var(--color-text-primary)] outline-none transition focus:border-[var(--color-primary-600)] focus:ring-2 focus:ring-[var(--color-primary-200)]"
-              placeholder="Justificativa da ausência"
+              placeholder="Justificativa da ausÃªncia"
             />
             {erros.justificativa ? (
               <p className="mt-1 text-xs text-[var(--color-error-600)]">{erros.justificativa}</p>
@@ -485,15 +492,15 @@ function LancarAusenciaModal({
             ) : null}
           </div>
 
-          {/* Observações */}
+          {/* ObservaÃ§Ãµes */}
           <div>
             <label
               htmlFor="observacoes-ausencia"
               className="mb-1.5 block text-sm font-medium text-[var(--color-text-primary)]"
             >
-              Observações
+              ObservaÃ§Ãµes
               {tipoSelecionado?.requerDocumento && !arquivo
-                ? ' * (obrigatória sem anexo)'
+                ? ' * (obrigatÃ³ria sem anexo)'
                 : ' (opcional)'}
             </label>
             <textarea
@@ -502,7 +509,7 @@ function LancarAusenciaModal({
               onChange={(e) => setObservacoes(e.target.value)}
               rows={2}
               className="w-full rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-3 text-sm text-[var(--color-text-primary)] outline-none transition focus:border-[var(--color-primary-600)] focus:ring-2 focus:ring-[var(--color-primary-200)]"
-              placeholder="Observações administrativas"
+              placeholder="ObservaÃ§Ãµes administrativas"
             />
             {erros.observacoes ? (
               <p className="mt-1 text-xs text-[var(--color-error-600)]">{erros.observacoes}</p>
@@ -515,7 +522,149 @@ function LancarAusenciaModal({
             Cancelar
           </Button>
           <Button variant="primary" type="submit" loading={isSaving}>
-            Registrar ausência
+            Registrar ausÃªncia
+          </Button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+interface JustificativaColetivaModalProps {
+  open: boolean;
+  onClose: () => void;
+  onSuccess: (msg: string) => void;
+  onError: (msg: string) => void;
+}
+
+function JustificativaColetivaModal({
+  open,
+  onClose,
+  onSuccess,
+  onError,
+}: JustificativaColetivaModalProps): JSX.Element {
+  const criarMutation = useCriarJustificativaColetivaAdmin();
+  const [dataInicio, setDataInicio] = useState('');
+  const [dataFim, setDataFim] = useState('');
+  const [descricao, setDescricao] = useState('');
+  const [erros, setErros] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (!open) return;
+    setDataInicio('');
+    setDataFim('');
+    setDescricao('');
+    setErros({});
+  }, [open]);
+
+  function handleClose(): void {
+    setDataInicio('');
+    setDataFim('');
+    setDescricao('');
+    setErros({});
+    onClose();
+  }
+
+  function validate(): boolean {
+    const next: Record<string, string> = {};
+    if (!dataInicio) next.dataInicio = 'Informe a data de inÃ­cio.';
+    if (!dataFim) next.dataFim = 'Informe a data de fim.';
+    if (dataInicio && dataFim && dataFim < dataInicio) {
+      next.dataFim = 'Data fim nÃ£o pode ser anterior Ã  data inÃ­cio.';
+    }
+    if (!descricao.trim()) next.descricao = 'Informe a justificativa coletiva.';
+    setErros(next);
+    return Object.keys(next).length === 0;
+  }
+
+  async function handleSubmit(event: React.FormEvent): Promise<void> {
+    event.preventDefault();
+    if (!validate()) return;
+
+    try {
+      await criarMutation.mutateAsync({
+        dataInicio,
+        dataFim,
+        descricao: descricao.trim(),
+      });
+      onSuccess('Justificativa coletiva registrada com sucesso.');
+      handleClose();
+    } catch (error) {
+      const message =
+        error && typeof error === 'object' && 'error' in error
+          ? String((error as { error: string }).error)
+          : 'Erro ao registrar justificativa coletiva.';
+      onError(message);
+    }
+  }
+
+  return (
+    <Modal
+      open={open}
+      onClose={handleClose}
+      title="Cadastrar Justificativa Coletiva"
+      subtitle="Use este cadastro para eventos administrativos que impactam o relatÃ³rio de ausÃªncias como um todo."
+      size="lg"
+    >
+      <form onSubmit={(event) => void handleSubmit(event)} noValidate>
+        <div className="space-y-4 p-5">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <Input
+                label="Data de InÃ­cio *"
+                type="date"
+                value={dataInicio}
+                onChange={(event) => setDataInicio(event.target.value)}
+              />
+              {erros.dataInicio ? (
+                <p className="mt-1 text-xs text-[var(--color-error-600)]">{erros.dataInicio}</p>
+              ) : null}
+            </div>
+            <div>
+              <Input
+                label="Data de Fim *"
+                type="date"
+                value={dataFim}
+                onChange={(event) => setDataFim(event.target.value)}
+              />
+              {erros.dataFim ? (
+                <p className="mt-1 text-xs text-[var(--color-error-600)]">{erros.dataFim}</p>
+              ) : null}
+            </div>
+          </div>
+
+          <div>
+            <label
+              htmlFor="descricao-justificativa-coletiva"
+              className="mb-1.5 block text-sm font-medium text-[var(--color-text-primary)]"
+            >
+              Justificativa Coletiva *
+            </label>
+            <textarea
+              id="descricao-justificativa-coletiva"
+              value={descricao}
+              onChange={(event) => setDescricao(event.target.value)}
+              rows={4}
+              className="w-full rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-3 text-sm text-[var(--color-text-primary)] outline-none transition focus:border-[var(--color-primary-600)] focus:ring-2 focus:ring-[var(--color-primary-200)]"
+              placeholder="Ex.: LiberaÃ§Ã£o geral da equipe no perÃ­odo da tarde por manutenÃ§Ã£o elÃ©trica."
+            />
+            {erros.descricao ? (
+              <p className="mt-1 text-xs text-[var(--color-error-600)]">{erros.descricao}</p>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-2 border-t border-[var(--color-border-primary)] px-5 py-4">
+          <Button
+            variant="secondary"
+            type="button"
+            onClick={handleClose}
+            disabled={criarMutation.status === 'pending'}
+          >
+            Cancelar
+          </Button>
+          <Button variant="primary" type="submit" loading={criarMutation.status === 'pending'}>
+            Salvar justificativa
           </Button>
         </div>
       </form>
@@ -536,6 +685,7 @@ export function AusenciasPage(): JSX.Element {
   const [motivoRejeicao, setMotivoRejeicao] = useState('');
   const [rejeicaoAberta, setRejeicaoAberta] = useState(false);
   const [lancamentoAberto, setLancamentoAberto] = useState(false);
+  const [justificativaColetivaAberta, setJustificativaColetivaAberta] = useState(false);
   const [edicaoAberta, setEdicaoAberta] = useState(false);
   const [cancelamentoAberto, setCancelamentoAberto] = useState(false);
   const [motivoCancelamento, setMotivoCancelamento] = useState('');
@@ -552,6 +702,10 @@ export function AusenciasPage(): JSX.Element {
   const usuariosQuery = useUsuariosColaboradores();
   const tiposQuery = useTiposAusencia();
   const ausenciasQuery = useAusenciasAdmin(filters);
+  const justificativasColetivasQuery = useJustificativasColetivasAdmin({
+    dataInicio: filters.dataInicio,
+    dataFim: filters.dataFim,
+  });
   const aprovarAusencia = useAprovarAusencia();
   const rejeitarAusencia = useRejeitarAusencia();
   const cancelarAusencia = useCancelarAusenciaAdmin();
@@ -561,12 +715,16 @@ export function AusenciasPage(): JSX.Element {
     () => ausenciasQuery.data?.itens ?? [],
     [ausenciasQuery.data]
   );
+  const justificativasColetivas = useMemo<JustificativaColetivaItem[]>(
+    () => justificativasColetivasQuery.data?.itens ?? [],
+    [justificativasColetivasQuery.data]
+  );
   const total = ausenciasQuery.data?.total ?? 0;
   const totalPaginas = ausenciasQuery.data?.totalPaginas ?? 1;
   const carregando = ausenciasQuery.isLoading;
   const erro = ausenciasQuery.error
     ? {
-        message: 'Erro ao carregar ausências',
+        message: 'Erro ao carregar ausÃªncias',
         details: ausenciasQuery.error instanceof Error ? ausenciasQuery.error.message : '',
       }
     : null;
@@ -603,8 +761,8 @@ export function AusenciasPage(): JSX.Element {
 
   const handleAprovar = (ausencia: AusenciaAdminItem): void => {
     confirmDialog.confirm({
-      title: 'Aprovar ausência',
-      message: `Deseja aprovar a ausência de ${ausencia.usuarioNome} de ${formatDate(
+      title: 'Aprovar ausÃªncia',
+      message: `Deseja aprovar a ausÃªncia de ${ausencia.usuarioNome} de ${formatDate(
         ausencia.dataInicio
       )} a ${formatDate(ausencia.dataFim)}?`,
       confirmLabel: 'Aprovar',
@@ -612,10 +770,10 @@ export function AusenciasPage(): JSX.Element {
       onConfirm: async () => {
         try {
           await aprovarAusencia.mutateAsync({ id: ausencia.id, body: {} });
-          setMensagemAcao({ tipo: 'success', texto: 'Ausência aprovada com sucesso.' });
+          setMensagemAcao({ tipo: 'success', texto: 'AusÃªncia aprovada com sucesso.' });
           await invalidarAusencias();
         } catch (error) {
-          const message = error instanceof Error ? error.message : 'Erro ao aprovar ausência';
+          const message = error instanceof Error ? error.message : 'Erro ao aprovar ausÃªncia';
           setMensagemAcao({ tipo: 'error', texto: message });
         }
       },
@@ -632,7 +790,7 @@ export function AusenciasPage(): JSX.Element {
     if (!selecionada) return;
 
     if (!motivoRejeicao.trim()) {
-      toast.error('Informe o motivo da rejeição.');
+      toast.error('Informe o motivo da rejeiÃ§Ã£o.');
       return;
     }
 
@@ -641,13 +799,13 @@ export function AusenciasPage(): JSX.Element {
         id: selecionada.id,
         body: { motivoRejeicao: motivoRejeicao.trim() },
       });
-      setMensagemAcao({ tipo: 'success', texto: 'Ausência rejeitada com sucesso.' });
+      setMensagemAcao({ tipo: 'success', texto: 'AusÃªncia rejeitada com sucesso.' });
       setRejeicaoAberta(false);
       setSelecionada(null);
       setMotivoRejeicao('');
       await invalidarAusencias();
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Erro ao rejeitar ausência';
+      const message = error instanceof Error ? error.message : 'Erro ao rejeitar ausÃªncia';
       setMensagemAcao({ tipo: 'error', texto: message });
     }
   };
@@ -673,7 +831,7 @@ export function AusenciasPage(): JSX.Element {
     confirmDialog.confirm({
       title: 'Converter anexos legados',
       message:
-        'Esta ação converte anexos antigos para o formato persistido no banco. Registros já convertidos serão ignorados. Deseja continuar?',
+        'Esta aÃ§Ã£o converte anexos antigos para o formato persistido no banco. Registros jÃ¡ convertidos serÃ£o ignorados. Deseja continuar?',
       confirmLabel: 'Converter',
       variant: 'default',
       onConfirm: async () => {
@@ -682,7 +840,7 @@ export function AusenciasPage(): JSX.Element {
           setBackfillResumo(result);
           setMensagemAcao({
             tipo: result.erros.length > 0 ? 'warning' : 'success',
-            texto: `Backfill concluído: ${result.atualizados} atualizados, ${result.ignorados} ignorados.`,
+            texto: `Backfill concluÃ­do: ${result.atualizados} atualizados, ${result.ignorados} ignorados.`,
           });
           await invalidarAusencias();
         } catch (error) {
@@ -716,21 +874,21 @@ export function AusenciasPage(): JSX.Element {
         id: selecionada.id,
         body: { observacoes: motivoCancelamento.trim() },
       });
-      setMensagemAcao({ tipo: 'success', texto: 'Ausência cancelada com sucesso.' });
+      setMensagemAcao({ tipo: 'success', texto: 'AusÃªncia cancelada com sucesso.' });
       handleFecharCancelamento();
       await invalidarAusencias();
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Erro ao cancelar ausência';
+      const message = error instanceof Error ? error.message : 'Erro ao cancelar ausÃªncia';
       setMensagemAcao({ tipo: 'error', texto: message });
     }
   };
 
   return (
-    <PageState loading={carregando} loadingMessage="Carregando ausências..." error={erro}>
+    <PageState loading={carregando} loadingMessage="Carregando ausÃªncias..." error={erro}>
       <div className="space-y-6">
         <PageHeader
-          title="Ausências"
-          subtitle="Lançamentos da equipe."
+          title="AusÃªncias"
+          subtitle="LanÃ§amentos da equipe."
           actions={
             <>
               <Button
@@ -742,7 +900,10 @@ export function AusenciasPage(): JSX.Element {
                 Converter anexos
               </Button>
               <Button variant="primary" onClick={() => setLancamentoAberto(true)}>
-                Lançar Ausência
+                LanÃ§ar AusÃªncia
+              </Button>
+              <Button variant="secondary" onClick={() => setJustificativaColetivaAberta(true)}>
+                Justificativa Coletiva
               </Button>
             </>
           }
@@ -751,7 +912,7 @@ export function AusenciasPage(): JSX.Element {
         {mensagemAcao ? (
           <ActionFeedback
             type={mensagemAcao.tipo}
-            title={mensagemAcao.tipo === 'success' ? 'Operação concluída' : 'Ação não concluída'}
+            title={mensagemAcao.tipo === 'success' ? 'OperaÃ§Ã£o concluÃ­da' : 'AÃ§Ã£o nÃ£o concluÃ­da'}
             message={mensagemAcao.texto}
             onDismiss={() => setMensagemAcao(null)}
           />
@@ -762,7 +923,7 @@ export function AusenciasPage(): JSX.Element {
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
                 <h2 className="text-sm font-semibold text-[var(--color-primary-900)]">
-                  Último backfill de anexos
+                  Ãšltimo backfill de anexos
                 </h2>
                 <p className="mt-1 text-sm text-[var(--color-primary-700)]">
                   Total processado: {backfillResumo.total}. Atualizados: {backfillResumo.atualizados}.
@@ -827,6 +988,31 @@ export function AusenciasPage(): JSX.Element {
           </div>
         </Card>
 
+        {justificativasColetivas.length > 0 ? (
+          <Card padding="none">
+            <CardHeader title="Justificativas Coletivas" className="px-5 pt-5" />
+            <div className="space-y-3 px-5 pb-5">
+              {justificativasColetivas.map((item) => (
+                <div
+                  key={item.id}
+                  className="rounded-xl border border-[var(--color-primary-200)] bg-[var(--color-primary-50)] p-4"
+                >
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-sm font-semibold text-[var(--color-primary-950)]">
+                      {formatDate(item.dataInicio)}
+                      {item.dataInicio !== item.dataFim ? ` até ${formatDate(item.dataFim)}` : ''}
+                    </p>
+                    <p className="text-xs text-[var(--color-primary-700)]">
+                      Registrado por {item.criadoPorNome}
+                    </p>
+                  </div>
+                  <p className="mt-2 text-sm text-[var(--color-primary-900)]">{item.descricao}</p>
+                </div>
+              ))}
+            </div>
+          </Card>
+        ) : null}
+
         <FilterBar
           actions={
             <Button variant="secondary" onClick={() => void invalidarAusencias()}>
@@ -838,7 +1024,7 @@ export function AusenciasPage(): JSX.Element {
             label="Buscar"
             value={buscaInput}
             onChange={(event) => setBuscaInput(event.target.value)}
-            placeholder="Colaborador, justificativa ou observações"
+            placeholder="Colaborador, justificativa ou observaÃ§Ãµes"
           />
           <Select
             label="Colaborador"
@@ -847,7 +1033,7 @@ export function AusenciasPage(): JSX.Element {
             options={[{ value: '', label: 'Todos' }].concat(
               usuariosQuery.data?.map((usuario) => ({
                 value: usuario.id,
-                label: `${usuario.nome} (${usuario.email})${usuario.perfil ? ` • ${usuario.perfil}` : ''}`,
+                label: `${usuario.nome} (${usuario.email})${usuario.perfil ? ` â€¢ ${usuario.perfil}` : ''}`,
               })) ?? []
             )}
             disabled={usuariosQuery.isLoading}
@@ -863,7 +1049,7 @@ export function AusenciasPage(): JSX.Element {
             }))}
           />
           <Input
-            label="Início"
+            label="InÃ­cio"
             type="date"
             value={filters.dataInicio ?? ''}
             onChange={(event) => handleFilterChange('dataInicio', event.target.value)}
@@ -877,23 +1063,23 @@ export function AusenciasPage(): JSX.Element {
         </FilterBar>
 
         <Card padding="none">
-          <CardHeader title="Solicitações" className="px-5 pt-5" />
+          <CardHeader title="SolicitaÃ§Ãµes" className="px-5 pt-5" />
           <Table>
             <TableHead>
               <tr>
                 <TableHeader>Colaborador</TableHeader>
                 <TableHeader>Tipo</TableHeader>
-                <TableHeader>Período</TableHeader>
+                <TableHeader>PerÃ­odo</TableHeader>
                 <TableHeader>Status</TableHeader>
                 <TableHeader className="hidden sm:table-cell">Justificativa / Motivo</TableHeader>
-                <TableHeader align="right">Ações</TableHeader>
+                <TableHeader align="right">AÃ§Ãµes</TableHeader>
               </tr>
             </TableHead>
             <TableBody>
               {ausencias.length === 0 ? (
                 <TableEmptyState
                   colSpan={6}
-                  title="Nenhuma ausência encontrada"
+                  title="Nenhuma ausÃªncia encontrada"
                   description="Ajuste os filtros."
                 />
               ) : (
@@ -926,7 +1112,7 @@ export function AusenciasPage(): JSX.Element {
                         <p>
                           {getPeriodoLabel(ausencia.periodo)}
                           {ausencia.periodo === 'horas' && ausencia.horasAusencia
-                            ? ` — ${ausencia.horasAusencia}h`
+                            ? ` â€” ${ausencia.horasAusencia}h`
                             : ''}
                         </p>
                       </div>
@@ -952,7 +1138,7 @@ export function AusenciasPage(): JSX.Element {
                             }
                             className="text-xs font-medium text-[var(--color-primary-700)] underline underline-offset-2 hover:text-[var(--color-primary-900)] transition-colors"
                           >
-                            📎 Ver anexo
+                            ðŸ“Ž Ver anexo
                           </button>
                         ) : null}
                         <div className="sm:hidden">
@@ -1043,7 +1229,7 @@ export function AusenciasPage(): JSX.Element {
                           </>
                         ) : (
                           <span className="text-xs text-[var(--color-text-secondary)]">
-                            Sem ações disponíveis
+                            Sem aÃ§Ãµes disponÃ­veis
                           </span>
                         )}
                       </div>
@@ -1068,10 +1254,10 @@ export function AusenciasPage(): JSX.Element {
         <Modal
           open={rejeicaoAberta}
           onClose={handleFecharRejeicao}
-          title="Rejeitar Ausência"
+          title="Rejeitar AusÃªncia"
           subtitle={
             selecionada
-              ? `${selecionada.usuarioNome} • ${formatDate(selecionada.dataInicio)} até ${formatDate(selecionada.dataFim)}`
+              ? `${selecionada.usuarioNome} â€¢ ${formatDate(selecionada.dataInicio)} atÃ© ${formatDate(selecionada.dataFim)}`
               : undefined
           }
           size="md"
@@ -1082,7 +1268,7 @@ export function AusenciasPage(): JSX.Element {
               onChange={(event) => setMotivoRejeicao(event.target.value)}
               rows={5}
               className="w-full rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] p-3 text-sm text-[var(--color-text-primary)] outline-none transition focus:border-[var(--color-primary-600)] focus:ring-2 focus:ring-[var(--color-primary-200)]"
-              placeholder="Motivo da rejeição"
+              placeholder="Motivo da rejeiÃ§Ã£o"
             />
             <div className="flex justify-end gap-2">
               <Button variant="secondary" onClick={handleFecharRejeicao}>
@@ -1093,7 +1279,7 @@ export function AusenciasPage(): JSX.Element {
                 onClick={handleConfirmarRejeicao}
                 loading={rejeitarAusencia.status === 'pending'}
               >
-                Confirmar rejeição
+                Confirmar rejeiÃ§Ã£o
               </Button>
             </div>
           </div>
@@ -1102,17 +1288,17 @@ export function AusenciasPage(): JSX.Element {
         <Modal
           open={cancelamentoAberto}
           onClose={handleFecharCancelamento}
-          title="Cancelar Ausência"
+          title="Cancelar AusÃªncia"
           subtitle={
             selecionada
-              ? `${selecionada.usuarioNome} • ${formatDate(selecionada.dataInicio)} até ${formatDate(selecionada.dataFim)}`
+              ? `${selecionada.usuarioNome} â€¢ ${formatDate(selecionada.dataInicio)} atÃ© ${formatDate(selecionada.dataFim)}`
               : undefined
           }
           size="md"
         >
           <div className="space-y-4 p-5">
             <p className="text-sm text-[var(--color-text-secondary)]">
-              Esta ação não pode ser desfeita.
+              Esta aÃ§Ã£o nÃ£o pode ser desfeita.
             </p>
             <textarea
               value={motivoCancelamento}
@@ -1141,6 +1327,13 @@ export function AusenciasPage(): JSX.Element {
           onClose={() => setLancamentoAberto(false)}
           colaboradores={usuariosQuery.data ?? []}
           tipos={(tiposQuery.data?.tipos ?? []).filter((t) => t.ativo)}
+          onSuccess={(msg) => setMensagemAcao({ tipo: 'success', texto: msg })}
+          onError={(msg) => setMensagemAcao({ tipo: 'error', texto: msg })}
+        />
+
+        <JustificativaColetivaModal
+          open={justificativaColetivaAberta}
+          onClose={() => setJustificativaColetivaAberta(false)}
           onSuccess={(msg) => setMensagemAcao({ tipo: 'success', texto: msg })}
           onError={(msg) => setMensagemAcao({ tipo: 'error', texto: msg })}
         />
