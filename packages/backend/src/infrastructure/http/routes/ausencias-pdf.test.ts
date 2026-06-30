@@ -48,7 +48,10 @@ function createMockDatabase(): DatabaseConnection {
 
   return {
     pool: {} as never,
-    async query<T extends QueryResultRow>(text: string): Promise<QueryResult<T>> {
+    async query<T extends QueryResultRow>(
+      text: string,
+      params?: unknown[]
+    ): Promise<QueryResult<T>> {
       const sql = text.trim();
 
       if (sql.includes('set_config') || /^SET\s+LOCAL/i.test(sql)) {
@@ -56,6 +59,19 @@ function createMockDatabase(): DatabaseConnection {
       }
 
       if (sql.includes('FROM ausencias a')) {
+        const hasPeriodoFiltro =
+          Array.isArray(params) &&
+          params.length >= 2 &&
+          params[0] === '2026-06-02' &&
+          params[1] === '2026-06-02';
+
+        if (hasPeriodoFiltro) {
+          const usaSobreposicao =
+            sql.includes('a.data_fim >= $1::date') &&
+            sql.includes('a.data_inicio <= $2::date');
+          return makeResult(usaSobreposicao ? [ausenciaRow as never] : []) as unknown as QueryResult<T>;
+        }
+
         return makeResult([ausenciaRow as never]) as unknown as QueryResult<T>;
       }
 
@@ -133,5 +149,21 @@ describe('PDF — /relatorios/ausencias/exportar/pdf', () => {
     expect(rawText).not.toContain('FILTROS APLICADOS');
     expect(rawText).not.toContain('Precisa Sistematização & Tecnologia');
     expect(rawText).not.toContain('Página 1 de 4');
+  });
+  it('inclui anexos de ausencias que cruzam o periodo filtrado', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/relatorios/ausencias/exportar/pdf?dataInicio=2026-06-02&dataFim=2026-06-02',
+      headers: { authorization: `Bearer ${token}` },
+    });
+
+    expect(res.statusCode).toBe(200);
+
+    const payload = Buffer.isBuffer(res.rawPayload)
+      ? res.rawPayload
+      : Buffer.from(res.rawPayload ?? []);
+    const pdf = await PDFDocument.load(payload);
+
+    expect(pdf.getPageCount()).toBeGreaterThan(1);
   });
 });

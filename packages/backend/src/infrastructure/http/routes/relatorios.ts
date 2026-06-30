@@ -98,11 +98,11 @@ function buildAusenciasWhere(filters: AusenciaRelatorioQuery): { where: string; 
   let p = 1;
 
   if (filters.dataInicio) {
-    conditions.push(`a.data_inicio >= $${p++}::date`);
+    conditions.push(`a.data_fim >= $${p++}::date`);
     params.push(filters.dataInicio);
   }
   if (filters.dataFim) {
-    conditions.push(`a.data_fim <= $${p++}::date`);
+    conditions.push(`a.data_inicio <= $${p++}::date`);
     params.push(filters.dataFim);
   }
   if (filters.colaboradorId) {
