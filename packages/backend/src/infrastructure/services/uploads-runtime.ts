@@ -71,11 +71,5 @@ export async function validateUploadsRuntime(): Promise<{
     );
   }
 
-  if (requirePersistent && !writable) {
-    throw new Error(
-      `Uploads persistentes sao obrigatorios, mas o diretorio ${root} nao esta acessivel para leitura/escrita. ${issues.join(' | ')}`
-    );
-  }
-
   return { root, mode, persistent, requirePersistent, writable, issues };
 }
