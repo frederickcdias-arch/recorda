@@ -40,23 +40,41 @@ type CorsOriginResolver =
   | string
   | ((origin: string | undefined, callback: (error: Error | null, allow: boolean) => void) => void);
 
+function normalizeOriginValue(origin: string): string {
+  const trimmed = origin.trim();
+  if (!trimmed) {
+    return '';
+  }
+
+  try {
+    const parsed = new URL(trimmed);
+    return parsed.origin;
+  } catch {
+    return trimmed.replace(/\/+$/, '');
+  }
+}
+
 function resolveCorsOrigin(isProduction: boolean): CorsOriginResolver {
   if (!isProduction) {
     return true;
   }
 
-  const configuredOrigin = process.env.CORS_ORIGIN?.trim();
+  const configuredOrigin = process.env.CORS_ORIGIN?.trim() || process.env.APP_URL?.trim();
   if (!configuredOrigin) {
-    throw new Error('CORS_ORIGIN environment variable is required in production.');
+    throw new Error('CORS_ORIGIN or APP_URL environment variable is required in production.');
   }
 
-  const allowedOrigins = configuredOrigin
+  const allowedOrigins = Array.from(
+    new Set(
+      configuredOrigin
     .split(',')
-    .map((origin) => origin.trim())
-    .filter(Boolean);
+        .map((origin) => normalizeOriginValue(origin))
+        .filter(Boolean)
+    )
+  );
 
   if (allowedOrigins.length === 0) {
-    throw new Error('CORS_ORIGIN must contain at least one valid origin in production.');
+    throw new Error('CORS_ORIGIN or APP_URL must contain at least one valid origin in production.');
   }
 
   if (allowedOrigins.length === 1) {

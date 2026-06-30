@@ -4077,6 +4077,7 @@ describe('HTTP server integration', () => {
 describe('HTTP server CORS configuration', () => {
   const originalNodeEnv = process.env.NODE_ENV;
   const originalCorsOrigin = process.env.CORS_ORIGIN;
+  const originalAppUrl = process.env.APP_URL;
   const originalJwtSecret = process.env.JWT_SECRET;
 
   afterAll(() => {
@@ -4092,6 +4093,12 @@ describe('HTTP server CORS configuration', () => {
       process.env.CORS_ORIGIN = originalCorsOrigin;
     }
 
+    if (originalAppUrl === undefined) {
+      delete process.env.APP_URL;
+    } else {
+      process.env.APP_URL = originalAppUrl;
+    }
+
     if (originalJwtSecret === undefined) {
       delete process.env.JWT_SECRET;
     } else {
@@ -4102,6 +4109,7 @@ describe('HTTP server CORS configuration', () => {
   it('accepts a comma-separated allowlist in production CORS_ORIGIN', async () => {
     process.env.NODE_ENV = 'production';
     process.env.CORS_ORIGIN = 'https://recorda.company, https://recorda-six.vercel.app';
+    delete process.env.APP_URL;
     process.env.JWT_SECRET = 'integration-production-secret-with-32-plus-chars';
 
     const server = await createServer({
@@ -4142,6 +4150,7 @@ describe('HTTP server CORS configuration', () => {
   it('rejects origins outside the configured production allowlist', async () => {
     process.env.NODE_ENV = 'production';
     process.env.CORS_ORIGIN = 'https://recorda.company,https://recorda-six.vercel.app';
+    delete process.env.APP_URL;
     process.env.JWT_SECRET = 'integration-production-secret-with-32-plus-chars';
 
     const server = await createServer({
@@ -4161,6 +4170,66 @@ describe('HTTP server CORS configuration', () => {
         },
       });
       expect(response.headers['access-control-allow-origin']).toBeUndefined();
+    } finally {
+      await server.close();
+    }
+  });
+
+  it('normalizes configured origins with a trailing slash', async () => {
+    process.env.NODE_ENV = 'production';
+    process.env.CORS_ORIGIN = 'https://recorda.company/';
+    delete process.env.APP_URL;
+    process.env.JWT_SECRET = 'integration-production-secret-with-32-plus-chars';
+
+    const server = await createServer({
+      database: createMockDatabase(),
+      config: {
+        host: '127.0.0.1',
+        port: 0,
+      },
+    });
+
+    try {
+      const response = await server.inject({
+        method: 'OPTIONS',
+        url: '/auth/login',
+        headers: {
+          origin: 'https://recorda.company',
+          'access-control-request-method': 'POST',
+        },
+      });
+      expect(response.statusCode).toBe(204);
+      expect(response.headers['access-control-allow-origin']).toBe('https://recorda.company');
+    } finally {
+      await server.close();
+    }
+  });
+
+  it('falls back to APP_URL when CORS_ORIGIN is unset in production', async () => {
+    process.env.NODE_ENV = 'production';
+    delete process.env.CORS_ORIGIN;
+    process.env.APP_URL = 'https://recorda.company/';
+    process.env.JWT_SECRET = 'integration-production-secret-with-32-plus-chars';
+
+    const server = await createServer({
+      database: createMockDatabase(),
+      config: {
+        host: '127.0.0.1',
+        port: 0,
+      },
+    });
+
+    try {
+      const response = await server.inject({
+        method: 'OPTIONS',
+        url: '/auth/login',
+        headers: {
+          origin: 'https://recorda.company',
+          'access-control-request-method': 'POST',
+        },
+      });
+      expect(response.statusCode).toBe(204);
+      expect(response.headers['access-control-allow-origin']).toBe('https://recorda.company');
     } finally {
       await server.close();
     }
