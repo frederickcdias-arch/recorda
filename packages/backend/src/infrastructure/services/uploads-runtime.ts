@@ -47,20 +47,35 @@ export async function validateUploadsRuntime(): Promise<{
   mode: UploadsStorageMode;
   persistent: boolean;
   requirePersistent: boolean;
+  writable: boolean;
+  issues: string[];
 }> {
   const root = getUploadsRoot();
   const mode = getUploadsStorageMode();
   const persistent = isPersistentUploadsMode(mode);
   const requirePersistent = process.env.REQUIRE_PERSISTENT_UPLOADS === 'true';
+  const issues: string[] = [];
+  let writable = true;
 
-  await ensureUploadsDirectories();
-  await fs.access(root);
+  try {
+    await ensureUploadsDirectories();
+    await fs.access(root, fs.constants.R_OK | fs.constants.W_OK);
+  } catch (error) {
+    writable = false;
+    issues.push(error instanceof Error ? error.message : String(error));
+  }
 
   if (requirePersistent && !persistent) {
     throw new Error(
-      `Uploads persistentes sÃ£o obrigatÃ³rios, mas UPLOADS_STORAGE_MODE=${mode}. Configure um volume persistente e defina UPLOADS_STORAGE_MODE=railway-volume ou equivalente.`
+      `Uploads persistentes sao obrigatorios, mas UPLOADS_STORAGE_MODE=${mode}. Configure um volume persistente e defina UPLOADS_STORAGE_MODE=railway-volume ou equivalente.`
     );
   }
 
-  return { root, mode, persistent, requirePersistent };
+  if (requirePersistent && !writable) {
+    throw new Error(
+      `Uploads persistentes sao obrigatorios, mas o diretorio ${root} nao esta acessivel para leitura/escrita. ${issues.join(' | ')}`
+    );
+  }
+
+  return { root, mode, persistent, requirePersistent, writable, issues };
 }

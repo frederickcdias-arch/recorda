@@ -54,12 +54,21 @@ async function bootstrap(): Promise<void> {
     mode: uploadsRuntime.mode,
     persistent: uploadsRuntime.persistent,
     requirePersistent: uploadsRuntime.requirePersistent,
+    writable: uploadsRuntime.writable,
   });
   if (!uploadsRuntime.persistent) {
     logger.warn('Uploads storage is running in ephemeral mode; files can be lost on redeploy.', {
       component: 'uploads',
       root: uploadsRuntime.root,
       mode: uploadsRuntime.mode,
+    });
+  }
+  if (!uploadsRuntime.writable) {
+    logger.warn('Uploads directory is not writable; file uploads may fail until the volume is mounted correctly.', {
+      component: 'uploads',
+      root: uploadsRuntime.root,
+      mode: uploadsRuntime.mode,
+      issues: uploadsRuntime.issues,
     });
   }
 
