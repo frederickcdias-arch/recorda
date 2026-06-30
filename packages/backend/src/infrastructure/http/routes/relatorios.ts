@@ -3,7 +3,6 @@ import { authorize } from '../middleware/auth.js';
 import { PDFExportService } from '../../services/pdf-export-service.js';
 import { AusenciasPdfService } from '../../services/ausencias-pdf-service.js';
 import { ExcelExportService } from '../../services/excel-export-service.js';
-import { serveAusenciaAnexo } from '../../services/file-storage.js';
 import type {
   ProducaoEtapa,
   ProducaoColaborador,
@@ -1107,66 +1106,13 @@ export function createRelatorioRoutes(): FastifyPluginAsync {
             : null;
 
           const pdfService = new AusenciasPdfService();
-          const anexos: Array<{
-            id: string;
-            usuarioId: string;
-            colaboradorNome: string;
-            tipoAusenciaId: string;
-            tipoAusenciaNome: string;
-            tipoAusenciaCor: string;
-            dataInicio: string;
-            dataFim: string;
-            periodo: RelatorioAusenciasRow['periodo'];
-            horasAusencia: string | null;
-            status: RelatorioAusenciasRow['status'];
-            justificativa?: string | null;
-            observacoes?: string | null;
-            documentoAnexo?: string | null;
-            aprovadoEm?: string | null;
-            motivoRejeicao?: string | null;
-            criadoEm: string;
-            diasAusencia: number;
-            filename: string;
-            mimeType: 'application/pdf' | 'image/jpeg' | 'image/png';
-            buffer: Buffer;
-          }> = [];
-          const anexosIgnorados: Array<{ filename: string; motivo: string }> = [];
-
-          for (const row of relatorio.registros) {
-            if (!row.documentoAnexo) continue;
-            try {
-              const { buffer, mimeType, filename } = await serveAusenciaAnexo(row.documentoAnexo);
-              anexos.push({
-                ...row,
-                buffer,
-                mimeType: mimeType as 'application/pdf' | 'image/jpeg' | 'image/png',
-                filename,
-                horasAusencia: row.horasAusencia ?? null,
-              });
-            } catch (error) {
-              const motivo =
-                error instanceof Error ? error.message : 'Arquivo indisponível no servidor';
-              anexosIgnorados.push({
-                filename: row.documentoAnexo.split('/').pop() ?? row.documentoAnexo,
-                motivo,
-              });
-              server.log.warn(
-                {
-                  ausenciaId: row.id,
-                  documentoAnexo: row.documentoAnexo,
-                  motivo,
-                },
-                'Anexo de ausência ignorado durante exportação do PDF'
-              );
-            }
-          }
-
-          const pdfBuffer = await pdfService.exportar({
-            relatorio,
-            filtros: request.query,
-            anexos,
-            anexosIgnorados,
-          }, empresaConfig);
+          const pdfBuffer = await pdfService.exportar(
+            {
+              relatorio,
+              filtros: request.query,
+            },
+            empresaConfig
+          );
 
           const today = new Date().toISOString().slice(0, 10);
           reply.header('Content-Type', 'application/pdf');

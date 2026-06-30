@@ -141,7 +141,7 @@ describe('PDF — /relatorios/ausencias/exportar/pdf', () => {
       : Buffer.from(res.rawPayload ?? []);
     const pdf = await PDFDocument.load(payload);
 
-    expect(pdf.getPageCount()).toBeGreaterThan(1);
+    expect(pdf.getPageCount()).toBe(1);
 
     const rawText = payload.toString('latin1');
     expect(rawText).not.toContain('RESUMO GERAL');
@@ -164,6 +164,6 @@ describe('PDF — /relatorios/ausencias/exportar/pdf', () => {
       : Buffer.from(res.rawPayload ?? []);
     const pdf = await PDFDocument.load(payload);
 
-    expect(pdf.getPageCount()).toBeGreaterThan(1);
+    expect(pdf.getPageCount()).toBe(1);
   });
 });
