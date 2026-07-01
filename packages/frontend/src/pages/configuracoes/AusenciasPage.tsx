@@ -35,6 +35,7 @@ import {
   useEditarAusenciaAdmin,
   useBackfillAusenciasAnexos,
   useCriarJustificativaColetivaAdmin,
+  useEditarJustificativaColetivaAdmin,
   useJustificativasColetivasAdmin,
 } from '../../hooks/useQueries';
 import type {
@@ -535,6 +536,7 @@ interface JustificativaColetivaModalProps {
   onClose: () => void;
   onSuccess: (msg: string) => void;
   onError: (msg: string) => void;
+  initialData?: JustificativaColetivaItem | null;
 }
 
 function JustificativaColetivaModal({
@@ -542,8 +544,10 @@ function JustificativaColetivaModal({
   onClose,
   onSuccess,
   onError,
+  initialData,
 }: JustificativaColetivaModalProps): JSX.Element {
   const criarMutation = useCriarJustificativaColetivaAdmin();
+  const editarMutation = useEditarJustificativaColetivaAdmin();
   const [dataInicio, setDataInicio] = useState('');
   const [dataFim, setDataFim] = useState('');
   const [descricao, setDescricao] = useState('');
@@ -551,11 +555,11 @@ function JustificativaColetivaModal({
 
   useEffect(() => {
     if (!open) return;
-    setDataInicio('');
-    setDataFim('');
-    setDescricao('');
+    setDataInicio(initialData?.dataInicio ?? '');
+    setDataFim(initialData?.dataFim ?? '');
+    setDescricao(initialData?.descricao ?? '');
     setErros({});
-  }, [open]);
+  }, [open, initialData]);
 
   function handleClose(): void {
     setDataInicio('');
@@ -582,27 +586,37 @@ function JustificativaColetivaModal({
     if (!validate()) return;
 
     try {
-      await criarMutation.mutateAsync({
+      const payload = {
         dataInicio,
         dataFim,
         descricao: descricao.trim(),
-      });
-      onSuccess('Justificativa coletiva registrada com sucesso.');
+      };
+      if (initialData) {
+        await editarMutation.mutateAsync({ id: initialData.id, payload });
+        onSuccess('Justificativa coletiva atualizada com sucesso.');
+      } else {
+        await criarMutation.mutateAsync(payload);
+        onSuccess('Justificativa coletiva registrada com sucesso.');
+      }
       handleClose();
     } catch (error) {
       const message =
         error && typeof error === 'object' && 'error' in error
           ? String((error as { error: string }).error)
-          : 'Erro ao registrar justificativa coletiva.';
+          : initialData
+            ? 'Erro ao atualizar justificativa coletiva.'
+            : 'Erro ao registrar justificativa coletiva.';
       onError(message);
     }
   }
+
+  const isSaving = criarMutation.status === 'pending' || editarMutation.status === 'pending';
 
   return (
     <Modal
       open={open}
       onClose={handleClose}
-      title="Cadastrar Justificativa Coletiva"
+      title={initialData ? 'Editar Justificativa Coletiva' : 'Cadastrar Justificativa Coletiva'}
       subtitle="Use este cadastro para eventos administrativos que impactam o relatório de ausências como um todo."
       size="lg"
     >
@@ -659,12 +673,12 @@ function JustificativaColetivaModal({
             variant="secondary"
             type="button"
             onClick={handleClose}
-            disabled={criarMutation.status === 'pending'}
+            disabled={isSaving}
           >
             Cancelar
           </Button>
-          <Button variant="primary" type="submit" loading={criarMutation.status === 'pending'}>
-            Salvar justificativa
+          <Button variant="primary" type="submit" loading={isSaving}>
+            {initialData ? 'Salvar alterações' : 'Salvar justificativa'}
           </Button>
         </div>
       </form>
@@ -686,6 +700,8 @@ export function AusenciasPage(): JSX.Element {
   const [rejeicaoAberta, setRejeicaoAberta] = useState(false);
   const [lancamentoAberto, setLancamentoAberto] = useState(false);
   const [justificativaColetivaAberta, setJustificativaColetivaAberta] = useState(false);
+  const [justificativaColetivaSelecionada, setJustificativaColetivaSelecionada] =
+    useState<JustificativaColetivaItem | null>(null);
   const [edicaoAberta, setEdicaoAberta] = useState(false);
   const [cancelamentoAberto, setCancelamentoAberto] = useState(false);
   const [motivoCancelamento, setMotivoCancelamento] = useState('');
@@ -827,6 +843,11 @@ export function AusenciasPage(): JSX.Element {
     setEdicaoAberta(true);
   };
 
+  const handleAbrirJustificativaColetiva = (item?: JustificativaColetivaItem): void => {
+    setJustificativaColetivaSelecionada(item ?? null);
+    setJustificativaColetivaAberta(true);
+  };
+
   const handleBackfillAnexos = (): void => {
     confirmDialog.confirm({
       title: 'Converter anexos legados',
@@ -855,6 +876,11 @@ export function AusenciasPage(): JSX.Element {
   const handleFecharEdicao = (): void => {
     setEdicaoAberta(false);
     setSelecionada(null);
+  };
+
+  const handleFecharJustificativaColetiva = (): void => {
+    setJustificativaColetivaAberta(false);
+    setJustificativaColetivaSelecionada(null);
   };
 
   const handleFecharCancelamento = (): void => {
@@ -902,7 +928,7 @@ export function AusenciasPage(): JSX.Element {
               <Button variant="primary" onClick={() => setLancamentoAberto(true)}>
                 Lançar Ausência
               </Button>
-              <Button variant="secondary" onClick={() => setJustificativaColetivaAberta(true)}>
+              <Button variant="secondary" onClick={() => handleAbrirJustificativaColetiva()}>
                 Justificativa Coletiva
               </Button>
             </>
@@ -997,14 +1023,23 @@ export function AusenciasPage(): JSX.Element {
                   key={item.id}
                   className="rounded-xl border border-[var(--color-primary-200)] bg-[var(--color-primary-50)] p-4"
                 >
-                  <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                     <p className="text-sm font-semibold text-[var(--color-primary-950)]">
                       {formatDate(item.dataInicio)}
                       {item.dataInicio !== item.dataFim ? ` até ${formatDate(item.dataFim)}` : ''}
                     </p>
-                    <p className="text-xs text-[var(--color-primary-700)]">
-                      Registrado por {item.criadoPorNome}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-xs text-[var(--color-primary-700)]">
+                        Registrado por {item.criadoPorNome}
+                      </p>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => handleAbrirJustificativaColetiva(item)}
+                      >
+                        Editar
+                      </Button>
+                    </div>
                   </div>
                   <p className="mt-2 text-sm text-[var(--color-primary-900)]">{item.descricao}</p>
                 </div>
@@ -1333,7 +1368,8 @@ export function AusenciasPage(): JSX.Element {
 
         <JustificativaColetivaModal
           open={justificativaColetivaAberta}
-          onClose={() => setJustificativaColetivaAberta(false)}
+          onClose={handleFecharJustificativaColetiva}
+          initialData={justificativaColetivaSelecionada}
           onSuccess={(msg) => setMensagemAcao({ tipo: 'success', texto: msg })}
           onError={(msg) => setMensagemAcao({ tipo: 'error', texto: msg })}
         />

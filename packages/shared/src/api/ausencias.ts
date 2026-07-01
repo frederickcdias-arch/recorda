@@ -71,6 +71,8 @@ export interface CriarJustificativaColetivaDTO {
   descricao: string;
 }
 
+export interface EditarJustificativaColetivaDTO extends CriarJustificativaColetivaDTO {}
+
 export interface AprovarAusenciaDTO {
   justificativa?: string;
 }

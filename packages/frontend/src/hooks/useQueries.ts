@@ -22,6 +22,7 @@ import type {
   EditarAusenciaAdminDTO,
   CancelarAusenciaAdminDTO,
   CriarJustificativaColetivaDTO,
+  EditarJustificativaColetivaDTO,
   ListarJustificativasColetivasParams,
   ListarJustificativasColetivasResponse,
   ListarMinhasAusenciasParams,
@@ -1394,6 +1395,17 @@ export function useCriarJustificativaColetivaAdmin() {
   return useMutation({
     mutationFn: (payload: CriarJustificativaColetivaDTO) =>
       api.post('/admin/justificativas-coletivas', payload),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['justificativas-coletivas-admin'] });
+    },
+  });
+}
+
+export function useEditarJustificativaColetivaAdmin() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: EditarJustificativaColetivaDTO }) =>
+      api.put(`/admin/justificativas-coletivas/${id}`, payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['justificativas-coletivas-admin'] });
     },

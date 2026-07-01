@@ -35,6 +35,20 @@ function createMockDatabase(): DatabaseConnection {
               ]) as never;
             }
 
+            if (sql.includes('UPDATE justificativas_coletivas')) {
+              return makeResult([
+                {
+                  id: '11111111-1111-4111-8111-000000000001',
+                  data_inicio: '2026-06-30',
+                  data_fim: '2026-06-30',
+                  descricao: 'Liberação coletiva atualizada.',
+                  criado_por: 'test-admin-id',
+                  criado_em: '2026-06-30T12:00:00.000Z',
+                  atualizado_em: '2026-06-30T12:30:00.000Z',
+                } as never,
+              ]) as never;
+            }
+
             return makeResult([]) as never;
           },
           release() {},
@@ -59,6 +73,20 @@ function createMockDatabase(): DatabaseConnection {
             criado_por_nome: 'Admin Teste',
             criado_em: '2026-06-30T12:00:00.000Z',
             atualizado_em: '2026-06-30T12:00:00.000Z',
+          } as never,
+        ]) as unknown as QueryResult<T>;
+      }
+
+      if (sql.includes('UPDATE justificativas_coletivas')) {
+        return makeResult([
+          {
+            id: '11111111-1111-4111-8111-000000000001',
+            data_inicio: '2026-06-30',
+            data_fim: '2026-06-30',
+            descricao: 'Liberação coletiva atualizada.',
+            criado_por: 'test-admin-id',
+            criado_em: '2026-06-30T12:00:00.000Z',
+            atualizado_em: '2026-06-30T12:30:00.000Z',
           } as never,
         ]) as unknown as QueryResult<T>;
       }
@@ -116,6 +144,27 @@ describe('GET /admin/justificativas-coletivas', () => {
           criadoPorNome: 'Admin Teste',
         },
       ],
+    });
+  });
+
+  it('permite editar justificativa coletiva para administrador autenticado', async () => {
+    const res = await app.inject({
+      method: 'PUT',
+      url: '/admin/justificativas-coletivas/11111111-1111-4111-8111-000000000001',
+      headers: { authorization: `Bearer ${token}` },
+      payload: {
+        dataInicio: '2026-06-30',
+        dataFim: '2026-06-30',
+        descricao: 'Liberação coletiva atualizada.',
+      },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({
+      justificativaColetiva: {
+        id: '11111111-1111-4111-8111-000000000001',
+        criadoPorNome: 'Admin Teste',
+      },
     });
   });
 });

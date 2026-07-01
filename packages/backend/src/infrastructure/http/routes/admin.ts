@@ -12,6 +12,7 @@ import type {
   RejeitarAusenciaDTO,
   CancelarAusenciaAdminDTO,
   CriarJustificativaColetivaDTO,
+  EditarJustificativaColetivaDTO,
   JustificativaColetivaItem,
   ListarJustificativasColetivasResponse,
 } from '@recorda/shared';
@@ -77,6 +78,8 @@ const criarJustificativaColetivaSchema = z.object({
   dataFim: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'dataFim inválida (YYYY-MM-DD)'),
   descricao: z.string().trim().min(3).max(2000),
 });
+
+const editarJustificativaColetivaSchema = criarJustificativaColetivaSchema;
 
 const listarJustificativasColetivasQuerySchema = z.object({
   dataInicio: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
@@ -863,6 +866,84 @@ export function createAdminRoutes(): FastifyPluginAsync {
             };
 
         return reply.status(201).send({
+          justificativaColetiva,
+        });
+      }
+    );
+
+    // PUT /admin/justificativas-coletivas/:id - Editar justificativa coletiva
+    server.put<{ Params: { id: string }; Body: EditarJustificativaColetivaDTO }>(
+      '/admin/justificativas-coletivas/:id',
+      {
+        preHandler: [
+          server.authenticate,
+          authorize('administrador'),
+          validateParams(z.object({ id: z.string().uuid() })),
+          validateBody(editarJustificativaColetivaSchema),
+        ],
+      },
+      async (request, reply) => {
+        const { id } = request.params;
+        const body = request.body as EditarJustificativaColetivaDTO;
+
+        if (body.dataFim < body.dataInicio) {
+          return reply.status(400).send({ error: 'dataFim não pode ser anterior à dataInicio' });
+        }
+
+        const result = await server.database.query<JustificativaColetivaRow>(
+          `UPDATE justificativas_coletivas
+           SET
+             data_inicio = $1,
+             data_fim = $2,
+             descricao = $3,
+             atualizado_em = CURRENT_TIMESTAMP
+           WHERE id = $4
+           RETURNING
+             id,
+             data_inicio,
+             data_fim,
+             descricao,
+             criado_por,
+             criado_em,
+             atualizado_em`,
+          [body.dataInicio, body.dataFim, body.descricao.trim(), id]
+        );
+
+        const updated = result.rows[0];
+        if (!updated) {
+          return reply.status(404).send({ error: 'Justificativa coletiva não encontrada' });
+        }
+
+        const hydrated = await server.database.query<JustificativaColetivaRow>(
+          `SELECT
+             jc.id,
+             jc.data_inicio,
+             jc.data_fim,
+             jc.descricao,
+             jc.criado_por,
+             u.nome AS criado_por_nome,
+             jc.criado_em,
+             jc.atualizado_em
+           FROM justificativas_coletivas jc
+           JOIN usuarios u ON u.id = jc.criado_por
+          WHERE jc.id = $1`,
+          [updated.id]
+        );
+
+        const justificativaColetiva = hydrated.rows[0]
+          ? mapJustificativaColetiva(hydrated.rows[0])
+          : {
+              id: updated.id,
+              dataInicio: toDateOnlyString(updated.data_inicio),
+              dataFim: toDateOnlyString(updated.data_fim),
+              descricao: updated.descricao,
+              criadoPor: updated.criado_por,
+              criadoPorNome: 'Administrador',
+              criadoEm: toIsoDate(updated.criado_em) ?? new Date().toISOString(),
+              atualizadoEm: toIsoDate(updated.atualizado_em) ?? new Date().toISOString(),
+            };
+
+        return reply.send({
           justificativaColetiva,
         });
       }
