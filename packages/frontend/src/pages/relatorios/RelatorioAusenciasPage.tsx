@@ -1,4 +1,4 @@
-﻿import { useCallback, useRef, useState } from 'react';
+﻿import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '../../hooks/useQueries';
 import type { RelatorioAusenciasParams, RelatorioAusenciasResponse } from '@recorda/shared';
 import { api } from '../../services/api';
@@ -149,17 +149,17 @@ export function RelatorioAusenciasPage(): JSX.Element {
     if (colaboradoresOpcoes.length > 0) return;
     try {
       const data = await api.get<RelatorioAusenciasResponse>('/relatorios/ausencias');
-      setColaboradoresOpcoes(data.filtros.colaboradores);
-      setTiposOpcoes(data.filtros.tipos);
+      setColaboradoresOpcoes(data.filtros?.colaboradores ?? []);
+      setTiposOpcoes(data.filtros?.tipos ?? []);
     } catch {
       // silent — filter options are optional
     }
   }, [colaboradoresOpcoes.length]);
 
   // Run on first render
-  useState(() => {
+  useEffect(() => {
     void loadFiltros();
-  });
+  }, [loadFiltros]);
 
   const buildParams = useCallback((): RelatorioAusenciasParams => {
     const p: RelatorioAusenciasParams = {};
@@ -187,10 +187,31 @@ export function RelatorioAusenciasPage(): JSX.Element {
       }
       const suffix = qs.toString() ? `?${qs.toString()}` : '';
       const data = await api.get<RelatorioAusenciasResponse>(`/relatorios/ausencias${suffix}`);
-      setRelatorio(data);
+      const normalizedData: RelatorioAusenciasResponse = {
+        ...data,
+        registros: data.registros ?? [],
+        justificativasColetivas: data.justificativasColetivas ?? [],
+        totais: {
+          totalRegistros: data.totais?.totalRegistros ?? 0,
+          totalPorStatus: data.totais?.totalPorStatus ?? {},
+          totalPorTipo: data.totais?.totalPorTipo ?? [],
+          totalPorColaborador: data.totais?.totalPorColaborador ?? [],
+          diasAprovados: data.totais?.diasAprovados ?? 0,
+          horasAprovadas: data.totais?.horasAprovadas ?? 0,
+        },
+        filtros: {
+          colaboradores: data.filtros?.colaboradores ?? [],
+          tipos: data.filtros?.tipos ?? [],
+        },
+      };
+      setRelatorio(normalizedData);
       lastParamsRef.current = key;
-      if (data.filtros.colaboradores.length > 0) setColaboradoresOpcoes(data.filtros.colaboradores);
-      if (data.filtros.tipos.length > 0) setTiposOpcoes(data.filtros.tipos);
+      if (normalizedData.filtros.colaboradores.length > 0) {
+        setColaboradoresOpcoes(normalizedData.filtros.colaboradores);
+      }
+      if (normalizedData.filtros.tipos.length > 0) {
+        setTiposOpcoes(normalizedData.filtros.tipos);
+      }
     } catch (error: unknown) {
       const msg =
         error instanceof Error

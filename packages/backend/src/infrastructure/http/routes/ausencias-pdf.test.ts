@@ -46,6 +46,17 @@ function createMockDatabase(): DatabaseConnection {
     dias_ausencia: 2,
   };
 
+  const justificativaColetivaRow = {
+    id: '44444444-4444-4444-8444-000000000001',
+    data_inicio: '2026-06-01',
+    data_fim: '2026-06-03',
+    descricao: 'Fechamento coletivo por manutenção elétrica.',
+    criado_por: 'test-admin-id',
+    criado_por_nome: 'Admin Teste',
+    criado_em: '2026-06-01T08:00:00.000Z',
+    atualizado_em: '2026-06-01T08:30:00.000Z',
+  };
+
   return {
     pool: {} as never,
     async query<T extends QueryResultRow>(
@@ -87,6 +98,10 @@ function createMockDatabase(): DatabaseConnection {
             cor: ausenciaRow.tipo_ausencia_cor,
           } as never,
         ]) as unknown as QueryResult<T>;
+      }
+
+      if (sql.includes('FROM justificativas_coletivas jc')) {
+        return makeResult([justificativaColetivaRow as never]) as unknown as QueryResult<T>;
       }
 
       return makeResult([]) as unknown as QueryResult<T>;
@@ -165,5 +180,25 @@ describe('PDF — /relatorios/ausencias/exportar/pdf', () => {
     const pdf = await PDFDocument.load(payload);
 
     expect(pdf.getPageCount()).toBe(1);
+  });
+
+  it('retorna justificativas coletivas no JSON do relatório', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/relatorios/ausencias',
+      headers: { authorization: `Bearer ${token}` },
+    });
+
+    expect(res.statusCode).toBe(200);
+
+    const body = res.json();
+    expect(Array.isArray(body.justificativasColetivas)).toBe(true);
+    expect(body.justificativasColetivas).toHaveLength(1);
+    expect(body.justificativasColetivas[0]).toMatchObject({
+      id: '44444444-4444-4444-8444-000000000001',
+      dataInicio: '2026-06-01',
+      dataFim: '2026-06-03',
+      descricao: 'Fechamento coletivo por manutenção elétrica.',
+    });
   });
 });
