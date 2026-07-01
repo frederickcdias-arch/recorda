@@ -36,12 +36,12 @@ export class FileStorageService {
     category: 'planilhas' | 'ocr'
   ): Promise<string> {
     if (!this.allowedTypes.has(file.mimetype)) {
-      throw new Error(`Tipo de arquivo nÃ£o permitido: ${file.mimetype}`);
+      throw new Error(`Tipo de arquivo não permitido: ${file.mimetype}`);
     }
 
     const buffer = await file.toBuffer();
     if (buffer.length > this.maxSize) {
-      throw new Error(`Arquivo muito grande. MÃ¡ximo permitido: ${this.maxSize} bytes`);
+      throw new Error(`Arquivo muito grande. Máximo permitido: ${this.maxSize} bytes`);
     }
 
     await this.ensureDirs();
@@ -60,7 +60,7 @@ export class FileStorageService {
       const fullPath = path.resolve(filePath);
       await fs.unlink(fullPath);
     } catch {
-      // Ignorar erro se arquivo nÃ£o existir
+      // Ignorar erro se arquivo não existir
     }
   }
 
@@ -81,14 +81,14 @@ export class FileStorageService {
   }
 }
 
-// â”€â”€â”€ AusÃªncias attachment helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Ausências attachment helpers ─────────────────────────────────────────────
 
 export const AUSENCIA_ALLOWED_MIME_TYPES = new Set(['application/pdf', 'image/jpeg', 'image/png']);
 
 export const AUSENCIA_MAX_SIZE = 5 * 1024 * 1024; // 5 MB
 
 /**
- * Validates and persists a file attachment for an ausÃªncia.
+ * Validates and persists a file attachment for an ausência.
  * Returns a `data:` URL suitable for storage in the `documento_anexo` column.
  */
 export async function saveAusenciaAnexo(file: {
@@ -97,10 +97,10 @@ export async function saveAusenciaAnexo(file: {
   buffer: Buffer;
 }): Promise<string> {
   if (!AUSENCIA_ALLOWED_MIME_TYPES.has(file.mimetype)) {
-    throw new Error('Tipo de arquivo nÃ£o permitido. Formatos aceitos: PDF, JPG, PNG.');
+    throw new Error('Tipo de arquivo não permitido. Formatos aceitos: PDF, JPG, PNG.');
   }
   if (file.buffer.length > AUSENCIA_MAX_SIZE) {
-    throw new Error('Arquivo muito grande. MÃ¡ximo permitido: 5 MB.');
+    throw new Error('Arquivo muito grande. Máximo permitido: 5 MB.');
   }
 
   const encodedName = encodeURIComponent(file.filename);
@@ -215,7 +215,7 @@ export async function serveAusenciaAnexo(relativePath: string): Promise<{
     const mimeType = normalizeMimeType(null, fullPath);
 
     if (!mimeType) {
-      throw Object.assign(new Error('Tipo de arquivo nÃ£o suportado.'), { code: 'INVALID_TYPE' });
+      throw Object.assign(new Error('Tipo de arquivo não suportado.'), { code: 'INVALID_TYPE' });
     }
 
     if (!fullPath.startsWith(allowedBase + path.sep)) {
@@ -260,7 +260,7 @@ export async function serveAusenciaAnexo(relativePath: string): Promise<{
   if (dataUrlMatch) {
     const mimeType = normalizeMimeType(dataUrlMatch[1], 'anexo');
     if (!mimeType) {
-      throw Object.assign(new Error('Tipo de arquivo nÃ£o suportado.'), { code: 'INVALID_TYPE' });
+      throw Object.assign(new Error('Tipo de arquivo não suportado.'), { code: 'INVALID_TYPE' });
     }
 
     const params = (dataUrlMatch[2] ?? '').split(';').filter(Boolean);
@@ -284,7 +284,7 @@ export async function serveAusenciaAnexo(relativePath: string): Promise<{
     const normalizedUrl = /^https?:\/\//i.test(relativePath) ? relativePath : `https://${relativePath}`;
     const response = await fetch(normalizedUrl);
     if (!response.ok) {
-      throw Object.assign(new Error('Arquivo de anexo nÃ£o encontrado no servidor.'), {
+      throw Object.assign(new Error('Arquivo de anexo não encontrado no servidor.'), {
         code: 'ENOENT',
       });
     }
@@ -293,13 +293,13 @@ export async function serveAusenciaAnexo(relativePath: string): Promise<{
     const filename = path.basename(new URL(normalizedUrl).pathname) || 'anexo';
     const mimeType = normalizeMimeType(response.headers.get('content-type'), filename);
     if (!mimeType) {
-      throw Object.assign(new Error('Tipo de arquivo nÃ£o suportado.'), { code: 'INVALID_TYPE' });
+      throw Object.assign(new Error('Tipo de arquivo não suportado.'), { code: 'INVALID_TYPE' });
     }
 
     return { buffer, mimeType, filename };
   }
 
-  throw Object.assign(new Error('Arquivo de anexo nÃ£o encontrado no servidor.'), {
+  throw Object.assign(new Error('Arquivo de anexo não encontrado no servidor.'), {
     code: 'ENOENT',
   });
 }

@@ -1,4 +1,4 @@
-﻿import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import {
   buildTestServer,
@@ -61,8 +61,8 @@ describe('GET /operacional/controle-qualidade/sugestoes', () => {
     return repoId;
   }
 
-  // â”€â”€ 1. RepositÃ³rio com todas etapas concluÃ­das â†’ prontoParaCQ=true â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  it('repositÃ³rio com todas as etapas concluÃ­das aparece com prontoParaCQ=true', async () => {
+  // ── 1. Repositório com todas etapas concluídas → prontoParaCQ=true ──────────
+  it('repositório com todas as etapas concluídas aparece com prontoParaCQ=true', async () => {
     const repoId = seedRepoComTodasEtapas();
 
     const res = await app.inject({
@@ -86,8 +86,8 @@ describe('GET /operacional/controle-qualidade/sugestoes', () => {
     expect(body.meta.total).toBe(1);
   });
 
-  // â”€â”€ 2. RepositÃ³rio sem reconferÃªncia â†’ nÃ£o aparece na lista â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  it('repositÃ³rio sem reconferÃªncia nÃ£o aparece nas sugestÃµes', async () => {
+  // ── 2. Repositório sem reconferência → não aparece na lista ──────────────────
+  it('repositório sem reconferência não aparece nas sugestões', async () => {
     const repoId = seedTestRepositorio({
       etapa_atual: 'RECONFERENCIA',
       status_atual: 'EM_CONFERENCIA',
@@ -124,8 +124,8 @@ describe('GET /operacional/controle-qualidade/sugestoes', () => {
     expect(body.meta.total).toBe(0);
   });
 
-  // â”€â”€ 3. RepositÃ³rio jÃ¡ em lote CQ ativo â†’ nÃ£o aparece â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  it('repositÃ³rio em lote CQ ativo (ABERTO) nÃ£o aparece nas sugestÃµes', async () => {
+  // ── 3. Repositório já em lote CQ ativo → não aparece ────────────────────────
+  it('repositório em lote CQ ativo (ABERTO) não aparece nas sugestões', async () => {
     const repoId = seedRepoComTodasEtapas();
     seedTestRepoEmLoteCQAtivo(repoId);
 
@@ -141,8 +141,8 @@ describe('GET /operacional/controle-qualidade/sugestoes', () => {
     expect(body.meta.total).toBe(0);
   });
 
-  // â”€â”€ 4. RepositÃ³rio CQ_APROVADO â†’ nÃ£o aparece â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  it('repositÃ³rio com status CQ_APROVADO nÃ£o aparece nas sugestÃµes', async () => {
+  // ── 4. Repositório CQ_APROVADO → não aparece ────────────────────────────────
+  it('repositório com status CQ_APROVADO não aparece nas sugestões', async () => {
     seedRepoComTodasEtapas({ status_atual: 'CQ_APROVADO', etapa_atual: 'CONTROLE_QUALIDADE' });
 
     const res = await app.inject({
@@ -156,8 +156,8 @@ describe('GET /operacional/controle-qualidade/sugestoes', () => {
     expect(body.data).toHaveLength(0);
   });
 
-  // â”€â”€ 5. RepositÃ³rio CQ_REPROVADO â†’ nÃ£o aparece â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  it('repositÃ³rio com status CQ_REPROVADO nÃ£o aparece nas sugestÃµes', async () => {
+  // ── 5. Repositório CQ_REPROVADO → não aparece ───────────────────────────────
+  it('repositório com status CQ_REPROVADO não aparece nas sugestões', async () => {
     seedRepoComTodasEtapas({ status_atual: 'CQ_REPROVADO', etapa_atual: 'CONTROLE_QUALIDADE' });
 
     const res = await app.inject({
@@ -171,8 +171,8 @@ describe('GET /operacional/controle-qualidade/sugestoes', () => {
     expect(body.data).toHaveLength(0);
   });
 
-  // â”€â”€ 6. DigitalizaÃ§Ã£o sem imagens â†’ prontoParaCQ=false, aparece com alerta â”€â”€â”€â”€
-  it('repositÃ³rio com digitalizaÃ§Ã£o sem imagens â†’ prontoParaCQ=false e aparece na lista', async () => {
+  // ── 6. Digitalização sem imagens → prontoParaCQ=false, aparece com alerta ────
+  it('repositório com digitalização sem imagens → prontoParaCQ=false e aparece na lista', async () => {
     const repoId = seedTestRepositorio({
       etapa_atual: 'CONTROLE_QUALIDADE',
       status_atual: 'AGUARDANDO_CQ_LOTE',
@@ -222,14 +222,14 @@ describe('GET /operacional/controle-qualidade/sugestoes', () => {
     ).toBe(true);
   });
 
-  // â”€â”€ 7. incluirComAlertas=false â†’ exclui repos com divergÃªncia alta â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  it('incluirComAlertas=false exclui repositÃ³rios com divergÃªncias altas', async () => {
-    // Pronto (sem divergÃªncias)
+  // ── 7. incluirComAlertas=false → exclui repos com divergência alta ───────────
+  it('incluirComAlertas=false exclui repositórios com divergências altas', async () => {
+    // Pronto (sem divergências)
     seedRepoComTodasEtapas({
       id_repositorio_recorda: 'repo-pronto',
       id_repositorio_ged: '000001/2026',
     });
-    // Com alerta (digitalizaÃ§Ã£o sem imagens)
+    // Com alerta (digitalização sem imagens)
     const repoComAlerta = seedTestRepositorio({
       id_repositorio_ged: '000002/2026',
       etapa_atual: 'CONTROLE_QUALIDADE',
@@ -274,8 +274,8 @@ describe('GET /operacional/controle-qualidade/sugestoes', () => {
     expect(body.data.some((r) => r.repositorioId === repoComAlerta)).toBe(false);
   });
 
-  // â”€â”€ 8. PaginaÃ§Ã£o â€” meta.total correto â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  it('paginaÃ§Ã£o: meta.total reflete o total real, nÃ£o o tamanho da pÃ¡gina', async () => {
+  // ── 8. Paginação — meta.total correto ────────────────────────────────────────
+  it('paginação: meta.total reflete o total real, não o tamanho da página', async () => {
     // Seed 3 ready repos
     for (let i = 1; i <= 3; i++) {
       const repoId = seedTestRepositorio({
@@ -326,7 +326,7 @@ describe('GET /operacional/controle-qualidade/sugestoes', () => {
     expect(body.meta.limit).toBe(2);
   });
 
-  // â”€â”€ 9. resumo.prontos + resumo.comAlertas correto â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── 9. resumo.prontos + resumo.comAlertas correto ────────────────────────────
   it('resumo agrega corretamente prontos e comAlertas', async () => {
     // Pronto
     seedRepoComTodasEtapas({ id_repositorio_ged: '000001/2026' });
@@ -373,8 +373,8 @@ describe('GET /operacional/controle-qualidade/sugestoes', () => {
     expect(body.resumo.comAlertas).toBe(1);
   });
 
-  // â”€â”€ 10. ProduÃ§Ã£o legada (origem LEGADO) tambÃ©m Ã© candidata â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  it('repositÃ³rio com produÃ§Ã£o legada em todas as etapas aparece nas sugestÃµes', async () => {
+  // ── 10. Produção legada (origem LEGADO) também é candidata ───────────────────
+  it('repositório com produção legada em todas as etapas aparece nas sugestões', async () => {
     const repoId = seedTestRepositorio({
       etapa_atual: 'CONTROLE_QUALIDADE',
       status_atual: 'AGUARDANDO_CQ_LOTE',

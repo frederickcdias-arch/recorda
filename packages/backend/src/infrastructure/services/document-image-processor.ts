@@ -1014,7 +1014,7 @@ export async function processDocumentImage(
               'Detecção nativa local de bordas aplicada antes do fallback do backend.',
               ...(pythonResult.fallbackUsado
                 ? [
-                    'NÃ£o foi possÃ­vel aplicar os cantos detectados com seguranÃ§a. Fallback seguro aplicado.',
+                    'Não foi possível aplicar os cantos detectados com segurança. Fallback seguro aplicado.',
                   ]
                 : []),
               ...warnings,
@@ -1026,8 +1026,8 @@ export async function processDocumentImage(
   } catch (error) {
     warnings.push(
       error instanceof Error
-        ? `DetecÃ§Ã£o nativa local indisponÃ­vel: ${error.message}`
-        : 'DetecÃ§Ã£o nativa local indisponÃ­vel.'
+        ? `Detecção nativa local indisponível: ${error.message}`
+        : 'Detecção nativa local indisponível.'
     );
   }
 

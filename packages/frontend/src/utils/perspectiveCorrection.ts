@@ -1,39 +1,39 @@
-// @ts-nocheck â€” noUncheckedIndexedAccess gera falsos positivos em arrays tipados numÃ©ricos
+// @ts-nocheck — noUncheckedIndexedAccess gera falsos positivos em arrays tipados numéricos
 /**
- * CorreÃ§Ã£o automÃ¡tica de perspectiva para fotos de documentos.
+ * Correção automática de perspectiva para fotos de documentos.
  *
  * Algoritmo:
- *  1. Reduz para 600 px para anÃ¡lise rÃ¡pida
- *  2. Converte para escala de cinza (somente para detecÃ§Ã£o)
- *  3. Mediana RGB do strip de borda inteiro â†’ estimativa robusta do fundo (mesa),
+ *  1. Reduz para 600 px para análise rápida
+ *  2. Converte para escala de cinza (somente para detecção)
+ *  3. Mediana RGB do strip de borda inteiro → estimativa robusta do fundo (mesa),
  *     mesmo quando o papel ocupa > 90 % do quadro
- *  4. DistÃ¢ncia RGB ao fundo (threshold 25) + flood-fill a partir da borda da
- *     imagem: preenche o interior do papel sem efeito de borda morfolÃ³gico
- *  5. Varredura das bordas ajusta 4 retas do primeiro contato mesaâ†’papel; se
- *     nÃ£o houver pontos confiÃ¡veis, usa score diagonal na mÃ¡scara sÃ³lida
- *  6. Valida a detecÃ§Ã£o; se nÃ£o confiante, devolve a imagem original intacta
- *  7. Calcula a homografia inversa (retÃ¢ngulo â†’ quadrilÃ¡tero fonte)
- *  8. Aplica o warp prospectivo com interpolaÃ§Ã£o bilinear na imagem COLORIDA
+ *  4. Distância RGB ao fundo (threshold 25) + flood-fill a partir da borda da
+ *     imagem: preenche o interior do papel sem efeito de borda morfológico
+ *  5. Varredura das bordas ajusta 4 retas do primeiro contato mesa→papel; se
+ *     não houver pontos confiáveis, usa score diagonal na máscara sólida
+ *  6. Valida a detecção; se não confiante, devolve a imagem original intacta
+ *  7. Calcula a homografia inversa (retângulo → quadrilátero fonte)
+ *  8. Aplica o warp prospectivo com interpolação bilinear na imagem COLORIDA
  *
- * As cores sÃ£o totalmente preservadas â€” nenhum canal Ã© descartado.
+ * As cores são totalmente preservadas — nenhum canal é descartado.
  *
  * Melhorias:
- *  - Fechamento morfolÃ³gico na mÃ¡scara binÃ¡ria: preenche buracos causados por
- *    texto e sÃ­mbolos impressos no papel antes da detecÃ§Ã£o de cantos.
- *  - CorreÃ§Ã£o de orientaÃ§Ã£o: se fonte e saÃ­da divergirem em retrato/paisagem,
- *    roda 90Â° reordenando os cantos.
- *  - SaÃ­da em JPEG 92 %: reduz payload ~8Ã— vs PNG, acelerando o upload.
- *  - Warp via WebGL (GPU): ~20Ã— mais rÃ¡pido que o loop JS; fallback automÃ¡tico.
+ *  - Fechamento morfológico na máscara binária: preenche buracos causados por
+ *    texto e símbolos impressos no papel antes da detecção de cantos.
+ *  - Correção de orientação: se fonte e saída divergirem em retrato/paisagem,
+ *    roda 90° reordenando os cantos.
+ *  - Saída em JPEG 92 %: reduz payload ~8× vs PNG, acelerando o upload.
+ *  - Warp via WebGL (GPU): ~20× mais rápido que o loop JS; fallback automático.
  */
 
 type Point = [number, number];
 
-/** DimensÃ£o mÃ¡xima para a passagem de detecÃ§Ã£o de cantos */
+/** Dimensão máxima para a passagem de detecção de cantos */
 const DETECT_SIZE = 600;
-/** DimensÃ£o mÃ¡xima da imagem corrigida enviada ao backend */
+/** Dimensão máxima da imagem corrigida enviada ao backend */
 const OUTPUT_MAX = 2000;
 
-// â”€â”€ UtilitÃ¡rios de canvas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Utilitários de canvas ────────────────────────────────────────────────────
 
 function mkCanvas(w: number, h: number): HTMLCanvasElement {
   const c = document.createElement('canvas');
@@ -51,9 +51,9 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
-// â”€â”€ Processamento de imagem (somente para detecÃ§Ã£o â€” nÃ£o afeta cores) â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Processamento de imagem (somente para detecção — não afeta cores) ────────
 
-/** RGBA â†’ escala de cinza (pesos inteiros, divisÃ£o por shift) */
+/** RGBA → escala de cinza (pesos inteiros, divisão por shift) */
 function toGray(rgba: Uint8ClampedArray, n: number): Uint8Array {
   const g = new Uint8Array(n);
   for (let i = 0; i < n; i++) {
@@ -63,7 +63,7 @@ function toGray(rgba: Uint8ClampedArray, n: number): Uint8Array {
 }
 
 /**
- * SuavizaÃ§Ã£o Gaussiana separÃ¡vel 1D â€” kernel [1,4,6,4,1]/16.
+ * Suavização Gaussiana separável 1D — kernel [1,4,6,4,1]/16.
  * Passagem horizontal seguida de passagem vertical.
  */
 function gaussBlur(gray: Uint8Array, w: number, h: number): Uint8Array {
@@ -105,7 +105,7 @@ function gaussBlur(gray: Uint8Array, w: number, h: number): Uint8Array {
   return out;
 }
 
-/** Limiar de Otsu: maximiza a variÃ¢ncia entre classes clara/escura */
+/** Limiar de Otsu: maximiza a variância entre classes clara/escura */
 function otsu(gray: Uint8Array): number {
   const hist = new Float64Array(256);
   for (const v of gray) hist[v]++;
@@ -133,17 +133,17 @@ function otsu(gray: Uint8Array): number {
   return t;
 }
 
-// â”€â”€ Fechamento morfolÃ³gico (closing) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Fechamento morfológico (closing) ────────────────────────────────────────
 
 /**
- * Closing morfolÃ³gico separÃ¡vel (dilatar â†’ erodir) com kernel caixa de raio r.
- * Preenche buracos escuros dentro da regiÃ£o branca do documento (texto,
- * sÃ­mbolos cartogrÃ¡ficos) para que a mÃ¡scara fique contÃ­nua antes da detecÃ§Ã£o.
+ * Closing morfológico separável (dilatar → erodir) com kernel caixa de raio r.
+ * Preenche buracos escuros dentro da região branca do documento (texto,
+ * símbolos cartográficos) para que a máscara fique contínua antes da detecção.
  */
 function morphClose(mask: Uint8Array, w: number, h: number, r: number): Uint8Array {
   const n = mask.length;
 
-  // â”€â”€ Dilatar horizontal â”€â”€
+  // ── Dilatar horizontal ──
   const dh = new Uint8Array(n);
   for (let y = 0; y < h; y++) {
     let s = 0;
@@ -156,7 +156,7 @@ function morphClose(mask: Uint8Array, w: number, h: number, r: number): Uint8Arr
     }
   }
 
-  // â”€â”€ Dilatar vertical â”€â”€
+  // ── Dilatar vertical ──
   const dv = new Uint8Array(n);
   for (let x = 0; x < w; x++) {
     let s = 0;
@@ -169,7 +169,7 @@ function morphClose(mask: Uint8Array, w: number, h: number, r: number): Uint8Arr
     }
   }
 
-  // â”€â”€ Erodir horizontal â”€â”€
+  // ── Erodir horizontal ──
   const eh = new Uint8Array(n);
   for (let y = 0; y < h; y++) {
     let s = 0;
@@ -184,7 +184,7 @@ function morphClose(mask: Uint8Array, w: number, h: number, r: number): Uint8Arr
     }
   }
 
-  // â”€â”€ Erodir vertical â”€â”€
+  // ── Erodir vertical ──
   const ev = new Uint8Array(n);
   for (let x = 0; x < w; x++) {
     let s = 0;
@@ -202,7 +202,7 @@ function morphClose(mask: Uint8Array, w: number, h: number, r: number): Uint8Arr
   return ev;
 }
 
-// â”€â”€ Ajuste geomÃ©trico simples para detecÃ§Ã£o de bordas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Ajuste geométrico simples para detecção de bordas ─────────────────────────
 
 type Line = { m: number; b: number };
 
@@ -476,27 +476,27 @@ function findMaskDiagonalGeometry(mask: Uint8Array, w: number, h: number): Docum
   return { corners };
 }
 
-// â”€â”€ DetecÃ§Ã£o dos 4 cantos do documento â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Detecção dos 4 cantos do documento ──────────────────────────────────────
 
 /**
- * Encontra os 4 cantos do papel via distÃ¢ncia RGB ao fundo + flood-fill da borda.
+ * Encontra os 4 cantos do papel via distância RGB ao fundo + flood-fill da borda.
  *
- * EstratÃ©gia:
+ * Estratégia:
  *  1. Estima a cor da mesa pela MEDIANA do strip de borda inteiro da imagem.
- *     Usar todos os pixels da borda (nÃ£o apenas 4 cantos) torna a estimativa
+ *     Usar todos os pixels da borda (não apenas 4 cantos) torna a estimativa
  *     robusta mesmo quando o papel ocupa >90% do quadro.
- *  2. MÃ¡scara de primeiro plano: pixels com distÃ¢ncia RGB > 25 ao fundo.
+ *  2. Máscara de primeiro plano: pixels com distância RGB > 25 ao fundo.
  *     Captura margens brancas E interior colorido do mapa.
- *  3. Pequeno closing (r=5) para selar lacunas mÃ­nimas nas margens do papel.
- *  4. Flood-fill a partir de todos os pixels de borda com fundo â†’ marca regiÃ£o
- *     "fora" (mesa acessÃ­vel a partir das bordas). Pixels de fundo nÃ£o alcanÃ§ados
- *     estÃ£o dentro do papel â†’ sÃ£o preenchidos como primeiro plano.
- *     NÃ£o hÃ¡ efeito de borda morfolÃ³gico: funciona para qualquer tamanho de interior.
- *  5. Varredura das bordas coleta o primeiro trecho contÃ­nuo de papel em cada
+ *  3. Pequeno closing (r=5) para selar lacunas mínimas nas margens do papel.
+ *  4. Flood-fill a partir de todos os pixels de borda com fundo → marca região
+ *     "fora" (mesa acessível a partir das bordas). Pixels de fundo não alcançados
+ *     estão dentro do papel → são preenchidos como primeiro plano.
+ *     Não há efeito de borda morfológico: funciona para qualquer tamanho de interior.
+ *  5. Varredura das bordas coleta o primeiro trecho contínuo de papel em cada
  *     linha/coluna, ajusta 4 retas e cruza essas retas para achar os cantos.
  *     Isso evita que o mapa colorido interno domine os extremos.
- *  6. Se a varredura nÃ£o for confiÃ¡vel, score diagonal extrai os 4 pixels
- *     extremos da mÃ¡scara sÃ³lida resultante.
+ *  6. Se a varredura não for confiável, score diagonal extrai os 4 pixels
+ *     extremos da máscara sólida resultante.
  *  7. Rejeita quads degenerados ou cenas sem documento.
  */
 function findDocumentGeometry(
@@ -507,7 +507,7 @@ function findDocumentGeometry(
 ): DocumentGeometry | null {
   void gray;
 
-  // 1. Estima fundo pela mediana R/G/B da borda. O perÃ­metro puro tem prioridade
+  // 1. Estima fundo pela mediana R/G/B da borda. O perímetro puro tem prioridade
   //    quando o strip externo fica contaminado por papel ocupando quase todo o quadro.
   const borderW = Math.max(4, Math.floor(Math.min(w, h) * 0.03));
   const rBuf: number[] = [];
@@ -545,7 +545,7 @@ function findDocumentGeometry(
   const bgB = usePerimeter ? perimeterB : stripB;
   const bgLuma = bgR * 0.299 + bgG * 0.587 + bgB * 0.114;
 
-  // 2. MÃ¡scara de primeiro plano: distÃ¢ncia RGB ao fundo > 25.
+  // 2. Máscara de primeiro plano: distância RGB ao fundo > 25.
   const dt2 = 25 * 25;
   const rawMask = new Uint8Array(w * h);
   const paperMask = new Uint8Array(w * h);
@@ -565,15 +565,15 @@ function findDocumentGeometry(
     }
   }
 
-  // 3. Pequeno closing para selar lacunas mÃ­nimas nas margens (r=5).
+  // 3. Pequeno closing para selar lacunas mínimas nas margens (r=5).
   const sealed = morphClose(rawMask, w, h, 5);
   const paperSealed = morphClose(paperMask, w, h, 3);
 
   // 4. Flood-fill a partir de todos os pixels de fundo na borda da imagem.
-  //    Marca tudo que Ã© "fora" (mesa acessÃ­vel pelas bordas).
-  //    O interior fechado do papel NÃƒO Ã© alcanÃ§Ã¡vel e permanece como buraco.
+  //    Marca tudo que é "fora" (mesa acessível pelas bordas).
+  //    O interior fechado do papel NÃO é alcançável e permanece como buraco.
   const outside = new Uint8Array(w * h);
-  // Buffer com Ã­ndices de pixels a processar (simulaÃ§Ã£o de fila com head pointer)
+  // Buffer com índices de pixels a processar (simulação de fila com head pointer)
   const queue = new Int32Array(w * h);
   let qHead = 0,
     qTail = 0;
@@ -605,7 +605,7 @@ function findDocumentGeometry(
     if (py < h - 1) seedBorder(idx + w);
   }
 
-  // MÃ¡scara final: primeiro plano original OU fundo nÃ£o alcanÃ§ado (interior do papel).
+  // Máscara final: primeiro plano original OU fundo não alcançado (interior do papel).
   const mask = new Uint8Array(w * h);
   for (let i = 0; i < w * h; i++) {
     mask[i] = sealed[i] || (!outside[i] ? 1 : 0);
@@ -680,18 +680,18 @@ function findDocumentCorners(
   return findDocumentGeometry(gray, rgba, w, h)?.corners || null;
 }
 
-// â”€â”€ Homografia (transformaÃ§Ã£o projetiva) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Homografia (transformação projetiva) ─────────────────────────────────────
 
 /**
- * EliminaÃ§Ã£o de Gaussâ€“Jordan em sistema 8Ã—8 aumentado.
- * Retorna o vetor soluÃ§Ã£o x tal que AÂ·x = b.
+ * Eliminação de Gauss–Jordan em sistema 8×8 aumentado.
+ * Retorna o vetor solução x tal que A·x = b.
  */
 function gaussJordan(A: number[][], b: number[]): number[] {
   const n = 8;
   const M = A.map((row, i) => [...row, b[i]]);
 
   for (let col = 0; col < n; col++) {
-    // PivÃ´ parcial
+    // Pivô parcial
     let maxRow = col;
     for (let r = col + 1; r < n; r++) {
       if (Math.abs(M[r][col]) > Math.abs(M[maxRow][col])) maxRow = r;
@@ -701,7 +701,7 @@ function gaussJordan(A: number[][], b: number[]): number[] {
     const pivot = M[col][col];
     if (Math.abs(pivot) < 1e-10) throw new Error('Homografia singular');
 
-    // Elimina todas as linhas (Gaussâ€“Jordan, nÃ£o apenas abaixo)
+    // Elimina todas as linhas (Gauss–Jordan, não apenas abaixo)
     for (let r = 0; r < n; r++) {
       if (r === col) continue;
       const f = M[r][col] / pivot;
@@ -713,7 +713,7 @@ function gaussJordan(A: number[][], b: number[]): number[] {
 }
 
 /**
- * Calcula a homografia H (9 coeficientes, Ãºltimo = 1) que mapeia
+ * Calcula a homografia H (9 coeficientes, último = 1) que mapeia
  * cada ponto de `src` para o ponto correspondente em `dst`.
  */
 function solveHomography(src: Point[], dst: Point[]): number[] {
@@ -731,12 +731,12 @@ function solveHomography(src: Point[], dst: Point[]): number[] {
   return [...h, 1];
 }
 
-// â”€â”€ Warp prospectivo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Warp prospectivo ────────────────────────────────────────────────────────
 
 /**
  * Warp perspectivo GPU-acelerado via WebGL.
- * Usa hardware bilinear sampling e executa em paralelo no driver grÃ¡fico.
- * Retorna null se WebGL nÃ£o estiver disponÃ­vel â€” o chamador usa o fallback JS.
+ * Usa hardware bilinear sampling e executa em paralelo no driver gráfico.
+ * Retorna null se WebGL não estiver disponível — o chamador usa o fallback JS.
  */
 function warpPerspectiveGL(
   src: HTMLCanvasElement,
@@ -761,7 +761,7 @@ function warpPerspectiveGL(
   // Sistema de coords: vUv.y=0 = fundo da tela (canvas bottom), vUv.y=1 = topo.
   // py = (1 - vUv.y) * dstH converte para canvas y-down.
   // Sem UNPACK_FLIP_Y: textura t=0 mapeia para canvas row 0 (topo da fonte),
-  // portanto texV = sy / srcH estÃ¡ correto sem inversÃ£o adicional.
+  // portanto texV = sy / srcH está correto sem inversão adicional.
   const fsSource = `
     precision mediump float;
     uniform sampler2D uTex;
@@ -803,7 +803,7 @@ function warpPerspectiveGL(
   if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) return null;
   gl.useProgram(prog);
 
-  // Quad de tela cheia (2 triÃ¢ngulos)
+  // Quad de tela cheia (2 triângulos)
   const vbuf = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, vbuf);
   gl.bufferData(
@@ -815,7 +815,7 @@ function warpPerspectiveGL(
   gl.enableVertexAttribArray(aPos);
   gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
 
-  // Canvas fonte â†’ textura (sem UNPACK_FLIP_Y: row 0 da imagem = t=0)
+  // Canvas fonte → textura (sem UNPACK_FLIP_Y: row 0 da imagem = t=0)
   const tex = gl.createTexture();
   gl.bindTexture(gl.TEXTURE_2D, tex);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -845,8 +845,8 @@ function warpPerspectiveGL(
 }
 
 /**
- * Aplica o warp prospectivo Ã  imagem colorida de `src`.
- * Tenta o caminho WebGL (GPU) primeiro; cai para loop JS se nÃ£o disponÃ­vel.
+ * Aplica o warp prospectivo à imagem colorida de `src`.
+ * Tenta o caminho WebGL (GPU) primeiro; cai para loop JS se não disponível.
  */
 function getDocumentOutputSize(corners: Point[]): [number, number] {
   const [tl, tr, br, bl] = corners;
@@ -863,7 +863,7 @@ function getDocumentOutputSize(corners: Point[]): [number, number] {
 function warpPerspectiveCanvas(src: HTMLCanvasElement, corners: Point[]): HTMLCanvasElement {
   const [outW, outH] = getDocumentOutputSize(corners);
 
-  // Homografia inversa: retÃ¢ngulo de saÃ­da â†’ quadrilÃ¡tero na fonte
+  // Homografia inversa: retângulo de saída → quadrilátero na fonte
   const dstRect: Point[] = [
     [0, 0],
     [outW, 0],
@@ -872,7 +872,7 @@ function warpPerspectiveCanvas(src: HTMLCanvasElement, corners: Point[]): HTMLCa
   ];
   const Hinv = solveHomography(dstRect, corners);
 
-  // Caminho rÃ¡pido: WebGL delega o warp Ã  GPU (~20Ã— mais rÃ¡pido que JS)
+  // Caminho rápido: WebGL delega o warp à GPU (~20× mais rápido que JS)
   const glResult = warpPerspectiveGL(src, Hinv, outW, outH);
   if (glResult) {
     const copy = mkCanvas(outW, outH);
@@ -880,7 +880,7 @@ function warpPerspectiveCanvas(src: HTMLCanvasElement, corners: Point[]): HTMLCa
     return copy;
   }
 
-  // Fallback JS: interpolaÃ§Ã£o bilinear por pixel (mesma lÃ³gica, mesma qualidade)
+  // Fallback JS: interpolação bilinear por pixel (mesma lógica, mesma qualidade)
   const sctx = src.getContext('2d')!;
   const srcImg = sctx.getImageData(0, 0, src.width, src.height);
   const sd = srcImg.data;
@@ -1549,22 +1549,22 @@ function assessCorrectedCanvas(canvas: HTMLCanvasElement): CorrectedDocumentConf
   return 'low';
 }
 
-// â”€â”€ API pÃºblica â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── API pública ───────────────────────────────────────────────────────────────
 
 /**
  * Detecta automaticamente os cantos do documento em `dataUrl` e aplica a
- * correÃ§Ã£o de perspectiva.  A imagem retornada Ã© uma data URL JPEG com as
+ * correção de perspectiva.  A imagem retornada é uma data URL JPEG com as
  * cores RGB intactas.
  *
- * Se a detecÃ§Ã£o nÃ£o for confiÃ¡vel (papel preenche todo o quadro, fundo muito
- * claro, etc.), retorna `dataUrl` sem alteraÃ§Ãµes.
+ * Se a detecção não for confiável (papel preenche todo o quadro, fundo muito
+ * claro, etc.), retorna `dataUrl` sem alterações.
  */
 export async function correctPerspective(dataUrl: string): Promise<string> {
   const img = await loadImage(dataUrl);
   const iw = img.width,
     ih = img.height;
 
-  // â€” DetecÃ§Ã£o de cantos na cÃ³pia reduzida â€”
+  // — Detecção de cantos na cópia reduzida —
   const dScale = DETECT_SIZE / Math.max(iw, ih);
   const dw = Math.round(iw * dScale);
   const dh = Math.round(ih * dScale);
@@ -1584,7 +1584,7 @@ export async function correctPerspective(dataUrl: string): Promise<string> {
   if (!geometry) return dataUrl;
   if (estimateGeometryConfidence(geometry, dw, dh) !== 'high') return dataUrl;
 
-  // â€” Warp na resoluÃ§Ã£o de saÃ­da (mÃ¡x OUTPUT_MAX) â€”
+  // — Warp na resolução de saída (máx OUTPUT_MAX) —
   const oScale = Math.min(1, OUTPUT_MAX / Math.max(iw, ih));
   const ow = Math.round(iw * oScale);
   const oh = Math.round(ih * oScale);
@@ -1592,7 +1592,7 @@ export async function correctPerspective(dataUrl: string): Promise<string> {
   const wc = mkCanvas(ow, oh);
   wc.getContext('2d')!.drawImage(img, 0, 0, ow, oh);
 
-  // Escala os cantos detectados para a resoluÃ§Ã£o de saÃ­da
+  // Escala os cantos detectados para a resolução de saída
   const scaledGeometry = scaleGeometry(geometry, ow / dw, oh / dh);
 
   try {
