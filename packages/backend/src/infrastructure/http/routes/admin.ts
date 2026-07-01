@@ -762,7 +762,11 @@ export function createAdminRoutes(): FastifyPluginAsync {
     server.get<{ Querystring: { dataInicio?: string; dataFim?: string } }>(
       '/admin/justificativas-coletivas',
       {
-        preHandler: [authorize('administrador'), validateQuery(listarJustificativasColetivasQuerySchema)],
+        preHandler: [
+          server.authenticate,
+          authorize('administrador'),
+          validateQuery(listarJustificativasColetivasQuerySchema),
+        ],
       },
       async (request, reply) => {
         const query = request.query as z.infer<typeof listarJustificativasColetivasQuerySchema>;
@@ -794,7 +798,11 @@ export function createAdminRoutes(): FastifyPluginAsync {
     server.post<{ Body: CriarJustificativaColetivaDTO }>(
       '/admin/justificativas-coletivas',
       {
-        preHandler: [authorize('administrador'), validateBody(criarJustificativaColetivaSchema)],
+        preHandler: [
+          server.authenticate,
+          authorize('administrador'),
+          validateBody(criarJustificativaColetivaSchema),
+        ],
       },
       async (request, reply) => {
         const body = request.body as CriarJustificativaColetivaDTO;
