@@ -368,22 +368,28 @@ export function RelatorioAusenciasPage(): JSX.Element {
         <>
           {relatorio && relatorio.justificativasColetivas.length > 0 ? (
             <div className="rounded-xl border border-[var(--color-primary-200)] bg-[var(--color-primary-50)] overflow-hidden">
-              <div className="flex items-center gap-2 px-5 py-3 border-b border-[var(--color-primary-200)]">
-                <span className="text-sm font-semibold text-[var(--color-primary-900)]">
+              <div className="flex items-center gap-2 px-5 py-3 border-b border-[var(--color-primary-200)] bg-[var(--color-primary-100)]/60">
+                <span className="text-sm font-semibold tracking-[0.01em] text-[var(--color-primary-950)]">
                   Justificativas Coletivas do Período
                 </span>
               </div>
-              <div className="space-y-2 p-4">
+              <div className="space-y-3 p-4">
                 {relatorio.justificativasColetivas.map((item) => (
                   <div
                     key={item.id}
-                    className="rounded-lg border border-[var(--color-primary-200)] bg-white/80 px-3 py-2"
+                    className="rounded-lg border border-[var(--color-primary-200)] bg-[var(--color-bg-primary)] px-4 py-3 shadow-sm"
                   >
-                    <p className="text-sm font-medium text-[var(--color-primary-950)]">
-                      {formatDateBR(item.dataInicio)}
-                      {item.dataInicio !== item.dataFim ? ` até ${formatDateBR(item.dataFim)}` : ''}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="inline-flex rounded-full bg-[var(--color-primary-100)] px-2.5 py-1 text-xs font-semibold tracking-[0.02em] text-[var(--color-primary-900)]">
+                        {formatDateBR(item.dataInicio)}
+                        {item.dataInicio !== item.dataFim
+                          ? ` até ${formatDateBR(item.dataFim)}`
+                          : ''}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-sm leading-6 text-[var(--color-text-primary)]">
+                      {item.descricao}
                     </p>
-                    <p className="mt-1 text-sm text-[var(--color-primary-900)]">{item.descricao}</p>
                   </div>
                 ))}
               </div>
