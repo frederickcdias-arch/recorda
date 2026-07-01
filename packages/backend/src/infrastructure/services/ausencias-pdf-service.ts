@@ -172,7 +172,7 @@ export class AusenciasPdfService {
       { label: 'Tipo', width: 128 },
       { label: 'Observação', width: 267 },
     ];
-    const rowHeight = 20;
+    const baseRowHeight = 20;
     const headerHeight = 18;
     const groupHeight = 18;
     const topY = doc.y;
@@ -208,7 +208,16 @@ export class AusenciasPdfService {
       doc.fillColor('#111827');
     };
 
-    const drawRow = (row: RelatorioAusenciasRow, y: number): void => {
+    const getRowHeight = (row: RelatorioAusenciasRow): number => {
+      const observacao = row.observacoes?.trim() || row.justificativa?.trim() || '-';
+      const observacaoHeight = doc.heightOfString(observacao, {
+        width: columns[3]!.width - 4,
+        align: 'left',
+      });
+      return Math.max(baseRowHeight, Math.ceil(observacaoHeight) + 8);
+    };
+
+    const drawRow = (row: RelatorioAusenciasRow, y: number, rowHeight: number): void => {
       const observacao = row.observacoes?.trim() || row.justificativa?.trim() || '-';
       const values = [
         this.formatDateBR(row.dataInicio),
@@ -222,7 +231,11 @@ export class AusenciasPdfService {
       values.forEach((value, index) => {
         const width = columns[index]!.width;
         const align = index <= 1 ? 'center' : 'left';
-        doc.text(value, x, y + 4, { width: width - 4, height: rowHeight - 6, align, ellipsis: true });
+        doc.text(value, x, y + 4, {
+          width: width - 4,
+          height: rowHeight - 6,
+          align,
+        });
         x += width;
       });
       doc
@@ -262,6 +275,8 @@ export class AusenciasPdfService {
         colaboradorAtual = row.colaboradorNome;
       }
 
+      const rowHeight = getRowHeight(row);
+
       if (y + rowHeight > PAGE_HEIGHT - MARGIN - FOOTER_SPACE) {
         doc.addPage();
         this.renderSectionHeader(doc, 'REGISTROS (continuação)', COLORS.primary);
@@ -270,7 +285,7 @@ export class AusenciasPdfService {
         drawGroupHeader(row.colaboradorNome, y);
         y += groupHeight;
       }
-      drawRow(row, y);
+      drawRow(row, y, rowHeight);
       y += rowHeight;
     }
 
