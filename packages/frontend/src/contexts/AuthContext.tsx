@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import type {
   Usuario,
   PerfilUsuario,
@@ -27,6 +28,7 @@ interface AuthContextData {
   rememberMe: boolean;
   temPermissao: (permissao: PermissaoTipo) => boolean;
   login: (email: string, senha: string, rememberMe?: boolean) => Promise<boolean>;
+  trocarPerfil: (perfil: PerfilUsuario) => Promise<boolean>;
   logout: () => Promise<void>;
   limparErro: () => void;
 }
@@ -57,10 +59,35 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
+  const queryClient = useQueryClient();
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [rememberMe, setRememberMe] = useState(getRememberMePreference());
+
+  const normalizeUsuario = useCallback((data: Partial<Usuario> & { id: string; nome: string; email: string }): Usuario => {
+    const perfis: PerfilUsuario[] = Array.isArray(data.perfis) && data.perfis.length > 0
+      ? (data.perfis as PerfilUsuario[])
+      : data.perfil
+        ? [data.perfil as PerfilUsuario]
+        : ['operador' as PerfilUsuario];
+    const perfilAtivo: PerfilUsuario =
+      (data.perfilAtivo as PerfilUsuario | undefined) ??
+      (data.perfil as PerfilUsuario | undefined) ??
+      perfis[0]!;
+
+    return {
+      id: data.id,
+      nome: data.nome,
+      email: data.email,
+      perfis,
+      perfilAtivo,
+      perfil: perfilAtivo,
+      coordenadoriaId: data.coordenadoria?.id ?? data.coordenadoriaId,
+      coordenadoria: data.coordenadoria,
+      ativo: data.ativo,
+    };
+  }, []);
 
   const autenticado = usuario !== null;
 
@@ -76,28 +103,14 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
       try {
         const data = await api.get<Usuario>('/auth/me');
 
-        setUsuario({
-          id: data.id,
-          nome: data.nome,
-          email: data.email,
-          perfil: data.perfil as PerfilUsuario,
-          coordenadoriaId: data.coordenadoria?.id,
-          coordenadoria: data.coordenadoria,
-        });
+        setUsuario(normalizeUsuario(data));
       } catch {
         // Token invalido, tentar refresh.
         const refreshed = await tryRefreshToken();
         if (refreshed) {
           try {
             const data = await api.get<Usuario>('/auth/me');
-            setUsuario({
-              id: data.id,
-              nome: data.nome,
-              email: data.email,
-              perfil: data.perfil as PerfilUsuario,
-              coordenadoriaId: data.coordenadoria?.id,
-              coordenadoria: data.coordenadoria,
-            });
+            setUsuario(normalizeUsuario(data));
           } catch {
             clearStoredTokens();
           }
@@ -115,7 +128,8 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
   const temPermissao = useCallback(
     (permissao: PermissaoTipo): boolean => {
       if (!usuario) return false;
-      const permissoesDoPerfil = PERMISSOES_POR_PERFIL[usuario.perfil];
+      const perfilAtual = usuario.perfilAtivo ?? usuario.perfil;
+      const permissoesDoPerfil = PERMISSOES_POR_PERFIL[perfilAtual];
       return permissoesDoPerfil.includes(permissao);
     },
     [usuario]
@@ -139,10 +153,7 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
 
         setStoredTokens(data.accessToken, data.refreshToken, lembrarMe);
         setRememberMe(lembrarMe);
-        setUsuario({
-          ...data.usuario,
-          perfil: data.usuario.perfil as PerfilUsuario,
-        });
+        setUsuario(normalizeUsuario(data.usuario));
 
         return true;
       } catch (error: unknown) {
@@ -159,6 +170,31 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
       }
     },
     []
+  );
+
+  const trocarPerfil = useCallback(
+    async (perfil: PerfilUsuario): Promise<boolean> => {
+      setErro(null);
+
+      try {
+        const data = await api.post<LoginResponse>('/auth/switch-profile', { perfilAtivo: perfil });
+        const rememberMeAtual = getRememberMePreference();
+        setStoredTokens(data.accessToken, data.refreshToken, rememberMeAtual);
+        queryClient.clear();
+        setUsuario(normalizeUsuario(data.usuario));
+        return true;
+      } catch (error: unknown) {
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : typeof error === 'object' && error !== null && 'error' in error
+              ? String((error as { error: unknown }).error)
+              : 'Não foi possível trocar o perfil';
+        setErro(errorMessage);
+        return false;
+      }
+    },
+    [normalizeUsuario, queryClient]
   );
 
   const logout = useCallback(async (): Promise<void> => {
@@ -189,10 +225,22 @@ export function AuthProvider({ children }: AuthProviderProps): JSX.Element {
       rememberMe,
       temPermissao,
       login,
+      trocarPerfil,
       logout,
       limparErro,
     }),
-    [usuario, carregando, autenticado, erro, rememberMe, temPermissao, login, logout, limparErro]
+    [
+      usuario,
+      carregando,
+      autenticado,
+      erro,
+      rememberMe,
+      temPermissao,
+      login,
+      trocarPerfil,
+      logout,
+      limparErro,
+    ]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

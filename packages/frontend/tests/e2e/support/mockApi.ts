@@ -5,8 +5,20 @@ const adminUser = {
   nome: 'Administrador',
   email: 'admin@recorda.local',
   perfil: 'administrador',
+  perfilAtivo: 'administrador',
+  perfis: ['administrador', 'colaborador'],
   coordenadoriaId: undefined,
 };
+
+let activeProfile: 'administrador' | 'colaborador' = 'administrador';
+
+function getCurrentUser() {
+  return {
+    ...adminUser,
+    perfilAtivo: activeProfile,
+    perfil: activeProfile,
+  };
+}
 
 const dashboardData = {
   stats: {
@@ -65,6 +77,9 @@ function isAdminLogin(email: string, senha: string): boolean {
 export async function installApiMocks(page: Page): Promise<void> {
   await page.route('**/api/**', async (route) => {
     const request = route.request();
+    if (!['xhr', 'fetch'].includes(request.resourceType())) {
+      return route.continue();
+    }
     const url = new URL(request.url());
     const path = url.pathname.replace(/^\/api/, '');
     const method = request.method().toUpperCase();
@@ -73,14 +88,29 @@ export async function installApiMocks(page: Page): Promise<void> {
 
     if (path === '/auth/login' && method === 'POST') {
       if (isAdminLogin(String(body.email ?? ''), String(body.senha ?? ''))) {
+        activeProfile = 'administrador';
         return json(route, 200, {
           accessToken: 'mock-access-token',
           refreshToken: 'mock-refresh-token',
-          usuario: adminUser,
+          usuario: getCurrentUser(),
         });
       }
 
       return json(route, 401, { error: 'Credenciais inválidas' });
+    }
+
+    if (path === '/auth/switch-profile' && method === 'POST') {
+      const requested = String(body.perfilAtivo ?? '');
+      if (requested !== 'administrador' && requested !== 'colaborador') {
+        return json(route, 400, { error: 'Perfil ativo invÃ¡lido' });
+      }
+
+      activeProfile = requested;
+      return json(route, 200, {
+        accessToken: 'mock-access-token-switched',
+        refreshToken: 'mock-refresh-token-switched',
+        usuario: getCurrentUser(),
+      });
     }
 
     if (path === '/auth/logout' && method === 'POST') {
@@ -101,7 +131,7 @@ export async function installApiMocks(page: Page): Promise<void> {
     }
 
     if (path === '/auth/me' && method === 'GET') {
-      return json(route, 200, adminUser);
+      return json(route, 200, getCurrentUser());
     }
 
     if (path === '/auth/usuarios' && method === 'GET') {

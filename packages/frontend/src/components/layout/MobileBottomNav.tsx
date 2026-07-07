@@ -18,7 +18,7 @@ interface MobileBottomNavProps {
 
 export function MobileBottomNav({ unreadComunicados = 0 }: MobileBottomNavProps): JSX.Element {
   const { usuario } = useAuth();
-  const perfil = usuario?.perfil;
+  const perfil = usuario?.perfilAtivo ?? usuario?.perfil;
   const location = useLocation();
   const [sheetOpen, setSheetOpen] = useState(false);
 

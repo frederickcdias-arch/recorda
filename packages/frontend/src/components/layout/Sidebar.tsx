@@ -298,7 +298,7 @@ export function Sidebar({
   const { logout, usuario } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const perfilUsuario = usuario?.perfil;
+  const perfilUsuario = usuario?.perfilAtivo ?? usuario?.perfil;
 
   const visibleSections = menuSections
     .filter((section) => canAccessByProfile(perfilUsuario, section.allowedProfiles))
@@ -415,7 +415,7 @@ export function Sidebar({
                 {usuario.nome}
               </p>
               <p className="truncate text-xs capitalize text-[var(--color-text-tertiary)]">
-                {usuario.perfil}
+                {usuario.perfilAtivo ?? usuario.perfil}
               </p>
             </div>
           </div>

@@ -32,7 +32,8 @@ function createMockDatabase(): DatabaseConnection & {
       nome: string;
       email: string;
       senha_hash: string;
-      perfil: string;
+      perfil: 'colaborador' | 'operador' | 'administrador' | 'visualizador';
+      perfis: Array<'colaborador' | 'operador' | 'administrador' | 'visualizador'>;
       coordenadoria_id: string | null;
       ativo: boolean;
     }
@@ -113,6 +114,17 @@ function createMockDatabase(): DatabaseConnection & {
   importacaoFontesLinhas: Set<string>;
   legacyProducoes: Set<string>;
 } {
+  type PerfilUsuarioMock = 'colaborador' | 'operador' | 'administrador' | 'visualizador';
+  type UsuarioMock = {
+    id: string;
+    nome: string;
+    email: string;
+    senha_hash: string;
+    perfil: PerfilUsuarioMock;
+    perfis: PerfilUsuarioMock[];
+    coordenadoria_id: string | null;
+    ativo: boolean;
+  };
   let configuracaoEmpresa: Record<string, unknown> | null = null;
   const configuracaoProjetos: Array<{
     id: string;
@@ -155,15 +167,7 @@ function createMockDatabase(): DatabaseConnection & {
   });
   const usuarios = new Map<
     string,
-    {
-      id: string;
-      nome: string;
-      email: string;
-      senha_hash: string;
-      perfil: string;
-      coordenadoria_id: string | null;
-      ativo: boolean;
-    }
+    UsuarioMock
   >();
   const refreshTokens: Array<{
     id: string;
@@ -256,6 +260,17 @@ function createMockDatabase(): DatabaseConnection & {
     criado_em: string;
   }> = [];
   const lowerEmail = (value: unknown): string => String(value ?? '').toLowerCase();
+  const normalizePerfis = (value: unknown): PerfilUsuarioMock[] =>
+    [...new Set((Array.isArray(value) ? value : []).filter((perfil): perfil is PerfilUsuarioMock =>
+      perfil === 'colaborador' ||
+      perfil === 'operador' ||
+      perfil === 'administrador' ||
+      perfil === 'visualizador'
+    ))];
+  const getPerfisUsuario = (usuario: UsuarioMock): PerfilUsuarioMock[] => {
+    const perfis = normalizePerfis(usuario.perfis);
+    return perfis.length > 0 ? perfis : [usuario.perfil];
+  };
 
   usuarios.set('user-1', {
     id: 'user-1',
@@ -263,6 +278,7 @@ function createMockDatabase(): DatabaseConnection & {
     email: lowerEmail('user@test.com'),
     senha_hash: HASHED_PASSWORD,
     perfil: 'administrador',
+    perfis: ['administrador', 'colaborador'],
     coordenadoria_id: null,
     ativo: true,
   });
@@ -273,6 +289,7 @@ function createMockDatabase(): DatabaseConnection & {
     email: lowerEmail('colaborador@test.com'),
     senha_hash: HASHED_PASSWORD,
     perfil: 'colaborador',
+    perfis: ['colaborador'],
     coordenadoria_id: 'coord-1',
     ativo: true,
   });
@@ -336,6 +353,16 @@ function createMockDatabase(): DatabaseConnection & {
         const email = lowerEmail(params?.[0]);
         const usuario = [...usuarios.values()].find((u) => u.email === email);
         return usuario ? makeResult([usuario]) : makeResult([]);
+      }
+
+      if (
+        text.includes('SELECT perfil::text') &&
+        text.includes('FROM usuario_perfis') &&
+        text.includes('WHERE usuario_id = $1')
+      ) {
+        const usuario = usuarios.get(String(params?.[0]));
+        const perfis = usuario ? getPerfisUsuario(usuario) : [];
+        return makeResult(perfis.map((perfil) => ({ perfil })));
       }
 
       if (text.includes('SELECT * FROM auditoria WHERE 1=1')) {
@@ -795,16 +822,41 @@ function createMockDatabase(): DatabaseConnection & {
         return usuario ? makeResult([{ id: usuario.id }]) : makeResult([]);
       }
 
+      if (text.includes('DELETE FROM usuario_perfis WHERE usuario_id = $1')) {
+        const usuario = usuarios.get(String(params?.[0]));
+        if (usuario) {
+          usuario.perfis = [];
+        }
+        return makeResult([], 'DELETE');
+      }
+
+      if (
+        text.includes('INSERT INTO usuario_perfis (usuario_id, perfil) VALUES ($1, $2::perfil_usuario)')
+      ) {
+        const usuarioId = String(params?.[0]);
+        const perfil = String(params?.[1]) as PerfilUsuarioMock;
+        const usuario = usuarios.get(usuarioId);
+        if (usuario && !usuario.perfis.includes(perfil)) {
+          usuario.perfis.push(perfil);
+          if (!usuario.perfil || !usuario.perfis.includes(usuario.perfil)) {
+            usuario.perfil = perfil;
+          }
+        }
+        return makeResult([{ usuario_id: usuarioId, perfil }], 'INSERT');
+      }
+
       if (
         text.includes('INSERT INTO usuarios (nome, email, senha_hash, perfil, coordenadoria_id)')
       ) {
         const id = `user-${usuarios.size + 1}`;
+        const perfil = String(params?.[3]) as PerfilUsuarioMock;
         const novoUsuario = {
           id,
           nome: String(params?.[0]),
           email: lowerEmail(params?.[1]),
           senha_hash: String(params?.[2]),
-          perfil: String(params?.[3]),
+          perfil,
+          perfis: [perfil],
           coordenadoria_id: (params?.[4] as string | null) ?? null,
           ativo: true,
         };
@@ -837,9 +889,9 @@ function createMockDatabase(): DatabaseConnection & {
       }
 
       if (
-        text.includes(
-          'SELECT id, nome, email, perfil, coordenadoria_id, ativo FROM usuarios WHERE id = $1'
-        )
+        text.includes('SELECT id, nome, email, perfil, coordenadoria_id, ativo') &&
+        text.includes('FROM usuarios') &&
+        text.includes('WHERE id = $1')
       ) {
         const id = String(params?.[0]);
         const usuario = usuarios.get(id);
@@ -1091,17 +1143,15 @@ function createMockDatabase(): DatabaseConnection & {
       }
 
       // ── Auth usuarios list ──
-      if (
-        text.includes('SELECT id, nome, email, perfil, ativo, criado_em') &&
-        text.includes('FROM usuarios') &&
-        text.includes('ORDER BY criado_em')
-      ) {
+      if (text.includes('FROM usuarios u') && text.includes('LEFT JOIN usuario_perfis up ON up.usuario_id = u.id')) {
         return makeResult(
           [...usuarios.values()].map((u) => ({
             id: u.id,
             nome: u.nome,
             email: u.email,
             perfil: u.perfil,
+            perfis: getPerfisUsuario(u),
+            perfilAtivo: u.perfil,
             ativo: u.ativo,
             criado_em: new Date().toISOString(),
           }))
@@ -1997,6 +2047,8 @@ describe('HTTP server integration', () => {
       usuario: {
         email: 'user@test.com',
         perfil: 'administrador',
+        perfilAtivo: 'administrador',
+        perfis: expect.arrayContaining(['administrador', 'colaborador']),
       },
     });
     expect(body).toHaveProperty('accessToken');
@@ -2127,6 +2179,46 @@ describe('HTTP server integration', () => {
       id: 'user-1',
       email: 'user@test.com',
       perfil: 'administrador',
+      perfilAtivo: 'administrador',
+      perfis: expect.arrayContaining(['administrador', 'colaborador']),
+    });
+  });
+
+  it('permite alternar o perfil ativo quando o usuário possui múltiplos perfis', async () => {
+    const accessToken = await authenticate();
+    const switchResponse = await server.inject({
+      method: 'POST',
+      url: '/auth/switch-profile',
+      headers: {
+        authorization: `Bearer ${accessToken}`,
+      },
+      payload: {
+        perfilAtivo: 'colaborador',
+      },
+    });
+
+    expect(switchResponse.statusCode).toBe(200);
+    expect(switchResponse.json()).toMatchObject({
+      usuario: {
+        email: 'user@test.com',
+        perfilAtivo: 'colaborador',
+        perfis: expect.arrayContaining(['administrador', 'colaborador']),
+      },
+    });
+
+    const meResponse = await server.inject({
+      method: 'GET',
+      url: '/auth/me',
+      headers: {
+        authorization: `Bearer ${switchResponse.json().accessToken}`,
+      },
+    });
+
+    expect(meResponse.statusCode).toBe(200);
+    expect(meResponse.json()).toMatchObject({
+      perfil: 'colaborador',
+      perfilAtivo: 'colaborador',
+      perfis: expect.arrayContaining(['administrador', 'colaborador']),
     });
   });
 
@@ -2156,6 +2248,7 @@ describe('HTTP server integration', () => {
       nome: 'Novo Usuario',
       email: 'novo.usuario@recorda.com',
       senha: 'SenhaNova123',
+      perfis: ['operador', 'colaborador'],
       perfil: 'operador',
       coordenadoriaId: 'coord-1',
     };
@@ -2173,6 +2266,8 @@ describe('HTTP server integration', () => {
     expect(createResponse.json()).toMatchObject({
       email: 'novo.usuario@recorda.com',
       perfil: 'operador',
+      perfilAtivo: 'operador',
+      perfis: expect.arrayContaining(['operador', 'colaborador']),
     });
 
     const duplicateResponse = await server.inject({
@@ -2211,6 +2306,7 @@ describe('HTTP server integration', () => {
     expect(createResponse.json()).toMatchObject({
       email: 'infra.visualizacao@recorda.local',
       perfil: 'visualizador',
+      perfis: ['visualizador'],
     });
 
     const listResponse = await server.inject({
@@ -2227,6 +2323,7 @@ describe('HTTP server integration', () => {
         expect.objectContaining({
           email: 'infra.visualizacao@recorda.local',
           perfil: 'visualizador',
+          perfis: ['visualizador'],
           papel: 'VISUALIZADOR',
         }),
       ]),
@@ -2240,6 +2337,7 @@ describe('HTTP server integration', () => {
       email: 'operador@test.com',
       senha_hash: HASHED_PASSWORD,
       perfil: 'operador',
+      perfis: ['operador'],
       coordenadoria_id: 'coord-1',
       ativo: true,
     });
@@ -3967,6 +4065,7 @@ describe('HTTP server integration', () => {
       email: 'operador.ck@test.com',
       senha_hash: HASHED_PASSWORD,
       perfil: 'operador',
+      perfis: ['operador'],
       coordenadoria_id: 'coord-1',
       ativo: true,
     });
@@ -4030,6 +4129,7 @@ describe('HTTP server integration', () => {
       email: 'operador.cq@test.com',
       senha_hash: HASHED_PASSWORD,
       perfil: 'operador',
+      perfis: ['operador'],
       coordenadoria_id: 'coord-1',
       ativo: true,
     });

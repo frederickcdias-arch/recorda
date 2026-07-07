@@ -14,6 +14,7 @@ import type {
   ResultadoCQ,
   TipoRelatorioOperacional,
   OrigemDocumentoRecebimento,
+  PerfilUsuario,
 } from '@recorda/shared';
 
 export type {
@@ -40,6 +41,27 @@ export function getCurrentUser(request: { user?: unknown }): { id: string; perfi
     throw new Error('Usuário autenticado não encontrado');
   }
   return user;
+}
+
+export function getCurrentProfile(request: { user?: unknown }): PerfilUsuario {
+  const user = request.user as
+    | {
+        perfil?: string;
+        perfilAtivo?: string;
+      }
+    | undefined;
+
+  const perfil = user?.perfilAtivo ?? user?.perfil;
+  if (
+    perfil === 'colaborador' ||
+    perfil === 'operador' ||
+    perfil === 'administrador' ||
+    perfil === 'visualizador'
+  ) {
+    return perfil;
+  }
+
+  throw new Error('Perfil ativo inválido');
 }
 
 /**

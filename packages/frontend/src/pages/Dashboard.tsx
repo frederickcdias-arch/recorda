@@ -647,11 +647,11 @@ function DashboardAdminPage({ readOnly = false }: { readOnly?: boolean }): JSX.E
 export function DashboardPage(): JSX.Element {
   const { usuario } = useAuth();
 
-  if (usuario?.perfil === 'colaborador') {
+  if ((usuario?.perfilAtivo ?? usuario?.perfil) === 'colaborador') {
     return <DashboardColaborador />;
   }
 
-  if (usuario?.perfil === 'visualizador') {
+  if ((usuario?.perfilAtivo ?? usuario?.perfil) === 'visualizador') {
     return <DashboardAdminPage readOnly />;
   }
 

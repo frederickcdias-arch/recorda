@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { authorize } from '../middleware/auth.js';
-import { getBrazilDateString, getCurrentUser } from './operacional-helpers.js';
+import { getBrazilDateString, getCurrentProfile, getCurrentUser } from './operacional-helpers.js';
 import { validateBody, validateParams, validateQuery } from '../middleware/validate.js';
 import { lancarProducaoColaboradorSchema } from '../schemas/producao.js';
 import { criarMapeamentoSchema, criarMetaSchema, idParamSchema } from '../schemas/operacional.js';
@@ -613,6 +613,7 @@ export function createMetasRoutes(): FastifyPluginAsync {
       async (request, reply) => {
         try {
           const user = getCurrentUser(request);
+          const perfilAtual = getCurrentProfile(request);
           const body = request.body as {
             data?: string;
             repositorio: string;
@@ -722,7 +723,7 @@ export function createMetasRoutes(): FastifyPluginAsync {
           // Administrador pode informar data para correção administrativa.
           // Colaborador e operador sempre usam a data atual de Cuiabá — o campo body.data é ignorado.
           const dataProducao =
-            user.perfil === 'administrador'
+            perfilAtual === 'administrador'
               ? body.data?.trim() || getBrazilDateString()
               : getBrazilDateString();
 

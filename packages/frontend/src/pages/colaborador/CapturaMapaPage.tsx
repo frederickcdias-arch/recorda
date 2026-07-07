@@ -301,7 +301,8 @@ const STATUS_COLOR: Record<ItemStatus, string> = {
 export function CapturaMapaPage() {
   const toast = useToastHelpers();
   const { usuario } = useAuth();
-  const isAdmin = usuario?.perfil === 'administrador' || usuario?.perfil === 'operador';
+  const perfilAtual = usuario?.perfilAtivo ?? usuario?.perfil;
+  const isAdmin = perfilAtual === 'administrador' || perfilAtual === 'operador';
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const batchInputRef = useRef<HTMLInputElement>(null);
 

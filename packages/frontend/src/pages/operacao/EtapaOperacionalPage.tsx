@@ -225,7 +225,7 @@ export function EtapaOperacionalPage(): JSX.Element {
   const navigate = useNavigate();
   const location = useLocation();
   const { usuario } = useAuth();
-  const isAdmin = usuario?.perfil === 'administrador';
+  const isAdmin = (usuario?.perfilAtivo ?? usuario?.perfil) === 'administrador';
 
   const toast = useToastHelpers();
   const queryClient = useQueryClient();

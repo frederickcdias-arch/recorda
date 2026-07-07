@@ -40,7 +40,7 @@ export function LancarProducaoPage(): JSX.Element {
   );
   const [salvando, setSalvando] = useState(false);
   const [novaCoordenadoriaInput, setNovaCoordenadoriaInput] = useState('');
-  const isAdmin = usuario?.perfil === 'administrador';
+  const isAdmin = (usuario?.perfilAtivo ?? usuario?.perfil) === 'administrador';
 
   const [formData, setFormData] = useState({
     data: getCurrentDateInputValue(),

@@ -101,7 +101,7 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
   const location = useLocation();
   const navigate = useNavigate();
   const { usuario } = useAuth();
-  const isAdmin = usuario?.perfil === 'administrador';
+  const isAdmin = (usuario?.perfilAtivo ?? usuario?.perfil) === 'administrador';
 
   const queryClient = useQueryClient();
   const criarDoc = useCriarDocConhecimento();

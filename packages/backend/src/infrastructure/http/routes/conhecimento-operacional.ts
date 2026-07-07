@@ -2,7 +2,7 @@ import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { authorize } from '../middleware/auth.js';
 import { validateBody, validateParams, validateQuery } from '../middleware/validate.js';
-import { type EtapaFluxo, getCurrentUser } from './operacional-helpers.js';
+import { type EtapaFluxo, getCurrentProfile, getCurrentUser } from './operacional-helpers.js';
 
 type KBCategoria =
   | 'MANUAIS'
@@ -155,7 +155,7 @@ export function createConhecimentoOperacionalRoutes(): FastifyPluginAsync {
             status?: KBStatus;
             busca?: string;
           };
-          const user = getCurrentUser(request);
+          const perfilAtual = getCurrentProfile(request);
 
           const params: string[] = [];
           let p = 1;
@@ -168,7 +168,7 @@ export function createConhecimentoOperacionalRoutes(): FastifyPluginAsync {
           if (query.status) {
             where += ` AND d.status = $${p++}`;
             params.push(query.status);
-          } else if (user.perfil === 'operador') {
+          } else if (perfilAtual === 'operador') {
             where += ` AND d.status = 'ATIVO'`;
           }
           if (query.busca) {
@@ -193,7 +193,7 @@ export function createConhecimentoOperacionalRoutes(): FastifyPluginAsync {
           )`;
             params.push(query.etapa);
           }
-          if (user.perfil === 'operador') {
+          if (perfilAtual === 'operador') {
             where += ` AND d.nivel_acesso = 'OPERADOR_ADMIN'`;
           }
 
@@ -246,9 +246,9 @@ export function createConhecimentoOperacionalRoutes(): FastifyPluginAsync {
       async (request, reply) => {
         try {
           const { id } = request.params as { id: string };
-          const user = getCurrentUser(request);
+          const perfilAtual = getCurrentProfile(request);
           const whereAccess =
-            user.perfil === 'operador'
+            perfilAtual === 'operador'
               ? ` AND d.nivel_acesso = 'OPERADOR_ADMIN' AND d.status = 'ATIVO'`
               : '';
 
@@ -575,8 +575,8 @@ export function createConhecimentoOperacionalRoutes(): FastifyPluginAsync {
       },
       async (request, reply) => {
         try {
-          const user = getCurrentUser(request);
-          const whereAtivo = user.perfil === 'operador' ? 'WHERE ativo = TRUE' : '';
+          const perfilAtual = getCurrentProfile(request);
+          const whereAtivo = perfilAtual === 'operador' ? 'WHERE ativo = TRUE' : '';
           const result = await server.database.query(
             `SELECT id, termo, definicao, ativo, ordem FROM kb_glossario ${whereAtivo} ORDER BY ordem, termo`
           );
@@ -729,8 +729,8 @@ export function createConhecimentoOperacionalRoutes(): FastifyPluginAsync {
       },
       async (request, reply) => {
         try {
-          const user = getCurrentUser(request);
-          const whereAtivo = user.perfil === 'operador' ? 'WHERE ativo = TRUE' : '';
+          const perfilAtual = getCurrentProfile(request);
+          const whereAtivo = perfilAtual === 'operador' ? 'WHERE ativo = TRUE' : '';
           const result = await server.database.query(
             `SELECT id, nome, descricao, referencia, url, ativo, ordem FROM kb_leis_normas ${whereAtivo} ORDER BY ordem, nome`
           );

@@ -19,7 +19,7 @@ import type {
 } from '@recorda/shared';
 import { authorize } from '../middleware/auth.js';
 import { validateBody, validateParams, validateQuery } from '../middleware/validate.js';
-import { getCurrentUser, toIsoDate } from './operacional-helpers.js';
+import { getCurrentProfile, getCurrentUser, toIsoDate } from './operacional-helpers.js';
 
 const prioridades = ['BAIXA', 'MEDIA', 'ALTA'] as const;
 const escoposDestino = ['TODOS', 'USUARIOS_ESPECIFICOS'] as const;
@@ -1368,9 +1368,10 @@ export function createComunicadosRoutes(): FastifyPluginAsync {
       },
       async (request, reply) => {
         const user = getCurrentUser(request);
+        const perfilAtual = getCurrentProfile(request);
         const { id } = request.params;
 
-        if (user.perfil === 'visualizador') {
+        if (perfilAtual === 'visualizador') {
           return reply.status(403).send({
             error: 'Perfil visualizador não pode alterar o estado de leitura dos comunicados',
           });

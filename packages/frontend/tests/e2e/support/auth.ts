@@ -20,8 +20,8 @@ export async function performLogin(page: Page): Promise<void> {
     });
     await page.goto('/login');
 
-    await page.getByLabel(/E-mail/i).fill(email);
-    await page.getByLabel(/Senha/i).fill(ADMIN_PASSWORD);
+    await page.getByRole('textbox', { name: /E-mail/i }).fill(email);
+    await page.getByRole('textbox', { name: /Senha/i }).fill(ADMIN_PASSWORD);
     await page.getByRole('button', { name: /Entrar/i }).click();
 
     try {

@@ -4,6 +4,7 @@ import { api, IS_EXTERNAL_API_BASE } from '../services/api';
 import type {
   StatusRepositorio,
   EtapaFluxo,
+  PerfilUsuario,
   DashboardData,
   PaginatedResponse,
   CriarComunicadoDTO,
@@ -443,7 +444,13 @@ export function useRemoveLogo() {
 export function useRegisterUsuario() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (body: { email: string; nome: string; senha: string; perfil: string }) =>
+    mutationFn: (body: {
+      email: string;
+      nome: string;
+      senha: string;
+      perfis: PerfilUsuario[];
+      perfil?: PerfilUsuario;
+    }) =>
       api.post('/auth/register', body),
     onSuccess: () => void qc.invalidateQueries({ queryKey: queryKeys.usuarios }),
   });
@@ -456,7 +463,8 @@ export function useUpdateUsuario() {
       id: string;
       nome?: string;
       email?: string;
-      perfil?: string;
+      perfil?: PerfilUsuario;
+      perfis?: PerfilUsuario[];
       senha?: string;
     }) => api.put(`/auth/usuarios/${data.id}`, data),
     onSuccess: () => void qc.invalidateQueries({ queryKey: queryKeys.usuarios }),
@@ -1203,6 +1211,9 @@ export function useUsuarios() {
           id: string;
           email: string;
           nome: string;
+          perfis: PerfilUsuario[];
+          perfilAtivo: PerfilUsuario;
+          perfil: PerfilUsuario;
           papel: string;
           ativo: boolean;
           criado_em: string;

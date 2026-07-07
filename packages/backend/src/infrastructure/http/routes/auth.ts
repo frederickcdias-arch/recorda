@@ -14,6 +14,7 @@ interface RegisterBody {
   nome: string;
   email: string;
   senha: string;
+  perfis?: Array<'colaborador' | 'operador' | 'administrador' | 'visualizador'>;
   perfil?: 'colaborador' | 'operador' | 'administrador' | 'visualizador';
   coordenadoriaId?: string;
 }
@@ -22,9 +23,24 @@ interface JWTPayload {
   id: string;
   email: string;
   nome: string;
+  perfis: Array<'colaborador' | 'operador' | 'administrador' | 'visualizador'>;
+  perfilAtivo: 'colaborador' | 'operador' | 'administrador' | 'visualizador';
   perfil: string;
   coordenadoriaId?: string;
 }
+
+type PerfilAuth = 'colaborador' | 'operador' | 'administrador' | 'visualizador';
+type UsuarioRow = {
+  id: string;
+  nome: string;
+  email: string;
+  senha_hash: string;
+  perfil: string;
+  coordenadoria_id: string | null;
+  ativo: boolean;
+  criado_em?: string;
+  ultimo_acesso?: string;
+};
 
 declare module '@fastify/jwt' {
   interface FastifyJWT {
@@ -40,6 +56,96 @@ function perfilToPapel(
   if (perfil === 'colaborador') return 'COLABORADOR';
   if (perfil === 'visualizador') return 'VISUALIZADOR';
   return 'OPERADOR';
+}
+
+const PERFIS_VALIDOS: PerfilAuth[] = [
+  'colaborador',
+  'operador',
+  'administrador',
+  'visualizador',
+];
+
+function isPerfilAuth(value: string): value is PerfilAuth {
+  return PERFIS_VALIDOS.includes(value as PerfilAuth);
+}
+
+function normalizePerfis(perfis: string[]): PerfilAuth[] {
+  return [...new Set(perfis.filter(isPerfilAuth))];
+}
+
+function getPerfilAtivoDefault(perfis: PerfilAuth[], perfilLegado?: string | null): PerfilAuth {
+  if (perfilLegado && perfis.includes(perfilLegado as PerfilAuth)) {
+    return perfilLegado as PerfilAuth;
+  }
+
+  for (const perfil of ['colaborador', 'operador', 'administrador', 'visualizador'] as const) {
+    if (perfis.includes(perfil)) {
+      return perfil;
+    }
+  }
+
+  return 'operador';
+}
+
+async function getPerfisUsuario(
+  server: FastifyInstance,
+  usuarioId: string,
+  perfilLegado?: string | null
+): Promise<PerfilAuth[]> {
+  const result = await server.database.query<{ perfil: string }>(
+    `SELECT perfil::text
+       FROM usuario_perfis
+      WHERE usuario_id = $1
+      ORDER BY perfil::text`,
+    [usuarioId]
+  );
+
+  const perfis = normalizePerfis(result.rows.map((row) => row.perfil));
+  if (perfis.length > 0) {
+    return perfis;
+  }
+
+  return normalizePerfis(perfilLegado ? [perfilLegado] : ['operador']);
+}
+
+function buildJwtPayload(
+  usuario: UsuarioRow,
+  perfis: PerfilAuth[],
+  perfilAtivo?: string | null
+): JWTPayload {
+  const perfilResolvido = isPerfilAuth(perfilAtivo ?? '')
+    ? (perfilAtivo as PerfilAuth)
+    : getPerfilAtivoDefault(perfis, usuario.perfil);
+
+  return {
+    id: usuario.id,
+    email: usuario.email,
+    nome: usuario.nome,
+    perfis,
+    perfilAtivo: perfilResolvido,
+    perfil: perfilResolvido,
+    coordenadoriaId: usuario.coordenadoria_id ?? undefined,
+  };
+}
+
+async function salvarPerfisUsuario(
+  server: FastifyInstance,
+  usuarioId: string,
+  perfis: PerfilAuth[]
+): Promise<void> {
+  const perfisNormalizados = normalizePerfis(perfis);
+  if (perfisNormalizados.length === 0) {
+    throw new Error('Ao menos um perfil deve ser informado');
+  }
+
+  await server.database.query(`DELETE FROM usuario_perfis WHERE usuario_id = $1`, [usuarioId]);
+
+  for (const perfil of perfisNormalizados) {
+    await server.database.query(
+      `INSERT INTO usuario_perfis (usuario_id, perfil) VALUES ($1, $2::perfil_usuario)`,
+      [usuarioId, perfil]
+    );
+  }
 }
 
 export const authRoutes = fp(async (server: FastifyInstance): Promise<void> => {
@@ -94,6 +200,11 @@ export const authRoutes = fp(async (server: FastifyInstance): Promise<void> => {
                   id: { type: 'string' },
                   nome: { type: 'string' },
                   email: { type: 'string' },
+                  perfis: {
+                    type: 'array',
+                    items: { type: 'string' },
+                  },
+                  perfilAtivo: { type: 'string' },
                   perfil: { type: 'string' },
                 },
               },
@@ -112,7 +223,7 @@ export const authRoutes = fp(async (server: FastifyInstance): Promise<void> => {
       }
 
       try {
-        const result = await server.database.query(
+        const result = await server.database.query<UsuarioRow & { senha_hash: string }>(
           `SELECT id, nome, email, senha_hash, perfil, coordenadoria_id, ativo
            FROM usuarios WHERE email = $1`,
           [email.toLowerCase()]
@@ -142,13 +253,8 @@ export const authRoutes = fp(async (server: FastifyInstance): Promise<void> => {
           [usuario.id]
         );
 
-        const payload: JWTPayload = {
-          id: usuario.id,
-          email: usuario.email,
-          nome: usuario.nome,
-          perfil: usuario.perfil,
-          coordenadoriaId: usuario.coordenadoria_id,
-        };
+        const perfis = await getPerfisUsuario(server, usuario.id, usuario.perfil);
+        const payload = buildJwtPayload(usuario, perfis, usuario.perfil);
 
         const accessToken = server.jwt.sign(payload);
 
@@ -169,7 +275,9 @@ export const authRoutes = fp(async (server: FastifyInstance): Promise<void> => {
             id: usuario.id,
             nome: usuario.nome,
             email: usuario.email,
-            perfil: usuario.perfil,
+            perfis: payload.perfis,
+            perfilAtivo: payload.perfilAtivo,
+            perfil: payload.perfil,
             coordenadoriaId: usuario.coordenadoria_id,
           },
         });
@@ -243,7 +351,7 @@ export const authRoutes = fp(async (server: FastifyInstance): Promise<void> => {
         }
 
         // Buscar dados atualizados do usuário
-        const userResult = await server.database.query(
+        const userResult = await server.database.query<UsuarioRow>(
           `SELECT id, nome, email, perfil, coordenadoria_id, ativo FROM usuarios WHERE id = $1`,
           [decoded.id]
         );
@@ -259,13 +367,9 @@ export const authRoutes = fp(async (server: FastifyInstance): Promise<void> => {
           tokenId,
         ]);
 
-        const payload: JWTPayload = {
-          id: usuario.id,
-          email: usuario.email,
-          nome: usuario.nome,
-          perfil: usuario.perfil,
-          coordenadoriaId: usuario.coordenadoria_id,
-        };
+        const perfis = await getPerfisUsuario(server, usuario.id, usuario.perfil);
+        const perfilAtivo = perfis.includes(decoded.perfilAtivo) ? decoded.perfilAtivo : usuario.perfil;
+        const payload = buildJwtPayload(usuario, perfis, perfilAtivo);
 
         const newAccessToken = server.jwt.sign(payload);
         const newRefreshToken = server.jwt.sign(payload, { expiresIn: '7d' });
@@ -317,7 +421,9 @@ export const authRoutes = fp(async (server: FastifyInstance): Promise<void> => {
       try {
         const user = request.user;
 
-        const result = await server.database.query(
+        const result = await server.database.query<
+          UsuarioRow & { coordenadoria_nome: string | null; coordenadoria_sigla: string | null }
+        >(
           `SELECT u.id, u.nome, u.email, u.perfil, u.coordenadoria_id, u.ativo, u.ultimo_acesso,
                   c.nome as coordenadoria_nome, c.sigla as coordenadoria_sigla
            FROM usuarios u
@@ -332,11 +438,18 @@ export const authRoutes = fp(async (server: FastifyInstance): Promise<void> => {
           return reply.status(404).send({ error: 'Usuário não encontrado' });
         }
 
+        const perfis = await getPerfisUsuario(server, user.id, usuario.perfil);
+        const perfilAtivo = perfis.includes((user.perfilAtivo ?? user.perfil) as PerfilAuth)
+          ? ((user.perfilAtivo ?? user.perfil) as PerfilAuth)
+          : getPerfilAtivoDefault(perfis, usuario.perfil);
+
         return reply.send({
           id: usuario.id,
           nome: usuario.nome,
           email: usuario.email,
-          perfil: usuario.perfil,
+          perfis,
+          perfilAtivo,
+          perfil: perfilAtivo,
           ativo: usuario.ativo,
           ultimoAcesso: usuario.ultimo_acesso,
           coordenadoria: usuario.coordenadoria_id
@@ -354,6 +467,69 @@ export const authRoutes = fp(async (server: FastifyInstance): Promise<void> => {
     }
   );
 
+  server.post<{ Body: { perfilAtivo: PerfilAuth } }>(
+    '/auth/switch-profile',
+    {
+      preHandler: [server.authenticate],
+    },
+    async (request, reply) => {
+      const user = request.user;
+      const perfilSolicitado = request.body?.perfilAtivo;
+
+      if (!isPerfilAuth(perfilSolicitado)) {
+        return reply.status(400).send({ error: 'Perfil ativo inválido' });
+      }
+
+      try {
+        const result = await server.database.query<UsuarioRow>(
+          `SELECT id, nome, email, perfil, coordenadoria_id, ativo
+             FROM usuarios
+            WHERE id = $1`,
+          [user.id]
+        );
+
+        const usuario = result.rows[0];
+
+        if (!usuario || !usuario.ativo) {
+          return reply.status(404).send({ error: 'Usuário não encontrado ou desativado' });
+        }
+
+        const perfis = await getPerfisUsuario(server, usuario.id, usuario.perfil);
+        if (!perfis.includes(perfilSolicitado)) {
+          return reply.status(403).send({ error: 'Usuário não possui o perfil solicitado' });
+        }
+
+        const payload = buildJwtPayload(usuario, perfis, perfilSolicitado);
+        const accessToken = server.jwt.sign(payload);
+        const refreshToken = server.jwt.sign(payload, { expiresIn: '7d' });
+        const refreshTokenHash = await bcrypt.hash(refreshToken, 10);
+
+        await server.database.query(
+          `INSERT INTO refresh_tokens (usuario_id, token_hash, expira_em)
+           VALUES ($1, $2, CURRENT_TIMESTAMP + INTERVAL '7 days')`,
+          [usuario.id, refreshTokenHash]
+        );
+
+        return reply.send({
+          accessToken,
+          refreshToken,
+          usuario: {
+            id: usuario.id,
+            nome: usuario.nome,
+            email: usuario.email,
+            perfis,
+            perfilAtivo: payload.perfilAtivo,
+            perfil: payload.perfil,
+            coordenadoriaId: usuario.coordenadoria_id,
+          },
+        });
+      } catch (error) {
+        request.log.error(error);
+        return reply.status(500).send({ error: 'Erro ao trocar perfil' });
+      }
+    }
+  );
+
   // POST /auth/register (apenas para administradores)
   server.post<{ Body: RegisterBody }>(
     '/auth/register',
@@ -363,11 +539,22 @@ export const authRoutes = fp(async (server: FastifyInstance): Promise<void> => {
     async (request, reply) => {
       const user = request.user;
 
-      if (user.perfil !== 'administrador') {
+      const perfilAtual = (user.perfilAtivo ?? user.perfil) as PerfilAuth;
+      if (perfilAtual !== 'administrador') {
         return reply.status(403).send({ error: 'Apenas administradores podem criar usuários' });
       }
 
-      const { nome, email, senha, perfil = 'operador', coordenadoriaId } = request.body;
+      const perfisInformados = normalizePerfis(
+        request.body.perfis ?? (request.body.perfil ? [request.body.perfil] : [])
+      );
+      const perfis: PerfilAuth[] =
+        perfisInformados.length > 0
+          ? perfisInformados
+          : request.body.perfis || request.body.perfil
+            ? []
+            : ['operador'];
+      const perfilLegado = getPerfilAtivoDefault(perfis, request.body.perfil ?? null);
+      const { nome, email, senha, coordenadoriaId } = request.body;
 
       if (!nome || !email || !senha) {
         return reply.status(400).send({ error: 'Nome, e-mail e senha são obrigatórios' });
@@ -377,7 +564,7 @@ export const authRoutes = fp(async (server: FastifyInstance): Promise<void> => {
         return reply.status(400).send({ error: 'Senha deve ter no mínimo 8 caracteres' });
       }
 
-      if (!['colaborador', 'operador', 'administrador', 'visualizador'].includes(perfil)) {
+      if (perfis.length === 0) {
         return reply
           .status(400)
           .send({
@@ -402,7 +589,7 @@ export const authRoutes = fp(async (server: FastifyInstance): Promise<void> => {
           `INSERT INTO usuarios (nome, email, senha_hash, perfil, coordenadoria_id)
            VALUES ($1, $2, $3, $4, $5)
            RETURNING id, nome, email, perfil, coordenadoria_id`,
-          [nome, email.toLowerCase(), senhaHash, perfil, coordenadoriaId || null]
+          [nome, email.toLowerCase(), senhaHash, perfilLegado, coordenadoriaId || null]
         );
 
         const novoUsuario = result.rows[0] as
@@ -419,11 +606,15 @@ export const authRoutes = fp(async (server: FastifyInstance): Promise<void> => {
           return reply.status(500).send({ error: 'Erro ao criar usuário' });
         }
 
+        await salvarPerfisUsuario(server, novoUsuario.id, perfis);
+
         return reply.status(201).send({
           id: novoUsuario.id,
           nome: novoUsuario.nome,
           email: novoUsuario.email,
-          perfil: novoUsuario.perfil,
+          perfis,
+          perfilAtivo: perfilLegado,
+          perfil: perfilLegado,
           coordenadoriaId: novoUsuario.coordenadoria_id,
         });
       } catch (error) {
@@ -442,26 +633,53 @@ export const authRoutes = fp(async (server: FastifyInstance): Promise<void> => {
     async (request, reply) => {
       const user = request.user;
 
-      if (user.perfil !== 'administrador') {
+      const perfilAtual = (user.perfilAtivo ?? user.perfil) as PerfilAuth;
+      if (perfilAtual !== 'administrador') {
         return reply.status(403).send({ error: 'Apenas administradores podem listar usuários' });
       }
 
       try {
-        const result = await server.database.query(
-          `SELECT id, nome, email, perfil, ativo, criado_em
-           FROM usuarios
-           ORDER BY criado_em DESC`
+        const result = await server.database.query<{
+          id: string;
+          nome: string;
+          email: string;
+          perfil: string;
+          perfis: string[] | null;
+          ativo: boolean;
+          criado_em: string;
+        }>(
+          `SELECT
+             u.id,
+             u.nome,
+             u.email,
+             u.perfil,
+             COALESCE(array_agg(up.perfil::text ORDER BY up.perfil::text) FILTER (WHERE up.perfil IS NOT NULL), ARRAY[]::text[]) AS perfis,
+             u.ativo,
+             u.criado_em
+           FROM usuarios u
+           LEFT JOIN usuario_perfis up ON up.usuario_id = u.id
+           GROUP BY u.id, u.nome, u.email, u.perfil, u.ativo, u.criado_em
+           ORDER BY u.criado_em DESC`
         );
 
-        const usuarios = result.rows.map((row: Record<string, unknown>) => ({
-          id: row.id as string,
-          nome: row.nome as string,
-          email: row.email as string,
-          perfil: row.perfil as string,
-          papel: perfilToPapel(row.perfil as string),
-          ativo: row.ativo as boolean,
-          criado_em: row.criado_em as string,
-        }));
+        const usuarios = result.rows.map((row) => {
+          const perfis = normalizePerfis(row.perfis ?? []).length
+            ? normalizePerfis(row.perfis ?? [])
+            : normalizePerfis([row.perfil]);
+          const perfilAtivo = getPerfilAtivoDefault(perfis, row.perfil);
+
+          return {
+            id: row.id,
+            nome: row.nome,
+            email: row.email,
+            perfis,
+            perfilAtivo,
+            perfil: perfilAtivo,
+            papel: perfilToPapel(perfilAtivo),
+            ativo: row.ativo,
+            criado_em: row.criado_em,
+          };
+        });
 
         return reply.send({ usuarios });
       } catch (error) {
@@ -478,6 +696,7 @@ export const authRoutes = fp(async (server: FastifyInstance): Promise<void> => {
       nome?: string;
       email?: string;
       perfil?: string;
+      perfis?: PerfilAuth[];
       coordenadoriaId?: string;
       senha?: string;
     };
@@ -489,14 +708,16 @@ export const authRoutes = fp(async (server: FastifyInstance): Promise<void> => {
     async (request, reply) => {
       const user = request.user;
 
-      if (user.perfil !== 'administrador') {
+      const perfilAtual = (user.perfilAtivo ?? user.perfil) as PerfilAuth;
+      if (perfilAtual !== 'administrador') {
         return reply.status(403).send({ error: 'Apenas administradores podem editar usuários' });
       }
 
       const { id } = request.params;
-      const { nome, email, perfil, coordenadoriaId, senha } = request.body;
+      const { nome, email, perfil, perfis: perfisBody, coordenadoriaId, senha } = request.body;
+      const perfis = normalizePerfis(perfisBody ?? (perfil ? [perfil] : []));
 
-      if (!nome && !email && !perfil && coordenadoriaId === undefined && !senha) {
+      if (!nome && !email && !perfil && perfis.length === 0 && coordenadoriaId === undefined && !senha) {
         return reply.status(400).send({ error: 'Nenhum campo para atualizar foi fornecido' });
       }
 
@@ -524,12 +745,16 @@ export const authRoutes = fp(async (server: FastifyInstance): Promise<void> => {
           values.push(email.toLowerCase());
         }
 
-        if (perfil) {
-          if (!['colaborador', 'operador', 'administrador', 'visualizador'].includes(perfil)) {
+        if (perfil || perfis.length > 0) {
+          if (perfil && !isPerfilAuth(perfil)) {
             return reply.status(400).send({ error: 'Perfil inválido' });
           }
+          const perfilLegadoAtualizado = getPerfilAtivoDefault(
+            perfis.length > 0 ? perfis : [perfil as PerfilAuth],
+            perfil ?? null
+          );
           updates.push(`perfil = $${paramIndex++}`);
-          values.push(perfil);
+          values.push(perfilLegadoAtualizado);
         }
 
         if (coordenadoriaId !== undefined) {
@@ -562,12 +787,21 @@ export const authRoutes = fp(async (server: FastifyInstance): Promise<void> => {
         }
 
         const row = result.rows[0] as Record<string, unknown>;
+        if (perfis.length > 0) {
+          await salvarPerfisUsuario(server, id, perfis);
+        }
+
+        const perfisAtualizados =
+          perfis.length > 0 ? perfis : await getPerfisUsuario(server, id, row.perfil as string);
+        const perfilAtivo = getPerfilAtivoDefault(perfisAtualizados, row.perfil as string);
         return reply.send({
           id: row.id as string,
           nome: row.nome as string,
           email: row.email as string,
-          perfil: row.perfil as string,
-          papel: perfilToPapel(row.perfil as string),
+          perfis: perfisAtualizados,
+          perfilAtivo,
+          perfil: perfilAtivo,
+          papel: perfilToPapel(perfilAtivo),
           ativo: row.ativo as boolean,
           criado_em: row.criado_em as string,
           coordenadoriaId: row.coordenadoria_id as string | null,
@@ -588,7 +822,8 @@ export const authRoutes = fp(async (server: FastifyInstance): Promise<void> => {
     async (request, reply) => {
       const user = request.user;
 
-      if (user.perfil !== 'administrador') {
+      const perfilAtual = (user.perfilAtivo ?? user.perfil) as PerfilAuth;
+      if (perfilAtual !== 'administrador') {
         return reply.status(403).send({ error: 'Apenas administradores podem alterar usuários' });
       }
 
@@ -611,12 +846,16 @@ export const authRoutes = fp(async (server: FastifyInstance): Promise<void> => {
         }
 
         const row = result.rows[0] as Record<string, unknown>;
+        const perfis = await getPerfisUsuario(server, id, row.perfil as string);
+        const perfilAtivo = getPerfilAtivoDefault(perfis, row.perfil as string);
         return reply.send({
           id: row.id as string,
           nome: row.nome as string,
           email: row.email as string,
-          perfil: row.perfil as string,
-          papel: perfilToPapel(row.perfil as string),
+          perfis,
+          perfilAtivo,
+          perfil: perfilAtivo,
+          papel: perfilToPapel(perfilAtivo),
           ativo: row.ativo as boolean,
           criado_em: row.criado_em as string,
         });

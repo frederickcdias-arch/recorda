@@ -12,7 +12,6 @@ import type {
   RejeitarAusenciaDTO,
   CancelarAusenciaAdminDTO,
   CriarJustificativaColetivaDTO,
-  EditarJustificativaColetivaDTO,
   JustificativaColetivaItem,
   ListarJustificativasColetivasResponse,
 } from '@recorda/shared';
@@ -93,6 +92,24 @@ function toDateOnlyString(value: string | Date | null | undefined): string {
   const month = String(value.getMonth() + 1).padStart(2, '0');
   const day = String(value.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+}
+
+async function usuarioPossuiPerfil(
+  server: FastifyInstance,
+  usuarioId: string,
+  perfil: 'colaborador' | 'operador' | 'administrador' | 'visualizador'
+): Promise<boolean> {
+  const result = await server.database.query<{ possui: boolean }>(
+    `SELECT EXISTS(
+       SELECT 1
+         FROM usuario_perfis
+        WHERE usuario_id = $1
+          AND perfil = $2::perfil_usuario
+     ) AS possui`,
+    [usuarioId, perfil]
+  );
+
+  return Boolean(result.rows[0]?.possui);
 }
 
 function mapAusenciaAdmin(row: AusenciaAdminRow): AusenciaAdminItem {
@@ -330,13 +347,14 @@ export function createAdminRoutes(): FastifyPluginAsync {
               u.email,
               u.perfil,
               u.ativo,
-              COUNT(pr.id) as total_producoes_vinculadas,
+              COUNT(DISTINCT pr.id) as total_producoes_vinculadas,
               c.nome as coordenadoria_nome,
               c.sigla as coordenadoria_sigla
             FROM usuarios u
             LEFT JOIN producao_repositorio pr ON pr.usuario_id = u.id
+            LEFT JOIN usuario_perfis up ON up.usuario_id = u.id
             LEFT JOIN coordenadorias c ON c.id = u.coordenadoria_id
-            WHERE u.perfil IN ('colaborador', 'operador', 'administrador')
+            WHERE up.perfil IN ('colaborador', 'operador', 'administrador')
             GROUP BY u.id, u.nome, u.email, u.perfil, u.ativo, c.nome, c.sigla
             ORDER BY u.nome
           `);
@@ -385,7 +403,7 @@ export function createAdminRoutes(): FastifyPluginAsync {
           }
 
           const usuario = userCheck.rows[0];
-          if (!usuario || usuario.perfil !== 'colaborador') {
+          if (!usuario || !(await usuarioPossuiPerfil(server, usuario.id, 'colaborador'))) {
             return reply.status(400).send({ error: 'O usuário selecionado não é um colaborador' });
           }
 
@@ -872,7 +890,7 @@ export function createAdminRoutes(): FastifyPluginAsync {
     );
 
     // PUT /admin/justificativas-coletivas/:id - Editar justificativa coletiva
-    server.put<{ Params: { id: string }; Body: EditarJustificativaColetivaDTO }>(
+    server.put<{ Params: { id: string }; Body: CriarJustificativaColetivaDTO }>(
       '/admin/justificativas-coletivas/:id',
       {
         preHandler: [
@@ -884,7 +902,7 @@ export function createAdminRoutes(): FastifyPluginAsync {
       },
       async (request, reply) => {
         const { id } = request.params;
-        const body = request.body as EditarJustificativaColetivaDTO;
+        const body = request.body as CriarJustificativaColetivaDTO;
 
         if (body.dataFim < body.dataInicio) {
           return reply.status(400).send({ error: 'dataFim não pode ser anterior à dataInicio' });
@@ -1343,7 +1361,7 @@ export function createAdminRoutes(): FastifyPluginAsync {
             return reply.status(404).send({ error: 'Usuário não encontrado' });
           }
           const targetUser = userCheck.rows[0]!;
-          if (targetUser.perfil === 'visualizador') {
+          if (await usuarioPossuiPerfil(server, targetUser.id, 'visualizador')) {
             await client.query('ROLLBACK');
             return reply
               .status(400)
@@ -1570,7 +1588,7 @@ export function createAdminRoutes(): FastifyPluginAsync {
             return reply.status(404).send({ error: 'Usuario nao encontrado' });
           }
           const targetUser = userCheck.rows[0]!;
-          if (targetUser.perfil === 'visualizador') {
+          if (await usuarioPossuiPerfil(server, targetUser.id, 'visualizador')) {
             await client.query('ROLLBACK');
             return reply.status(400).send({ error: 'O usuario selecionado nao pode receber lancamento de ausencia' });
           }

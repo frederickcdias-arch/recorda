@@ -7,7 +7,6 @@ import { Input } from '../../components/ui/Input';
 import { Modal } from '../../components/ui/Modal';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { ActionFeedback, PageState } from '../../components/ui/PageState';
-import { Select } from '../../components/ui/Select';
 import {
   Table,
   TableBody,
@@ -30,6 +29,8 @@ interface Usuario {
   id: string;
   email: string;
   nome: string;
+  perfis: PerfilUsuario[];
+  perfilAtivo: PerfilUsuario;
   papel: string;
   ativo: boolean;
   criado_em: string;
@@ -60,6 +61,18 @@ function getPerfilBadgeClass(papel: string): string {
   return 'bg-[var(--color-gray-100)] text-[var(--color-text-secondary)]';
 }
 
+function togglePerfilSelecionado(
+  perfisAtuais: PerfilUsuario[],
+  perfil: PerfilUsuario,
+  checked: boolean
+): PerfilUsuario[] {
+  if (checked) {
+    return perfisAtuais.includes(perfil) ? perfisAtuais : [...perfisAtuais, perfil];
+  }
+
+  return perfisAtuais.filter((item) => item !== perfil);
+}
+
 export function UsuariosPage(): JSX.Element {
   const queryClient = useQueryClient();
   const usuariosQuery = useUsuarios();
@@ -84,7 +97,7 @@ export function UsuariosPage(): JSX.Element {
     email: '',
     nome: '',
     senha: '',
-    perfil: 'operador' as PerfilUsuario,
+    perfis: ['operador'] as PerfilUsuario[],
   });
   const [salvando, setSalvando] = useState(false);
 
@@ -102,7 +115,7 @@ export function UsuariosPage(): JSX.Element {
 
   const handleAbrirModalNovo = (): void => {
     setUsuarioEditando(null);
-    setFormData({ email: '', nome: '', senha: '', perfil: 'operador' });
+    setFormData({ email: '', nome: '', senha: '', perfis: ['operador'] });
     setModalAberto(true);
   };
 
@@ -112,16 +125,18 @@ export function UsuariosPage(): JSX.Element {
       email: usuario.email,
       nome: usuario.nome,
       senha: '',
-      perfil:
-        usuario.papel === 'ADMIN'
-          ? 'administrador'
-          : (usuario.papel.toLowerCase() as PerfilUsuario),
+      perfis: usuario.perfis,
     });
     setModalAberto(true);
   };
 
   const handleSalvar = async (): Promise<void> => {
-    if (!formData.email || !formData.nome || (!usuarioEditando && !formData.senha)) {
+    if (
+      !formData.email ||
+      !formData.nome ||
+      formData.perfis.length === 0 ||
+      (!usuarioEditando && !formData.senha)
+    ) {
       setMensagem({ tipo: 'error', texto: 'Preencha os campos obrigatórios.' });
       return;
     }
@@ -139,7 +154,8 @@ export function UsuariosPage(): JSX.Element {
           id: usuarioEditando.id,
           nome: formData.nome,
           email: formData.email,
-          perfil: formData.perfil,
+          perfis: formData.perfis,
+          perfil: formData.perfis[0],
           ...(formData.senha && { senha: formData.senha }),
         });
         setMensagem({ tipo: 'success', texto: 'Usuário atualizado.' });
@@ -148,14 +164,15 @@ export function UsuariosPage(): JSX.Element {
           email: formData.email,
           nome: formData.nome,
           senha: formData.senha,
-          perfil: formData.perfil,
+          perfis: formData.perfis,
+          perfil: formData.perfis[0],
         });
         setMensagem({ tipo: 'success', texto: 'Usuário criado.' });
       }
 
       setModalAberto(false);
       setUsuarioEditando(null);
-      setFormData({ email: '', nome: '', senha: '', perfil: 'operador' });
+      setFormData({ email: '', nome: '', senha: '', perfis: ['operador'] });
     } catch (error) {
       const message =
         error instanceof Error ? error.message : (error as { error?: string })?.error || 'Erro';
@@ -264,11 +281,24 @@ export function UsuariosPage(): JSX.Element {
                       {usuario.email}
                     </TableCell>
                     <TableCell>
-                      <span
-                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${getPerfilBadgeClass(usuario.papel)}`}
-                      >
-                        {formatarPapel(usuario.papel)}
-                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {usuario.perfis.map((perfil) => (
+                          <span
+                            key={`${usuario.id}-${perfil}`}
+                            className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${getPerfilBadgeClass(
+                              perfil === 'administrador'
+                                ? 'ADMIN'
+                                : perfil === 'visualizador'
+                                  ? 'VISUALIZADOR'
+                                  : perfil.toUpperCase()
+                            )}`}
+                          >
+                            {perfil === usuario.perfilAtivo
+                              ? `${formatarPapel(perfil)} ativo`
+                              : formatarPapel(perfil)}
+                          </span>
+                        ))}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <span
@@ -353,22 +383,33 @@ export function UsuariosPage(): JSX.Element {
               onChange={(e) => setFormData((p) => ({ ...p, senha: e.target.value }))}
               required={!usuarioEditando}
             />
-            <Select
-              label="Perfil"
-              value={formData.perfil}
-              onChange={(e) =>
-                setFormData((p) => ({
-                  ...p,
-                  perfil: e.target.value as PerfilUsuario,
-                }))
-              }
-            >
-              {PERFIL_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </Select>
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-[var(--color-text-primary)]">Perfis *</p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {PERFIL_OPTIONS.map((option) => (
+                  <label
+                    key={option.value}
+                    className="flex items-center gap-2 rounded-lg border border-[var(--color-border-primary)] px-3 py-2 text-sm text-[var(--color-text-primary)]"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={formData.perfis.includes(option.value)}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          perfis: togglePerfilSelecionado(
+                            prev.perfis,
+                            option.value,
+                            e.target.checked
+                          ),
+                        }))
+                      }
+                    />
+                    <span>{option.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
             {!usuarioEditando ? (
               <div className="rounded-xl border border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] px-4 py-3 text-sm text-[var(--color-text-secondary)]">
                 <div className="flex items-start gap-3">
@@ -377,8 +418,8 @@ export function UsuariosPage(): JSX.Element {
                     className="mt-0.5 h-4 w-4 shrink-0 text-[var(--color-primary-600)]"
                   />
                   <p>
-                    O novo usuário poderá acessar apenas as áreas permitidas pelo perfil
-                    selecionado.
+                    O novo usuário poderá acessar as áreas permitidas pelos perfis
+                    selecionados.
                   </p>
                 </div>
               </div>

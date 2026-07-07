@@ -215,7 +215,7 @@ export function ProducaoPage(): JSX.Element {
     });
   };
 
-  const isAdmin = usuario?.perfil === 'administrador';
+  const isAdmin = (usuario?.perfilAtivo ?? usuario?.perfil) === 'administrador';
   const [exportando, setExportando] = useState(false);
   const [exportandoCsv, setExportandoCsv] = useState(false);
 

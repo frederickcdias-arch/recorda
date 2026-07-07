@@ -8,7 +8,12 @@ import {
   importacaoLegadoRecebimentoSchema,
   importacaoLegadoProducaoSchema,
 } from '../schemas/operacional.js';
-import { type EtapaFluxo, type StatusRepositorio, getCurrentUser } from './operacional-helpers.js';
+import {
+  type EtapaFluxo,
+  type StatusRepositorio,
+  getCurrentProfile,
+  getCurrentUser,
+} from './operacional-helpers.js';
 import { normalizeIdRepositorioGed } from '@recorda/shared';
 import {
   type ValidationResult,
@@ -639,7 +644,8 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
           }
 
           const usuarioDestinoId = body.usuarioId?.trim() || user.id;
-          if (usuarioDestinoId !== user.id && user.perfil !== 'administrador') {
+          const perfilAtual = getCurrentProfile(request);
+          if (usuarioDestinoId !== user.id && perfilAtual !== 'administrador') {
             return reply
               .status(403)
               .send({ error: 'Apenas administradores podem importar para outro usuario' });
@@ -814,7 +820,8 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
           }
 
           const usuarioDestinoId = body.usuarioId?.trim() || user.id;
-          if (usuarioDestinoId !== user.id && user.perfil !== 'administrador') {
+          const perfilAtual = getCurrentProfile(request);
+          if (usuarioDestinoId !== user.id && perfilAtual !== 'administrador') {
             return reply
               .status(403)
               .send({ error: 'Apenas administradores podem importar para outro usuario' });
@@ -1134,16 +1141,17 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
           const params: Array<string | number> = [];
           let where = 'WHERE 1=1';
           let p = 1;
+          const perfilAtual = getCurrentProfile(request);
 
           if (query.usuarioDestinoId?.trim()) {
-            if (user.perfil !== 'administrador' && query.usuarioDestinoId !== user.id) {
+            if (perfilAtual !== 'administrador' && query.usuarioDestinoId !== user.id) {
               return reply
                 .status(403)
                 .send({ error: 'Apenas administradores podem consultar outro usuario' });
             }
             where += ` AND i.usuario_destino_id = $${p++}`;
             params.push(query.usuarioDestinoId.trim());
-          } else if (user.perfil !== 'administrador') {
+          } else if (perfilAtual !== 'administrador') {
             where += ` AND i.usuario_destino_id = $${p++}`;
             params.push(user.id);
           }
@@ -1211,7 +1219,8 @@ export function createOperacionalImportacaoLegadoRoutes(): FastifyPluginAsync {
           );
           const item = result.rows[0];
           if (!item) return reply.status(404).send({ error: 'Importação não encontrada' });
-          if (user.perfil !== 'administrador' && item.usuario_destino_id !== user.id) {
+          const perfilAtual = getCurrentProfile(request);
+          if (perfilAtual !== 'administrador' && item.usuario_destino_id !== user.id) {
             return reply.status(403).send({ error: 'Sem permissão para acessar esta importação' });
           }
 

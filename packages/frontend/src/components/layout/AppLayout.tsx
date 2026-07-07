@@ -125,7 +125,7 @@ export function AppLayout(): JSX.Element {
           <div className="mx-auto min-w-0 max-w-[1280px]">
             {usuario ? (
               <>
-                {usuario.perfil === 'visualizador' ? (
+                {(usuario.perfilAtivo ?? usuario.perfil) === 'visualizador' ? (
                   <div className="mb-4 rounded-2xl border border-[var(--color-primary-200)] bg-[var(--color-primary-50)] px-4 py-3 text-sm text-[var(--color-primary-700)]">
                     Acesso em modo visualização.
                   </div>

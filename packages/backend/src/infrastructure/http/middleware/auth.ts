@@ -30,18 +30,30 @@ export async function authenticate(request: FastifyRequest, reply: FastifyReply)
  */
 export function authorize(...perfisPermitidos: PerfilUsuario[]) {
   return async (request: FastifyRequest, reply: FastifyReply): Promise<void> => {
-    const user = request.user as { perfil: PerfilUsuario } | undefined;
+    const user = request.user as
+      | {
+          perfil?: PerfilUsuario;
+          perfilAtivo?: PerfilUsuario;
+          perfis?: PerfilUsuario[];
+        }
+      | undefined;
 
     if (!user) {
       return reply.status(401).send({ error: 'Usuário não autenticado', code: 'UNAUTHORIZED' });
     }
 
-    if (!perfisPermitidos.includes(user.perfil)) {
+    const perfilAtual = user.perfilAtivo ?? user.perfil;
+
+    if (!perfilAtual || (user.perfis && !user.perfis.includes(perfilAtual))) {
+      return reply.status(401).send({ error: 'Contexto de perfil inválido', code: 'UNAUTHORIZED' });
+    }
+
+    if (!perfisPermitidos.includes(perfilAtual)) {
       return reply.status(403).send({
         error: 'Acesso negado. Permissão insuficiente.',
         code: 'FORBIDDEN',
         requiredProfiles: perfisPermitidos,
-        currentProfile: user.perfil,
+        currentProfile: perfilAtual,
       });
     }
   };

@@ -64,7 +64,7 @@ export function AdminPage(): JSX.Element {
   const [processando, setProcessando] = useState(false);
   const [resultados, setResultados] = useState<unknown>(null);
 
-  if (usuario?.perfil !== 'administrador') {
+  if ((usuario?.perfilAtivo ?? usuario?.perfil) !== 'administrador') {
     return (
       <PageState
         loading={false}
@@ -82,7 +82,7 @@ export function AdminPage(): JSX.Element {
             Apenas administradores podem acessar esta página.
           </p>
           <p className="mt-2 text-sm text-[var(--color-text-tertiary)]">
-            Perfil atual: {usuario?.perfil || 'não definido'}
+            Perfil atual: {(usuario?.perfilAtivo ?? usuario?.perfil) || 'não definido'}
           </p>
         </div>
       </PageState>

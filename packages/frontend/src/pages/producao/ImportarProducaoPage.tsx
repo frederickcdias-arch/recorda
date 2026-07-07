@@ -197,7 +197,7 @@ export function ImportarProducaoPage(): JSX.Element {
   const [previewImportacao, setPreviewImportacao] = useState<PreviewImportacao | null>(null);
   const [validando, setValidando] = useState(false);
 
-  const isAdmin = usuario?.perfil === 'administrador';
+  const isAdmin = (usuario?.perfilAtivo ?? usuario?.perfil) === 'administrador';
   const previewProducao = useMemo(() => registrosProducao.slice(0, 10), [registrosProducao]);
 
   // Fontes de importação (saved links)

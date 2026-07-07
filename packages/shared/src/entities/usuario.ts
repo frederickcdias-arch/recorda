@@ -41,6 +41,8 @@ export interface Usuario {
   id: string;
   nome: string;
   email: string;
+  perfis?: PerfilUsuario[];
+  perfilAtivo?: PerfilUsuario;
   perfil: PerfilUsuario;
   ativo?: boolean;
   coordenadoriaId?: string;
@@ -55,12 +57,14 @@ export interface CriarUsuarioDTO {
   nome: string;
   email: string;
   senha: string;
-  perfil: PerfilUsuario;
+  perfis: PerfilUsuario[];
+  perfil?: PerfilUsuario;
 }
 
 export interface AtualizarUsuarioDTO {
   nome?: string;
   email?: string;
+  perfis?: PerfilUsuario[];
   perfil?: PerfilUsuario;
   ativo?: boolean;
 }

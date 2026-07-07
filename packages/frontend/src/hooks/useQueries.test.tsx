@@ -233,6 +233,7 @@ describe('useRegisterUsuario', () => {
       email: 'a@b.com',
       nome: 'A',
       senha: '123',
+      perfis: ['operador'],
       perfil: 'operador',
     });
 
@@ -240,6 +241,7 @@ describe('useRegisterUsuario', () => {
       email: 'a@b.com',
       nome: 'A',
       senha: '123',
+      perfis: ['operador'],
       perfil: 'operador',
     });
   });
@@ -252,6 +254,7 @@ describe('useRegisterUsuario', () => {
       email: 'visualizador@recorda.local',
       nome: 'Visualizador',
       senha: '12345678',
+      perfis: ['visualizador'],
       perfil: 'visualizador',
     });
 
@@ -259,6 +262,7 @@ describe('useRegisterUsuario', () => {
       email: 'visualizador@recorda.local',
       nome: 'Visualizador',
       senha: '12345678',
+      perfis: ['visualizador'],
       perfil: 'visualizador',
     });
   });

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import type { PerfilUsuario } from '@recorda/shared';
 import type { Theme } from '../../contexts/ThemeContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Button } from '../ui/Button';
@@ -89,13 +90,14 @@ function ThemeToggle(): JSX.Element {
 }
 
 export function Header({ onMenuToggle, title, unreadComunicados = 0 }: HeaderProps): JSX.Element {
-  const { usuario, logout } = useAuth();
+  const { usuario, logout, trocarPerfil } = useAuth();
   const breadcrumbs = buildBreadcrumbs(title);
   const currentSection = breadcrumbs[0] ?? 'Recorda';
   const currentPage = breadcrumbs[breadcrumbs.length - 1] ?? currentSection;
 
   const initial = usuario?.nome?.trim()?.charAt(0)?.toUpperCase() ?? 'U';
-  const perfilLabel = usuario?.perfil ? formatPerfil(usuario.perfil) : '';
+  const perfilAtual = usuario?.perfilAtivo ?? usuario?.perfil;
+  const perfilLabel = perfilAtual ? formatPerfil(perfilAtual) : '';
 
   return (
     <header className="sticky top-0 z-30 border-b border-[var(--color-border-primary)] bg-[color:color-mix(in_srgb,var(--color-bg-primary)_92%,transparent)] backdrop-blur">
@@ -137,6 +139,21 @@ export function Header({ onMenuToggle, title, unreadComunicados = 0 }: HeaderPro
         </div>
 
         <div className="flex items-center gap-1.5 sm:gap-3">
+          {usuario && (usuario.perfis?.length ?? 0) > 1 ? (
+            <select
+              value={perfilAtual}
+              onChange={(event) => void trocarPerfil(event.target.value as PerfilUsuario)}
+              className="hidden rounded-lg border border-[var(--color-border-primary)] bg-[var(--color-bg-primary)] px-2 py-1 text-xs text-[var(--color-text-primary)] sm:block"
+              aria-label="Trocar perfil"
+            >
+              {(usuario.perfis ?? []).map((perfil) => (
+                <option key={perfil} value={perfil}>
+                  {formatPerfil(perfil)}
+                </option>
+              ))}
+            </select>
+          ) : null}
+
           <Link
             to="/comunicados"
             aria-label={

@@ -162,7 +162,7 @@ export function ComunicadosPage(): JSX.Element {
   const toast = useToastHelpers();
   const comunicadosQuery = useComunicadosUsuario();
   const marcarComoLido = useMarcarComunicadoLido();
-  const isVisualizador = usuario?.perfil === 'visualizador';
+  const isVisualizador = (usuario?.perfilAtivo ?? usuario?.perfil) === 'visualizador';
 
   const [caixaAberta, setCaixaAberta] = useState(false);
   const [buscaCaixa, setBuscaCaixa] = useState('');

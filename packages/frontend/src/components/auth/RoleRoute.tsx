@@ -33,7 +33,7 @@ export function RoleRoute({ allowedProfiles, children }: RoleRouteProps): JSX.El
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
-  if (!allowedProfiles.includes(usuario.perfil)) {
+  if (!allowedProfiles.includes(usuario.perfilAtivo ?? usuario.perfil)) {
     return <AccessDeniedRedirect />;
   }
 

@@ -16,6 +16,8 @@ export interface LoginResponse {
     id: string;
     nome: string;
     email: string;
+    perfis: PerfilUsuario[];
+    perfilAtivo: PerfilUsuario;
     perfil: PerfilUsuario;
   };
 }
@@ -47,5 +49,7 @@ export interface JWTPayload {
   id: string;
   email: string;
   nome: string;
+  perfis: PerfilUsuario[];
+  perfilAtivo: PerfilUsuario;
   perfil: PerfilUsuario;
 }
