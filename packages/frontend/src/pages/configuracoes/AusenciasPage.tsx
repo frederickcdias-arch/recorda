@@ -1050,7 +1050,7 @@ export function AusenciasPage(): JSX.Element {
 
         <FilterBar
           actions={
-            <Button variant="secondary" onClick={() => void invalidarAusencias()}>
+            <Button variant="secondary" size="sm" onClick={() => void invalidarAusencias()}>
               Atualizar lista
             </Button>
           }

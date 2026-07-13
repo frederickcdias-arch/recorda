@@ -62,6 +62,8 @@ export function ProducaoPage(): JSX.Element {
   const [colaborador, setColaborador] = useState('');
   const [dataInicio, setDataInicio] = useState('');
   const [dataFim, setDataFim] = useState('');
+  const [draftDataInicio, setDraftDataInicio] = useState('');
+  const [draftDataFim, setDraftDataFim] = useState('');
   const [busca, setBusca] = useState('');
   const [buscaDebounced, setBuscaDebounced] = useState('');
 
@@ -79,6 +81,7 @@ export function ProducaoPage(): JSX.Element {
   const [sortColumn, setSortColumn] = useState<SortColumn | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const filtrosInicializadosRef = useRef(false);
+  const dataPeriodoEditandoRef = useRef(false);
 
   const filtrosUrl = useMemo(() => {
     const params = new URLSearchParams(location.search);
@@ -97,6 +100,10 @@ export function ProducaoPage(): JSX.Element {
     setColaborador(filtrosUrl.colaborador);
     setDataInicio(filtrosUrl.dataInicio);
     setDataFim(filtrosUrl.dataFim);
+    if (!dataPeriodoEditandoRef.current) {
+      setDraftDataInicio(filtrosUrl.dataInicio);
+      setDraftDataFim(filtrosUrl.dataFim);
+    }
   }, [
     filtrosUrl.pagina,
     filtrosUrl.etapa,
@@ -119,6 +126,13 @@ export function ProducaoPage(): JSX.Element {
     }
     setPagina(1);
   }, [etapa, colaborador, dataInicio, dataFim, buscaDebounced]);
+
+  const handleAplicarFiltros = (): void => {
+    dataPeriodoEditandoRef.current = false;
+    setDataInicio(draftDataInicio);
+    setDataFim(draftDataFim);
+    setPagina(1);
+  };
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -392,37 +406,52 @@ export function ProducaoPage(): JSX.Element {
         {/* Filtros */}
         <FilterBar
           actions={
-            etapa || colaborador || dataInicio || dataFim || busca ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setEtapa('');
-                  setColaborador('');
-                  setDataInicio('');
-                  setDataFim('');
-                  setBusca('');
-                }}
-              >
-                <Icon name="x" className="w-3 h-3" />
-                Limpar
+            <div className="flex flex-wrap items-center gap-2">
+              <Button variant="primary" size="sm" onClick={handleAplicarFiltros}>
+                Aplicar filtros
               </Button>
-            ) : undefined
+              {etapa || colaborador || dataInicio || dataFim || busca || draftDataInicio || draftDataFim ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    dataPeriodoEditandoRef.current = false;
+                    setEtapa('');
+                    setColaborador('');
+                    setDataInicio('');
+                    setDataFim('');
+                    setDraftDataInicio('');
+                    setDraftDataFim('');
+                    setBusca('');
+                    setPagina(1);
+                  }}
+                >
+                  <Icon name="x" className="w-3 h-3" />
+                  Limpar
+                </Button>
+              ) : null}
+            </div>
           }
         >
           <Input
             label="Início"
             type="date"
-            value={dataInicio}
-            max={dataFim || undefined}
-            onChange={(e) => setDataInicio(e.target.value)}
+            value={draftDataInicio}
+            max={draftDataFim || undefined}
+            onChange={(e) => {
+              dataPeriodoEditandoRef.current = true;
+              setDraftDataInicio(e.target.value);
+            }}
           />
           <Input
             label="Fim"
             type="date"
-            value={dataFim}
-            min={dataInicio || undefined}
-            onChange={(e) => setDataFim(e.target.value)}
+            value={draftDataFim}
+            min={draftDataInicio || undefined}
+            onChange={(e) => {
+              dataPeriodoEditandoRef.current = true;
+              setDraftDataFim(e.target.value);
+            }}
           />
           <Select
             label="Etapa"

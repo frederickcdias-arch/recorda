@@ -703,6 +703,8 @@ export function DevolucoesPage(): JSX.Element {
   const [coordenadoriaFiltro, setCoordenadoriaFiltro] = useState('');
   const [dataInicio, setDataInicio] = useState('');
   const [dataFim, setDataFim] = useState('');
+  const [draftDataInicio, setDraftDataInicio] = useState('');
+  const [draftDataFim, setDraftDataFim] = useState('');
   const [pagina, setPagina] = useState(1);
 
   const [modalAberto, setModalAberto] = useState(false);
@@ -716,6 +718,12 @@ export function DevolucoesPage(): JSX.Element {
   useEffect(() => {
     setPagina(1);
   }, [coordenadoriaFiltro, dataFim, dataInicio, debouncedBusca]);
+
+  const handleAplicarFiltros = (): void => {
+    setDataInicio(draftDataInicio);
+    setDataFim(draftDataFim);
+    setPagina(1);
+  };
 
   const devolucoesQuery = useDevolucoes({
     q: debouncedBusca || undefined,
@@ -752,6 +760,8 @@ export function DevolucoesPage(): JSX.Element {
     setCoordenadoriaFiltro('');
     setDataInicio('');
     setDataFim('');
+    setDraftDataInicio('');
+    setDraftDataFim('');
     setPagina(1);
   };
 
@@ -782,11 +792,16 @@ export function DevolucoesPage(): JSX.Element {
 
         <FilterBar
           actions={
-            busca || coordenadoriaFiltro || dataInicio || dataFim ? (
-              <Button type="button" variant="ghost" size="md" onClick={handleLimparFiltros}>
-                Limpar filtros
+            <div className="flex flex-wrap items-center gap-2">
+              <Button type="button" variant="primary" size="sm" onClick={handleAplicarFiltros}>
+                Aplicar filtros
               </Button>
-            ) : undefined
+              {busca || coordenadoriaFiltro || dataInicio || dataFim || draftDataInicio || draftDataFim ? (
+                <Button type="button" variant="ghost" size="sm" onClick={handleLimparFiltros}>
+                  Limpar filtros
+                </Button>
+              ) : null}
+            </div>
           }
         >
           <Input
@@ -804,14 +819,14 @@ export function DevolucoesPage(): JSX.Element {
           <Input
             label="Data Início"
             type="date"
-            value={dataInicio}
-            onChange={(event) => setDataInicio(event.target.value)}
+            value={draftDataInicio}
+            onChange={(event) => setDraftDataInicio(event.target.value)}
           />
           <Input
             label="Data Fim"
             type="date"
-            value={dataFim}
-            onChange={(event) => setDataFim(event.target.value)}
+            value={draftDataFim}
+            onChange={(event) => setDraftDataFim(event.target.value)}
           />
         </FilterBar>
 

@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Suspense, lazy } from 'react';
 import type { EtapaFluxo, OrigemDocumentoRecebimento } from '@recorda/shared';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
+import { Icon } from '../../components/ui/Icon';
 import { PageHeader } from '../../components/ui/PageHeader';
 import { PageState } from '../../components/ui/PageState';
 import { useToastHelpers } from '../../components/ui/Toast';
@@ -237,6 +238,9 @@ export function EtapaOperacionalPage(): JSX.Element {
   const [filtroUnidade, setFiltroUnidade] = useState('');
   const [filtroDataInicio, setFiltroDataInicio] = useState('');
   const [filtroDataFim, setFiltroDataFim] = useState('');
+  const [draftFiltroDataInicio, setDraftFiltroDataInicio] = useState('');
+  const [draftFiltroDataFim, setDraftFiltroDataFim] = useState('');
+  const filtroPeriodoEditandoRef = useRef(false);
 
   const [novoRepositorio, setNovoRepositorio] = useState({
     idRepositorioGed: '',
@@ -321,6 +325,10 @@ export function EtapaOperacionalPage(): JSX.Element {
     setFiltroUnidade(filtrosUrl.orgao);
     setFiltroDataInicio(filtrosUrl.dataInicio);
     setFiltroDataFim(filtrosUrl.dataFim);
+    if (!filtroPeriodoEditandoRef.current) {
+      setDraftFiltroDataInicio(filtrosUrl.dataInicio);
+      setDraftFiltroDataFim(filtrosUrl.dataFim);
+    }
   }, [filtrosUrl.orgao, filtrosUrl.dataInicio, filtrosUrl.dataFim]);
 
   useEffect(() => {
@@ -353,6 +361,24 @@ export function EtapaOperacionalPage(): JSX.Element {
     location.search,
     navigate,
   ]);
+
+  const handleAplicarFiltros = (): void => {
+    filtroPeriodoEditandoRef.current = false;
+    setFiltroDataInicio(draftFiltroDataInicio);
+    setFiltroDataFim(draftFiltroDataFim);
+    setPagina(1);
+  };
+
+  const handleLimparFiltros = (): void => {
+    filtroPeriodoEditandoRef.current = false;
+    setFiltroBusca('');
+    setFiltroUnidade('');
+    setFiltroDataInicio('');
+    setFiltroDataFim('');
+    setDraftFiltroDataInicio('');
+    setDraftFiltroDataFim('');
+    setPagina(1);
+  };
 
   const debouncedBusca = useDebounce(filtroBusca.trim(), 600);
 
@@ -1271,11 +1297,11 @@ export function EtapaOperacionalPage(): JSX.Element {
                       <Input
                         label="Data Início"
                         type="date"
-                        value={filtroDataInicio}
-                        max={filtroDataFim || undefined}
+                        value={draftFiltroDataInicio}
+                        max={draftFiltroDataFim || undefined}
                         onChange={(e) => {
-                          setFiltroDataInicio(e.target.value);
-                          setPagina(1);
+                          filtroPeriodoEditandoRef.current = true;
+                          setDraftFiltroDataInicio(e.target.value);
                         }}
                       />
                     </div>
@@ -1283,11 +1309,11 @@ export function EtapaOperacionalPage(): JSX.Element {
                       <Input
                         label="Data Final"
                         type="date"
-                        value={filtroDataFim}
-                        min={filtroDataInicio || undefined}
+                        value={draftFiltroDataFim}
+                        min={draftFiltroDataInicio || undefined}
                         onChange={(e) => {
-                          setFiltroDataFim(e.target.value);
-                          setPagina(1);
+                          filtroPeriodoEditandoRef.current = true;
+                          setDraftFiltroDataFim(e.target.value);
                         }}
                       />
                     </div>
@@ -1295,11 +1321,21 @@ export function EtapaOperacionalPage(): JSX.Element {
                   <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
                     <Button
                       className="w-full md:w-auto"
-                      variant="secondary"
-                      onClick={() => invalidateRepos()}
+                      variant="primary"
+                      size="sm"
+                      onClick={handleAplicarFiltros}
                       loading={processando}
                     >
-                      Atualizar lista
+                      Aplicar filtros
+                    </Button>
+                    <Button
+                      className="w-full md:w-auto"
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleLimparFiltros}
+                    >
+                      <Icon name="x" className="w-3 h-3" />
+                      Limpar filtros
                     </Button>
                     <Button
                       className="w-full md:w-auto"
@@ -1699,8 +1735,8 @@ export function EtapaOperacionalPage(): JSX.Element {
               </div>
               <Button
                 variant="secondary"
-                fullWidth
-                className="sm:w-auto"
+                size="sm"
+                icon="refresh-cw"
                 onClick={() => invalidateRepos()}
                 loading={processando}
               >

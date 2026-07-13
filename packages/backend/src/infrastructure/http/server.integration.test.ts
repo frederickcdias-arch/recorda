@@ -564,15 +564,21 @@ function createMockDatabase(): DatabaseConnection & {
         ]);
       }
 
-      if (text.startsWith('UPDATE usuarios SET ultimo_acesso')) {
-        return makeResult([], 'UPDATE');
-      }
+        if (text.startsWith('UPDATE usuarios SET ultimo_acesso')) {
+          return makeResult([], 'UPDATE');
+        }
 
-      if (text.startsWith('INSERT INTO refresh_tokens')) {
-        const id = `token-${refreshTokens.length + 1}`;
-        const usuario_id = String(params?.[0]);
-        const token_hash = String(params?.[1]);
-        const expira_em =
+        if (text.includes('SELECT ativo FROM usuarios WHERE id = $1')) {
+          const id = String(params?.[0]);
+          const usuario = usuarios.get(id);
+          return usuario ? makeResult([{ ativo: usuario.ativo }]) : makeResult([]);
+        }
+
+        if (text.startsWith('INSERT INTO refresh_tokens')) {
+          const id = `token-${refreshTokens.length + 1}`;
+          const usuario_id = String(params?.[0]);
+          const token_hash = String(params?.[1]);
+          const expira_em =
           params?.[2] instanceof Date
             ? (params[2] as Date)
             : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
@@ -888,20 +894,76 @@ function createMockDatabase(): DatabaseConnection & {
         return usuario ? makeResult([{ senha_hash: usuario.senha_hash }]) : makeResult([]);
       }
 
-      if (
-        text.includes('SELECT id, nome, email, perfil, coordenadoria_id, ativo') &&
-        text.includes('FROM usuarios') &&
-        text.includes('WHERE id = $1')
-      ) {
+        if (
+          text.includes('SELECT id, nome, email, perfil, coordenadoria_id, ativo') &&
+          text.includes('FROM usuarios') &&
+          text.includes('WHERE id = $1')
+        ) {
         const id = String(params?.[0]);
         const usuario = usuarios.get(id);
-        return usuario ? makeResult([usuario]) : makeResult([]);
-      }
+          return usuario ? makeResult([usuario]) : makeResult([]);
+        }
 
-      if (text.includes('SELECT id, nome FROM usuarios WHERE ativo = TRUE')) {
-        return makeResult(
-          [...usuarios.values()].filter((u) => u.ativo).map((u) => ({ id: u.id, nome: u.nome }))
-        );
+        if (text.includes('AS is_admin') && text.includes('FROM usuarios u') && text.includes('WHERE u.id = $1')) {
+          const id = String(params?.[0]);
+          const usuario = usuarios.get(id);
+          if (!usuario) return makeResult([]);
+          const isAdmin =
+            usuario.perfil === 'administrador' || usuario.perfis.includes('administrador');
+          return makeResult([
+            {
+              id: usuario.id,
+              nome: usuario.nome,
+              email: usuario.email,
+              perfil: usuario.perfil,
+              ativo: usuario.ativo,
+              criado_em: new Date().toISOString(),
+              coordenadoria_id: usuario.coordenadoria_id,
+              is_admin: isAdmin,
+            },
+          ]);
+        }
+
+        if (
+          text.includes('SELECT u.id') &&
+          text.includes('FROM usuarios u') &&
+          text.includes('u.ativo = true') &&
+          text.includes("u.perfil = 'administrador'::perfil_usuario")
+        ) {
+          return makeResult(
+            [...usuarios.values()]
+              .filter(
+                (usuario) =>
+                  usuario.ativo &&
+                  (usuario.perfil === 'administrador' || usuario.perfis.includes('administrador'))
+              )
+              .map((usuario) => ({ id: usuario.id }))
+          );
+        }
+
+        if (text.includes('SET ativo = NOT ativo') && text.includes('RETURNING id, nome, email, perfil, ativo, criado_em, coordenadoria_id, FALSE AS is_admin')) {
+          const id = String(params?.[0]);
+          const usuario = usuarios.get(id);
+          if (!usuario) return makeResult([]);
+          usuario.ativo = !usuario.ativo;
+          return makeResult([
+            {
+              id: usuario.id,
+              nome: usuario.nome,
+              email: usuario.email,
+              perfil: usuario.perfil,
+              ativo: usuario.ativo,
+              criado_em: new Date().toISOString(),
+              coordenadoria_id: usuario.coordenadoria_id,
+              is_admin: false,
+            },
+          ], 'UPDATE');
+        }
+
+        if (text.includes('SELECT id, nome FROM usuarios WHERE ativo = TRUE')) {
+          return makeResult(
+            [...usuarios.values()].filter((u) => u.ativo).map((u) => ({ id: u.id, nome: u.nome }))
+          );
       }
 
       if (text.includes('UPDATE usuarios SET senha_hash = $1 WHERE id = $2')) {
@@ -2021,6 +2083,15 @@ describe('HTTP server integration', () => {
     vi.stubGlobal('fetch', fetchMock);
   });
 
+  beforeEach(() => {
+    const admin = database.usuarios.get('user-1');
+    if (admin) {
+      admin.ativo = true;
+    }
+    database.usuarios.delete('user-inactive');
+    database.usuarios.delete('user-temp');
+  });
+
   afterAll(async () => {
     await server.close();
     const unstubAllGlobals = (vi as any).unstubAllGlobals;
@@ -2151,23 +2222,67 @@ describe('HTTP server integration', () => {
     expect(database.refreshTokens.some((token) => token.revogado)).toBe(true);
   });
 
-  it('returns 401 for invalid refresh token', async () => {
-    const response = await server.inject({
-      method: 'POST',
-      url: '/auth/refresh',
-      payload: {
-        refreshToken: 'invalid-token',
-      },
+    it('returns 401 for invalid refresh token', async () => {
+      const response = await server.inject({
+        method: 'POST',
+        url: '/auth/refresh',
+        payload: {
+          refreshToken: 'invalid-token',
+        },
+      });
+
+      expect(response.statusCode).toBe(401);
+      expect(String(response.json().error)).toContain('Refresh token');
     });
 
-    expect(response.statusCode).toBe(401);
-    expect(String(response.json().error)).toContain('Refresh token');
-  });
+    it('blocks login for inactive users', async () => {
+      database.usuarios.set('user-inactive', {
+        id: 'user-inactive',
+        nome: 'Usuário Inativo',
+        email: 'inativo@test.com',
+        senha_hash: HASHED_PASSWORD,
+        perfil: 'operador',
+        perfis: ['operador'],
+        coordenadoria_id: null,
+        ativo: false,
+      });
 
-  it('returns authenticated user profile on /auth/me', async () => {
-    const accessToken = await authenticate();
-    const response = await server.inject({
-      method: 'GET',
+      const response = await server.inject({
+        method: 'POST',
+        url: '/auth/login',
+        payload: {
+          email: 'inativo@test.com',
+          senha: 'SenhaSegura123',
+        },
+      });
+
+      expect(response.statusCode).toBe(401);
+      expect(String(response.json().error)).toContain('desativado');
+    });
+
+    it('blocks refresh for inactive users', async () => {
+      const login = await authenticateWithCredentials('user@test.com', 'SenhaSegura123');
+      const usuario = database.usuarios.get('user-1');
+      expect(usuario).toBeDefined();
+      if (!usuario) return;
+      usuario.ativo = false;
+
+      const response = await server.inject({
+        method: 'POST',
+        url: '/auth/refresh',
+        payload: {
+          refreshToken: login.refreshToken,
+        },
+      });
+
+      expect(response.statusCode).toBe(401);
+      expect(String(response.json().error)).toContain('desativado');
+    });
+
+    it('returns authenticated user profile on /auth/me', async () => {
+      const accessToken = await authenticate();
+      const response = await server.inject({
+        method: 'GET',
       url: '/auth/me',
       headers: {
         authorization: `Bearer ${accessToken}`,
@@ -2179,10 +2294,43 @@ describe('HTTP server integration', () => {
       id: 'user-1',
       email: 'user@test.com',
       perfil: 'administrador',
-      perfilAtivo: 'administrador',
-      perfis: expect.arrayContaining(['administrador', 'colaborador']),
+        perfilAtivo: 'administrador',
+        perfis: expect.arrayContaining(['administrador', 'colaborador']),
+      });
     });
-  });
+
+    it('blocks authenticated requests when the user becomes inactive', async () => {
+      const accessToken = await authenticate();
+      const usuario = database.usuarios.get('user-1');
+      expect(usuario).toBeDefined();
+      if (!usuario) return;
+      usuario.ativo = false;
+
+      const response = await server.inject({
+        method: 'GET',
+        url: '/auth/me',
+        headers: {
+          authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      expect(response.statusCode).toBe(401);
+      expect(String(response.json().error)).toContain('desativado');
+    });
+
+    it('prevents the current admin from deactivating their own account', async () => {
+      const accessToken = await authenticate();
+      const response = await server.inject({
+        method: 'PATCH',
+        url: '/auth/usuarios/user-1/toggle-ativo',
+        headers: {
+          authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(String(response.json().error)).toContain('próprio');
+    });
 
   it('permite alternar o perfil ativo quando o usuário possui múltiplos perfis', async () => {
     const accessToken = await authenticate();

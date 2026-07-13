@@ -1,4 +1,4 @@
-Ôªøimport { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -21,6 +21,7 @@ import { useCoordenadorias } from '../../hooks/useQueries';
 import { api } from '../../services/api';
 import { formatDateBR, formatDateTimeBR } from '../../utils/date';
 import { formatCriticalNumber } from '../../utils/number';
+
 
 interface Coordenadoria {
   id: string;
@@ -104,6 +105,8 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
   const navigate = useNavigate();
   const [dataInicio, setDataInicio] = useState('');
   const [dataFim, setDataFim] = useState('');
+  const [draftDataInicio, setDraftDataInicio] = useState('');
+  const [draftDataFim, setDraftDataFim] = useState('');
   const [coordenadoriaId, setCoordenadoriaId] = useState('');
   const coordenadoriasQuery = useCoordenadorias();
   const coordenadorias = (coordenadoriasQuery.data ?? []) as Coordenadoria[];
@@ -116,7 +119,6 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
   } | null>(null);
   const [relatorio, setRelatorio] = useState<RelatorioCompleto | null>(null);
   const [carregandoRelatorio, setCarregandoRelatorio] = useState(false);
-  const ultimoAutoLoadRef = useRef<string | null>(null);
 
   const filtrosUrl = useMemo(() => {
     const params = new URLSearchParams(location.search);
@@ -130,6 +132,8 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
   useEffect(() => {
     setDataInicio(filtrosUrl.dataInicio);
     setDataFim(filtrosUrl.dataFim);
+    setDraftDataInicio(filtrosUrl.dataInicio);
+    setDraftDataFim(filtrosUrl.dataFim);
     setCoordenadoriaId(filtrosUrl.coordenadoriaId);
   }, [filtrosUrl.coordenadoriaId, filtrosUrl.dataFim, filtrosUrl.dataInicio]);
 
@@ -155,35 +159,39 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
     }
   }, [coordenadoriaId, dataFim, dataInicio, location.pathname, location.search, navigate]);
 
-  const validarPeriodo = useCallback((): boolean => {
-    if (!dataInicio || !dataFim) {
+  const validarPeriodo = useCallback((inicio: string, fim: string): boolean => {
+    if (!inicio || !fim) {
       setMensagem({
         tipo: 'error',
-        texto: 'Per√≠odo obrigat√≥rio',
-        detalhes: 'Selecione a data de in√≠cio e fim para gerar o relat√≥rio.',
+        texto: 'PerÌodo obrigatÛrio',
+        detalhes: 'Selecione a data de inÌcio e fim para gerar o relatÛrio.',
       });
       return false;
     }
-    if (new Date(dataInicio) > new Date(dataFim)) {
+    if (new Date(inicio) > new Date(fim)) {
       setMensagem({
         tipo: 'error',
-        texto: 'Per√≠odo inv√°lido',
-        detalhes: 'A data de in√≠cio deve ser anterior √† data de fim.',
+        texto: 'PerÌodo inv·lido',
+        detalhes: 'A data de inÌcio deve ser anterior ‡ data de fim.',
       });
       return false;
     }
     return true;
-  }, [dataFim, dataInicio]);
+  }, []);
 
   const handleVisualizar = useCallback(async (): Promise<void> => {
-    if (!validarPeriodo()) return;
+    const inicio = draftDataInicio;
+    const fim = draftDataFim;
+    if (!validarPeriodo(inicio, fim)) return;
 
     setCarregandoRelatorio(true);
     setMensagem(null);
     setRelatorio(null);
+    setDataInicio(inicio);
+    setDataFim(fim);
 
     try {
-      const params = new URLSearchParams({ dataInicio, dataFim, formato: 'json' });
+      const params = new URLSearchParams({ dataInicio: inicio, dataFim: fim, formato: 'json' });
       if (coordenadoriaId) params.set('coordenadoriaId', coordenadoriaId);
       const data = await api.get<RelatorioCompleto>(`/relatorios?${params.toString()}`);
       setRelatorio(data);
@@ -191,70 +199,52 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
       const detalhes =
         error instanceof Error
           ? error.message
-          : ((error as { error?: string })?.error ?? 'Erro ao carregar relat√≥rio');
+          : ((error as { error?: string })?.error ?? 'Erro ao carregar relatÛrio');
       setMensagem({
         tipo: 'error',
-        texto: 'Erro ao gerar relat√≥rio',
+        texto: 'Erro ao gerar relatÛrio',
         detalhes,
       });
     } finally {
       setCarregandoRelatorio(false);
     }
-  }, [coordenadoriaId, dataFim, dataInicio, validarPeriodo]);
-
-  useEffect(() => {
-    if (!dataInicio || !dataFim) {
-      ultimoAutoLoadRef.current = null;
-      return;
-    }
-
-    if (new Date(dataInicio) > new Date(dataFim)) {
-      setMensagem({
-        tipo: 'error',
-        texto: 'Per√≠odo inv√°lido',
-        detalhes: 'A data de in√≠cio deve ser anterior √† data de fim.',
-      });
-      return;
-    }
-
-    const key = [dataInicio, dataFim, coordenadoriaId].join('|');
-    if (ultimoAutoLoadRef.current === key) return;
-
-    ultimoAutoLoadRef.current = key;
-    void handleVisualizar();
-  }, [coordenadoriaId, dataFim, dataInicio, handleVisualizar]);
+  }, [coordenadoriaId, draftDataFim, draftDataInicio, validarPeriodo]);
 
   const handleExportar = async (formato: 'pdf' | 'excel'): Promise<void> => {
-    if (!validarPeriodo()) return;
+    const inicio = draftDataInicio;
+    const fim = draftDataFim;
+    if (!validarPeriodo(inicio, fim)) return;
 
     setGerando(formato);
     setMensagem(null);
+    setDataInicio(inicio);
+    setDataFim(fim);
 
     try {
-      const params = new URLSearchParams({ dataInicio, dataFim, formato });
+      const params = new URLSearchParams({ dataInicio: inicio, dataFim: fim, formato });
       if (coordenadoriaId) params.set('coordenadoriaId', coordenadoriaId);
 
       const endpoint = `/api/relatorios?${params.toString()}`;
-      const filename = `relatorio-${formato}-${dataInicio}-a-${dataFim}.${formato === 'pdf' ? 'pdf' : 'xlsx'}`;
+      const filename = `relatorio-${formato}-${inicio}-a-${fim}.${formato === 'pdf' ? 'pdf' : 'xlsx'}`;
       await api.download(endpoint, filename);
 
       setMensagem({
         tipo: 'success',
-        texto: `Relat√≥rio ${formato.toUpperCase()} exportado com sucesso`,
+        texto: `RelatÛrio ${formato.toUpperCase()} exportado com sucesso`,
       });
     } catch (error) {
-      if (error instanceof Error && error.message.includes('Sess√£o expirada')) {
+      if (error instanceof Error && error.message.includes('Sess„o expirada')) {
         setMensagem({
           tipo: 'error',
-          texto: 'Sess√£o expirada',
-          detalhes: 'Fa√ßa login novamente.',
+          texto: 'Sess„o expirada',
+          detalhes: 'FaÁa login novamente.',
         });
       } else {
         setMensagem({
           tipo: 'error',
-          texto: 'Erro ao exportar relat√≥rio',
+          texto: 'Erro ao exportar relatÛrio',
           detalhes:
-            error instanceof Error ? error.message : 'Verifique sua conex√£o e tente novamente.',
+            error instanceof Error ? error.message : 'Verifique sua conex„o e tente novamente.',
         });
       }
     } finally {
@@ -269,7 +259,7 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
     for (const coordenadoria of relatorio.producaoPorCoordenadoria) {
       for (const etapa of coordenadoria.totaisPorEtapa) {
         rows.push({
-          coordenadoria: coordenadoria.coordenadoriaSigla || coordenadoria.coordenadoriaNome || '‚Äî',
+          coordenadoria: coordenadoria.coordenadoriaSigla || coordenadoria.coordenadoriaNome || 'ó',
           etapa: etapa.etapaNome,
           total: etapa.quantidade,
         });
@@ -322,7 +312,7 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Relat√≥rios Gerenciais" subtitle="Produ√ß√£o por per√≠odo." />
+      <PageHeader title="RelatÛrios Gerenciais" subtitle="ProduÁ„o por perÌodo." />
 
       {mensagem ? (
         <ActionFeedback
@@ -333,48 +323,48 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
         />
       ) : null}
 
-      <FilterBar
-        actions={
-          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap">
-            <Button
-              variant="primary"
-              icon="search"
-              onClick={() => void handleVisualizar()}
-              loading={carregandoRelatorio}
-              disabled={carregandoRelatorio || gerando !== null}
-              fullWidth
-            >
-              Visualizar
-            </Button>
-            <Button
-              variant="secondary"
-              icon="file-text"
-              onClick={() => void handleExportar('pdf')}
-              loading={gerando === 'pdf'}
-              disabled={gerando !== null || carregandoRelatorio}
-              fullWidth
-            >
-              PDF
-            </Button>
-            <Button
-              variant="secondary"
-              icon="table"
-              onClick={() => void handleExportar('excel')}
-              loading={gerando === 'excel'}
-              disabled={gerando !== null || carregandoRelatorio}
-              fullWidth
-            >
-              Excel
-            </Button>
+        <FilterBar
+          actions={
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
+              <Button
+                variant="primary"
+                icon="search"
+                size="sm"
+                onClick={() => void handleVisualizar()}
+                loading={carregandoRelatorio}
+                disabled={carregandoRelatorio || gerando !== null}
+              >
+                Visualizar
+              </Button>
+              <Button
+                variant="secondary"
+                icon="file-text"
+                size="sm"
+                onClick={() => void handleExportar('pdf')}
+                loading={gerando === 'pdf'}
+                disabled={gerando !== null || carregandoRelatorio}
+              >
+                PDF
+              </Button>
+              <Button
+                variant="secondary"
+                icon="table"
+                size="sm"
+                onClick={() => void handleExportar('excel')}
+                loading={gerando === 'excel'}
+                disabled={gerando !== null || carregandoRelatorio}
+              >
+                Excel
+              </Button>
           </div>
         }
       >
         <div className="sm:col-span-2 xl:col-span-2">
           <DateRangePicker
-            startDate={dataInicio}
-            endDate={dataFim}
-            onStartDateChange={setDataInicio}
-            onEndDateChange={setDataFim}
+            startDate={draftDataInicio}
+            endDate={draftDataFim}
+            onStartDateChange={setDraftDataInicio}
+            onEndDateChange={setDraftDataFim}
           />
         </div>
         <Select
@@ -402,7 +392,7 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
               {relatorio.titulo}
             </h3>
             <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
-              {formatDateBR(relatorio.periodo.inicio)} a {formatDateBR(relatorio.periodo.fim)} ¬∑
+              {formatDateBR(relatorio.periodo.inicio)} a {formatDateBR(relatorio.periodo.fim)} ∑
               Emitido em {formatDateTimeBR(relatorio.dataGeracao)}
             </p>
           </Card>
@@ -555,7 +545,7 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
             <div className="flex items-center gap-2 border-b border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] px-5 py-3">
               <Icon name="users" className="h-4 w-4 text-[var(--color-text-tertiary)]" />
               <h3 className="text-sm font-medium text-[var(--color-text-primary)]">
-                Produ√ß√£o por colaborador
+                ProduÁ„o por colaborador
               </h3>
             </div>
 
@@ -591,7 +581,7 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
                   <TableRow>
                     <TableHeader>Colaborador</TableHeader>
                     <TableHeader>Etapa</TableHeader>
-                    <TableHeader align="right">Produ√ß√£o</TableHeader>
+                    <TableHeader align="right">ProduÁ„o</TableHeader>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -617,7 +607,7 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
             <div className="flex items-center gap-2 border-b border-[var(--color-border-primary)] bg-[var(--color-bg-secondary)] px-5 py-3">
               <Icon name="book" className="h-4 w-4 text-[var(--color-text-tertiary)]" />
               <h3 className="text-sm font-medium text-[var(--color-text-primary)]">
-                Gloss√°rio das etapas
+                Gloss·rio das etapas
               </h3>
             </div>
             <div className="space-y-2 p-5">
@@ -641,7 +631,7 @@ export function RelatoriosGerenciaisPage(): JSX.Element {
             className="mx-auto mb-3 h-8 w-8 text-[var(--color-text-tertiary)]"
           />
           <p className="text-sm text-[var(--color-text-secondary)]">
-            Selecione o per√≠odo e clique em <strong>Visualizar</strong>.
+            Selecione o perÌodo e clique em <strong>Visualizar</strong>.
           </p>
         </div>
       ) : null}

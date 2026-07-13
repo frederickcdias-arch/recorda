@@ -373,6 +373,8 @@ export function ExportacoesPage(): JSX.Element {
 
   const [dataInicio, setDataInicio] = useState(dataInicioPadrao);
   const [dataFim, setDataFim] = useState(dataFimPadrao);
+  const [draftDataInicio, setDraftDataInicio] = useState(dataInicioPadrao);
+  const [draftDataFim, setDraftDataFim] = useState(dataFimPadrao);
   const ultimoAutoPreviewRef = useRef<string | null>(null);
 
   const filtrosUrl = useMemo(() => {
@@ -389,6 +391,8 @@ export function ExportacoesPage(): JSX.Element {
   useEffect(() => {
     setDataInicio(filtrosUrl.dataInicio);
     setDataFim(filtrosUrl.dataFim);
+    setDraftDataInicio(filtrosUrl.dataInicio);
+    setDraftDataFim(filtrosUrl.dataFim);
   }, [filtrosUrl.dataFim, filtrosUrl.dataInicio]);
 
   useEffect(() => {
@@ -423,11 +427,13 @@ export function ExportacoesPage(): JSX.Element {
   ]);
 
   const validarPeriodo = useCallback((): boolean => {
-    if (!dataInicio || !dataFim) {
+    const inicio = draftDataInicio;
+    const fim = draftDataFim;
+    if (!inicio || !fim) {
       setMensagem({ tipo: 'error', texto: 'Selecione a data de início e fim.' });
       return false;
     }
-    if (new Date(dataInicio) > new Date(dataFim)) {
+    if (new Date(inicio) > new Date(fim)) {
       setMensagem({
         tipo: 'error',
         texto: 'A data de início deve ser anterior à data de fim.',
@@ -435,27 +441,31 @@ export function ExportacoesPage(): JSX.Element {
       return false;
     }
     return true;
-  }, [dataFim, dataInicio]);
+  }, [draftDataFim, draftDataInicio]);
 
   const handleExportar = async (tipo: string, formato: 'pdf' | 'excel') => {
     if (!validarPeriodo()) return;
 
+    const inicio = draftDataInicio;
+    const fim = draftDataFim;
     const key = `${tipo}-${formato}`;
     setExportando(key);
     setMensagem(null);
+    setDataInicio(inicio);
+    setDataFim(fim);
 
     try {
       const extension = formato === 'pdf' ? 'pdf' : 'xlsx';
 
       if (tipo === 'operacional') {
-        const endpoint = `/api/relatorios/operacional/export?dataInicio=${dataInicio}&dataFim=${dataFim}&formato=${formato}`;
+        const endpoint = `/api/relatorios/operacional/export?dataInicio=${inicio}&dataFim=${fim}&formato=${formato}`;
         await api.download(
           endpoint,
-          `detalhamento_operacional_${dataInicio}_${dataFim}.${extension}`
+          `detalhamento_operacional_${inicio}_${fim}.${extension}`
         );
       } else {
-        const endpoint = `/api/relatorios?formato=${formato}&dataInicio=${dataInicio}&dataFim=${dataFim}`;
-        await api.download(endpoint, `relatorio_gerencial_${dataInicio}_${dataFim}.${extension}`);
+        const endpoint = `/api/relatorios?formato=${formato}&dataInicio=${inicio}&dataFim=${fim}`;
+        await api.download(endpoint, `relatorio_gerencial_${inicio}_${fim}.${extension}`);
       }
 
       setMensagem({ tipo: 'success', texto: `Exportação ${formato.toUpperCase()} concluída.` });
@@ -473,14 +483,18 @@ export function ExportacoesPage(): JSX.Element {
     async (tipo: string) => {
       if (!validarPeriodo()) return;
 
+      const inicio = draftDataInicio;
+      const fim = draftDataFim;
       setExportando(`${tipo}-preview`);
       setMensagem(null);
+      setDataInicio(inicio);
+      setDataFim(fim);
 
       try {
         if (tipo === 'gerencial') {
           setPreviewOperacional(null);
           const data = await api.get<PreviewData>(
-            `/relatorios?formato=json&dataInicio=${dataInicio}&dataFim=${dataFim}`
+            `/relatorios?formato=json&dataInicio=${inicio}&dataFim=${fim}`
           );
           setPreviewData(data);
         } else {
@@ -495,7 +509,7 @@ export function ExportacoesPage(): JSX.Element {
               repositorio: string;
               quantidade: number;
             }[];
-          }>(`/relatorios/operacional?dataInicio=${dataInicio}&dataFim=${dataFim}`);
+          }>(`/relatorios/operacional?dataInicio=${inicio}&dataFim=${fim}`);
 
           setPreviewOperacional(
             (data.registros ?? []).map((registro) => ({
@@ -516,11 +530,11 @@ export function ExportacoesPage(): JSX.Element {
           tipo: 'error',
           texto: error instanceof Error ? error.message : 'Erro ao carregar preview',
         });
-      } finally {
-        setExportando(null);
-      }
-    },
-    [dataFim, dataInicio, validarPeriodo]
+    } finally {
+      setExportando(null);
+    }
+  },
+    [draftDataFim, draftDataInicio, validarPeriodo]
   );
 
   useEffect(() => {
@@ -566,10 +580,10 @@ export function ExportacoesPage(): JSX.Element {
             Período da exportação
           </h2>
           <DateRangePicker
-            startDate={dataInicio}
-            endDate={dataFim}
-            onStartDateChange={setDataInicio}
-            onEndDateChange={setDataFim}
+            startDate={draftDataInicio}
+            endDate={draftDataFim}
+            onStartDateChange={setDraftDataInicio}
+            onEndDateChange={setDraftDataFim}
           />
         </div>
       </Card>

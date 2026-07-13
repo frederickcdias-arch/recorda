@@ -42,6 +42,17 @@ type UsuarioRow = {
   ultimo_acesso?: string;
 };
 
+type UsuarioStatusRow = {
+  id: string;
+  nome: string;
+  email: string;
+  perfil: string;
+  ativo: boolean;
+  criado_em: string;
+  coordenadoria_id: string | null;
+  is_admin: boolean;
+};
+
 declare module '@fastify/jwt' {
   interface FastifyJWT {
     payload: JWTPayload;
@@ -146,6 +157,18 @@ async function salvarPerfisUsuario(
       [usuarioId, perfil]
     );
   }
+}
+
+async function setAuditUser(
+  client: {
+    query: <T = Record<string, unknown>>(
+      sql: string,
+      params?: unknown[]
+    ) => Promise<{ rows: T[] }>;
+  },
+  userId: string
+): Promise<void> {
+  await client.query(`SELECT set_config('app.current_user_id', $1, true)`, [userId]);
 }
 
 export const authRoutes = fp(async (server: FastifyInstance): Promise<void> => {
@@ -832,36 +855,104 @@ export const authRoutes = fp(async (server: FastifyInstance): Promise<void> => {
         return reply.status(400).send({ error: 'Não é permitido desativar seu próprio usuário' });
       }
 
+      const client = await server.database.pool.connect();
+
       try {
-        const result = await server.database.query(
-          `UPDATE usuarios
-           SET ativo = NOT ativo, atualizado_em = CURRENT_TIMESTAMP
-           WHERE id = $1
-           RETURNING id, nome, email, perfil, ativo, criado_em`,
+        await client.query('BEGIN');
+        await client.query(`SELECT pg_advisory_xact_lock(987654321::bigint)`);
+        await setAuditUser(client, user.id);
+
+        const targetResult = await client.query<UsuarioStatusRow>(
+          `SELECT
+             u.id,
+             u.nome,
+             u.email,
+             u.perfil,
+             u.ativo,
+             u.criado_em,
+             u.coordenadoria_id,
+             (
+               u.perfil = 'administrador'::perfil_usuario
+               OR EXISTS (
+                 SELECT 1
+                   FROM usuario_perfis up
+                  WHERE up.usuario_id = u.id
+                    AND up.perfil = 'administrador'::perfil_usuario
+               )
+             ) AS is_admin
+           FROM usuarios u
+          WHERE u.id = $1`,
           [id]
         );
 
-        if (result.rows.length === 0) {
+        const target = targetResult.rows[0];
+
+        if (!target) {
+          await client.query('ROLLBACK');
           return reply.status(404).send({ error: 'Usuário não encontrado' });
         }
 
-        const row = result.rows[0] as Record<string, unknown>;
-        const perfis = await getPerfisUsuario(server, id, row.perfil as string);
-        const perfilAtivo = getPerfilAtivoDefault(perfis, row.perfil as string);
+        if (target.ativo && target.is_admin) {
+          const adminsResult = await client.query<{ id: string }>(
+            `SELECT u.id
+               FROM usuarios u
+              WHERE u.ativo = true
+                AND (
+                  u.perfil = 'administrador'::perfil_usuario
+                  OR EXISTS (
+                    SELECT 1
+                      FROM usuario_perfis up
+                     WHERE up.usuario_id = u.id
+                       AND up.perfil = 'administrador'::perfil_usuario
+                  )
+                )`
+          );
+
+          if (adminsResult.rows.length <= 1) {
+            await client.query('ROLLBACK');
+            return reply.status(400).send({
+              error: 'Não é permitido desativar o último administrador ativo',
+            });
+          }
+        }
+
+        const result = await client.query<UsuarioStatusRow>(
+          `UPDATE usuarios
+              SET ativo = NOT ativo,
+                  atualizado_em = CURRENT_TIMESTAMP
+            WHERE id = $1
+            RETURNING id, nome, email, perfil, ativo, criado_em, coordenadoria_id, FALSE AS is_admin`,
+          [id]
+        );
+
+        const row = result.rows[0];
+        if (!row) {
+          await client.query('ROLLBACK');
+          return reply.status(404).send({ error: 'Usuário não encontrado' });
+        }
+
+        await client.query('COMMIT');
+
+        const perfis = await getPerfisUsuario(server, id, row.perfil);
+        const perfilAtivo = getPerfilAtivoDefault(perfis, row.perfil);
         return reply.send({
-          id: row.id as string,
-          nome: row.nome as string,
-          email: row.email as string,
+          id: row.id,
+          nome: row.nome,
+          email: row.email,
           perfis,
           perfilAtivo,
           perfil: perfilAtivo,
           papel: perfilToPapel(perfilAtivo),
-          ativo: row.ativo as boolean,
-          criado_em: row.criado_em as string,
+          ativo: row.ativo,
+          criado_em: row.criado_em,
+          coordenadoriaId: row.coordenadoria_id,
         });
       } catch (error) {
+        await client.query('ROLLBACK').catch(() => {});
         request.log.error(error);
         return reply.status(500).send({ error: 'Erro ao alterar status do usuário' });
+      } finally {
+        client.release();
       }
     }
   );

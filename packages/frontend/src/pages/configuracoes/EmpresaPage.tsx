@@ -254,6 +254,8 @@ export function EmpresaPage(): JSX.Element {
             <div className="flex flex-wrap gap-2">
               <Button
                 variant="secondary"
+                size="sm"
+                icon="refresh-cw"
                 onClick={() => void queryClient.invalidateQueries({ queryKey: queryKeys.empresa })}
               >
                 Atualizar

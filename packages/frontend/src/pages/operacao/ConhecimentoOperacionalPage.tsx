@@ -573,6 +573,7 @@ export function ConhecimentoOperacionalPage(): JSX.Element {
                 <Button
                   variant="secondary"
                   size="sm"
+                  icon="refresh-cw"
                   onClick={() => invalidateDocs()}
                   loading={saving}
                 >

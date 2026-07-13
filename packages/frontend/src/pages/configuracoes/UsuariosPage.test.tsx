@@ -1,9 +1,10 @@
 import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { UsuariosPage } from './UsuariosPage';
+import { useAuth } from '../../contexts/AuthContext';
 import {
   useQueryClient,
   useRegisterUsuario,
@@ -11,6 +12,10 @@ import {
   useUpdateUsuario,
   useUsuarios,
 } from '../../hooks/useQueries';
+
+vi.mock('../../contexts/AuthContext', () => ({
+  useAuth: vi.fn(),
+}));
 
 vi.mock('../../hooks/useQueries', () => ({
   useQueryClient: vi.fn(),
@@ -24,6 +29,7 @@ vi.mock('../../hooks/useQueries', () => ({
 }));
 
 const mockUseQueryClient = useQueryClient as unknown as Mock;
+const mockUseAuth = useAuth as unknown as Mock;
 const mockUseUsuarios = useUsuarios as unknown as Mock;
 const mockUseRegisterUsuario = useRegisterUsuario as unknown as Mock;
 const mockUseUpdateUsuario = useUpdateUsuario as unknown as Mock;
@@ -54,13 +60,21 @@ describe('UsuariosPage', () => {
     mockUseQueryClient.mockReturnValue({
       invalidateQueries: vi.fn(),
     });
+    mockUseAuth.mockReturnValue({
+      usuario: {
+        id: 'current-admin',
+      },
+    });
     mockUseUsuarios.mockReturnValue({
       data: {
         usuarios: [
           {
             id: 'user-visualizador',
-            nome: 'Infra Visualização',
+            nome: 'Infra Visualizacao',
             email: 'infra.visualizacao@recorda.local',
+            perfis: ['visualizador'],
+            perfilAtivo: 'visualizador',
+            perfil: 'visualizador',
             papel: 'VISUALIZADOR',
             ativo: true,
             criado_em: '2026-06-03T12:00:00.000Z',
@@ -81,45 +95,66 @@ describe('UsuariosPage', () => {
     });
   });
 
-  it('renderiza a opção Visualizador no formulário de usuário', async () => {
+  it('renders the Visualizador option in the user form', async () => {
     const user = userEvent.setup();
 
     renderPage();
 
     await user.click(screen.getByRole('button', { name: /Novo Usuário/i }));
 
-    expect(screen.getByRole('option', { name: 'Visualizador' })).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: 'Visualizador' })).toBeInTheDocument();
   });
 
-  it('envia perfil visualizador ao criar usuário', async () => {
+  it('submits visualizador profile when creating a user', async () => {
     const user = userEvent.setup();
     registerMutateAsync.mockResolvedValueOnce({});
 
     renderPage();
 
     await user.click(screen.getByRole('button', { name: /Novo Usuário/i }));
-    await user.type(screen.getByLabelText(/Nome \*/i), 'Infra Visualização');
+    await user.type(screen.getByLabelText(/Nome \*/i), 'Infra Visualizacao');
     await user.type(screen.getByLabelText(/Email \*/i), 'infra.visualizacao@recorda.local');
-    await user.type(
-      screen.getByLabelText(/Senha \* \(mínimo 8 caracteres\)/i),
-      'SenhaSegura123'
-    );
-    await user.selectOptions(screen.getByLabelText(/Perfil/i), 'visualizador');
+    await user.type(screen.getByLabelText(/Senha \*/i), 'SenhaSegura123');
+    await user.click(screen.getByRole('checkbox', { name: 'Operador' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Visualizador' }));
     await user.click(screen.getByRole('button', { name: /Criar Usuário/i }));
 
     await waitFor(() => {
       expect(registerMutateAsync).toHaveBeenCalledWith({
         email: 'infra.visualizacao@recorda.local',
-        nome: 'Infra Visualização',
+        nome: 'Infra Visualizacao',
         senha: 'SenhaSegura123',
         perfil: 'visualizador',
+        perfis: ['visualizador'],
       });
     });
   });
 
-  it('mostra a label Visualizador na listagem', () => {
+  it('shows the Visualizador label in the list', () => {
     renderPage();
 
-    expect(screen.getByText('Visualizador')).toBeInTheDocument();
+    expect(screen.getByText('Visualizador ativo')).toBeInTheDocument();
+  });
+
+  it('opens confirmation before toggling user status', async () => {
+    const user = userEvent.setup();
+    const toggleMutateAsync = vi.fn().mockResolvedValueOnce({});
+
+    mockUseToggleUsuarioAtivo.mockReturnValue({
+      mutateAsync: toggleMutateAsync,
+    });
+
+    renderPage();
+
+    await user.click(screen.getByRole('button', { name: /Desativar usuário Infra Visualizacao/i }));
+
+    const dialog = screen.getByRole('dialog', { name: /Desativar usuário/i });
+    expect(dialog).toBeInTheDocument();
+
+    await user.click(within(dialog).getByRole('button', { name: /Desativar usuário/i }));
+
+    await waitFor(() => {
+      expect(toggleMutateAsync).toHaveBeenCalledWith('user-visualizador');
+    });
   });
 });

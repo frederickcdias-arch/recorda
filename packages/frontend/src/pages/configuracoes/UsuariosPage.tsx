@@ -24,6 +24,7 @@ import {
   useUpdateUsuario,
   useUsuarios,
 } from '../../hooks/useQueries';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface Usuario {
   id: string;
@@ -74,6 +75,7 @@ function togglePerfilSelecionado(
 }
 
 export function UsuariosPage(): JSX.Element {
+  const { usuario: usuarioLogado } = useAuth();
   const queryClient = useQueryClient();
   const usuariosQuery = useUsuarios();
   const registerUsuario = useRegisterUsuario();
@@ -93,6 +95,7 @@ export function UsuariosPage(): JSX.Element {
   );
   const [modalAberto, setModalAberto] = useState(false);
   const [usuarioEditando, setUsuarioEditando] = useState<Usuario | null>(null);
+  const [usuarioStatusSelecionado, setUsuarioStatusSelecionado] = useState<Usuario | null>(null);
   const [formData, setFormData] = useState({
     email: '',
     nome: '',
@@ -100,6 +103,7 @@ export function UsuariosPage(): JSX.Element {
     perfis: ['operador'] as PerfilUsuario[],
   });
   const [salvando, setSalvando] = useState(false);
+  const [alterandoStatusId, setAlterandoStatusId] = useState<string | null>(null);
 
   const resumo = useMemo(
     () => ({
@@ -182,17 +186,27 @@ export function UsuariosPage(): JSX.Element {
     }
   };
 
-  const handleToggleAtivo = async (usuario: Usuario): Promise<void> => {
+  const handleToggleAtivo = (usuario: Usuario): void => {
+    setUsuarioStatusSelecionado(usuario);
+  };
+
+  const confirmarToggleAtivo = async (): Promise<void> => {
+    if (!usuarioStatusSelecionado) return;
+
+    setAlterandoStatusId(usuarioStatusSelecionado.id);
     try {
-      await toggleUsuarioAtivo.mutateAsync(usuario.id);
+      await toggleUsuarioAtivo.mutateAsync(usuarioStatusSelecionado.id);
       setMensagem({
         tipo: 'success',
-        texto: usuario.ativo ? 'Usuário desativado.' : 'Usuário ativado.',
+        texto: usuarioStatusSelecionado.ativo ? 'Usuário desativado.' : 'Usuário ativado.',
       });
+      setUsuarioStatusSelecionado(null);
     } catch (error) {
       const message =
         error instanceof Error ? error.message : (error as { error?: string })?.error || 'Erro';
       setMensagem({ tipo: 'error', texto: message });
+    } finally {
+      setAlterandoStatusId(null);
     }
   };
 
@@ -326,15 +340,23 @@ export function UsuariosPage(): JSX.Element {
                           variant={usuario.ativo ? 'ghost' : 'success'}
                           size="sm"
                           icon={usuario.ativo ? 'x' : 'check'}
-                          iconOnly
                           onClick={() => handleToggleAtivo(usuario)}
+                          disabled={usuarioLogado?.id === usuario.id}
                           aria-label={
                             usuario.ativo
                               ? `Desativar usuário ${usuario.nome}`
                               : `Ativar usuário ${usuario.nome}`
                           }
-                          title={usuario.ativo ? 'Desativar usuário' : 'Ativar usuário'}
-                        />
+                          title={
+                            usuarioLogado?.id === usuario.id
+                              ? 'Você não pode alterar seu próprio usuário'
+                              : usuario.ativo
+                                ? 'Desativar usuário'
+                                : 'Ativar usuário'
+                          }
+                        >
+                          {usuario.ativo ? 'Desativar' : 'Ativar'}
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -424,6 +446,45 @@ export function UsuariosPage(): JSX.Element {
                 </div>
               </div>
             ) : null}
+          </div>
+        </Modal>
+
+        <Modal
+          open={usuarioStatusSelecionado !== null}
+          onClose={() => setUsuarioStatusSelecionado(null)}
+          title={
+            usuarioStatusSelecionado?.ativo ? 'Desativar usuário' : 'Ativar usuário'
+          }
+          subtitle={
+            usuarioStatusSelecionado
+              ? `${usuarioStatusSelecionado.nome} - ${usuarioStatusSelecionado.email}`
+              : undefined
+          }
+          size="sm"
+          footer={
+            <div className="flex flex-col-reverse gap-3 p-5 sm:flex-row sm:justify-end">
+              <Button variant="secondary" onClick={() => setUsuarioStatusSelecionado(null)}>
+                Cancelar
+              </Button>
+              <Button
+                variant={usuarioStatusSelecionado?.ativo ? 'danger' : 'success'}
+                onClick={() => void confirmarToggleAtivo()}
+                loading={alterandoStatusId === usuarioStatusSelecionado?.id}
+              >
+                {usuarioStatusSelecionado?.ativo ? 'Desativar usuário' : 'Ativar usuário'}
+              </Button>
+            </div>
+          }
+        >
+          <div className="space-y-4 p-5">
+            <p className="text-sm text-[var(--color-text-secondary)]">
+              {usuarioStatusSelecionado?.ativo
+                ? 'O acesso desse usuário será bloqueado para login e renovação de sessão.'
+                : 'O acesso desse usuário será liberado novamente para login e renovação de sessão.'}
+            </p>
+            <p className="text-sm text-[var(--color-text-secondary)]">
+              Essa ação não remove o cadastro e pode ser revertida depois.
+            </p>
           </div>
         </Modal>
       </div>

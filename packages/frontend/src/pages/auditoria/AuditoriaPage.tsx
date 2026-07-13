@@ -73,6 +73,8 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
   const [filtroOperacao, setFiltroOperacao] = useState('');
   const [dataInicio, setDataInicio] = useState(dataInicioPadrao);
   const [dataFim, setDataFim] = useState(dataFimPadrao);
+  const [draftDataInicio, setDraftDataInicio] = useState(dataInicioPadrao);
+  const [draftDataFim, setDraftDataFim] = useState(dataFimPadrao);
   const [pagina, setPagina] = useState(1);
   const [expandido, setExpandido] = useState<string | null>(null);
   const [copiadoId, setCopiadoId] = useState<string | null>(null);
@@ -94,6 +96,8 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
     setFiltroOperacao(filtrosUrl.operacao);
     setDataInicio(filtrosUrl.dataInicio);
     setDataFim(filtrosUrl.dataFim);
+    setDraftDataInicio(filtrosUrl.dataInicio);
+    setDraftDataFim(filtrosUrl.dataFim);
   }, [
     filtrosUrl.dataFim,
     filtrosUrl.dataInicio,
@@ -134,6 +138,22 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
   const temFiltroAtivo = Boolean(
     filtroTabela || filtroOperacao || dataInicio !== dataInicioPadrao || dataFim !== dataFimPadrao
   );
+
+  const handleAplicarFiltros = (): void => {
+    setDataInicio(draftDataInicio);
+    setDataFim(draftDataFim);
+    setPagina(1);
+  };
+
+  const handleLimparFiltros = (): void => {
+    setFiltroTabela('');
+    setFiltroOperacao('');
+    setDraftDataInicio(dataInicioPadrao);
+    setDraftDataFim(dataFimPadrao);
+    setDataInicio(dataInicioPadrao);
+    setDataFim(dataFimPadrao);
+    setPagina(1);
+  };
 
   const invalidate = () => void queryClient.invalidateQueries({ queryKey: ['auditoria'] });
 
@@ -210,7 +230,7 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
           title={config?.titulo ?? 'Auditoria'}
           subtitle={config?.descricao ?? 'Histórico de alterações no sistema.'}
           actions={
-            <Button variant="secondary" icon="refresh-cw" onClick={invalidate} fullWidth>
+            <Button variant="secondary" icon="refresh-cw" size="sm" onClick={invalidate}>
               Atualizar
             </Button>
           }
@@ -218,31 +238,25 @@ export function AuditoriaPage({ categoria }: AuditoriaPageProps): JSX.Element {
 
         <FilterBar
           actions={
-            <Button
-              variant="primary"
-              icon="search"
-              onClick={() => {
-                setPagina(1);
-                invalidate();
-              }}
-              fullWidth
-            >
-              Atualizar lista
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button variant="primary" icon="search" size="sm" onClick={handleAplicarFiltros}>
+                Aplicar filtros
+              </Button>
+              {temFiltroAtivo || draftDataInicio !== dataInicio || draftDataFim !== dataFim ? (
+                <Button variant="ghost" size="sm" onClick={handleLimparFiltros}>
+                  <Icon name="x" className="w-3 h-3" />
+                  Limpar filtros
+                </Button>
+              ) : null}
+            </div>
           }
         >
           <div className="sm:col-span-2 xl:col-span-2">
             <DateRangePicker
-              startDate={dataInicio}
-              endDate={dataFim}
-              onStartDateChange={(value) => {
-                setDataInicio(value);
-                setPagina(1);
-              }}
-              onEndDateChange={(value) => {
-                setDataFim(value);
-                setPagina(1);
-              }}
+              startDate={draftDataInicio}
+              endDate={draftDataFim}
+              onStartDateChange={setDraftDataInicio}
+              onEndDateChange={setDraftDataFim}
             />
           </div>
           <Select

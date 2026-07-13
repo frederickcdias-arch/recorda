@@ -11,11 +11,35 @@ export async function authenticate(request: FastifyRequest, reply: FastifyReply)
     const user = request.user as { id?: string } | undefined;
     if (user?.id) {
       try {
-        await (
+        const database = (
           request.server as {
-            database?: { query: (sql: string, params?: unknown[]) => Promise<unknown> };
+            database?: {
+              query: <T = Record<string, unknown>>(
+                sql: string,
+                params?: unknown[]
+              ) => Promise<{ rows: T[] }>;
+            };
           }
-        ).database?.query(`SELECT set_config('app.current_user_id', $1, true)`, [user.id]);
+        ).database;
+
+        if (!database) {
+          return;
+        }
+
+        const result = await database.query<{ ativo: boolean }>(
+          `SELECT ativo FROM usuarios WHERE id = $1`,
+          [user.id]
+        );
+        const usuario = result.rows[0];
+
+        if (!usuario || !usuario.ativo) {
+          return reply.status(401).send({
+            error: 'Usuário desativado ou não encontrado',
+            code: 'UNAUTHORIZED',
+          });
+        }
+
+        await database.query(`SELECT set_config('app.current_user_id', $1, true)`, [user.id]);
       } catch {
         // Non-fatal: a auditoria segue com usuario nulo se esta propagacao falhar.
       }

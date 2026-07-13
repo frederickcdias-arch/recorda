@@ -294,6 +294,7 @@ export function ComunicadosPage(): JSX.Element {
               <Button
                 variant="secondary"
                 icon="refresh-cw"
+                size="sm"
                 onClick={() => void comunicadosQuery.refetch()}
               >
                 Atualizar

@@ -287,10 +287,11 @@ export function RelatorioAusenciasPage(): JSX.Element {
       {/* ── Filtros ── */}
       <FilterBar
         actions={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button
               variant="primary"
               icon="search"
+              size="sm"
               onClick={() => void handleGerar()}
               loading={carregando}
               disabled={carregando}
@@ -299,6 +300,7 @@ export function RelatorioAusenciasPage(): JSX.Element {
             </Button>
             <Button
               variant="secondary"
+              size="sm"
               onClick={() => void handleExportarPdf()}
               loading={exportandoPdf}
               disabled={exportandoPdf || carregando || exportandoCsv}
@@ -307,6 +309,7 @@ export function RelatorioAusenciasPage(): JSX.Element {
             </Button>
             <Button
               variant="secondary"
+              size="sm"
               onClick={() => void handleExportarCsv()}
               loading={exportandoCsv}
               disabled={exportandoCsv || carregando || exportandoPdf}

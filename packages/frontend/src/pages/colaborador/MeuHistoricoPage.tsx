@@ -64,6 +64,8 @@ export function MeuHistoricoPage(): JSX.Element {
   const [etapaFiltro, setEtapaFiltro] = useState('');
   const [dataInicio, setDataInicio] = useState('');
   const [dataFim, setDataFim] = useState('');
+  const [draftDataInicio, setDraftDataInicio] = useState('');
+  const [draftDataFim, setDraftDataFim] = useState('');
   const [buscaInput, setBuscaInput] = useState('');
   const busca = useDebounce(buscaInput, 600);
   const limite = 50;
@@ -101,6 +103,8 @@ export function MeuHistoricoPage(): JSX.Element {
     setEtapaFiltro(filtrosUrl.etapa);
     setDataInicio(filtrosUrl.dataInicio);
     setDataFim(filtrosUrl.dataFim);
+    setDraftDataInicio(filtrosUrl.dataInicio);
+    setDraftDataFim(filtrosUrl.dataFim);
   }, [filtrosUrl.pagina, filtrosUrl.etapa, filtrosUrl.dataInicio, filtrosUrl.dataFim]);
 
   const queryParams = new URLSearchParams();
@@ -156,15 +160,23 @@ export function MeuHistoricoPage(): JSX.Element {
   const producaoPorEtapa = data?.producaoPorEtapa ?? [];
   const maxQuantidadeEtapa = Math.max(...producaoPorEtapa.map((e) => e.quantidade), 1);
 
+  const handleAplicarFiltros = (): void => {
+    setDataInicio(draftDataInicio);
+    setDataFim(draftDataFim);
+    setPagina(1);
+  };
+
   const handleLimparFiltros = (): void => {
     setEtapaFiltro('');
     setDataInicio('');
     setDataFim('');
+    setDraftDataInicio('');
+    setDraftDataFim('');
     setBuscaInput('');
     setPagina(1);
   };
 
-  const temFiltros = etapaFiltro || dataInicio || dataFim || buscaInput;
+  const temFiltros = etapaFiltro || dataInicio || dataFim || buscaInput || draftDataInicio || draftDataFim;
 
   const errorInfo = isError
     ? {
@@ -196,28 +208,29 @@ export function MeuHistoricoPage(): JSX.Element {
         {/* Filtros */}
         <FilterBar
           actions={
-            temFiltros ? (
-              <Button variant="ghost" size="sm" onClick={handleLimparFiltros}>
-                <Icon name="x" className="w-3 h-3" />
-                Limpar filtros
+            <div className="flex flex-wrap items-center gap-2">
+              <Button variant="primary" size="sm" onClick={handleAplicarFiltros}>
+                Aplicar filtros
               </Button>
-            ) : undefined
+              {temFiltros ? (
+                <Button variant="ghost" size="sm" onClick={handleLimparFiltros}>
+                  <Icon name="x" className="w-3 h-3" />
+                  Limpar filtros
+                </Button>
+              ) : null}
+            </div>
           }
         >
           <div className="sm:col-span-2 lg:col-span-2">
             <DateRangePicker
-              startDate={dataInicio}
-              endDate={dataFim}
-              onStartDateChange={(v) => {
-                setDataInicio(v);
-                setPagina(1);
-              }}
-              onEndDateChange={(v) => {
-                setDataFim(v);
-                setPagina(1);
-              }}
+              startDate={draftDataInicio}
+              endDate={draftDataFim}
+              onStartDateChange={setDraftDataInicio}
+              onEndDateChange={setDraftDataFim}
               showPresets
               onPresetChange={({ startDate, endDate }) => {
+                setDraftDataInicio(startDate);
+                setDraftDataFim(endDate);
                 setDataInicio(startDate);
                 setDataFim(endDate);
                 setPagina(1);
