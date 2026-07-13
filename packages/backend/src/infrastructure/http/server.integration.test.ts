@@ -1,4 +1,4 @@
-import { describe, it, beforeAll, afterAll, expect, vi, type Mock } from 'vitest';
+import { describe, it, beforeAll, beforeEach, afterAll, expect, vi, type Mock } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import bcrypt from 'bcryptjs';
 import type { QueryResult, QueryResultRow } from 'pg';
