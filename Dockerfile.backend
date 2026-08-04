@@ -31,6 +31,9 @@ RUN npm run build --workspace=@recorda/shared && npm run build --workspace=@reco
 FROM node:20-alpine AS runner
 WORKDIR /app
 
+# su-exec lets the entrypoint drop from root to nodejs after fixing volume ownership
+RUN apk add --no-cache su-exec
+
 # Create non-root user
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nodejs
@@ -60,8 +63,12 @@ ENV NODE_ENV=production
 ENV PORT=3001
 ENV UPLOADS_DIR=/app/uploads
 
-# Switch to non-root user
-USER nodejs
+COPY --chown=nodejs:nodejs docker-entrypoint.sh /app/docker-entrypoint.sh
+RUN chmod +x /app/docker-entrypoint.sh
+
+# Stay root here: the entrypoint re-chowns /app/uploads (which may be a
+# volume mount that arrives owned by root) before dropping to nodejs.
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
